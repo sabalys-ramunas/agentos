@@ -1,5 +1,5 @@
 
- Usage: agentos panel [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar panel [OPTIONS] COMMAND [ARGS]...
 
  The web panel.
 

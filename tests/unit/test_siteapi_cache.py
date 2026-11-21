@@ -20,11 +20,11 @@ from siteapi_http_support import (
     search_endpoint,
 )
 
-from agentos.core.models import LaneSpec, RunStatus
-from agentos.runner.fakes import FakeClock
-from agentos.runner.siteapis.cache import SiteCache, cache_key
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.models import web_surface
+from openajar.core.models import LaneSpec, RunStatus
+from openajar.runner.fakes import FakeClock
+from openajar.runner.siteapis.cache import SiteCache, cache_key
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.models import web_surface
 
 
 class Pausing:
@@ -167,7 +167,7 @@ async def test_a_changed_version_misses(node):
     doc = definition()
     doc["version"] = "1.0.1"
     doc["endpoints"]["open_orders"]["cache_s"] = 299
-    from agentos.runner.siteapis.models import install_for_test
+    from openajar.runner.siteapis.models import install_for_test
 
     install_for_test(node.flows, doc)
     async with node.client(key) as c:
@@ -341,7 +341,7 @@ async def test_a_live_key_polling_a_run_whose_grant_ended_is_not_told_its_key_is
 
 
 async def test_a_failed_start_does_not_fail_the_callers_who_joined_it():
-    from agentos.runner.siteapis.cache import Flights
+    from openajar.runner.siteapis.cache import Flights
 
     flights = Flights()
     gate = asyncio.Event()
@@ -367,7 +367,7 @@ async def test_a_failed_start_does_not_fail_the_callers_who_joined_it():
 
 
 async def test_a_cancelled_start_does_not_cancel_the_callers_who_joined_it():
-    from agentos.runner.siteapis.cache import Flights
+    from openajar.runner.siteapis.cache import Flights
 
     flights = Flights()
 
@@ -497,9 +497,9 @@ async def test_an_endpoint_with_cache_s_0_keeps_nothing(tmp_path):
 
 
 async def test_the_cache_is_bounded_by_size_with_the_oldest_used_out_first(tmp_path):
-    from agentos.runner.flows import FlowService
-    from agentos.runner.siteapis.models import install_for_test
-    from agentos.runner.store import RunnerStore
+    from openajar.runner.flows import FlowService
+    from openajar.runner.siteapis.models import install_for_test
+    from openajar.runner.store import RunnerStore
 
     flows = FlowService(RunnerStore(tmp_path / "runner.db"))
     (fv,) = install_for_test(flows)
@@ -545,9 +545,9 @@ async def test_a_read_in_the_air_when_a_person_pauses_does_not_put_it_back(tmp_p
 
 
 async def test_only_a_successful_read_of_a_local_api_is_kept(tmp_path):
-    from agentos.runner.flows import FlowService
-    from agentos.runner.siteapis.models import install_for_test
-    from agentos.runner.store import RunnerStore
+    from openajar.runner.flows import FlowService
+    from openajar.runner.siteapis.models import install_for_test
+    from openajar.runner.store import RunnerStore
 
     flows = FlowService(RunnerStore(tmp_path / "runner.db"))
     doc = copy.deepcopy(definition())

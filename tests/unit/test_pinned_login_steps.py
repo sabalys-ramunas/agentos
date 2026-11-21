@@ -1,13 +1,13 @@
-"""Pins the assisted login's step reader (agentos.vault.steps.read_step): the whole Step for each
+"""Pins the assisted login's step reader (openajar.vault.steps.read_step): the whole Step for each
 kind of sign-in page, from the signal and the fields' structure."""
 
 from __future__ import annotations
 
 from pinned import check, outcome, plain
 
-from agentos.core.models import Signal
-from agentos.vault.steps import Action, PageRead, read_step
-from agentos.vault.typist import FieldInfo
+from openajar.core.models import Signal
+from openajar.vault.steps import Action, PageRead, read_step
+from openajar.vault.typist import FieldInfo
 
 URL = "https://login.example.com/signin"
 TOP = ("https://login.example.com",)

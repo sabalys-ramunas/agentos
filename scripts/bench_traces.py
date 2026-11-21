@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_base(rev: str):
-    src = subprocess.run(["git", "show", f"{rev}:src/agentos/policy/traces.py"], cwd=ROOT, check=True,
+    src = subprocess.run(["git", "show", f"{rev}:src/openajar/policy/traces.py"], cwd=ROOT, check=True,
                          capture_output=True, text=True).stdout
     tmp = Path(tempfile.mkdtemp()) / "traces_base.py"
     tmp.write_text(src)
@@ -68,7 +68,7 @@ def main() -> None:
     a = p.parse_args()
     sys.path.insert(0, str(ROOT / "src"))
     base = load_base(a.base)
-    from agentos.policy import traces as head
+    from openajar.policy import traces as head
 
     res = {"before": [], "after": []}
     for _ in range(a.rounds):  # alternate, so drift hits both

@@ -1,6 +1,6 @@
 # Agent experience rules for studio
 
-agentos is used by agents first. A person reads the report at the end; an agent makes every call
+openajar is used by agents first. A person reads the report at the end; an agent makes every call
 before that. These rules apply to every tool, result and error added in this work. A builder who
 cannot meet one says so in the hand-back; it is never dropped quietly.
 
@@ -23,7 +23,7 @@ tools match the questions:
 
 Lower-level tools (capture, single checks) exist for composing, but no everyday loop needs them.
 
-## 2. Nothing required that agentos already knows
+## 2. Nothing required that openajar already knows
 
 A call needs the target and nothing else. Widths, themes, tokens, components, guidelines and
 references come from the profile and the project's settings. Every default that was applied is
@@ -73,7 +73,7 @@ spread is not shown as a number.
 
 ## 8. Each result says what to do next
 
-Like the rest of agentos: errors start with a code and carry a `fix:` line. Results carry
+Like the rest of openajar: errors start with a code and carry a `fix:` line. Results carry
 `next:` in one sentence ("3 measured findings: fix them, then call ui_check with
 since=run_41"). When a person must act, the result says who and where, and gives the wait
 tool.
@@ -95,7 +95,7 @@ private fields a task has no use for. The slice states its size and what was lef
 ## 11. Few tools, short descriptions, found when needed
 
 The tools live in one `studio` toolset. The description of each is short and says when to
-call it and what comes back. A skill (`agentos-studio`) teaches the three loops in under a
+call it and what comes back. A skill (`openajar-studio`) teaches the three loops in under a
 page each. `howto` has the recipes. Description changes are tested with the tool eval
 (rule 15) before they merge.
 

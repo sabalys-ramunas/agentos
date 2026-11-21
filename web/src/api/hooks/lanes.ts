@@ -12,8 +12,8 @@ import type {
 export const useWorkspaces = (org: string) =>
   useQuery({ queryKey: keys.workspaces(org), queryFn: () => fleet.workspaces(org) });
 
-export const useLane = (org: string, ws: string, name: string) =>
-  useQuery({ queryKey: keys.lane(org, `${ws}/${name}`), queryFn: () => fleet.lane(org, ws, name) });
+export const useLane = (org: string, ws: string, name: string, enabled = true) =>
+  useQuery({ queryKey: keys.lane(org, `${ws}/${name}`), queryFn: () => fleet.lane(org, ws, name), enabled });
 
 /** Frees a lane id its node no longer reports, so another node may report it. Admin only. */
 export function useReleaseLane(org: string, ws: string, name: string) {

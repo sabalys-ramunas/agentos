@@ -1,9 +1,9 @@
 """Lane benchmarks on a real node, tracked over commits (docs/BENCH.md).
 
     make bench                       # syncs, runs on the node in slot 53, appends bench/results.jsonl
-    AGENTOS_TEST_SLOT=53 scripts/node-test.sh bench --python scripts/bench_node.py --runs 5
+    OPENAJAR_TEST_SLOT=53 scripts/node-test.sh bench --python scripts/bench_node.py --runs 5
 
-Runs a throwaway agentosd in the slot (agentos.dev.slotnode: the production daemon, its lanes
+Runs a throwaway agentosd in the slot (openajar.dev.slotnode: the production daemon, its lanes
 behind a loopback stand-in proxy that serves tests/fixtures/site, so nothing leaves the node) with
 one lane, and measures over MCP, as an agent sees it:
 
@@ -36,7 +36,7 @@ import sys
 import time
 from pathlib import Path
 
-from agentos.dev.slotnode import (
+from openajar.dev.slotnode import (
     SITE,
     Slot,
     SlotDaemon,
@@ -50,7 +50,7 @@ from agentos.dev.slotnode import (
     timed,
     tree_memory_kb,
 )
-from agentos.node.snapshot import find_refs
+from openajar.node.snapshot import find_refs
 
 ROOT = Path(__file__).resolve().parents[1]
 LANE = "bench/lane"
@@ -174,7 +174,7 @@ def main() -> int:
         return 2
 
     slot = Slot.from_env()
-    home = Path(os.environ.get("AGENTOS_TEST_ROOT", ROOT / ".node-home")) / f"bench-{secrets.token_hex(4)}"
+    home = Path(os.environ.get("OPENAJAR_TEST_ROOT", ROOT / ".node-home")) / f"bench-{secrets.token_hex(4)}"
     home.mkdir(parents=True)
     proxy = StandInProxy(slot.proxy_port, username="bench", password=secrets.token_urlsafe(16)).start()
     daemon = SlotDaemon(home, slot, token=secrets.token_urlsafe(32), proxy=proxy)

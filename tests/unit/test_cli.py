@@ -1,4 +1,4 @@
-"""`agentos` CLI with AGENTOS_HOME in a temp dir. Lane commands run against FakeLaneManager."""
+"""`openajar` CLI with OPENAJAR_HOME in a temp dir. Lane commands run against FakeLaneManager."""
 
 import asyncio
 import json
@@ -14,12 +14,12 @@ from starlette.routing import Mount
 from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
-from agentos import __version__
-from agentos.cli import app
-from agentos.commands import base as cli_base
-from agentos.core.config import load_config
-from agentos.core.models import LaneSpec
-from agentos.node import daemon
+from openajar import __version__
+from openajar.cli import app
+from openajar.commands import base as cli_base
+from openajar.core.config import load_config
+from openajar.core.models import LaneSpec
+from openajar.node import daemon
 
 PASSWORD = "Pa55:with:colons"
 USERNAME = "brd-customer-zone-isp"
@@ -30,7 +30,7 @@ EM_DASH = "\u2014"
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     return home
 
 
@@ -69,7 +69,7 @@ def test_version(runner):
 
 
 def test_init_writes_config_and_prints_connect_lines(home, runner, monkeypatch):
-    monkeypatch.delenv("AGENTOS_SSH_HOST", raising=False)
+    monkeypatch.delenv("OPENAJAR_SSH_HOST", raising=False)
     monkeypatch.setattr("socket.gethostname", lambda: "mynode")  # no ssh_host set: the hostname
     result = runner.invoke(app, ["node", "init"])
     assert result.exit_code == 0, result.output
@@ -80,15 +80,15 @@ def test_init_writes_config_and_prints_connect_lines(home, runner, monkeypatch):
     token = tomllib.loads(path.read_text())["mcp_token"]
     assert len(token) >= 40
 
-    assert "agentos connect mynode" in result.output
+    assert "openajar connect mynode" in result.output
     assert "ssh -N -L 7400:localhost:7400 mynode" in result.output
-    claude = (  # user scope, so agentos is there in every folder (AUD-32)
-        "claude mcp add --scope user --transport http agentos http://localhost:7400/mcp "
+    claude = (  # user scope, so openajar is there in every folder (AUD-32)
+        "claude mcp add --scope user --transport http openajar http://localhost:7400/mcp "
         '--header "Authorization: Bearer <grant token>"'
     )
     assert claude in result.output
     # the by-hand way gives the agents a grant; the node token is never printed
-    assert "agentos access grants issue --subject claude-code" in result.output and token not in result.output
+    assert "openajar access grants issue --subject claude-code" in result.output and token not in result.output
     assert EM_DASH not in result.output
 
 
@@ -110,7 +110,7 @@ def test_rotate_token_replaces_only_the_token(inited, runner):
     after = load_config(inited)
     assert after.mcp_token not in ("", before.mcp_token)
     assert after.model_copy(update={"mcp_token": before.mcp_token}) == before
-    assert "agentos node restart" in result.output and "agentos connect --upgrade" in result.output
+    assert "openajar node restart" in result.output and "openajar connect --upgrade" in result.output
     assert after.mcp_token not in result.output and EM_DASH not in result.output
 
 
@@ -129,7 +129,7 @@ def test_init_options_for_a_dev_node(home, runner):
 def test_commands_need_init(home, runner):
     for args in (["proxy", "list"], ["lane", "list"], ["node", "serve"], ["proxy", "add", "lt1", "h:1"]):
         result = runner.invoke(app, args)
-        assert result.exit_code == 1 and "agentos node init" in result.output, args
+        assert result.exit_code == 1 and "openajar node init" in result.output, args
 
 
 def test_proxy_add_stores_credentials_privately(inited, runner):
@@ -194,7 +194,7 @@ def test_lane_create_and_list(fake_manager, runner):
     assert listed.output.splitlines()[1].split() == ["personal/reddit", "cold", "camoufox", "own", "lt1", "never"]
 
 
-def test_lane_create_reports_agentos_errors(fake_manager, runner):
+def test_lane_create_reports_openajar_errors(fake_manager, runner):
     assert runner.invoke(app, ["lane", "create", "personal/reddit"]).exit_code == 0
     again = runner.invoke(app, ["lane", "create", "personal/reddit"])
     assert again.exit_code == 1 and "lane_exists:" in again.output
@@ -256,7 +256,7 @@ def test_no_em_dash_in_help(runner):
 
 def test_missing_lane_modules_give_a_clean_error(inited, runner, monkeypatch):
     def missing(cfg):
-        raise ModuleNotFoundError("No module named 'agentos.node.lanes'", name="agentos.node.lanes")
+        raise ModuleNotFoundError("No module named 'openajar.node.lanes'", name="openajar.node.lanes")
 
     def no_daemon(method, url, *, body, headers):  # lane list asks agentosd first
         raise httpx.ConnectError("connection refused")
@@ -265,7 +265,7 @@ def test_missing_lane_modules_give_a_clean_error(inited, runner, monkeypatch):
     monkeypatch.setattr(cli_base, "_send", no_daemon)
     result = runner.invoke(app, ["lane", "list"])
     assert result.exit_code == 1
-    assert "agentos.node.lanes is not part of this build" in result.output
+    assert "openajar.node.lanes is not part of this build" in result.output
     assert "Traceback" not in result.output
 
 
@@ -313,7 +313,7 @@ def test_lane_sites_says_when_a_host_has_no_effect_rules(fake_manager, runner):
 
 
 def test_lane_rules_shows_rule_health_and_drift(fake_manager, runner):
-    from agentos.node import egress
+    from openajar.node import egress
 
     assert runner.invoke(app, ["lane", "create", "biz-a/reddit"]).exit_code == 0
     lane_dir = fake_manager.config.lane_dir("biz-a/reddit")
@@ -334,8 +334,8 @@ def test_lane_rules_shows_rule_health_and_drift(fake_manager, runner):
 
 def test_lane_sites_go_through_a_running_daemon(fake_manager, runner, monkeypatch):
     """While agentosd runs, a change goes to its own lane manager, so a warm lane has it at once."""
-    from agentos.node.viewer_routes import control_api_routes
-    from agentos.node.viewer_tokens import ViewTokens
+    from openajar.node.viewer_routes import control_api_routes
+    from openajar.node.viewer_tokens import ViewTokens
 
     asyncio.run(fake_manager.create(LaneSpec(id="personal/reddit")))
     daemon_lanes = FakeLaneManager(fake_manager.config)  # the daemon's manager, not the CLI's
@@ -375,7 +375,7 @@ def test_lane_sites_go_through_a_running_daemon(fake_manager, runner, monkeypatc
 
 
 def test_lane_sites_observe_on_and_off(fake_manager, runner):
-    from agentos.node import egress
+    from openajar.node import egress
 
     assert runner.invoke(app, ["lane", "create", "biz-a/instagram"]).exit_code == 0
     on = runner.invoke(app, ["lane", "sites", "biz-a/instagram", "observe", "on", "30"])
@@ -402,7 +402,7 @@ def test_lane_sites_rejects(fake_manager, runner, args):
 
 def test_lane_gate_log_sends_since_url_encoded(fake_manager, runner, inited, monkeypatch):
     """A zone's + would reach the daemon as a space (and fail to parse) unless it is encoded."""
-    from agentos.commands import lane_sites
+    from openajar.commands import lane_sites
 
     sent: list[str] = []
 
@@ -417,8 +417,8 @@ def test_lane_gate_log_sends_since_url_encoded(fake_manager, runner, inited, mon
 
 
 def test_lane_gate_log_lists_and_promotes_with_an_audit_row(fake_manager, runner, inited):
-    from agentos.node import egress, gateshapes
-    from agentos.policy.service import PolicyService
+    from openajar.node import egress, gateshapes
+    from openajar.policy.service import PolicyService
 
     assert runner.invoke(app, ["lane", "create", "biz-a/reddit"]).exit_code == 0
     lane_dir = load_config(inited).lane_dir("biz-a/reddit")
@@ -481,7 +481,7 @@ def test_lane_pace_shows_sets_and_removes_a_lanes_pace_without_the_daemon(fake_m
 def test_device_writes_go_through_a_running_daemon(fake_manager, runner, monkeypatch):
     """While agentosd runs, `lane set-device`, `device create` and `device remove` go to its own lane
     manager (its device locks and running lanes), never a second one in the CLI's process."""
-    from agentos.commands import devices, lanes
+    from openajar.commands import devices, lanes
 
     sent: list[tuple[str, str, dict | None]] = []
     plan = {"lane": "biz-a/x", "from": None, "to": "biz-a-pc", "changes": [], "warnings": ["a new computer"],
@@ -529,7 +529,7 @@ def test_proxy_add_over_an_existing_label_needs_a_yes(fake_manager, runner):
 
 
 def test_lane_pace_options_apply_over_the_current_pace():
-    from agentos.commands.lane_sites import _changed_pace
+    from openajar.commands.lane_sites import _changed_pace
 
     current = {"pace": {"active_hours": ["09:00-17:00"], "min_gap_minutes": 30, "timezone": "Europe/Vilnius"},
                "preset": {"active_hours": ["08:00-22:00"], "min_gap_minutes": 45, "commits_per_day": 3}}

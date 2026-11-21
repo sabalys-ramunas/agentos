@@ -10,12 +10,12 @@ from zoneinfo import ZoneInfo
 
 from starlette.testclient import TestClient
 
-from agentos.api.auth import SESSION_COOKIE
-from agentos.api.members import Role
-from agentos.api.web import home, topology
-from agentos.core.models import RunStatus
-from agentos.policy.traces import Cost, TraceEvent
-from agentos.runner.models import DEFAULT_TIMEZONE, Run
+from openajar.api.auth import SESSION_COOKIE
+from openajar.api.members import Role
+from openajar.api.web import home, topology
+from openajar.core.models import RunStatus
+from openajar.policy.traces import Cost, TraceEvent
+from openajar.runner.models import DEFAULT_TIMEZONE, Run
 
 ORG = "/api/orgs/local"
 ANA = "m_ana0001"

@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from test_vault_support import PASSWORD, SEED, USERNAME, FakeCtx, fld, login_form, make_vault, private_home
 
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.vault import control, crypto
-from agentos.vault.errors import (
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.vault import control, crypto
+from openajar.vault.errors import (
     ResolutionDenied,
     VaultBusy,
     VaultKeyInsecure,
@@ -22,9 +22,9 @@ from agentos.vault.errors import (
     VaultSealed,
     WrongPassphrase,
 )
-from agentos.vault.policy import Sink
-from agentos.vault.service import VaultService, build, keyfile_path, pending_keyfile_path
-from agentos.vault.store import VaultStore
+from openajar.vault.policy import Sink
+from openajar.vault.service import VaultService, build, keyfile_path, pending_keyfile_path
+from openajar.vault.store import VaultStore
 
 PHRASE = "correct horse battery staple"
 TOP = "https://www.instagram.com/accounts/login/"
@@ -82,7 +82,7 @@ async def test_owner_sealed_keyfile_vault_stays_sealed(home):
     v.seal()
     with pytest.raises(VaultSealed) as exc:
         await add_ig(v)
-    assert "agentos vault unseal" in exc.value.message
+    assert "openajar vault unseal" in exc.value.message
     assert (await v.list_entries()) == []             # metadata listing works while sealed
     await v.unseal()
     await add_ig(v)

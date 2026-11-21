@@ -10,7 +10,7 @@ import sqlite3
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.memory.store import WorkspaceDB
+from openajar.memory.store import WorkspaceDB
 
 
 @pytest.fixture

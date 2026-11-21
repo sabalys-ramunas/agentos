@@ -22,13 +22,13 @@ from siteapi_http_support import (
 )
 from starlette.routing import Route
 
-from agentos.api.auth import SESSION_COOKIE
-from agentos.core.config import NodeConfig
-from agentos.core.models import RunStatus
-from agentos.node.daemon import _Uvicorn
-from agentos.policy.redact import redact_text
-from agentos.policy.taint import family_key
-from agentos.runner.siteapis.keys import token_hash
+from openajar.api.auth import SESSION_COOKIE
+from openajar.core.config import NodeConfig
+from openajar.core.models import RunStatus
+from openajar.node.daemon import _Uvicorn
+from openajar.policy.redact import redact_text
+from openajar.policy.taint import family_key
+from openajar.runner.siteapis.keys import token_hash
 
 
 @pytest.fixture

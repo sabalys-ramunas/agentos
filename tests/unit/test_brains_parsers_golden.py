@@ -1,6 +1,6 @@
 """Characterization of the stream parsers: every kind of line each `_on` handles, fed in order, and
 the events, accounting and outcome that come out, pinned in tests/fixtures/brains/parser_golden.json.
-Regenerate the file only when a change to the parsers is meant: AGENTOS_REGEN_GOLDEN=1.
+Regenerate the file only when a change to the parsers is meant: OPENAJAR_REGEN_GOLDEN=1.
 """
 
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from agentos.brains.parsers import ClaudeStreamParser, CodexJsonParser
+from openajar.brains.parsers import ClaudeStreamParser, CodexJsonParser
 
 GOLDEN = Path(__file__).resolve().parents[1] / "fixtures" / "brains" / "parser_golden.json"
 
@@ -105,6 +105,6 @@ def _actual() -> dict:
 @pytest.mark.parametrize("runner", ["claude", "codex"])
 def test_the_parsers_output_is_what_it_was(runner):
     actual = json.loads(json.dumps(_actual()))
-    if os.environ.get("AGENTOS_REGEN_GOLDEN"):
+    if os.environ.get("OPENAJAR_REGEN_GOLDEN"):
         GOLDEN.write_text(json.dumps(actual, indent=1, sort_keys=True) + "\n")
     assert actual[runner] == json.loads(GOLDEN.read_text())[runner]

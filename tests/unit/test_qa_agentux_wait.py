@@ -11,7 +11,7 @@ import asyncio
 
 from test_interaction_wait import FakeHandle, WaitPage
 
-from agentos.node.interaction import PlaywrightInteraction, WaitFor
+from openajar.node.interaction import PlaywrightInteraction, WaitFor
 
 
 class SilentHandle(FakeHandle):

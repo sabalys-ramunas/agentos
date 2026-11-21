@@ -1,8 +1,8 @@
 """No upgrades in the middle of a session (field report 2026-11-16: a VM's unattended-upgrades reloaded and
 re-executed systemd and restarted networkd, resolved, timesyncd, journald and udevd while an agent worked).
 Updates are off on every environment machine, applied when a fresh VM is set up and when the `dev`
-snapshot is built, and a keep "live" machine gets them at a quiet moment (agentos.environments.machine,
-agentos.environments.updates)."""
+snapshot is built, and a keep "live" machine gets them at a quiet moment (openajar.environments.machine,
+openajar.environments.updates)."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ import base64
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
-from agentos.environments import machine, scripts
-from agentos.environments.models import Environment, EnvSettings
-from agentos.environments.updates import Updates
+from openajar.environments import machine, scripts
+from openajar.environments.models import Environment, EnvSettings
+from openajar.environments.updates import Updates
 
 NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
 

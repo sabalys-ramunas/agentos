@@ -10,9 +10,9 @@ import pytest
 from edge_lanes import make_manager
 from mcp import Client
 
-from agentos.core.errors import HumanInControl
-from agentos.core.models import ActionKind, ActionResult, LaneSpec, ProxyConfig, Signal
-from agentos.mcp.server import build_server
+from openajar.core.errors import HumanInControl
+from openajar.core.models import ActionKind, ActionResult, LaneSpec, ProxyConfig, Signal
+from openajar.mcp.server import build_server
 
 
 class TrackingInteraction:

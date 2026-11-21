@@ -12,18 +12,18 @@ from types import SimpleNamespace
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.errors import ApprovalPending, PolicyDenied, PublishChanged
-from agentos.core.models import AccountRef, ActionKind, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.node import commitgate, egress
-from agentos.node import tools as node_tools
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.node.channel import bridge
-from agentos.policy.service import PolicyService
-from agentos.policy.wrap import bind_request_token, wrap_tool
-from agentos.runner.fakes import BASE
+from openajar.core.errors import ApprovalPending, PolicyDenied, PublishChanged
+from openajar.core.models import AccountRef, ActionKind, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.node import commitgate, egress
+from openajar.node import tools as node_tools
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.node.channel import bridge
+from openajar.policy.service import PolicyService
+from openajar.policy.wrap import bind_request_token, wrap_tool
+from openajar.runner.fakes import BASE
 
 LANE = "biz-a/social"
 
@@ -284,7 +284,7 @@ async def test_an_approved_publish_outside_the_lanes_waking_hours_is_refused_and
     """AUD-13: the lane's posting pace is checked before routing, so an approval does not get past it."""
     from datetime import UTC, datetime
 
-    from agentos.policy.pace import LanePaced
+    from openajar.policy.pace import LanePaced
 
     node.clock.t = datetime(2026, 11, 6, 2, 30, tzinfo=UTC).timestamp()  # 21:30 in New York
     node.policy.set_lane_pace(LANE, {"active_hours": ["08:00-22:00"], "timezone": "America/New_York"})
@@ -302,9 +302,9 @@ async def test_an_approved_publish_outside_the_lanes_waking_hours_is_refused_and
 
 
 async def test_an_agents_commit_is_handed_to_the_runtimes_after_commit_hook(node):
-    """browser_act hands each commit to the runtime's `after_commit` (agentos.audit.captures in a node),
+    """browser_act hands each commit to the runtime's `after_commit` (openajar.audit.captures in a node),
     once, after the act, with the lane and its page."""
-    from agentos.node.tools.browser import AFTER_COMMIT
+    from openajar.node.tools.browser import AFTER_COMMIT
 
     seen: list[tuple[str, object]] = []
 
@@ -323,10 +323,10 @@ async def test_an_agents_commit_is_handed_to_the_runtimes_after_commit_hook(node
 def test_every_node_runtime_keeps_the_page_after_a_commit_with_audit_captures():
     from fakes import FakeInteraction, FakeLaneManager
 
-    from agentos.audit import captures
-    from agentos.core.config import NodeConfig
-    from agentos.node.daemon import node_runtime
-    from agentos.node.tools.browser import AFTER_COMMIT
+    from openajar.audit import captures
+    from openajar.core.config import NodeConfig
+    from openajar.node.daemon import node_runtime
+    from openajar.node.tools.browser import AFTER_COMMIT
 
     runtime = node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction())
     assert runtime.get(AFTER_COMMIT) is captures.after_commit

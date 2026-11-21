@@ -1,5 +1,5 @@
 
- Usage: agentos vault [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar vault [OPTIONS] COMMAND [ARGS]...
 
  Sealed vault: logins, TOTP seeds and API keys bound to domains and lanes.
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from agentos.environments import machine
+from openajar.environments import machine
 
 FAKE_APT = """#!/bin/sh
 echo "$(basename "$0") $*" >> {log}

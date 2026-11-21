@@ -4,7 +4,7 @@ import socket
 
 import pytest
 
-from agentos.env.netproxy import EgressPolicy, Forwarder, Upstream, entry_matches, split_hostport
+from openajar.env.netproxy import EgressPolicy, Forwarder, Upstream, entry_matches, split_hostport
 
 
 def test_entry_matching():

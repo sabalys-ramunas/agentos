@@ -7,8 +7,8 @@ import threading
 import pytest
 from testkit.memory import FakeTrace, fake_memory
 
-from agentos.core.errors import InvalidRequest
-from agentos.memory.errors import (
+from openajar.core.errors import InvalidRequest
+from openajar.memory.errors import (
     BadEvidence,
     EntryNotFound,
     MemoryConflict,
@@ -20,7 +20,7 @@ from agentos.memory.errors import (
     TrustTooLow,
     TypeNotAllowed,
 )
-from agentos.memory.models import Caller, Limits, WriteRequest
+from openajar.memory.models import Caller, Limits, WriteRequest
 
 FAMILY = "family:gr_a"
 OWNER = Caller.owner()

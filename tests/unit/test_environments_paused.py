@@ -1,4 +1,4 @@
-"""Saves that keep the machine (agentos.environments.pausing): on a provider with the "pause"
+"""Saves that keep the machine (openajar.environments.pausing): on a provider with the "pause"
 capability and no cloud-init (Morph), a save that ends the machine pauses it, and environment_open
 resumes the same machine with its processes running. The cloud is test_environments_saves's disk
 cloud, made to pause; every command the node sends runs for real on the machine's folder."""
@@ -28,22 +28,22 @@ from test_environments_saves import (
 )
 from test_policy_support import Clock, make_service
 
-from agentos.core.models import Effect, utcnow
-from agentos.dev.lanes import FakeLaneManager
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import bringup, machine, pausing
-from agentos.environments.errors import SaveFailed
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.environments.tools import tool_specs as env_tool_specs
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmSettings
-from agentos.vms.provider import DEFAULT_CAPABILITIES
+from openajar.core.models import Effect, utcnow
+from openajar.dev.lanes import FakeLaneManager
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import bringup, machine, pausing
+from openajar.environments.errors import SaveFailed
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.environments.tools import tool_specs as env_tool_specs
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmSettings
+from openajar.vms.provider import DEFAULT_CAPABILITIES
 
 MORPH_LIKE = frozenset({"snapshot", "pause", "branch", "wake_on_http"})  # no cloud-init, no firewall
 
@@ -76,7 +76,7 @@ class Machines(LocalMachines):
             done = (self.disk_of(lane_id) / "ready-marker").exists()
             return ExecResult(exit_code=0, stdout="ready\n" if done else "no cloud-init and no setup marker\n",
                               stderr="", duration_s=0.01)
-        if cmd == "sh -s" and stdin and "agentos" in str(stdin):
+        if cmd == "sh -s" and stdin and "openajar" in str(stdin):
             self.setups.append(lane_id)
             (self.disk_of(lane_id) / "ready-marker").write_text("1")
             return ExecResult(exit_code=0, stdout="", stderr="", duration_s=0.01)
@@ -185,7 +185,7 @@ async def test_close_pauses_the_machine_and_open_resumes_it_with_its_processes(n
     new_vm = mgr.get(again["id"]).vm_id
     assert new_vm != old_vm and vms.store.get(new_vm).provider_id == server and cloud.paused == set()
     assert vms.store.get(old_vm).state == "deleted" and "resumed as" in vms.store.get(old_vm).delete_reason
-    assert (vms.dir / new_vm / "known_hosts").read_text().startswith(f"agentos-{new_vm} ")
+    assert (vms.dir / new_vm / "known_hosts").read_text().startswith(f"openajar-{new_vm} ")
     assert r["services"] == [{"cmd": "npm run dev -- --port 3000", "cwd": "/work/shop", "port": 3000,
                               "running": True, "listening": True, "kept": True}]
     assert len(machines.jobs) == jobs_before  # nothing was started again: it never stopped
@@ -330,7 +330,7 @@ async def test_a_paused_machine_gone_at_the_provider_resumes_from_the_files(node
 
 
 async def test_the_owner_wakes_a_paused_machine_held_by_no_chat_and_the_next_open_takes_it(node):
-    """The owner's resume (agentos.environments.waking) on a provider that pauses: the same machine wakes,
+    """The owner's resume (openajar.environments.waking) on a provider that pauses: the same machine wakes,
     its dev server still running, no chat holds it, and an agent's environment_open of the title takes it."""
     mgr, cloud, vms, machines = node["mgr"], node["cloud"], node["vms"], node["machines"]
     out = await opened(node, keep="save")
@@ -363,9 +363,9 @@ async def test_a_paused_machine_no_save_points_to_is_deleted_and_the_owner_told(
 
 
 def test_hetzner_and_docker_keep_their_capabilities():
-    from agentos.vms.docker import DockerProvider
-    from agentos.vms.hetzner import HetznerProvider
-    from agentos.vms.provider import FakeProvider, capable
+    from openajar.vms.docker import DockerProvider
+    from openajar.vms.hetzner import HetznerProvider
+    from openajar.vms.provider import FakeProvider, capable
 
     assert HetznerProvider.capabilities == DEFAULT_CAPABILITIES
     assert capable(DockerProvider, "network_policy") and not capable(DockerProvider, "pause")
@@ -375,8 +375,8 @@ def test_hetzner_and_docker_keep_their_capabilities():
 
 
 def test_the_image_cleanup_keeps_morphs_ssh_keys():
-    from agentos.vms.manager import IMAGE_CLEANUP
-    from agentos.vms.morph import MorphProvider
+    from openajar.vms.manager import IMAGE_CLEANUP
+    from openajar.vms.morph import MorphProvider
 
     script = "set -eu\n" + IMAGE_CLEANUP
     # a cloud-init that does nothing, first on PATH: the script must never run this machine's own (an

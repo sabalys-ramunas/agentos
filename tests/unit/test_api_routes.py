@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 from starlette.testclient import TestClient
 
-import agentos
-from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.api.lanes_view import workspace_health
-from agentos.core.config import NodeConfig, load_proxies
-from agentos.core.runtime import Runtime
-from agentos.dev.apifakes import demo_runtime
+import openajar
+from openajar.api import ApiSettings, PanelStore, build_api
+from openajar.api.lanes_view import workspace_health
+from openajar.core.config import NodeConfig, load_proxies
+from openajar.core.runtime import Runtime
+from openajar.dev.apifakes import demo_runtime
 
 H = {"Authorization": "Bearer owner"}
 
@@ -42,7 +42,7 @@ def person(client, store) -> dict:
 
 def test_status(client, rt):
     s = client.get("/api/status", headers=H).json()
-    assert s["version"] == agentos.__version__ and s["node"] == "node-1"
+    assert s["version"] == openajar.__version__ and s["node"] == "node-1"
     # 1 pending approval + 1 lane with a captcha
     assert s["needs_you"] == 2
     # the older parts stay as they were; the web's extra parts (failed outcomes, stopped runs, plans,
@@ -370,7 +370,7 @@ def test_status_and_nodes_name_the_node_timezone(rt):
 
 
 def test_host_timezone_comes_from_tz_then_the_clock(monkeypatch):
-    from agentos.core import zone
+    from openajar.core import zone
 
     monkeypatch.setenv("TZ", ":Europe/Paris")
     assert zone.host_zone() == "Europe/Paris"

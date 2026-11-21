@@ -4,7 +4,7 @@ look at a site do not count as things done."""
 
 from __future__ import annotations
 
-from agentos.api.web.history import CHECKED, FAILED, NOT_CHECKED, PARTIAL, READ, counts_as_done
+from openajar.api.web.history import CHECKED, FAILED, NOT_CHECKED, PARTIAL, READ, counts_as_done
 
 POST = "post"
 

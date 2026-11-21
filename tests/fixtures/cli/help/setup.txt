@@ -1,10 +1,10 @@
 
- Usage: agentos setup [OPTIONS] [STEP]
+ Usage: openajar setup [OPTIONS] [STEP]
 
- Set up agentos on this computer: VMs, GitHub, limits, and your agents.
+ Set up openajar on this computer: VMs, GitHub, limits, and your agents.
 
  Quick start takes good defaults; step by step asks each setting. To change one
- thing, run its step again, like `agentos setup github`.
+ thing, run its step again, like `openajar setup github`.
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │   [STEP]      <str>  Run one step again: vms, github, limits, agents, web,   │
@@ -19,10 +19,10 @@
 │                                       (free).                                │
 │ --github-token-file           <path>  Read a GitHub token from this file (-  │
 │                                       for stdin).                            │
-│ --no-web                              Skip the web app (`agentos setup web`  │
+│ --no-web                              Skip the web app (`openajar setup web` │
 │                                       adds it later).                        │
-│ --home                        <path>  Where agentos keeps its files          │
-│                                       (default: ~/.agentos).                 │
+│ --home                        <path>  Where openajar keeps its files         │
+│                                       (default: ~/.openajar).                │
 │ --help                                Show this message and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

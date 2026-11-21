@@ -1,7 +1,7 @@
-"""Lane health (agentos.stealth.health): one grade from the checks the node already runs.
+"""Lane health (openajar.stealth.health): one grade from the checks the node already runs.
 
 The grading table, the event window on a fixed clock, pin findings and the session's end, the words
-it uses (never "safe", "undetectable", a "human score" or "ban", and no em dash), `agentos lane health
+it uses (never "safe", "undetectable", a "human score" or "ban", and no em dash), `openajar lane health
 --json`, the API route and its lane scope, and the grades of the dev node's seeded lanes."""
 
 from __future__ import annotations
@@ -18,12 +18,12 @@ from test_node_panel import Node as PanelNode
 from test_ops_support import FakeHost, make_home
 from typer.testing import CliRunner
 
-from agentos.core.config import NodeConfig
-from agentos.node.store import LaneEvent
-from agentos.stealth import health
-from agentos.stealth.health import CHECK, NORMAL, STOP, build_health, count_events
-from agentos.stealth.lanecheck import CHECK_IDS, FAIL, OK, UNKNOWN, WARN, Check, LaneChecker, LaneReport
-from agentos.stealth.stealth import Finding
+from openajar.core.config import NodeConfig
+from openajar.node.store import LaneEvent
+from openajar.stealth import health
+from openajar.stealth.health import CHECK, NORMAL, STOP, build_health, count_events
+from openajar.stealth.lanecheck import CHECK_IDS, FAIL, OK, UNKNOWN, WARN, Check, LaneChecker, LaneReport
+from openajar.stealth.stealth import Finding
 
 NOW = datetime(2026, 11, 11, 12, 0, tzinfo=UTC)
 LANE = "biz-a/instagram"
@@ -180,7 +180,7 @@ def test_pin_age_browser_lag_and_the_session_end():
     assert [f.level for f in grade(report=with_session(10.2)).findings] == ["note"]
     soon = grade(report=with_session(5.5))
     assert soon.grade == CHECK and [(f.id, f.level) for f in soon.findings] == [("session_ends", WARN)]
-    assert "agentos lane view biz-a/instagram --control" in soon.findings[0].fix
+    assert "openajar lane view biz-a/instagram --control" in soon.findings[0].fix
 
 
 # ---- the words -------------------------------------------------------------------------------------
@@ -218,14 +218,14 @@ def test_no_finding_promises_what_it_cannot_know():
     assert "terms allow automation" in " ".join(health.CANNOT_SEE)
 
 
-# ---- agentos lane health --json ------------------------------------------------------------------
+# ---- openajar lane health --json ------------------------------------------------------------------
 
 def test_the_cli_json_shape_without_a_daemon(tmp_path, monkeypatch):
-    from agentos.ops import cli
-    from agentos.stealth import lanecheck
+    from openajar.ops import cli
+    from openajar.stealth import lanecheck
 
     cfg = make_home(tmp_path, lanes={"personal/reddit": 158, "work/site": None})
-    monkeypatch.setenv("AGENTOS_HOME", str(cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(cfg.home))
     real = lanecheck.LaneChecker
     monkeypatch.setattr(lanecheck, "LaneChecker",
                         lambda config, **kw: real(config, **{**kw, "host": FakeHost(), "network": False}))
@@ -282,8 +282,8 @@ def test_the_health_route_is_scoped_like_the_check(panel_node):
 # ---- the dev node's seed ---------------------------------------------------------------------------
 
 async def test_the_dev_seed_shows_each_grade(tmp_path, monkeypatch):
-    from agentos.dev import health as dev_health
-    from agentos.dev.node import build_runtime, prepare_home, seed
+    from openajar.dev import health as dev_health
+    from openajar.dev.node import build_runtime, prepare_home, seed
 
     monkeypatch.setattr(dev_health, "installed_firefox", lambda home: 158)
     home = tmp_path / "node"

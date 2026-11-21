@@ -6,14 +6,14 @@ from __future__ import annotations
 import pytest
 from test_policy_support import OWNER, Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied
-from agentos.policy.grants import Specials
-from agentos.policy.labels import KNOWN_LABELS
-from agentos.policy.memory_rules import MemoryCap
-from agentos.policy.taint import TAINT_LABELS, family_key
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied
+from openajar.policy.grants import Specials
+from openajar.policy.labels import KNOWN_LABELS
+from openajar.policy.memory_rules import MemoryCap
+from openajar.policy.taint import TAINT_LABELS, family_key
+from openajar.policy.traces import TraceEvent, TraceStore
 
 LANE = "biz-a/instagram"
 HOUR = 3600
@@ -185,7 +185,7 @@ async def test_a_commit_trace_says_whether_the_decisions_were_loaded(env):
 
 
 async def test_an_auto_commit_is_traced_with_its_receipt(tmp_path):
-    from agentos.policy.routing import PolicyConfig, RoutingTable, Rule
+    from openajar.policy.routing import PolicyConfig, RoutingTable, Rule
 
     cfg = PolicyConfig(routing=RoutingTable(rules=[Rule(effect="*", then="auto")]))
     svc, _ = make_service(tmp_path, clock=Clock(), config=cfg)

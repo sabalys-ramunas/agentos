@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from agentos.core.models import SnapshotResult
-from agentos.node.snapshot import build_outline, fold_landmarks
-from agentos.node.tools import main_only_snap
+from openajar.core.models import SnapshotResult
+from openajar.node.snapshot import build_outline, fold_landmarks
+from openajar.node.tools import main_only_snap
 
 HOVERS = """\
 - main [ref=e1]:

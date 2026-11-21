@@ -9,18 +9,18 @@ import pytest
 from pydantic import TypeAdapter
 from testkit.workspaces import FakeCtx, Harness
 
-from agentos.core.errors import (
+from openajar.core.errors import (
     ApprovalPending,
     InvalidRequest,
     LaneNotFound,
     PolicyDenied,
     ServiceUnavailable,
 )
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import TOOL_NAME_RE
-from agentos.workspaces.errors import WorkspaceConflict
-from agentos.workspaces.tools import tool_specs
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import TOOL_NAME_RE
+from openajar.workspaces.errors import WorkspaceConflict
+from openajar.workspaces.tools import tool_specs
 
 SOCIAL = ["instagram", "facebook", "reddit", "medium", "blog", "linkedin"]
 

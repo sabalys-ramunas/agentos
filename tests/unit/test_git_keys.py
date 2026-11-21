@@ -1,4 +1,4 @@
-"""Git credentials (agentos.git.keys, agentos.git.agent): a deploy key is made in memory and kept only
+"""Git credentials (openajar.git.keys, openajar.git.agent): a deploy key is made in memory and kept only
 in the vault, sealed; its public half is all that is ever shown; the node's SSH agent signs an SSH
 login with it and nothing else; the vault scrub hides it, whole or a line of it."""
 
@@ -14,10 +14,17 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from test_vault_support import make_vault, private_home
 
-from agentos.core.errors import InvalidRequest
-from agentos.git import keys
-from agentos.git.agent import FAILURE, MAX_SIGNATURES, SIGN_REQUEST, SIGN_RESPONSE, SingleKeyAgent, login_user
-from agentos.git.wire import Remote
+from openajar.core.errors import InvalidRequest
+from openajar.git import keys
+from openajar.git.agent import (
+    FAILURE,
+    MAX_SIGNATURES,
+    SIGN_REQUEST,
+    SIGN_RESPONSE,
+    SingleKeyAgent,
+    login_user,
+)
+from openajar.git.wire import Remote
 
 
 @pytest.fixture
@@ -39,9 +46,9 @@ def userauth(blob: bytes, user: bytes = b"git", service: bytes = b"ssh-connectio
 
 
 def test_a_new_key_is_openssh_ed25519_and_its_fingerprint_is_ssh_keygens(tmp_path):
-    private, public, fp = keys.generate_ed25519("agentos-test")
+    private, public, fp = keys.generate_ed25519("openajar-test")
     assert private.reveal().startswith("-----BEGIN OPENSSH PRIVATE KEY-----")
-    assert public.startswith("ssh-ed25519 AAAA") and public.endswith(" agentos-test")
+    assert public.startswith("ssh-ed25519 AAAA") and public.endswith(" openajar-test")
     assert "BEGIN" not in repr(private) and private.reveal() not in str(private)
     if shutil.which("ssh-keygen"):
         pub = tmp_path / "k.pub"
@@ -68,7 +75,7 @@ def test_known_hosts_lines_and_ports(tmp_path):
 
 
 async def test_stored_sealed_listed_without_the_value(vault):
-    private, public, fp = keys.generate_ed25519("agentos-app")
+    private, public, fp = keys.generate_ed25519("openajar-app")
     await vault.put_secret("git:gh-app", private.reveal(), kind=keys.SSH_KIND, label="git deploy key",
                            scope=keys.ssh_scope("GitHub.com", ["Owner/App"], public))
     raw = vault.store.path.read_bytes() + b"".join(p.read_bytes() for p in vault.store.path.parent.glob("vault.db-wal"))

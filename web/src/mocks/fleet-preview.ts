@@ -78,7 +78,7 @@ export function previewTopology(size: number, windowSeconds: number): Topology {
   const now = Date.now();
   const random = rng(size);
   const { businesses, machines, states, working } = plan(size);
-  const entities: TopologyEntity[] = [{ id: 'cloud:agentos', type: 'cloud', label: 'agentos Cloud', state: 'ok', ref: null, stats: {} }];
+  const entities: TopologyEntity[] = [{ id: 'cloud:openajar', type: 'cloud', label: 'openajar Cloud', state: 'ok', ref: null, stats: {} }];
   const links: TopologyLink[] = [];
   const link = (from: string, to: string, kind: TopologyLink['kind']): TopologyLink => ({ from, to, kind, calls: 0, failed: 0, last_at: null });
 
@@ -94,7 +94,7 @@ export function previewTopology(size: number, windowSeconds: number): Topology {
       ref: { href: `/nodes/${machine.id}` },
       stats: { lanes, warm_lanes: machine.down ? 0 : Math.min(machine.max, Math.ceil(lanes / 3)), max_warm_lanes: machine.max, cpu_pct: machine.down ? null : Math.round(15 + random() * 55) },
     });
-    links.push(link(`node:${machine.id}`, 'cloud:agentos', 'attached'));
+    links.push(link(`node:${machine.id}`, 'cloud:openajar', 'attached'));
   }
 
   const sites = new Map<string, number>();

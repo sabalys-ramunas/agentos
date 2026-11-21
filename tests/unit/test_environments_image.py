@@ -1,6 +1,6 @@
 """The docker provider's image from a plain install: the prebuilt one for this version downloads and
 is named as vms.toml's docker_image; when it cannot, the image is built here from the Dockerfile the
-package carries (agentos.environments.cli._get_image)."""
+package carries (openajar.environments.cli._get_image)."""
 
 import subprocess
 import tomllib
@@ -9,10 +9,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos import __version__
-from agentos.environments import cli as envcli
-from agentos.vms.docker import IMAGE_VERSION
-from agentos.vms.models import VmSettings
+from openajar import __version__
+from openajar.environments import cli as envcli
+from openajar.vms.docker import IMAGE_VERSION
+from openajar.vms.models import VmSettings
 
 ROOT = Path(__file__).resolve().parents[2]
 PULL = VmSettings().docker_pull
@@ -49,7 +49,7 @@ def test_the_prebuilt_image_is_this_versions_and_takes_the_local_name(monkeypatc
 
 
 @pytest.mark.parametrize("docker", [Docker(pull_ok=False), Docker(label="1"), Docker(label="")],
-                         ids=["no image to pull", "an older image", "not an agentos image"])
+                         ids=["no image to pull", "an older image", "not an openajar image"])
 def test_without_a_good_download_it_builds_here(monkeypatch, built, capsys, docker):
     monkeypatch.setattr(subprocess, "run", docker.run)
     envcli._get_image("agentos-env:latest", "docker", PULL)
@@ -68,7 +68,7 @@ def test_an_empty_docker_pull_never_downloads(monkeypatch, built):
 def test_the_wheel_carries_the_dockerfile_so_a_plain_install_can_build():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
     included = pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"]
-    assert included["deploy/environments"] == "agentos/environments/image"
+    assert included["deploy/environments"] == "openajar/environments/image"
     assert (ROOT / "deploy/environments/Dockerfile").exists()
     assert envcli._image_source() is not None
 

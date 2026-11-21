@@ -6,8 +6,8 @@ from starlette.routing import Mount
 from starlette.testclient import TestClient
 from test_vault_support import PASSWORD, SEED, USERNAME, make_vault, private_home
 
-from agentos.core.runtime import Runtime
-from agentos.vault.api import routes
+from openajar.core.runtime import Runtime
+from openajar.vault.api import routes
 
 PHRASE = "a long test passphrase"
 
@@ -96,7 +96,7 @@ def test_sealed_passphrase_vault(tmp_path):
 
 
 def test_uninitialized_vault_is_503(tmp_path):
-    from agentos.vault.service import VaultService
+    from openajar.vault.service import VaultService
 
     client = client_for(VaultService(private_home(tmp_path)))
     r = client.post("/api/vault", json=body())

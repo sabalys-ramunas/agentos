@@ -8,7 +8,7 @@ Before=agentosd.service
 # users and /opt/agentos below. The helper serves exactly two identities, both fixed here: the
 # brain user (attached) and the caller itself (detached shims). It refuses root for either, a
 # brain user in the caller's group, and code under /opt/agentos that anyone but root can change.
-# See src/agentos/runas.py.
+# See src/openajar/runas.py.
 
 [Service]
 Type=simple
@@ -16,11 +16,11 @@ Type=simple
 # systemd drop CAP_SETUID from the permitted set, and every spawn fails with EPERM.
 # Run as a script with -I -S: only the standard library is on sys.path, so no site-packages and no
 # .pth file (an editable install's own) runs as root, and the helper checks what is left is root's.
-ExecStartPre="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py check --caller agentos --brain-user agentos-brain
-ExecStart="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py serve --caller agentos --brain-user agentos-brain
+ExecStartPre="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/openajar/runas.py check --caller openajar --brain-user agentos-brain
+ExecStart="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/openajar/runas.py serve --caller openajar --brain-user agentos-brain
 # However the helper ended (a crash, a SIGKILL, a stop), kill the brains it recorded as running
 # under /run/agentos-runas/brains. The next start sweeps them again.
-ExecStopPost=-"/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py sweep --caller agentos --brain-user agentos-brain
+ExecStopPost=-"/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/openajar/runas.py sweep --caller openajar --brain-user agentos-brain
 WorkingDirectory=/
 Restart=on-failure
 RestartSec=3

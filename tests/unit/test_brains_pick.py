@@ -13,18 +13,18 @@ import sys
 import pytest
 from testkit.brains import OAUTH, add, dump, make_service
 
-from agentos.brains import cli as brains_cli
-from agentos.brains import decisions
-from agentos.brains.credentials import brain_ref
-from agentos.brains.decisions import (
+from openajar.brains import cli as brains_cli
+from openajar.brains import decisions
+from openajar.brains.credentials import brain_ref
+from openajar.brains.decisions import (
     DecisionBlocked,
     DecisionOverBudget,
     DecisionRejected,
     DecisionUnavailable,
 )
-from agentos.brains.models import Budget
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Principal
+from openajar.brains.models import Budget
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Principal
 
 P = Principal(id="pilot", thread="T-1")
 OPTIONS = {"e1": 'button "Publish" in form "New post"', "e2": 'button "Publish" in banner'}
@@ -67,13 +67,13 @@ def test_it_signs_in_with_the_subscription_token_not_an_api_key(tmp_path):
 
 def test_a_brain_process_says_it_is_one(tmp_path):
     svc, out = asyncio.run(picking(tmp_path))
-    assert dump(svc, out["task"])["env"]["AGENTOS_BRAIN_TASK"] == out["task"]
+    assert dump(svc, out["task"])["env"]["OPENAJAR_BRAIN_TASK"] == out["task"]
 
 
 def test_an_ordinary_task_keeps_its_tools(tmp_path):
-    from agentos.brains.adapters import plan_claude
-    from agentos.brains.models import BrainSpec
-    from agentos.brains.settings import BrainsSettings
+    from openajar.brains.adapters import plan_claude
+    from openajar.brains.models import BrainSpec
+    from openajar.brains.settings import BrainsSettings
 
     spec = BrainSpec.template("c", "subscription", "anthropic")
     plan = plan_claude(spec, BrainsSettings(), bin_path="claude", task_id="t", work=tmp_path, home=tmp_path, user=None,

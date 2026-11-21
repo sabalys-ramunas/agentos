@@ -9,7 +9,7 @@ import { loadEnv } from 'vite';
 import type { Plugin } from 'vite';
 
 /** Written into the mock's start-up code, so a bundle that holds it can be recognised. */
-export const MOCK_MARKER = 'agentos-mock-backend';
+export const MOCK_MARKER = 'openajar-mock-backend';
 
 /** Only the mock uses these. Neither may be in a build. */
 const MOCK_FILES = ['mockServiceWorker.js', 'sw-mock.js'];
@@ -63,7 +63,7 @@ export function mockGuard(mode: string, root: string): Plugin {
   // The folder the build writes to: `build.outDir` (dist by default, or whatever --outDir names).
   let outDir = join(root, 'dist');
   return {
-    name: 'agentos-mock-guard',
+    name: 'openajar-mock-guard',
     apply: 'build',
     configResolved(config) {
       assertLiveMode({ ...loadEnv(mode, root, 'VITE_') });

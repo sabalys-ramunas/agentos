@@ -53,12 +53,12 @@ describe('the line a Site API stays inside', () => {
 
 describe('the shapes a call can take', () => {
   it('builds the address from what was filled in and leaves out what was not', () => {
-    expect(callUrl('nordic-beans', 'open_orders', { status: 'open', limit: '' })).toBe('https://relay.agentos.example/v1/sites/nordic-beans/open_orders?status=open');
+    expect(callUrl('nordic-beans', 'open_orders', { status: 'open', limit: '' })).toBe('https://relay.openajar.example/v1/sites/nordic-beans/open_orders?status=open');
   });
 
   it('never puts a key in a snippet', () => {
     for (const kind of ['curl', 'javascript', 'python', 'n8n'] as const) expect(snippet(kind, 'https://x.example/v1')).not.toMatch(/aos_/);
-    expect(snippet('curl', 'https://x.example/v1')).toContain('$AGENTOS_KEY');
+    expect(snippet('curl', 'https://x.example/v1')).toContain('$OPENAJAR_KEY');
   });
 
   it('holds no site data in the OpenAPI document', () => {

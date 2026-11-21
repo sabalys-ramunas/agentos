@@ -223,7 +223,7 @@ export function PageSheet(props: SheetProps) {
   const pickable = (id: string, body: ReactNode, className?: string) =>
     showRegions ? (
       <button type="button" data-picked={picked === id ? '' : undefined} onClick={() => onPick?.(id)} className={cn('teach-region focus-inset block text-left', className)}>
-        {regionWords?.[id] ? <span className="teach-tag rounded-sm bg-fg px-1 text-caption font-medium whitespace-nowrap text-on-primary">{regionWords[id]}</span> : null}
+        {regionWords?.[id] ? <span className="teach-tag rounded-sm bg-fg px-1 text-caption font-medium whitespace-nowrap text-on-inverse">{regionWords[id]}</span> : null}
         {body}
       </button>
     ) : (

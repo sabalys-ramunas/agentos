@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { IconButton } from './button';
@@ -65,12 +65,14 @@ const AVATAR_INITIALS = (name: string) =>
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+/** Initials in a circle. `me` is the person signed in: Dawn's violet to blue, white initials (4.5:1 on both ends). */
+export function Avatar({ name, me = false, className }: { name: string; me?: boolean; className?: string }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-pressed text-micro text-muted',
+        'inline-flex size-6 shrink-0 items-center justify-center rounded-full text-micro font-medium',
+        me ? 'bg-[linear-gradient(135deg,var(--violet-600),var(--identity-2))] font-semibold text-identity-ink' : 'bg-pressed text-muted',
         className,
       )}
     >
@@ -100,11 +102,42 @@ export function Meter({ value, max, label, className }: { value: number; max: nu
   );
 }
 
+/** The openajar mark, "Window a", as its app icon: a light tile with the violet a (assets/icon.svg). */
 export function Logo({ className }: { className?: string }) {
+  const id = useId();
+  // The mark's colours are tokens (mark.*, build-tokens.py), so the one source holds them too.
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true" className={cn('size-6', className)}>
-      <rect width="64" height="64" rx="14" fill="var(--brand)" />
-      <path fill="var(--identity-ink)" d="M28.6 16h6.8l12 32h-6.6l-2.8-7.8H26l-2.8 7.8h-6.6l12-32Zm-.8 19h8.4L32 23.2 27.8 35Z" />
+      <defs>
+        <linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--mark-tile-top)" />
+          <stop offset="1" stopColor="var(--mark-tile-bottom)" />
+        </linearGradient>
+        <linearGradient id={`${id}a`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--mark-a-top)" />
+          <stop offset="1" stopColor="var(--mark-a-bottom)" />
+        </linearGradient>
+      </defs>
+      <rect x="0.5" y="0.5" width="63" height="63" rx="14" fill={`url(#${id}t)`} stroke="var(--mark-edge)" />
+      <path
+        fill={`url(#${id}a)`}
+        fillRule="evenodd"
+        transform="translate(1.5 -0.5) scale(0.5)"
+        d="M44 34H98V88C98 92.4 94.4 96 90 96C85.6 96 82 92.4 82 88V87.4C78.4 92.6 72.2 96 64 96H44C33 96 24 87 24 76V54C24 43 33 34 44 34ZM45 53C40.5 53 37 56.5 37 61V74C37 79.5 40.5 83 46 83H64C77 83 85 79 85 70V53Z"
+      />
+    </svg>
+  );
+}
+
+/** The mark in one colour (currentColor): the small "Window a", as the desktop's top bar draws it. */
+export function MarkGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className={cn('size-4', className)}>
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M6.6 4.2 H16.8 V14.6 C16.8 15.4 16.2 16 15.4 16 C14.6 16 14 15.4 14 14.6 V14.4 C13.3 15.4 12.1 16 10.6 16 H6.6 C4.6 16 3 14.4 3 12.4 V7.8 C3 5.8 4.6 4.2 6.6 4.2Z M7 7.6 C6 7.6 5.4 8.2 5.4 9.2 V12 C5.4 13 6 13.6 7 13.6 H10.6 C12.9 13.6 14.2 12.8 14.2 11 V7.6Z"
+      />
     </svg>
   );
 }

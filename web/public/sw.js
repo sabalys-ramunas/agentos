@@ -1,5 +1,5 @@
 /*
- * The agentos service worker. Two jobs, and nothing else:
+ * The openajar service worker. Two jobs, and nothing else:
  *
  * 1. An offline page. Only that page and its icon are ever stored. No API response, and nothing
  *    that holds a session, is cached: every request other than a failed page load goes straight
@@ -15,7 +15,7 @@ const ICON = '/icons/icon-192.png';
 const BADGE = '/icons/badge-96.png';
 
 /** Replaced by the mock's worker, which has no network of its own. */
-self.agentosFetch = self.agentosFetch || ((input, init) => fetch(input, init));
+self.openajarFetch = self.openajarFetch || ((input, init) => fetch(input, init));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -37,7 +37,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   // The mock answers every request itself, page loads included.
-  if (self.AGENTOS_MOCK) return;
+  if (self.OPENAJAR_MOCK) return;
   const request = event.request;
   if (request.mode !== 'navigate' || request.method !== 'GET') return;
   const url = new URL(request.url);
@@ -57,7 +57,7 @@ function text(value, fallback) {
 async function showPush(payload) {
   if (!payload || payload.v !== 1 || typeof payload.type !== 'string') {
     // Every push must show something. A shape this worker does not know gets a plain line.
-    return self.registration.showNotification('agentos', { body: 'Something needs you.', tag: 'agentos', icon: ICON, badge: BADGE, data: { url: '/' } });
+    return self.registration.showNotification('openajar', { body: 'Something needs you.', tag: 'openajar', icon: ICON, badge: BADGE, data: { url: '/' } });
   }
   if (payload.type === 'dismiss') {
     const open = await self.registration.getNotifications({ tag: payload.tag });
@@ -80,7 +80,7 @@ async function showPush(payload) {
   if (payload.type === 'approval' || payload.type === 'batch') actions.push({ action: 'review', title: 'Review' });
   // Deny only with the content hash it is bound to. Questions have none. Never an Approve.
   if (data.content_hash && typeof data.id === 'string') actions.push({ action: 'deny', title: 'Deny' });
-  return self.registration.showNotification(text(payload.title, 'agentos'), {
+  return self.registration.showNotification(text(payload.title, 'openajar'), {
     body: data.body,
     tag: typeof payload.tag === 'string' ? payload.tag : undefined,
     renotify: payload.type !== 'test' && typeof payload.tag === 'string',
@@ -91,7 +91,7 @@ async function showPush(payload) {
     data,
   });
 }
-self.agentosShowPush = showPush;
+self.openajarShowPush = showPush;
 
 self.addEventListener('push', (event) => {
   let payload = null;
@@ -116,7 +116,7 @@ async function openPanel(path) {
   if (panel) {
     await panel.focus();
     // The panel moves itself, so nothing open there reloads.
-    panel.postMessage({ type: 'agentos-open', path });
+    panel.postMessage({ type: 'openajar-open', path });
     return undefined;
   }
   return self.clients.openWindow(path);
@@ -128,11 +128,11 @@ async function openPanel(path) {
  */
 async function deny(data) {
   try {
-    const session = await self.agentosFetch('/api/session', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+    const session = await self.openajarFetch('/api/session', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
     if (!session.ok) return openPanel(reviewTarget(data));
     const { csrf } = await session.json();
     const path = `/api/orgs/${encodeURIComponent(data.org)}/approvals/${encodeURIComponent(data.id)}/deny`;
-    const response = await self.agentosFetch(path, {
+    const response = await self.openajarFetch(path, {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',

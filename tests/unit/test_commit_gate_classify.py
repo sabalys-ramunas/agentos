@@ -12,8 +12,8 @@ import pytest
 from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FakeRequest, FakeRoute, make_guard
 
-from agentos.node import egress
-from agentos.node.egress import classify, gql_verdict
+from openajar.node import egress
+from openajar.node.egress import classify, gql_verdict
 
 JSON = {"content-type": "application/json"}
 FORM = {"content-type": "application/x-www-form-urlencoded"}

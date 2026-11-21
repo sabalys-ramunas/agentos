@@ -11,16 +11,16 @@ from channel_support import wait_for
 from test_channel_node import invoke_body
 from test_lanes import make
 
-from agentos.core.errors import AgentPaused, Frozen, HumanInControl, LaneBusy
-from agentos.core.models import LaneSpec
-from agentos.core.tools import gate_kind, in_person
-from agentos.node import egress
-from agentos.node.claims import Holder
-from agentos.node.tools import caller, check_control, control_stop
-from agentos.policy import tokens
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.grants import GrantBlock
-from agentos.policy.util import new_id
+from openajar.core.errors import AgentPaused, Frozen, HumanInControl, LaneBusy
+from openajar.core.models import LaneSpec
+from openajar.core.tools import gate_kind, in_person
+from openajar.node import egress
+from openajar.node.claims import Holder
+from openajar.node.tools import caller, check_control, control_stop
+from openajar.policy import tokens
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.grants import GrantBlock
+from openajar.policy.util import new_id
 
 MEMBER = "u_0123456789abcdef"
 LANE = "personal/reddit"

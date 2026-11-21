@@ -7,15 +7,15 @@ from datetime import UTC, datetime
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentPaused, HumanInControl, LaneQuarantined
-from agentos.core.models import ControlState, LaneSpec, LaneState, Signal
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.node import flow_driver_factory
-from agentos.dev.web import CHALLENGE_URL, DevInteraction, frame_of_page, new_tab
-from agentos.node.flow_driver import LaneAgentPaused
-from agentos.node.holds import hold_for
-from agentos.runner.fakes import BASE
+from openajar.core.config import NodeConfig
+from openajar.core.errors import AgentPaused, HumanInControl, LaneQuarantined
+from openajar.core.models import ControlState, LaneSpec, LaneState, Signal
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.node import flow_driver_factory
+from openajar.dev.web import CHALLENGE_URL, DevInteraction, frame_of_page, new_tab
+from openajar.node.flow_driver import LaneAgentPaused
+from openajar.node.holds import hold_for
+from openajar.runner.fakes import BASE
 
 
 def manager(home) -> DevLaneManager:
@@ -148,7 +148,7 @@ async def test_a_shut_down_manager_leaves_nothing_in_the_page_registries(tmp_pat
     import gc
     import weakref
 
-    from agentos.node import devtools, egress
+    from openajar.node import devtools, egress
 
     lanes = manager(tmp_path)
     await lanes.start()

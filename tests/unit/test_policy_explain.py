@@ -1,4 +1,4 @@
-"""`agentos grants explain` and grant_info's `explain`: a grant in plain sentences."""
+"""`openajar grants explain` and grant_info's `explain`: a grant in plain sentences."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import pytest
 from test_policy_support import OWNER, make_service
 from typer.testing import CliRunner
 
-from agentos.core.config import NodeConfig, save_config
-from agentos.policy.cli import app
-from agentos.policy.explain import explain
-from agentos.policy.grants import BrainCap, LaneCap, Specials
-from agentos.policy.routing import RoutingTable, Rule
+from openajar.core.config import NodeConfig, save_config
+from openajar.policy.cli import app
+from openajar.policy.explain import explain
+from openajar.policy.grants import BrainCap, LaneCap, Specials
+from openajar.policy.routing import RoutingTable, Rule
 
 EM_DASH = "—"
 
@@ -81,7 +81,7 @@ def test_a_custom_routing_table_is_described_as_it_is(svc):
 
 
 def test_the_owner_token_is_described_without_a_lane_scope(svc):
-    from agentos.policy.grants import Grant, owner_block
+    from openajar.policy.grants import Grant, owner_block
 
     out = "\n".join(explain(Grant([owner_block()], owner_token=True)))
     assert "owner token" in out and "It reaches" not in out
@@ -90,7 +90,7 @@ def test_the_owner_token_is_described_without_a_lane_scope(svc):
 
 
 def test_cli_explains_live_and_revoked_grants(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, mcp_token=OWNER))
     runner = CliRunner()
     issued = runner.invoke(app, ["grants", "issue", "--subject", "claude-code", "--workspace", "biz-a",

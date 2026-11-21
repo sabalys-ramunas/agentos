@@ -1,4 +1,4 @@
-"""`agentos flows pull | diff | push` (agentos.runner.flowsync) against the dev node, over HTTP, with
+"""`openajar flows pull | diff | push` (openajar.runner.flowsync) against the dev node, over HTTP, with
 the agent grant: what a shell on this computer does through its connection."""
 
 from __future__ import annotations
@@ -10,9 +10,9 @@ import pytest
 from dev_node_support import dev_node_thread
 from typer.testing import CliRunner
 
-from agentos.client.mcp_http import McpSession
-from agentos.runner.cli import app
-from agentos.runner.fakes import BASE
+from openajar.client.mcp_http import McpSession
+from openajar.runner.cli import app
+from openajar.runner.fakes import BASE
 
 runner = CliRunner()
 SEEDED = Path("biz-a") / "biz-a.social.post.yaml"
@@ -21,7 +21,7 @@ SEEDED = Path("biz-a") / "biz-a.social.post.yaml"
 @pytest.fixture
 def node(tmp_path, monkeypatch):
     with dev_node_thread(tmp_path / "node") as dev:
-        monkeypatch.setenv("AGENTOS_TOKEN", dev.agent_token)
+        monkeypatch.setenv("OPENAJAR_TOKEN", dev.agent_token)
         yield dev
 
 
@@ -156,9 +156,9 @@ def test_pull_never_overwrites_a_file_that_does_not_read(node, tmp_path):
 
 
 def test_a_save_that_waits_for_a_person_is_reported_not_retried(tmp_path):
-    from agentos.runner.fakes import post_flow
-    from agentos.runner.flows import parse_definition
-    from agentos.runner.flowsync import Change, push
+    from openajar.runner.fakes import post_flow
+    from openajar.runner.flows import parse_definition
+    from openajar.runner.flowsync import Change, push
 
     pending = {"status": "approval_pending", "approval_id": "ap_7", "tool": "flow_save",
                "summary": "Save flow biz-a.social.post for biz-a/social"}

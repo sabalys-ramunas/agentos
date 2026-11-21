@@ -3,8 +3,8 @@
 import pytest
 from connector_samples import commit_op, connector, read_op
 
-from agentos.runner.connectors.compile import ConnectorInvalid, parse_connector
-from agentos.runner.connectors.models import Binding, Connector
+from openajar.runner.connectors.compile import ConnectorInvalid, parse_connector
+from openajar.runner.connectors.models import Binding, Connector
 
 
 def _op(**kw):

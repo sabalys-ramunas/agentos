@@ -17,12 +17,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from agentos.core.errors import AgentosError
-from agentos.node import human
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.tools import full_outline, page_result
-from agentos.pilot import Pilot
-from agentos.pilot.hands import ToolFailed
 from lanebench import adversarial, checkers
 from lanebench.executors.pilot import STATUSES, request_for
 from lanebench.lab.harvest import HOST, LANE, MODAL_WAIT_S, SETTLE_S, free_port
@@ -30,6 +24,12 @@ from lanebench.lab.jev import LabDecider, LabJev
 from lanebench.sites.app import Site, photo_png, serve
 from lanebench.sites.state import Plan
 from lanebench.tasks import Task
+from openajar.core.errors import OpenajarError
+from openajar.node import human
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.tools import full_outline, page_result
+from openajar.pilot import Pilot
+from openajar.pilot.hands import ToolFailed
 
 
 class BrowserTools:
@@ -43,7 +43,7 @@ class BrowserTools:
     async def call(self, name: str, **a: Any) -> Any:
         try:
             return await self._call(name, **a)
-        except AgentosError as e:
+        except OpenajarError as e:
             raise ToolFailed(e.code, e.message) from None
 
     async def _call(self, name: str, **a: Any) -> Any:

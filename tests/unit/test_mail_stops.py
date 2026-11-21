@@ -9,12 +9,12 @@ import pytest
 from test_mail_tools import Ctx, Transport
 from workflow_support import LIST, MAIL, OWNER, PEOPLE, action, make_node, workflow
 
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.outbox import MailNotSent
-from agentos.runner.mail.session import MailFailed
-from agentos.runner.workflows.mail import Mailbox, SendRefused, SendStopped, TlsTransport, build_message
-from agentos.runner.workflows.sends import Unsubscribe
-from agentos.vault.errors import VaultSealed
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.outbox import MailNotSent
+from openajar.runner.mail.session import MailFailed
+from openajar.runner.workflows.mail import Mailbox, SendRefused, SendStopped, TlsTransport, build_message
+from openajar.runner.workflows.sends import Unsubscribe
+from openajar.vault.errors import VaultSealed
 
 SEND = f"mail.send@{MAIL}"
 

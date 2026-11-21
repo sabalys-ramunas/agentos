@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-router';
 import { brandSearch, profileSearch } from '@/features/brand/search';
 import { checkSearch, checksSearch } from '@/features/checks/search';
+import { environmentsSearch } from '@/features/environments/search';
 import { runSearch, runsSearch } from '@/features/runs/search';
 import { orgRoute } from './org';
 import { text } from './root';
@@ -16,6 +17,7 @@ import { text } from './root';
 export const environmentsRoute = createRoute({
   getParentRoute: () => orgRoute,
   path: '/environments',
+  validateSearch: environmentsSearch,
   component: lazyRouteComponent(() => import('@/features/environments/environments-page'), 'EnvironmentsPage'),
 });
 

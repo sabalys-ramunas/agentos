@@ -7,6 +7,7 @@
  * reads the same everywhere.
  */
 import { Link } from '@tanstack/react-router';
+import { Card } from '@/components/ui/card';
 import { AlertTriangle, Check, ChevronRight, Clock, Fingerprint, Hand, Lock, RotateCcw, ShieldAlert, Users, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAccess } from '@/api/hooks';
@@ -25,24 +26,25 @@ import { PostPreview } from './post-preview';
 import type { Blocker, Fact, Verbs, Where } from './words';
 import { SCALE, blockerOf, factsOf, questionOf, scaleOf, verbsOf, whereOf, whyAsked } from './words';
 
-/** "How big is this?": four steps, filled up to this one. Money and the irreversible go red. */
+/** "How big is this?": four steps in amber, filled up to this one. Only this step is named, at the top; the ends of
+ * the scale (Private, Can't undo) sit under it, so it reads at a glance at any width. */
 export function ScaleBar({ step }: { step: number }) {
-  const fill = step >= 2 ? 'bg-(--stuck-dot)' : step === 1 ? 'bg-(--wait-dot)' : 'bg-(--ok-dot)';
   return (
-    <div role="img" aria-label={`How big is this: ${SCALE[step]}`} className="rounded-lg border border-line bg-card p-4">
+    <Card role="img" aria-label={`How big is this: ${SCALE[step]}`} className="p-4">
       <p className="flex items-baseline justify-between gap-2 text-secondary">
         <span className="text-muted">How big is this?</span>
-        <span className="font-semibold">{SCALE[step]}</span>
+        <span className="font-semibold text-fg">{SCALE[step]}</span>
       </p>
       <div className="mt-3 grid grid-cols-4 gap-1" aria-hidden="true">
         {SCALE.map((label, index) => (
-          <div key={label} className="grid gap-2">
-            <span className={cn('h-1 rounded-full', index <= step ? fill : 'bg-pressed')} />
-            <span className={cn('text-micro leading-tight', index === step ? 'font-medium text-fg' : 'text-faint')}>{label}</span>
-          </div>
+          <span key={label} className={cn('h-1 rounded-full', index <= step ? 'bg-warn-dot' : 'bg-pressed')} />
         ))}
       </div>
-    </div>
+      <p aria-hidden="true" className="mt-2 flex justify-between gap-2 text-caption text-faint">
+        <span>{SCALE[0]}</span>
+        <span>{SCALE[SCALE.length - 1]}</span>
+      </p>
+    </Card>
   );
 }
 
@@ -308,16 +310,37 @@ interface CardProps {
   technical: ReactNode;
   /** On a phone the buttons ride along at the bottom, in reach of a thumb. */
   stickyActions?: boolean;
+  /** On a desk inside a card: the answers sit in a band across the card's foot (the parent's padding is 24 px). */
+  band?: boolean;
+  /** The ask's state at the head's right: "Waiting for you", "Costs money". */
+  status?: ReactNode;
 }
 
-export function DecisionCard({ org, approval, shown, color, layout, actions, done, changed, technical, stickyActions }: CardProps) {
+export function DecisionCard({ org, approval, shown, color, layout, actions, done, changed, technical, stickyActions, band, status }: CardProps) {
   const { where } = shown;
   // "Just a tap" tells a person how to answer. Someone who cannot answer it is not told how.
   const canAnswer = useAccess(org).can('approvals.decide');
   const tap = canAnswer ? <TapLine approval={approval} /> : null;
   const why = whyAsked(approval);
   const safety = why?.kind === 'safety' ? why : null;
-  const head = (
+  const head = band ? (
+    <header className="grid gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <BusinessMark name={where.business ?? 'Business'} color={color} size={40} />
+        <span className="grid min-w-0 flex-1">
+          <span className="truncate text-label font-semibold text-fg">{where.business ?? 'No business'}</span>
+          {where.siteLabel ? (
+            <span className="flex min-w-0 items-center gap-1 text-secondary text-muted">
+              {where.site ? <SiteMark site={where.site} size={14} label={false} /> : null}
+              <span className="truncate">{where.handle ?? where.siteLabel}</span>
+            </span>
+          ) : null}
+        </span>
+        {status ? <span className="shrink-0">{status}</span> : null}
+      </div>
+      <h2 className="text-page-title-compact break-words">{shown.question}</h2>
+    </header>
+  ) : (
     <header className="grid gap-2">
       <p className="flex min-w-0 items-center gap-2 text-secondary text-muted">
         <BusinessMark name={where.business ?? 'Business'} color={color} size={20} />
@@ -366,6 +389,35 @@ export function DecisionCard({ org, approval, shown, color, layout, actions, don
       </div>
     </div>
   );
+
+  if (band) {
+    // The desk's card, as drawn: the preview beside how big it is and the facts, then the answers in a band.
+    return (
+      <article aria-label={shown.question} className="grid gap-5">
+        {head}
+        {notices}
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
+          <div className="grid min-w-0 gap-4">
+            <section aria-label="If you say yes" className="grid">
+              <PostPreview approval={approval} where={where} color={color} bare>
+                {done ? <DoneMark decision={done} /> : null}
+              </PostPreview>
+            </section>
+            <YesStep approval={approval} />
+          </div>
+          <div className="grid min-w-0 gap-5">
+            <ScaleBar step={scaleOf(approval.effect)} />
+            <Facts org={org} facts={shown.facts} approval={approval} />
+            {technical}
+          </div>
+        </div>
+        <div className="sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-xl border-t border-line bg-inset px-6 py-4">
+          <div className="min-w-0 flex-1 basis-56 [&_p]:justify-start">{tap}</div>
+          <div className="min-w-0 basis-auto">{actions}</div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article aria-label={shown.question} className="grid gap-5">

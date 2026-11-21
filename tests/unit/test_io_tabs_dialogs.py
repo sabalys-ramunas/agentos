@@ -8,10 +8,10 @@ from typing import Any
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Signal
-from agentos.node.camoufox.engine import PageTracker, tracker_for
-from agentos.node.interaction import (
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Signal
+from openajar.node.camoufox.engine import PageTracker, tracker_for
+from openajar.node.interaction import (
     DialogGuard,
     DialogPending,
     PlaywrightInteraction,

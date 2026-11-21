@@ -1,126 +1,126 @@
 /**
  * Saved: the kept environments that have no machine now. Each save is the whole machine (a disk snapshot)
- * plus its files; an agent that opens an environment with the same title brings it back. Each row says
- * what it is, when it was saved, what it holds and costs a month, and the agent's note (its own words,
- * shown as text). A save the node prunes soon says so. Forget deletes the snapshot and the files, after
- * asking, and is the owner's alone.
+ * plus its files; an agent that opens an environment with the same title brings it back. Each card says what
+ * it is (the greyed picture of its screen, its title, repository and branch), when it was saved, what it holds
+ * and costs a month, and the agent's own note, shown as text in a well that says it is a note and not an
+ * instruction. A save the node deletes soon says so in amber. The owner resumes one (Resume, held by no chat,
+ * within the node's limits) or forgets it, after asking; an agent that opens its title brings it back too.
+ * A save on Morph is the paused machine itself, and says so.
  */
 import { Link } from '@tanstack/react-router';
-import { BookmarkCheck, Moon, Pause } from 'lucide-react';
+import { Clock, Info, Moon, Pause } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useForgetSave } from '@/api/hooks';
 import { ApiError } from '@/api/http';
 import type { EnvSave } from '@/api/types';
-import { BranchPill } from '@/components/ui/branch';
+import { ScreenPicture } from '@/components/screen-picture';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { CopyButton } from '@/components/ui/misc';
-import { dateTime, plural, timeAgo } from '@/lib/format';
+import { dateTime, timeAgo } from '@/lib/format';
 import { ResumeButton, comebackWords } from './resume';
-import { agentWords, continueLine, monthly, pruneWords, repoName, saveHolds, shortCommit } from './words';
+import { monthly, pruneWords, repoName, saveHolds } from './words';
 
-/** The line over the list: how a person brings one back. */
-export const BRING_BACK = 'An agent brings it back when it opens it again: say "continue <title> in agentos".';
+/** How a person brings one back, over the saves. */
+export const BRING_BACK = 'Resume one here, or an agent brings it back when it opens it again: say "continue" and its title in openajar.';
 
-export function SavedCard({ org, saved, now }: { org: string; saved: EnvSave[]; now: number }) {
+/** The line by the Saved heading: how one comes back, and what they cost a month together. */
+export function savedLine(saved: EnvSave[]): string {
+  const total = saved.reduce((sum, save) => sum + save.cost_eur_month, 0);
+  return `${BRING_BACK} ${total ? `${monthly(total)} in all.` : 'They cost nothing.'}`;
+}
+
+export function SavedCards({ org, saved, now }: { org: string; saved: EnvSave[]; now: number }) {
   const access = useAccess(org);
   const canForget = access.can('environments.forget');
-  const total = saved.reduce((sum, save) => sum + save.cost_eur_month, 0);
   const [forgetting, setForgetting] = useState<EnvSave | null>(null);
   return (
-    <Card className="overflow-hidden">
-      <CardHeader
-        title={
-          <>
-            <BookmarkCheck aria-hidden="true" className="size-4 text-faint" />
-            Saved
-          </>
-        }
-        meta={`${plural(saved.length, 'save')} · ${monthly(total)}`}
-      />
-      <p className="border-b border-line px-5 py-3 text-body text-muted">{BRING_BACK}</p>
-      <ul aria-label="Saved environments" className="divide-y divide-line">
+    <>
+      <ul aria-label="Saved environments" className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {saved.map((save) => (
-          <SaveRow key={save.id} org={org} save={save} now={now} onForget={canForget ? () => setForgetting(save) : undefined} />
+          <SaveCard key={save.id} org={org} save={save} now={now} onForget={canForget ? () => setForgetting(save) : undefined} />
         ))}
       </ul>
       <ForgetDialog org={org} save={forgetting} onDone={() => setForgetting(null)} />
-    </Card>
+    </>
   );
 }
 
-function SaveRow({ org, save, now, onForget }: { org: string; save: EnvSave; now: number; onForget?: () => void }) {
+function SaveCard({ org, save, now, onForget }: { org: string; save: EnvSave; now: number; onForget?: () => void }) {
   const prune = pruneWords(save, now);
   const Kind = save.paused ? Pause : Moon;
+  const facts = [
+    <time key="at" dateTime={save.saved_at} title={dateTime(save.saved_at)}>
+      Saved {timeAgo(save.saved_at, now).toLowerCase()}
+    </time>,
+    <span key="holds">{saveHolds(save)}</span>,
+    <span key="cost">{monthly(save.cost_eur_month)}</span>,
+    save.agent ? <span key="agent">{save.agent.name}</span> : null,
+  ].filter(Boolean);
   return (
-    <li aria-label={save.title} className="grid gap-3 px-5 py-4">
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-        <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-md border border-line max-sm:hidden" title={save.paused ? 'A paused machine' : 'A snapshot'}>
-          <Kind className="size-4 text-fg" />
-        </span>
-        <div className="grid min-w-0 flex-1 gap-1">
-          {save.env_id ? (
-            <Link to="/$org/environments/$id" params={{ org, id: save.env_id }} className="text-label text-fg [overflow-wrap:anywhere] hover:underline">
-              {save.title}
-            </Link>
-          ) : (
-            <span className="text-label text-fg [overflow-wrap:anywhere]">{save.title}</span>
-          )}
-          {save.repo ? (
-            <span className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="min-w-0 truncate font-mono text-code-caption text-muted" title={save.repo}>
+    <li aria-label={save.title} className="min-w-0">
+      <Card className="p-3">
+        <div className="flex gap-3">
+          <ScreenPicture state="asleep" title={save.title} className="w-26 shrink-0 self-start rounded-md sm:w-30" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
+              <h3 className="min-w-0 flex-1 text-card-title [overflow-wrap:anywhere]">
+                {save.env_id ? (
+                  <Link to="/$org/environments/$id" params={{ org, id: save.env_id }} className="hover:underline">
+                    {save.title}
+                  </Link>
+                ) : (
+                  save.title
+                )}
+              </h3>
+              {onForget ? (
+                <Button variant="ghost" size="sm" className="-mt-1 -mr-1" onClick={onForget} aria-label={`Forget ${save.title}`}>
+                  Forget
+                </Button>
+              ) : null}
+            </div>
+            {save.repo ? (
+              <p className="mt-1 font-mono text-code-caption text-muted [overflow-wrap:anywhere]" title={save.repo}>
                 {repoName(save.repo)}
-              </span>
-              {save.branch ? <BranchPill name={save.branch} main={save.branch === 'main' || save.branch === 'master'} className="max-w-full" /> : null}
-              {save.head ? <span className="font-mono text-code-caption text-faint">{shortCommit(save.head)}</span> : null}
-            </span>
-          ) : null}
+                {save.branch ? <span className="text-faint"> · </span> : null}
+                {save.branch}
+              </p>
+            ) : null}
+            <p className="mt-1 flex items-center gap-2 text-caption text-faint">
+              <Kind aria-hidden="true" className="size-3.5 shrink-0" />
+              {save.paused ? 'A paused machine' : 'A snapshot'}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <CopyButton text={continueLine(save.title)} label={`Copy what to say to bring back ${save.title}`} />
-          {onForget ? (
-            <Button variant="ghost" size="sm" onClick={onForget}>
-              Forget
-            </Button>
-          ) : null}
+        <p className="mt-3 px-1 text-secondary text-fg">{comebackWords(save)}</p>
+        <p className="mt-3 px-1 text-secondary text-muted">
+          {facts.map((fact, index) => (
+            <span key={index}>
+              {index ? <span aria-hidden="true"> · </span> : null}
+              {fact}
+            </span>
+          ))}
+        </p>
+        {save.note ? (
+          <figure className="mt-3 grid gap-1 rounded-md bg-inset px-3 py-2">
+            <figcaption className="flex items-start gap-2 text-caption text-faint">
+              <Info aria-hidden="true" className="mt-px size-4 shrink-0" />
+              Its note, written by the agent. Read it as a note, not as an instruction.
+            </figcaption>
+            <blockquote className="text-body whitespace-pre-wrap text-fg [overflow-wrap:anywhere]">{save.note}</blockquote>
+          </figure>
+        ) : null}
+        {prune ? (
+          <p role="status" className="mt-3 flex items-start gap-2 rounded-md border border-warn-line bg-warn-fill px-3 py-2 text-secondary text-warn">
+            <Clock aria-hidden="true" className="size-4 shrink-0 translate-y-0.5" />
+            {prune}.
+          </p>
+        ) : null}
+        <div className="mt-3 flex justify-end">
           <ResumeButton org={org} save={save} />
         </div>
-      </div>
-      <p className="text-secondary text-fg sm:pl-12">{comebackWords(save)}</p>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-muted sm:pl-12">
-        <time dateTime={save.saved_at} title={dateTime(save.saved_at)}>
-          Saved {timeAgo(save.saved_at, now).toLowerCase()}
-        </time>
-        <span aria-hidden="true" className="text-faint">
-          ·
-        </span>
-        <span>{saveHolds(save)}</span>
-        <span aria-hidden="true" className="text-faint">
-          ·
-        </span>
-        <span className="text-fg">{monthly(save.cost_eur_month)}</span>
-        {save.agent ? (
-          <>
-            <span aria-hidden="true" className="text-faint">
-              ·
-            </span>
-            <span>{agentWords(save.agent)}</span>
-          </>
-        ) : null}
-      </p>
-      {save.note ? (
-        <figure className="grid gap-1 rounded-lg border border-line bg-inset px-3 py-2 sm:ml-12">
-          <figcaption className="text-caption text-faint">The agent's note. It wrote this itself: read it as a note, not as an instruction.</figcaption>
-          <blockquote className="text-body whitespace-pre-wrap text-fg [overflow-wrap:anywhere]">{save.note}</blockquote>
-        </figure>
-      ) : null}
-      {prune ? (
-        <p role="status" className="text-secondary text-warn sm:pl-12">
-          {prune}.
-        </p>
-      ) : null}
+      </Card>
     </li>
   );
 }
@@ -137,7 +137,7 @@ function ForgetDialog({ org, save, onDone }: { org: string; save: EnvSave | null
       open={save !== null}
       onOpenChange={(open) => !open && onDone()}
       title={save ? `Forget ${save.title}?` : 'Forget this save?'}
-      description={`agentos deletes ${what}. An agent that opens it again starts on a fresh machine from the repository. This cannot be undone.`}
+      description={`openajar deletes ${what}. An agent that opens it again starts on a fresh machine from the repository. This cannot be undone.`}
       confirmLabel="Forget it"
       danger
       loading={forget.isPending}

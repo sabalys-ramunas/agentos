@@ -1,6 +1,6 @@
 # Security policy
 
-agentos rents cloud machines for agents, holds git credentials, logged-in browser profiles and
+openajar rents cloud machines for agents, holds git credentials, logged-in browser profiles and
 a password vault, and has the permission to act on real accounts, so we take reports seriously
 and answer them quickly.
 
@@ -33,10 +33,10 @@ you, and credit you in the release notes unless you prefer otherwise.
 ## Out of scope
 
 - A site detecting or blocking automation. That is a compatibility question, not a
-  vulnerability in agentos.
+  vulnerability in openajar.
 - Attacks that need root on the node, or the node's token (it is the owner's key).
-- Problems in third-party dependencies with no agentos-specific impact (report those upstream).
+- Problems in third-party dependencies with no openajar-specific impact (report those upstream).
 
 ## Supported versions
 
-agentos is alpha. Only the latest commit on `main` gets security fixes.
+openajar is alpha. Only the latest commit on `main` gets security fixes.

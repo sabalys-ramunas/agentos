@@ -90,7 +90,7 @@ describe('notification settings', () => {
 
   it('previews the digest from real numbers, with what waits first', async () => {
     renderApp(PATH);
-    expect(await screen.findByText(/Your day on agentos · Northwind Group · \d+ need you/)).toBeInTheDocument();
+    expect(await screen.findByText(/Your day on openajar · Northwind Group · \d+ need you/)).toBeInTheDocument();
     expect(screen.getAllByText('An irreversible action needs you').length).toBeGreaterThan(0);
     expect(screen.getByRole('table', { name: 'Each workspace' })).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 """Every tool says which argument names its lane, or why it has none.
 
-The policy precheck (agentos/policy/wrap.py) authorizes the lane a call targets from
+The policy precheck (openajar/policy/wrap.py) authorizes the lane a call targets from
 `spec.lane_arg` alone. A tool with `lane_arg=None` gets no lane check before its handler runs, so
 it must either take no lane at all or call `ctx.authorize(..., lane_id=...)` itself. Nothing in
 the registry enforces that, so these tests do: a new tool with a lane-like argument must declare
@@ -14,12 +14,12 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.mcp.providers import feature_providers, tool_providers
-from agentos.plugins.entries import PLUGINS
-from agentos.policy.manifest import handler_params
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.mcp.providers import feature_providers, tool_providers
+from openajar.plugins.entries import PLUGINS
+from openajar.policy.manifest import handler_params
 
 # Argument names that hold a lane id (or a surface or mailbox id that is authorized as one).
 LANE_PARAMS = frozenset({"on", "lane", "lanes", "lane_id", "surface", "mailbox"})
@@ -45,10 +45,10 @@ SELF_AUTHORIZED_LANE_PARAM = {
     "flows_list": "lane",
     # `on` names one of the caller's environments by its handle (or a session's own id or env/<id>), found
     # only in its grant family and only when the caller holds it (EnvironmentManager.reach); refuse_frozen
-    # on its lanes (agentos.environments.tools._find)
+    # on its lanes (openajar.environments.tools._find)
     "environment": "on", "environment_close": "on", "environment_save": "on", "environment_port": "on",
     "environment_pull_request": "on", "environment_checkpoint": "on", "environment_rollback": "on",
-    # `on` is an environment's handle: agentos.environments.routing.studio_proxy reaches it (the lease) and
+    # `on` is an environment's handle: openajar.environments.routing.studio_proxy reaches it (the lease) and
     # points the review browser at its tunnel; the check acts on no lane (a review browser is no lane)
     "ui_check": "on", "ui_diff": "on", "system_check": "on", "ui_baseline": "on",
 }
@@ -85,7 +85,7 @@ SELF_AUTHORIZED_INDIRECT = {
     "profile_propose": "a draft; needs a grant over the whole workspace (_check_reach)",
     "profile_learn_brand": "a draft; needs a grant over the whole workspace (_check_reach); opens a url, no lane",
     "profile_use": "reads the approved profile; _check_reach: covers_workspace or ctx.can_access_lane on its accounts",
-    # agentos.environments.tools: the lane is the one the node picks (env/<id>), or the chat's environment's
+    # openajar.environments.tools: the lane is the one the node picks (env/<id>), or the chat's environment's
     "environment_open": "plans env/<id>; ctx.precheck(VM, lane_id=env/<id>), ctx.authorize(READ, lane_id=env/<id>)",
     "environment": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_close": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
@@ -108,7 +108,7 @@ NO_LANE = frozenset({
     "memory_write", "plugins_list", "run_cancel", "run_status", "send_suppress", "site_api_propose",
     "site_apis_list", "triggers_list", "whoami", "workflow_catalog", "workflow_get", "workflow_list",
     "workflow_runs", "workspace_list", "workspace_queue",
-    # studio: a URL in the review browser, never a lane (agentos.studio.tools); a profile is read only
+    # studio: a URL in the review browser, never a lane (openajar.studio.tools); a profile is read only
     # when the grant reaches its workspace
     "finding_get", "studio_status", "ui_image",
 })
@@ -116,8 +116,8 @@ NO_LANE = frozenset({
 
 @pytest.fixture(scope="module")
 def specs() -> list[ToolSpec]:
-    """Every tool this build serves, plugins included (the list `agentos tools` prints)."""
-    runtime = Runtime(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="agentos-lane-args-"))))
+    """Every tool this build serves, plugins included (the list `openajar tools` prints)."""
+    runtime = Runtime(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="openajar-lane-args-"))))
     providers = [*tool_providers(), *feature_providers(tuple(m for plugin in PLUGINS for m in plugin.tools))]
     return [spec for provider in providers for spec in provider(runtime) if isinstance(spec, ToolSpec)]
 

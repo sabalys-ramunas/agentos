@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import ActsAs, Principal
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
-from agentos.runner.connectors.surfaces import binds_to
-from agentos.runner.flows import FlowService
-from agentos.runner.models import NodeInstall, is_owner
-from agentos.runner.siteapis.models import (
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import ActsAs, Principal
+from openajar.runner.connectors.compile import ConnectorInvalid, compile_connector
+from openajar.runner.connectors.surfaces import binds_to
+from openajar.runner.flows import FlowService
+from openajar.runner.models import NodeInstall, is_owner
+from openajar.runner.siteapis.models import (
     SAMPLE,
     compile_for_test,
     install_for_test,
     local_saved_by,
     to_connector,
 )
-from agentos.runner.store import RunnerStore
+from openajar.runner.store import RunnerStore
 
 OWNER = Principal(kind="human", id="owner")
 

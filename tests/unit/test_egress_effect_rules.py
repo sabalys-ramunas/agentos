@@ -10,8 +10,8 @@ from urllib.parse import urlencode
 
 import pytest
 
-from agentos.node import egress
-from agentos.node.egress import _RULE_ID_RE, EFFECT_KINDS, EFFECT_RULES, classify, gql_verdict, request_op
+from openajar.node import egress
+from openajar.node.egress import _RULE_ID_RE, EFFECT_KINDS, EFFECT_RULES, classify, gql_verdict, request_op
 
 JSON = {"Content-Type": "application/json"}
 FORM = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -192,7 +192,7 @@ def linkedin(op: str) -> bytes:
 
 
 def _declared(site: str, op: str) -> egress.FlowCommit:
-    from agentos.runner.connectors.compile import compile_path
+    from openajar.runner.connectors.compile import compile_path
 
     root = Path(__file__).resolve().parents[2] / "connectors" / site
     request = compile_path(root).operations[op].definition["connector"]["commit"]

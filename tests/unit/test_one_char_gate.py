@@ -10,11 +10,11 @@ from test_policy_support import PRESENT, Clock, make_service
 from testkit.brains import add as add_brain
 from testkit.brains import make_service as make_brain_service
 
-from agentos.brains.models import Budget
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.policy.approval_binding import ActionBinding, action_binding_problem
-from agentos.policy.approvals import ask_for_action
+from openajar.brains.models import Budget
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.policy.approval_binding import ActionBinding, action_binding_problem
+from openajar.policy.approvals import ask_for_action
 
 GRANT = "gr_test"
 GRANT_PATH = "/gr_test/"

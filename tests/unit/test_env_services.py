@@ -7,13 +7,13 @@ from datetime import timedelta
 
 import pytest
 
-from agentos.core.errors import LaneBusy
-from agentos.core.models import utcnow
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.env.services import RotatingLog
+from openajar.core.errors import LaneBusy
+from openajar.core.models import utcnow
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.env.services import RotatingLog
 
 
 def make(tmp_path, **settings):

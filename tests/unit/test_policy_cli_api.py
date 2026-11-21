@@ -1,4 +1,4 @@
-"""The policy CLI, and the panel API on the mounted node (agentos.api) over the real policy."""
+"""The policy CLI, and the panel API on the mounted node (openajar.api) over the real policy."""
 
 from __future__ import annotations
 
@@ -9,19 +9,19 @@ from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import OWNER, make_service
 from typer.testing import CliRunner
 
-from agentos.core.config import NodeConfig, save_config
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy.cli import app
-from agentos.policy.errors import Denied
-from agentos.policy.grants import LaneCap, Specials
+from openajar.core.config import NodeConfig, save_config
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy.cli import app
+from openajar.policy.errors import Denied
+from openajar.policy.grants import LaneCap, Specials
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, mcp_token=OWNER))
     return tmp_path
 
@@ -54,7 +54,7 @@ def test_cli_grants_lifecycle(home):
 
 def test_cli_issues_no_agent_grant_into_a_frozen_lane(home):
     """The node's CLI opens the policy without the daemon: the freeze records on disk still count."""
-    from agentos.policy.freeze_store import FreezeRecord, FreezeStore
+    from openajar.policy.freeze_store import FreezeRecord, FreezeStore
 
     FreezeStore(home).put(FreezeRecord("lane", "biz-a/social", "odd post", "owner (node cli)", time.time(), via="cli"))
     refused = run("grants", "issue", "--subject", "late-agent", "--lane", "biz-a/social", "--ceiling", "commit")
@@ -118,7 +118,7 @@ def test_cli_routing_traces_and_notify(home):
     assert nt.exit_code == 0 and "log: delivered" in nt.stdout  # the log channel is on by default
     assert run("notify", "ntfy", "my-topic").exit_code != 0  # guessable (AUD-44)
     made = run("notify", "ntfy", "--token-from", "-", input="tk_hidden_value")
-    assert made.exit_code == 0 and "subscribe to the topic agentos-" in made.stdout
+    assert made.exit_code == 0 and "subscribe to the topic openajar-" in made.stdout
     assert "tk_hidden_value" not in run("notify", "show").stdout
 
 
@@ -247,7 +247,7 @@ def test_api_admin_grant_issues_only_within_itself(node):
 
 
 def test_api_activity_shows_each_grant_only_its_own_events(node):
-    from agentos.policy.traces import TraceEvent
+    from openajar.policy.traces import TraceEvent
 
     tok = node.grant(subject={"id": "a"}, workspaces=["biz-a"])
     _, g = node.policy.resolve(tok)
@@ -277,7 +277,7 @@ def test_api_notification_settings(node):
     with node.client() as c:
         csrf = node.sign_in(c)
         r = c.put("/api/settings/notifications", headers=csrf,
-                  json={"ntfy": {"topic": "agentos-t1-Qw8eR4tY6uI2oP0aS9dFg", "token": "tk_very_secret"},
+                  json={"ntfy": {"topic": "openajar-t1-Qw8eR4tY6uI2oP0aS9dFg", "token": "tk_very_secret"},
                         "public_base_url": "https://a.example"})
         assert r.status_code == 200 and r.json()["ntfy"]["token_saved"] is True and "tk_very_secret" not in r.text
         got = c.get("/api/settings/notifications", headers=csrf)
@@ -286,12 +286,12 @@ def test_api_notification_settings(node):
         assert bad.status_code == 400
         res = c.post("/api/settings/notifications/test", headers=csrf)
         assert res.status_code == 200 and res.json()["results"]["log"] == "delivered"
-        assert sent and all("agentos-t1-Qw8eR4tY6uI2oP0aS9dFg" in body for body in sent)  # to the stub only
+        assert sent and all("openajar-t1-Qw8eR4tY6uI2oP0aS9dFg" in body for body in sent)  # to the stub only
 
 
 def test_approving_a_question_without_an_answer_says_how_to_answer(home):
     """QA 2026-11-10, tester B 9: "answering a question needs an answer" named neither --answer nor the choices."""
-    from agentos.core.models import Principal
+    from openajar.core.models import Principal
     svc, _ = make_service(home)
     q = svc.approvals.create_question(question="Activate tb-books?", options=["Activate", "Leave it"],
                                       requester=Principal(kind="agent", id="a"), grant_id=None, grant_path=None)
@@ -299,6 +299,6 @@ def test_approving_a_question_without_an_answer_says_how_to_answer(home):
     res = run("approvals", "approve", q.id)
     assert res.exit_code == 1
     assert '--answer "Activate"' in res.output and '--answer "Leave it"' in res.output, res.output
-    assert f"agentos approvals approve {q.id}" in res.output and "—" not in res.output
+    assert f"openajar approvals approve {q.id}" in res.output and "—" not in res.output
     res = run("approvals", "approve", q.id, "--answer", "Activate")
     assert res.exit_code == 0 and "answered: Activate" in res.output and "within a few seconds" in res.output

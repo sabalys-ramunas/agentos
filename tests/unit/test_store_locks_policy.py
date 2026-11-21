@@ -1,7 +1,7 @@
 """A CLI write holding policy.db's or traces.db's write lock never freezes the daemon: authorize
 (its counters, a new approval, a budget debit) runs on policy.db's worker thread and is
 committed before it returns, and an audit row written on the loop waits for the lock off it
-(agentos.core.sqlite)."""
+(openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ import pytest
 from lockheld import loop_stays_free
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy.grants import OWNER_GRANT_ID
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy.grants import OWNER_GRANT_ID
+from openajar.policy.traces import TraceEvent, TraceStore
 
 
 @pytest.fixture

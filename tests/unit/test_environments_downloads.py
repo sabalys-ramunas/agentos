@@ -1,4 +1,4 @@
-"""Downloads off an environment (agentos.environments.downloads): environment_download's packing and its
+"""Downloads off an environment (openajar.environments.downloads): environment_download's packing and its
 one-use link, the viewer's GET route, the refusals, the clean up, the record of it, and the CLI.
 
 The machine is the fake of test_environments, except that what it holds under /work is a folder here:
@@ -19,18 +19,18 @@ import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from typer.testing import CliRunner
 
-from agentos.env.host import FakeHost
-from agentos.env.lane_sync import ArchiveTooLarge
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import downloads
-from agentos.environments.downloads import tool_specs as download_specs
-from agentos.environments.uploads import tool_specs as upload_specs
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_tokens import ViewTokens
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.env.host import FakeHost
+from openajar.env.lane_sync import ArchiveTooLarge
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import downloads
+from openajar.environments.downloads import tool_specs as download_specs
+from openajar.environments.uploads import tool_specs as upload_specs
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_tokens import ViewTokens
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 
 class Clock:
@@ -307,9 +307,9 @@ def _bridge(loop: asyncio.AbstractEventLoop, apps: dict[str, object]) -> httpx.M
 
 @pytest.fixture
 def cli(node, dl, monkeypatch):  # noqa: F811
-    from agentos.api import ApiSettings, build_api
-    from agentos.core import config as config_mod
-    from agentos.environments import cli as env_cli
+    from openajar.api import ApiSettings, build_api
+    from openajar.core import config as config_mod
+    from openajar.environments import cli as env_cli
 
     home = node["mgr"].home
     api = build_api(node["rt"], ApiSettings(lane_pump_seconds=0, panel_dir=home / "no-panel"))
@@ -418,7 +418,7 @@ def test_the_attachment_name_is_safe():
 
 
 def test_unpack_skips_what_leaves_the_folder(tmp_path):
-    from agentos.environments.cli import unpack
+    from openajar.environments.cli import unpack
 
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:

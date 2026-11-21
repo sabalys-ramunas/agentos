@@ -5,7 +5,7 @@ BUG-13 and BUG-20 from the QA report were strict xfails here; both are fixed.
 
 import json
 
-from agentos.runner.fakes import BASE, Harness
+from openajar.runner.fakes import BASE, Harness
 
 LANE = "biz-a/social"
 PASSWORD_LOCATOR = {"role": "textbox", "name": "Password"}

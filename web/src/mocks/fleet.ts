@@ -141,7 +141,7 @@ export function topology(data: OrgData, windowSeconds: number): Topology {
   };
 
   const entities: TopologyEntity[] = [
-    { id: 'cloud:agentos', type: 'cloud', label: 'agentos cloud', state: 'ok', ref: null, stats: { calls: events.length } },
+    { id: 'cloud:openajar', type: 'cloud', label: 'openajar cloud', state: 'ok', ref: null, stats: { calls: events.length } },
   ];
   const links: TopologyLink[] = [];
 
@@ -155,7 +155,7 @@ export function topology(data: OrgData, windowSeconds: number): Topology {
       ref: { href: `/activity?principal=${agent.id}` },
       stats: { surface: agent.surface, kind: 'agent', brand: agent.id.startsWith('claude') ? 'claude' : agent.id.startsWith('chatgpt') ? 'chatgpt' : agent.id.startsWith('codex') ? 'codex' : null, calls: entry.calls, failed: entry.failed },
     });
-    links.push(link(`agent:${agent.id}`, 'cloud:agentos', 'attached', `agent:${agent.id}`));
+    links.push(link(`agent:${agent.id}`, 'cloud:openajar', 'attached', `agent:${agent.id}`));
   }
 
   for (const node of data.nodes) {
@@ -167,7 +167,7 @@ export function topology(data: OrgData, windowSeconds: number): Topology {
       ref: { href: `/nodes/${node.id}` },
       stats: { lanes: data.lanes.filter((lane) => lane.node === node.id).length, version: node.version },
     });
-    links.push(link(`node:${node.id}`, 'cloud:agentos', 'attached'));
+    links.push(link(`node:${node.id}`, 'cloud:openajar', 'attached'));
   }
 
   for (const workspace of data.workspaces) {
@@ -274,16 +274,16 @@ export function topology(data: OrgData, windowSeconds: number): Topology {
 function scaledTopology(windowSeconds: number): Topology {
   const random = rng(11);
   const sites = ['instagram.com', 'facebook.com', 'reddit.com', 'medium.com', 'linkedin.com', 'tiktok.example', 'pinterest.example', 'youtube.example', 'x.example', 'threads.example'];
-  const entities: TopologyEntity[] = [{ id: 'cloud:agentos', type: 'cloud', label: 'agentos cloud', state: 'ok', ref: null, stats: {} }];
+  const entities: TopologyEntity[] = [{ id: 'cloud:openajar', type: 'cloud', label: 'openajar cloud', state: 'ok', ref: null, stats: {} }];
   const links: TopologyLink[] = [];
   for (const agent of [...AGENTS, { id: 'night-shift', label: 'night-shift', surface: 'Hosted agent' }]) {
     entities.push({ id: `agent:${agent.id}`, type: 'agent', label: agent.label, state: 'ok', ref: null, stats: { surface: agent.surface } });
-    links.push({ from: `agent:${agent.id}`, to: 'cloud:agentos', kind: 'attached', calls: 40, failed: 1, last_at: null });
+    links.push({ from: `agent:${agent.id}`, to: 'cloud:openajar', kind: 'attached', calls: 40, failed: 1, last_at: null });
   }
   const nodes = ['ams-1', 'ams-2', 'fra-1', 'fra-2', 'hel-1', 'home-mini', 'lon-1', 'vno-1'];
   for (const node of nodes) {
     entities.push({ id: `node:${node}`, type: 'node', label: node, state: node === 'fra-2' ? 'down' : 'ok', ref: null, stats: {} });
-    links.push({ from: `node:${node}`, to: 'cloud:agentos', kind: 'attached', calls: 0, failed: 0, last_at: null });
+    links.push({ from: `node:${node}`, to: 'cloud:openajar', kind: 'attached', calls: 0, failed: 0, last_at: null });
   }
   for (const site of sites) entities.push({ id: `site:${site}`, type: 'site', label: site, state: 'ok', ref: null, stats: {} });
   for (let index = 0; index < 34; index += 1) {
@@ -383,7 +383,7 @@ const SYSTEMS: Record<string, Omit<NodeSystem, 'os' | 'arch' | 'version' | 'time
     gpu: 'Apple M4, 10-core GPU',
     uptime_s: 19 * 86_400 + 4 * 3_600,
     enrolled_at: new Date(Date.now() - 74 * DAY).toISOString(),
-    enrolled_by: 'demo@agentos.local',
+    enrolled_by: 'demo@openajar.local',
     key_fingerprint: 'ed25519:7c1e 44a9 02bb f1d3 9e60 ac17 58d2 0f3b',
     protocol: 1,
   },
@@ -396,7 +396,7 @@ const SYSTEMS: Record<string, Omit<NodeSystem, 'os' | 'arch' | 'version' | 'time
     gpu: null,
     uptime_s: 41 * 86_400 + 11 * 3_600,
     enrolled_at: new Date(Date.now() - 58 * DAY).toISOString(),
-    enrolled_by: 'demo@agentos.local',
+    enrolled_by: 'demo@openajar.local',
     key_fingerprint: 'ed25519:e2f0 6b1c 7d48 a3c5 11fe 90d7 c6a2 4b8e',
     protocol: 1,
   },
@@ -423,11 +423,11 @@ export function nodePrograms(data: OrgData, node: NodeRecord): NodeProgram[] {
     name, version, source, scope, lanes: laneIds, signed, pinned_hash: pinned ? hashOf(name + version) : null, installed_at: installed(days),
   });
   const common = [
-    program('agentosd', node.version, 'agentos', 'node', [], true, true, 3),
-    program('camoufox', '135.0.1-beta', 'agentos', 'base_image', browsers, true, true, 12),
-    program('novnc', '1.5.0', 'agentos', 'base_image', [], true, true, 12),
+    program('agentosd', node.version, 'openajar', 'node', [], true, true, 3),
+    program('camoufox', '135.0.1-beta', 'openajar', 'base_image', browsers, true, true, 12),
+    program('novnc', '1.5.0', 'openajar', 'base_image', [], true, true, 12),
     program('wireguard-tools', '1.0.20210914', 'apt', 'node', [], true, false, 31),
-    program('python', '3.12.7', 'agentos', 'base_image', [], true, true, 12),
+    program('python', '3.12.7', 'openajar', 'base_image', [], true, true, 12),
     program('ffmpeg', '7.1', 'apt', 'node', [], true, false, 22),
   ];
   if (node.id === 'home-mini') {
@@ -497,7 +497,7 @@ export function nodeHealth(data: OrgData, node: NodeRecord): HealthCheck[] {
   return [
     check('Control channel', 'ok', 'Connected, last heartbeat a few seconds ago'),
     check('Clock', 'ok', 'Within 40 ms of the controller'),
-    check('Disk space', lowDisk ? 'warn' : 'ok', lowDisk ? 'Under 100 GB free. Profiles grow about 1 GB a day' : 'Plenty free', 'Free some disk, or keep the backups elsewhere: agentos backup create --to /mnt/backup'),
+    check('Disk space', lowDisk ? 'warn' : 'ok', lowDisk ? 'Under 100 GB free. Profiles grow about 1 GB a day' : 'Plenty free', 'Free some disk, or keep the backups elsewhere: openajar backup create --to /mnt/backup'),
     check('Browser engine', 'ok', 'camoufox starts in 1.8 s'),
     check('Remote view', node.id === 'hetzner-1' ? 'warn' : 'ok', node.id === 'hetzner-1' ? 'websockify restarted 4 times this week' : 'Answering', 'Restart it from Environments, and read its log if it happens again'),
     check('Vault', 'ok', 'Sealed at rest, unsealed for this session'),

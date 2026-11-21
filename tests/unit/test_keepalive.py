@@ -1,4 +1,4 @@
-"""Session keepalive (agentos.keepalive): the planner's rules, the visit on the dev fake lanes and site,
+"""Session keepalive (openajar.keepalive): the planner's rules, the visit on the dev fake lanes and site,
 read-only enforcement (the visit's own action list and the egress guard), signed-out and challenged
 lanes, coordination with recorded activity, and the owner's switches."""
 
@@ -17,9 +17,9 @@ from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FailingDispatcher, FakeRequest, FakeRoute, make_guard, settle
 from typer.testing import CliRunner
 
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.errors import EgressRefused, InvalidRequest
-from agentos.core.models import (
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.errors import EgressRefused, InvalidRequest
+from openajar.core.models import (
     AccountRef,
     ActionKind,
     ControlState,
@@ -30,18 +30,18 @@ from agentos.core.models import (
     NavigateResult,
     Signal,
 )
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.web import CHALLENGE_URL, DevInteraction, new_tab
-from agentos.keepalive import planner, visit
-from agentos.keepalive.persona import draw_persona
-from agentos.keepalive.service import KeepaliveService
-from agentos.keepalive.sites import TABLE, Entry, entry_for
-from agentos.keepalive.store import KeepaliveStore
-from agentos.node import egress
-from agentos.ops import control
-from agentos.runner.fakes import BASE
-from agentos.stealth.lanecheck import Check, LaneReport
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.web import CHALLENGE_URL, DevInteraction, new_tab
+from openajar.keepalive import planner, visit
+from openajar.keepalive.persona import draw_persona
+from openajar.keepalive.service import KeepaliveService
+from openajar.keepalive.sites import TABLE, Entry, entry_for
+from openajar.keepalive.store import KeepaliveStore
+from openajar.node import egress
+from openajar.ops import control
+from openajar.runner.fakes import BASE
+from openajar.stealth.lanecheck import Check, LaneReport
 
 UTC_TZ = ZoneInfo("UTC")
 VILNIUS = ZoneInfo("Europe/Vilnius")
@@ -227,7 +227,7 @@ def test_outline_nodes_read_refs_and_link_addresses():
     ro = visit.ReadOnly(None, None, TABLE["instagram"])
     ro.nodes, ro.url = {n.ref: n for n in nodes}, "https://www.instagram.com/"
     assert [n.ref for n in ro.item_links()] == ["e2"]
-    # after the page navigated, refs carry the frame (agentos.node.snapshot REF_RE): a lane's page always has
+    # after the page navigated, refs carry the frame (openajar.node.snapshot REF_RE): a lane's page always has
     framed = visit.outline_nodes(text.replace("[ref=e", "[ref=f3e"))
     assert [(n.ref, n.url) for n in framed][:2] == [("f3e1", None), ("f3e2", "/p/Cx1y2Z3/")]
 
@@ -551,7 +551,7 @@ async def test_memory_pressure_and_a_full_warm_cap_wait_and_never_close_a_lane(n
 
 
 async def test_a_challenged_visit_marks_the_lane_and_tells_the_owner_once(node, monkeypatch):
-    from agentos.keepalive import service as service_mod
+    from openajar.keepalive import service as service_mod
 
     challenge = Entry("site", "Social", CHALLENGE_URL, ("social.example",), (3, 5))
     monkeypatch.setattr(service_mod, "entry_for", lambda s: challenge)
@@ -628,10 +628,10 @@ async def test_the_ops_socket_serves_the_plan_and_a_visit_now(node):
 # ---- the owner's switches -------------------------------------------------------------------------
 
 def test_keepalive_is_off_by_default_and_the_cli_switches_it(tmp_path, monkeypatch):
-    from agentos.cli import app
+    from openajar.cli import app
 
     assert NodeConfig().keepalive is False
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, mcp_token="t"))
     runner = CliRunner()
     result = runner.invoke(app, ["lane", "keepalive", "--node", "on"])
@@ -655,7 +655,7 @@ def test_keepalive_is_off_by_default_and_the_cli_switches_it(tmp_path, monkeypat
 
 
 def test_the_doctor_says_whether_keepalive_is_on(tmp_path):
-    from agentos.ops import doctor
+    from openajar.ops import doctor
 
     off = doctor.check_keepalive(doctor.DoctorContext(home=tmp_path, config=NodeConfig(home=tmp_path)))
     assert off[0].status == doctor.PASS and "off (the default)" in off[0].detail
@@ -665,7 +665,7 @@ def test_the_doctor_says_whether_keepalive_is_on(tmp_path):
 
 
 def test_status_text_reads_plainly():
-    from agentos.keepalive.cli import format_status
+    from openajar.keepalive.cli import format_status
 
     lines = format_status({"lane": LANE, "enabled": True, "opted_out": False, "site": "Instagram",
                            "home": "https://www.instagram.com/", "window_today": ["07:40", "23:10"],
@@ -686,7 +686,7 @@ def test_act_kinds_the_visit_uses_are_reads():
 
 
 class FeedInteraction:
-    """An Instagram-shaped feed in the outline format the node's snapshot writes (agentos.node.snapshot)."""
+    """An Instagram-shaped feed in the outline format the node's snapshot writes (openajar.node.snapshot)."""
 
     OUTLINE = "\n".join([
         '- main',
@@ -709,12 +709,12 @@ class FeedInteraction:
         return NavigateResult(url=url, title="Instagram", signal=Signal.OK)
 
     async def snapshot(self, page):
-        from agentos.core.models import SnapshotResult
+        from openajar.core.models import SnapshotResult
 
         return SnapshotResult(url=self.url, title="Instagram", text=self.OUTLINE, ref_count=31)
 
     async def act(self, page, ref, action, text=None):
-        from agentos.core.models import ActionResult
+        from openajar.core.models import ActionResult
 
         self.calls.append((action.value, ref))
         if action is ActionKind.CLICK:
@@ -919,7 +919,7 @@ async def test_a_failed_attempt_backs_off_briefly_and_is_not_activity(node, monk
     stamped last_used for it) leaves the plan's activity as it was and retries in 30 to 90 minutes."""
     from contextlib import asynccontextmanager
 
-    from agentos.core.errors import EngineError
+    from openajar.core.errors import EngineError
 
     before = node.service.status(LANE)
 
@@ -945,7 +945,7 @@ async def test_a_failed_attempt_backs_off_briefly_and_is_not_activity(node, monk
         async def navigate(self, page, url):
             return NavigateResult(url=url, title="", signal=Signal.UNKNOWN)
 
-    import agentos.dev.lanes as dev_lanes
+    import openajar.dev.lanes as dev_lanes
 
     monkeypatch.setattr(dev_lanes, "utcnow", lambda: datetime.fromtimestamp(node.clock(), UTC))
     node.service.runtime.register("interaction", NoLoad())
@@ -959,7 +959,7 @@ async def test_a_failed_attempt_backs_off_briefly_and_is_not_activity(node, monk
 async def test_a_visit_cut_by_a_restart_counts_and_the_node_gap_survives_it(node):
     """6. A started row agentosd did not finish counts as a visit (hours before another), and the
     node-wide gap is read back after a restart."""
-    from agentos.keepalive.store import Visit as Row
+    from openajar.keepalive.store import Visit as Row
 
     now = node.service.now()
     node.service.store.start_visit(Row(lane_id=LANE, started_at=now, finished_at=now, trigger="planned",
@@ -1168,7 +1168,7 @@ async def test_a_lane_with_a_posting_pace_is_visited_only_in_its_active_hours(no
     """AUD-13: a session at 3 am lane time is a signal too, so a visit keeps to the pace's hours."""
     from test_policy_support import make_service
 
-    from agentos.policy import pace as pacing
+    from openajar.policy import pace as pacing
 
     svc, _ = make_service(tmp_path / "policy", clock=node.clock)
     node.service.runtime.register("policy", svc)

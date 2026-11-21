@@ -1,12 +1,12 @@
 """Git over real SSH from a real isolated lane (docs/GIT.md), on a node: a deploy key made by
-`agentos git key add`, a private sshd on the node's loopback standing in for the git host, and a
+`openajar git key add`, a private sshd on the node's loopback standing in for the git host, and a
 terminal lane (bubblewrap, its own network namespace) whose git clones and pushes through the
 gateway's listener in that namespace. The key never reaches the lane, is never written to a file,
 and an undeclared repository and a force-push are refused.
 
 Needs Linux, root, bubblewrap, git and sshd (openssh-server). The sshd listens on 127.0.0.1 only, on
 a port of the test's own, with an authorized_keys file in the test's directory, and is stopped
-afterwards; nothing of the node's own ssh, nor of any installed agentos, is touched.
+afterwards; nothing of the node's own ssh, nor of any installed openajar, is touched.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 from test_env_node_support import CAN_RUN, new_home
 
-from agentos.core.models import Effect
+from openajar.core.models import Effect
 
 SSHD = shutil.which("sshd") or "/usr/sbin/sshd"
 pytestmark = [pytest.mark.node,
@@ -43,7 +43,7 @@ def run(*args, cwd=None, env=None, check=True):
 
 def serve_repo(srv: Path) -> tuple[Path, int, subprocess.Popen]:
     """The stand-in git host: a bare repository served over ssh as root, on 127.0.0.1 only, to the one
-    key in srv/authorized_keys (written once `agentos git key add` printed it)."""
+    key in srv/authorized_keys (written once `openajar git key add` printed it)."""
     port = free_port()
     # the stand-in git host: a bare repository served over ssh as root, to one authorized key
     upstream = srv / "repos" / "app.git"
@@ -83,11 +83,11 @@ async def world(monkeypatch):
     from test_vault_support import make_vault
     from typer.testing import CliRunner
 
-    from agentos.cli import app
-    from agentos.core.runtime import Runtime  # noqa: F401
-    from agentos.env.manager import EnvManager
-    from agentos.env.paths import EnvSettings
-    from agentos.git.service import GitService
+    from openajar.cli import app
+    from openajar.core.runtime import Runtime  # noqa: F401
+    from openajar.env.manager import EnvManager
+    from openajar.env.paths import EnvSettings
+    from openajar.git.service import GitService
 
     home = new_home("git-ssh")
     home.mkdir(parents=True, mode=0o700)
@@ -96,7 +96,7 @@ async def world(monkeypatch):
     upstream, port, sshd = serve_repo(srv)
     try:
         make_vault(home)
-        monkeypatch.setenv("AGENTOS_HOME", str(home))
+        monkeypatch.setenv("OPENAJAR_HOME", str(home))
         cli = CliRunner()
         host_pub = (srv / "hostkey.pub").read_text().split()
         r = await asyncio.to_thread(cli.invoke, app, [
@@ -111,7 +111,7 @@ async def world(monkeypatch):
         assert r.exit_code == 0, r.output
 
         policy, rt = make_service(home, clock=Clock())
-        from agentos.vault.service import VaultService
+        from openajar.vault.service import VaultService
         vault = VaultService(home, socket_path=home / "run" / "vault.sock")
         await vault.start(control=False)
         rt.register("vault", vault)

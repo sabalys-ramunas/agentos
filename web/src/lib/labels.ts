@@ -27,8 +27,9 @@ import { LANE_STATE_WORDS, NODE_STATE_WORDS, SIGNAL_WORDS } from './vocabulary';
 /**
  * A status tone. Each is a shape as well as a colour (components/ui/status.tsx): ok a dot, warn a
  * diamond, bad a square, live a ringed dot (pulsing when `pulse`), idle a hollow ring, neutral a
- * quiet solid dot. In Mono running is ink, so `live` has no hue. `info` is the old name for live and
- * draws the same; new code says `live`.
+ * quiet solid dot. In Dawn `live` is the agent's violet ring, never pulsing; `starting` draws it dashed
+ * and empty (something is coming up). `info` is the old name for live and draws the same; new code says
+ * `live`. `pulse` is kept for the screens that pass it, and draws nothing extra.
  */
 export type Tone = 'ok' | 'warn' | 'bad' | 'live' | 'info' | 'neutral' | 'idle';
 
@@ -36,6 +37,8 @@ export interface StatusLabel {
   label: string;
   tone: Tone;
   pulse?: boolean;
+  /** Coming up: the live ring, dashed and empty. */
+  starting?: boolean;
 }
 
 export const runStatus: Record<RunStatus, StatusLabel> = {
@@ -51,7 +54,7 @@ export const runStatus: Record<RunStatus, StatusLabel> = {
 
 export const laneState: Record<LaneState, StatusLabel> = {
   cold: { label: LANE_STATE_WORDS.cold.word, tone: 'idle' },
-  warming: { label: LANE_STATE_WORDS.warming.word, tone: 'live', pulse: true },
+  warming: { label: LANE_STATE_WORDS.warming.word, tone: 'live', starting: true },
   warm: { label: LANE_STATE_WORDS.warm.word, tone: 'ok' },
   active: { label: LANE_STATE_WORDS.active.word, tone: 'live', pulse: true },
   quarantined: { label: LANE_STATE_WORDS.quarantined.word, tone: 'bad' },
@@ -188,7 +191,7 @@ export const standingState: Record<StandingState, StatusLabel> = {
  */
 export const memoryTrust: Record<MemoryTrust, string> = {
   owner: 'Confirmed by you',
-  node: 'Written by agentos',
+  node: 'Written by openajar',
   agent: 'Written by an agent',
   untrusted: 'Written after reading outside text',
 };

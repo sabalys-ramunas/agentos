@@ -1,6 +1,6 @@
 # Disposable cloud VMs as lanes
 
-Status: phase 1 built (agentos.vms), not yet run against a real Hetzner project.
+Status: phase 1 built (openajar.vms), not yet run against a real Hetzner project.
 
 ## The story
 
@@ -24,8 +24,8 @@ forgets, crashes, or the laptop sleeps, the node deletes the VM anyway. Nothing 
 
 A VM is a **terminal lane whose commands run over SSH** (`EnvLane.remote`). The env manager picks
 `SshLauncher` for such lanes, so `lane_exec`, `shell_*`, `lane_install` and service lanes work on it
-unchanged. Nothing of agentos runs on the VM: no agentosd, no token, no vault. Dev work runs code
-that agentos should not trust (install scripts, a PR's tests), so agentos stays off that box.
+unchanged. Nothing of openajar runs on the VM: no agentosd, no token, no vault. Dev work runs code
+that openajar should not trust (install scripts, a PR's tests), so openajar stays off that box.
 
 The other option, a VM that joins the controller as a node, fits long-lived capacity (more browser
 lanes, a company's lanes on their own IP) and already exists as node templates plus `node join`.
@@ -44,7 +44,7 @@ cheapest, never more than twice the price, all named in the approval. A profile 
 An agent can state its own size on `vm_create`: `cpu`, `memory_gb`, `disk_gb`, `arch` (minimums,
 picked again) or `server_type` (pinned). Its tool text tells it to leave the size alone unless the
 owner asked or the task needs it. Such a VM's profile is `custom`, which a grant limited to
-profiles refuses. `agentos vm types` lists what can be ordered and what each profile rents today.
+profiles refuses. `openajar vm types` lists what can be ordered and what each profile rents today.
 
 ## Creating one
 
@@ -69,7 +69,7 @@ profiles refuses. `agentos vm types` lists what can be ordered and what each pro
 - idle (no command, no open shell or service for `idle_minutes`) in the last
   `hour_margin_minutes` of a started hour: Hetzner bills by the started hour, so deleting earlier
   saves nothing, and the next task of the same agent can still use it;
-- `vm_destroy`, `agentos vm destroy`;
+- `vm_destroy`, `openajar vm destroy`;
 - a server labelled with this node and no live record: an orphan, deleted (after 10 minutes'
   grace while a create is in flight);
 - a record whose server is gone: marked deleted, its lane closed.
@@ -80,7 +80,7 @@ sends one urgent notification. A daemon restart never deletes VMs; the reaper re
 ## Private repos
 
 `vm_clone(on, repo, ref, dest, depth)` puts a private repo on a VM without the token ever reaching
-it. The owner stores a read-only token per repo or per owner with `agentos vm repo add
+it. The owner stores a read-only token per repo or per owner with `openajar vm repo add
 github.com/acme/*` (GitHub: a fine-grained token, only those repos, "Contents: read"). It is a
 vault machine secret; listing shows patterns, never tokens.
 
@@ -96,15 +96,15 @@ A public repo needs none of this: the agent runs git clone on the VM.
 
 ## Images
 
-`agentos vm image build dev` makes a snapshot (git, build tools, Python with uv, Node 22, Docker),
+`openajar vm image build dev` makes a snapshot (git, build tools, Python with uv, Node 22, Docker),
 cleaned of keys and cloud-init state. A profile with `image = "snapshot:dev"` then boots ready
 in under a minute instead of installing on every VM.
 
 ## Providers and what they can do
 
 `provider` in vms.toml picks one: `hetzner` (the default), `docker` (local containers,
-agentos.vms.docker) or `morph` (Morph Cloud, agentos.vms.morph). Each declares `capabilities`, and
-callers check a name (`agentos.vms.provider.capable`) before they use what it stands for:
+openajar.vms.docker) or `morph` (Morph Cloud, openajar.vms.morph). Each declares `capabilities`, and
+callers check a name (`openajar.vms.provider.capable`) before they use what it stands for:
 
 | Capability | Meaning | Hetzner | Docker | Morph |
 |---|---|---|---|---|
@@ -113,25 +113,25 @@ callers check a name (`agentos.vms.provider.capable`) before they use what it st
 | `pause` | pause and resume with memory: processes keep running | no | no | yes |
 | `branch` | copy a running machine, memory included (not used yet) | no | no | yes |
 | `wake_on_http` | a paused machine wakes on an HTTP request (not used yet) | no | no | yes |
-| `network_policy` | agentos can limit a machine's outbound traffic | yes | yes | no |
+| `network_policy` | openajar can limit a machine's outbound traffic | yes | yes | no |
 | `cloud_init` | first-boot user data runs | yes | no | no |
 
 Without `cloud_init` the node runs the environment's setup over SSH as soon as the machine answers
-(agentos.environments.bringup), and the image a snapshot is built from needs none.
+(openajar.environments.bringup), and the image a snapshot is built from needs none.
 
 ### Morph Cloud
 
-Bring your own account: `agentos vm setup --provider morph` asks for a Morph API key (hidden),
-checks it (`GET /instance`), keeps it in `$AGENTOS_HOME/secrets/morph.token` (0600), pins the host
+Bring your own account: `openajar vm setup --provider morph` asks for a Morph API key (hidden),
+checks it (`GET /instance`), keeps it in `$OPENAJAR_HOME/secrets/morph.token` (0600), pins the host
 key of Morph's SSH gateway in `vms/morph_known_hosts` (ssh-keyscan, trust on first use; the
-fingerprints are printed to compare) and sets `provider = "morph"`. `agentos setup` offers Morph
-next to Hetzner and Docker. agentos calls Morph's REST API with httpx; the morphcloud package is not
+fingerprints are printed to compare) and sets `provider = "morph"`. `openajar setup` offers Morph
+next to Hetzner and Docker. openajar calls Morph's REST API with httpx; the morphcloud package is not
 a dependency.
 
 - **Sizes.** On Morph the resources come with the snapshot a machine starts from. A start
   (`POST /instance`) restores the snapshot's memory and processes at the snapshot's size, in about a
   second; a boot (`POST /snapshot/{id}/boot`, `POST /image/{id}/boot`) is a cold start into the
-  vCPU, memory and disk asked for. The server types are agentos's sizes: `morph-small` (2 vCPU,
+  vCPU, memory and disk asked for. The server types are openajar's sizes: `morph-small` (2 vCPU,
   4 GB, 32 GB), `morph-medium` (4, 8, 64), `morph-large` (8, 16, 128), `morph-xlarge` (16, 32, 256).
   A machine starts warm when its snapshot has its size (the `dev` snapshot is built at the default
   size) and boots cold into any other. The cheapest that fits is picked as on Hetzner.
@@ -142,9 +142,9 @@ a dependency.
   (`estimate: true` in the server types; a paused save says "an estimate"); set them to your plan
   and the day's rate. `morph-small` is about EUR 0.09 an hour.
 - **SSH.** Through the gateway, as `<instance id>@ssh.cloud.morph.so`, with the instance's own key
-  (`GET /instance/{id}/ssh/key`), written 0600 in place of agentos's own key, and the pinned gateway
+  (`GET /instance/{id}/ssh/key`), written 0600 in place of openajar's own key, and the pinned gateway
   key under the VM's HostKeyAlias. Nothing secret is on a command line: Morph's SDK puts
-  `<instance id>:<api key>` in the user name, which `ps` on the node would show, and agentos never
+  `<instance id>:<api key>` in the user name, which `ps` on the node would show, and openajar never
   does. An image build keeps the machine's SSH keys (Morph's gateway signs in with them).
 - **Labels** are Morph metadata (`metadata[key]=value` filters lists), for the reaper's reconcile,
   the orphan sweep, `snapshot:<name>` images and saves.
@@ -155,7 +155,7 @@ a dependency.
   outbound rules, so `network_policy` is off.
 
 **Pause.** A paused Morph machine keeps its memory and bills only its storage; it resumes in
-seconds with its processes running. An environment's save uses that (agentos.environments.pausing,
+seconds with its processes running. An environment's save uses that (openajar.environments.pausing,
 docs/ENVIRONMENTS.md "Keeping an environment"). The VM record turns `paused`: not live, so it counts
 toward no limit and its hours stop; its keys move to `vms/paused/<vm id>/`, so a lane of the closed
 environment reaches nothing; wake on SSH and HTTP are turned off first; and the reaper's orphan
@@ -166,7 +166,7 @@ Morph's docs, its OpenAPI spec and its SDK). `scripts/morph_live_check.py` check
 with a real key for a few cents and deletes what it made:
 
 - that the instance's own key signs in as `<instance id>@ssh.cloud.morph.so` (the docs' sharing
-  bundle says so; the key may also need the bundle's password, which agentos does not use);
+  bundle says so; the key may also need the bundle's password, which openajar does not use);
 - that `-D`, `-R` (documented by Morph) and `-L` to a Unix socket (the "vm" browser's live view)
   pass the gateway;
 - that the gateway's host key is stable, and that `morphvm-minimal` has apt, systemd and python3
@@ -175,7 +175,7 @@ with a real key for a few cents and deletes what it made:
   wake it, and that a TTL runs out while a machine is paused;
 - the prices, against the account's bill.
 
-## Settings (`$AGENTOS_HOME/vms.toml`)
+## Settings (`$OPENAJAR_HOME/vms.toml`)
 
 ```toml
 location = "nbg1"
@@ -201,10 +201,10 @@ arch = "arm"
 min_memory_gb = 8
 
 [profiles.pinned]
-server_type = "ccx23"     # exactly this type (`agentos vm types` lists them)
+server_type = "ccx23"     # exactly this type (`openajar vm types` lists them)
 ```
 
-The token lives in `$AGENTOS_HOME/secrets/hetzner.token` (0600), written by `agentos vm setup`. Use
+The token lives in `$OPENAJAR_HOME/secrets/hetzner.token` (0600), written by `openajar vm setup`. Use
 a Hetzner project that holds nothing but these VMs: the token can delete any server in it.
 
 On Morph:
@@ -217,9 +217,9 @@ morph_eur_per_usd = 0.86                 # the day's rate, for the EUR limits
 morph_base_image = "morphvm-minimal"     # what a machine starts from with no snapshot
 ```
 
-The key lives in `$AGENTOS_HOME/secrets/morph.token` (0600), written by `agentos vm setup
---provider morph`. agentos rents only what it labels, but the key reaches every instance of the
-account: use an account (or organization) for agentos alone.
+The key lives in `$OPENAJAR_HOME/secrets/morph.token` (0600), written by `openajar vm setup
+--provider morph`. openajar rents only what it labels, but the key reaches every instance of the
+account: use an account (or organization) for openajar alone.
 
 ## Not in phase 1
 

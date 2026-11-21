@@ -1,6 +1,6 @@
 {
-  "name": "agentos",
-  "short_name": "agentos",
+  "name": "openajar",
+  "short_name": "openajar",
   "description": "Agents do the everyday work on your own machines. See what they did, and answer what asks you.",
   "id": "/",
   "start_url": "/",

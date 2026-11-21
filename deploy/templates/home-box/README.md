@@ -3,9 +3,9 @@
 This template installs Ubuntu 24.04 Server on a machine at home without touching a keyboard
 after the first boot. The installer reads `autoinstall.yaml` (Ubuntu's autoinstall format,
 which cloud-init also reads). On first boot the same bootstrap as the Hetzner template runs:
-keys-only SSH, unattended security upgrades, agentos installed with
-`deploy/install-node.sh --systemd --user agentos --hardened`, and `agentos doctor`, whose report
-is `~/agentos-doctor.txt` for the admin user.
+keys-only SSH, unattended security upgrades, openajar installed with
+`deploy/install-node.sh --systemd --user agentos --hardened`, and `openajar doctor`, whose report
+is `~/openajar-doctor.txt` for the admin user.
 
 **The installer erases the largest disk in the machine.** Unplug every other disk you care about
 before you boot it. Test the stick in a virtual machine first (UTM, QEMU or VirtualBox with a
@@ -59,7 +59,7 @@ that only in a virtual machine first.
    an interactive question instead, the seed was not found: check the `CIDATA` label and the
    file names.
 3. The installation takes about 15 minutes and reboots. Remove the sticks when it asks.
-4. The first boot builds agentos. Give it 15 to 30 minutes on a slow machine.
+4. The first boot builds openajar. Give it 15 to 30 minutes on a slow machine.
 
 ## 4. Check
 
@@ -68,7 +68,7 @@ Find the machine's address on your router (or with `ip addr` on its screen), the
 ```
 ssh agentos-admin@ADDRESS
 cloud-init status --wait
-cat ~/agentos-doctor.txt
+cat ~/openajar-doctor.txt
 ```
 
 Exit code 0 in the report means no check failed. Warnings (for example "no vault yet" and "no
@@ -92,5 +92,5 @@ the token. Otherwise join over SSH as described in `docs/NODE-TEMPLATES.md`, and
   `ufw` (allow OpenSSH first) or your router's firewall for the rest.
 - Keep the machine powered on. Most BIOS and UEFI setups have a "restore on AC power loss"
   option; turn it on so the node comes back after a power cut.
-- Back it up off the machine (`agentos backup create --to ...`) before you rely on it for
+- Back it up off the machine (`openajar backup create --to ...`) before you rely on it for
   logins. The doctor warns until a backup exists.

@@ -1,6 +1,6 @@
 /**
  * The design system's catalog: every component in every state, by group, in the app's own tokens and
- * shell, with agentos's composites drawn from the mock. Dev only (/$org/design, app/routes/catalog.tsx):
+ * shell, with openajar's composites drawn from the mock. Dev only (/$org/design, app/routes/catalog.tsx):
  * a live build holds none of it (build/live-build.test.ts). How to use it: web/DESIGN-SYSTEM.md.
  */
 import { Fragment } from 'react';
@@ -11,7 +11,7 @@ import { GROUPS } from './registry';
 import type { Entry, Group } from './registry';
 
 /** A marker only this page holds, so the live-build test can tell that none of it shipped. */
-export const CATALOG_MARKER = 'agentos-design-catalog';
+export const CATALOG_MARKER = 'openajar-design-catalog';
 
 function EntryView({ entry }: { entry: Entry }) {
   const Demo = entry.demo!;

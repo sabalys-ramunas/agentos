@@ -10,13 +10,13 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_policy_support import OWNER, Clock, make_service
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Effect
-from agentos.policy import tokens
-from agentos.policy.errors import Conflict, Denied, PolicyKeyError, TokenInvalid
-from agentos.policy.grants import BrainCap, Grant, LaneCap, Specials, parse_block
-from agentos.policy.keys import load_or_create_root_key, load_public_key
-from agentos.policy.service import PolicyService
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Effect
+from openajar.policy import tokens
+from openajar.policy.errors import Conflict, Denied, PolicyKeyError, TokenInvalid
+from openajar.policy.grants import BrainCap, Grant, LaneCap, Specials, parse_block
+from openajar.policy.keys import load_or_create_root_key, load_public_key
+from openajar.policy.service import PolicyService
 
 
 @pytest.fixture
@@ -140,7 +140,7 @@ def test_principal_from_subject(svc):
 
 def test_unregistered_root_is_refused(svc):
     # signed by the right key but never issued through the registry
-    from agentos.policy.grants import GrantBlock, Subject
+    from openajar.policy.grants import GrantBlock, Subject
 
     blk = GrantBlock(id="gr_aaaaaaaaaaaaaaaa", rid="rv_aaaaaaaaaaaaaaaa", iat=int(svc.clock()),
                      sub=Subject(id="x"), workspaces=["*"], exp=int(svc.clock()) + 60)
@@ -430,7 +430,7 @@ def test_grant_projection_is_readable(svc, parent):
 
 
 def test_grant_structure_rejects_bad_chains():
-    from agentos.policy.grants import GrantBlock, Subject
+    from openajar.policy.grants import GrantBlock, Subject
 
     a = GrantBlock(id="gr_aaaaaaaaaaaaaaaa", rid="rv_aaaaaaaaaaaaaaaa", iat=0, sub=Subject(id="x"), exp=10)
     b = GrantBlock(id="gr_bbbbbbbbbbbbbbbb", rid="rv_bbbbbbbbbbbbbbbb", iat=0, parent="gr_zzzzzzzzzzzzzzzz")

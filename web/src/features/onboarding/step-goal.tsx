@@ -5,7 +5,6 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { Check, Store, User } from 'lucide-react';
 import { useState } from 'react';
 import { fleet, orgs } from '@/api/client';
 import { useCreateOrg, useSession } from '@/api/hooks';
@@ -13,8 +12,9 @@ import { ApiError } from '@/api/http';
 import { keys } from '@/api/keys';
 import type { GoalKey } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { ChoiceGroup, Choice } from '@/components/ui/choice';
 import { Input, Textarea } from '@/components/ui/field';
-import { cn } from '@/lib/cn';
+import { SegmentedControl } from '@/components/ui/tabs';
 import { describeError } from '@/lib/errors';
 import { slugify } from '@/lib/format';
 import { GOALS, goalOf } from './goals';
@@ -27,63 +27,38 @@ type Who = 'business' | 'personal';
 const PERSONAL = 'Personal';
 
 function WhoChoice({ who, onChange }: { who: Who; onChange: (who: Who) => void }) {
-  const options: { value: Who; label: string; icon: typeof Store }[] = [
-    { value: 'business', label: 'A business', icon: Store },
-    { value: 'personal', label: 'Just me', icon: User },
-  ];
   return (
-    <div role="radiogroup" aria-label="Who is this for?" className="inline-flex rounded-lg border border-line bg-inset p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="radio"
-          aria-checked={who === option.value}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            'inline-flex h-8 items-center gap-2 rounded-md px-3 text-body transition-colors duration-(--duration-fast)',
-            who === option.value ? 'bg-card text-fg shadow-card' : 'text-muted hover:text-fg',
-          )}
-        >
-          <option.icon className="size-4" aria-hidden="true" />
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      label="Who is this for?"
+      size="md"
+      value={who}
+      onValueChange={onChange}
+      options={[
+        { value: 'business', label: 'A business' },
+        { value: 'personal', label: 'Just me' },
+      ]}
+    />
   );
 }
 
 function GoalCards({ goal, onChange }: { goal: GoalKey | null; onChange: (goal: GoalKey) => void }) {
   return (
-    <div role="radiogroup" aria-label="Its first job" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {GOALS.map((item) => {
-        const on = goal === item.key;
-        return (
-          <button
-            key={item.key}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(item.key)}
-            className={cn(
-              'relative grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1 rounded-xl border bg-card p-3 pr-10 text-left transition-[border-color,box-shadow] duration-(--duration-fast) sm:grid-cols-1 sm:gap-2 sm:p-4',
-              on ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
-            )}
-          >
-            <span aria-hidden="true" className={cn('row-span-2 inline-flex size-9 items-center justify-center rounded-lg border sm:row-span-1', on ? 'border-(--current-line) bg-(--current-soft) text-(--current)' : 'border-line bg-inset text-muted')}>
+    <ChoiceGroup label="Its first job" showLabel value={goal} onValueChange={onChange} columns={3}>
+      {GOALS.map((item) => (
+        <Choice
+          key={item.key}
+          value={item.key}
+          layout="stacked"
+          icon={
+            <span aria-hidden="true" className="inline-flex size-8 items-center justify-center rounded-md bg-inset text-muted group-data-[state=checked]:bg-accent-soft group-data-[state=checked]:text-accent-text">
               <item.icon className="size-4" />
             </span>
-            {on ? (
-              <span aria-hidden="true" className="absolute top-3 right-3 inline-flex size-5 items-center justify-center rounded-full bg-fg text-card">
-                <Check className="size-3" strokeWidth={3} />
-              </span>
-            ) : null}
-            <span className="text-label sm:mt-2">{item.title}</span>
-            <span className="text-secondary text-muted">{item.key === 'other' ? item.example : `"${item.example}"`}</span>
-          </button>
-        );
-      })}
-    </div>
+          }
+          title={item.title}
+          description={item.key === 'other' ? item.example : `\u201c${item.example}\u201d`}
+        />
+      ))}
+    </ChoiceGroup>
   );
 }
 
@@ -177,7 +152,7 @@ export function GoalStep({ org }: { org: string | null }) {
       hints={{ goal: goalOf(shownGoal) ? `${goalOf(shownGoal)?.title}${business ? ` for ${business}` : ''}` : undefined }}
       footer={
         <>
-          <p className="mr-auto text-secondary text-faint">About 7 minutes. You can stop any time and pick up where you left off.</p>
+          <p className="mr-auto text-secondary text-muted">About 7 minutes. You can stop any time and pick up where you left off.</p>
           <Button type="submit" form="first-job" variant="primary" size="lg" disabled={!ready} loading={busy}>
             Continue
           </Button>
@@ -185,15 +160,15 @@ export function GoalStep({ org }: { org: string | null }) {
       }
     >
       <form id="first-job" onSubmit={(event) => void submit(event)} className="grid gap-8">
-        <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center">
-          <span className="text-label">Who is this for?</span>
+        <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
+          <span className="text-label text-fg">Who is this for?</span>
           <WhoChoice who={shownWho} onChange={setWho} />
           {shownWho === 'business' ? (
             <Input
               aria-label="Business name"
               placeholder="Aster Coffee"
               autoFocus={!org}
-              className="h-10 sm:w-72"
+              className="sm:w-72"
               value={shownName}
               onChange={(event) => setName(event.target.value)}
               autoComplete="organization"
@@ -203,7 +178,6 @@ export function GoalStep({ org }: { org: string | null }) {
           )}
         </div>
         <div className="grid gap-3">
-          <span className="text-label">Its first job</span>
           <GoalCards goal={shownGoal} onChange={setGoal} />
           {shownGoal === 'other' ? (
             <Textarea

@@ -8,7 +8,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from agentos.webhooks.outbound import (
+from openajar.webhooks.outbound import (
     GuardedBackend,
     Outbound,
     OutboundRefused,
@@ -53,7 +53,7 @@ def test_an_address_that_is_not_allowed_is_refused_without_a_lookup(url: str) ->
 
 
 def test_a_public_https_address_on_443_or_8443_passes_the_check() -> None:
-    assert check_url("https://hooks.example.com/agentos").hostname == "hooks.example.com"
+    assert check_url("https://hooks.example.com/openajar").hostname == "hooks.example.com"
     assert check_url("https://hooks.example.com:8443/agentos").port == 8443
 
 

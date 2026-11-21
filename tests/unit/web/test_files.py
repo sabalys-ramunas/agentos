@@ -1,5 +1,5 @@
 """An account's files on a node, as the account page reads them: the inbox and the outbox, a download, an upload
-and a delete. They are the tools' own store (agentos.node.files), so the same limits and the same refusals hold.
+and a delete. They are the tools' own store (openajar.node.files), so the same limits and the same refusals hold.
 
 An upload is only stored. A download is an attachment that is never rendered, and no path leaves the account.
 """
@@ -10,7 +10,7 @@ import base64
 
 import pytest
 
-from agentos.node import files as node_files
+from openajar.node import files as node_files
 
 TOKEN = "t" * 43
 LANE = "/api/orgs/local/lanes/biz-a/social/files"

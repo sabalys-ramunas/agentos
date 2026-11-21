@@ -14,12 +14,12 @@ import pytest
 from test_runas import FakeSystem
 from testkit.brains import add, make_service, wait_status
 
-from agentos.brains import confine, launch
-from agentos.brains import identity as identity_mod
-from agentos.brains.confine import BrainUnconfined, Confinement, Targets, collect_targets, judge
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
-from agentos.runas import Identity, Server
+from openajar.brains import confine, launch
+from openajar.brains import identity as identity_mod
+from openajar.brains.confine import BrainUnconfined, Confinement, Targets, collect_targets, judge
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
+from openajar.runas import Identity, Server
 
 P = Principal(id="claude-code", thread="T-1")
 ME = os.getuid()
@@ -28,11 +28,11 @@ SELF_ID = launch.BrainIdentity(None, ME, os.getgid(), "")
 
 
 def make_home(tmp_path: Path) -> Path:
-    """A node's AGENTOS_HOME with every kind of secret the probe looks for."""
-    home = tmp_path / "agentos"
+    """A node's OPENAJAR_HOME with every kind of secret the probe looks for."""
+    home = tmp_path / "openajar"
     for d in ("secrets", "vnc", "run", "brains", "lanes/personal/reddit/profile", "lanes/biz/x/profile"):
         (home / d).mkdir(parents=True)
-    for f in ("node.toml", "secrets/vault.key", "secrets/proxies.json", "vault.db", "channel.db", "agentos.db",
+    for f in ("node.toml", "secrets/vault.key", "secrets/proxies.json", "vault.db", "channel.db", "openajar.db",
               "brains/brains.db", "vnc/display-100.xauth", "vnc/display-100.sock", "run/ops.sock",
               "lanes/personal/reddit/profile/cookies.sqlite", "lanes/biz/x/profile/cookies.sqlite"):
         (home / f).write_text("secret")
@@ -48,7 +48,7 @@ def test_targets_cover_every_secret_on_the_node(tmp_path):
                       if x == str(home) or home in Path(x).parents}
     assert {".", "secrets", "vnc", "run", "brains", "lanes", "lanes/personal/reddit/profile",
             "lanes/biz/x/profile"} <= rel(t.dirs)
-    assert {"node.toml", "secrets/vault.key", "secrets/proxies.json", "vault.db", "channel.db", "agentos.db",
+    assert {"node.toml", "secrets/vault.key", "secrets/proxies.json", "vault.db", "channel.db", "openajar.db",
             "brains/brains.db", "vnc/display-100.xauth", "lanes/personal/reddit/profile/cookies.sqlite",
             "lanes/biz/x/profile/cookies.sqlite"} <= rel(t.files)
     assert rel(t.sockets) == {"vnc/display-100.sock", "run/ops.sock"}
@@ -124,7 +124,7 @@ def test_the_probe_sees_what_its_user_can_read(tmp_path):
 
 
 def test_a_traversable_home_is_refused_even_when_every_named_target_is_closed(tmp_path):
-    """The review's case: AGENTOS_HOME 0711 (search but no read), every listed file closed, and
+    """The review's case: OPENAJAR_HOME 0711 (search but no read), every listed file closed, and
     logs/agentosd.log, which no list names, readable. Listing failed, so it all looked blocked."""
     if ME == 0:
         pytest.skip("root reads everything")
@@ -163,7 +163,7 @@ def test_secret_places_outside_the_home_are_checked(tmp_path, monkeypatch):
     controller.mkdir()
     (controller / "controller.toml").write_text("key")
     monkeypatch.setattr(confine, "JOURNAL_DIRS", (str(tmp_path / "journal"),))
-    monkeypatch.setenv("AGENTOS_CONTROLLER_HOME", str(controller))
+    monkeypatch.setenv("OPENAJAR_CONTROLLER_HOME", str(controller))
     t = collect_targets(home)
     assert "/root/.cache/camoufox" in t.dirs and str(controller) in t.dirs
     assert [str(controller), str(controller / "controller.toml")] in t.traverse
@@ -333,7 +333,7 @@ async def test_the_runner_goes_through_the_helper(tmp_path, helper_mode):
     assert (work / "fake-dump.json").exists() and (svc.task_dir(r["id"]) / "work").resolve() == work.resolve()
     users = [s["user"] for s in server.system.spawned]
     assert "me" in users  # the brain, the shim (caller) and the BrainFiles commands all went through it
-    shim = next(s for s in server.system.spawned if "agentos.brains.shim" in " ".join(s["argv"]))
+    shim = next(s for s in server.system.spawned if "openajar.brains.shim" in " ".join(s["argv"]))
     assert shim["argv"][-1].endswith("/attempts/01")
     launch_json = json.loads((svc.attempt_dir(r["id"], 1) / "launch.json").read_text())
     assert launch_json["run_as"] is None and launch_json["launcher"]["kind"] == "helper"
@@ -396,7 +396,7 @@ def test_the_probe_must_run_as_the_identity_the_attempt_uses(tmp_path):
 # ---- env lanes -----------------------------------------------------------------------------------
 
 class FakeEnv:
-    """An env manager whose isolated lane has no AGENTOS_HOME mounted (or, leaky, can read it)."""
+    """An env manager whose isolated lane has no OPENAJAR_HOME mounted (or, leaky, can read it)."""
 
     def __init__(self, *, isolated=True, leaky=False):
         self.isolated, self.leaky = isolated, leaky
@@ -426,7 +426,7 @@ async def test_env_lanes_are_checked_through_their_own_exec(tmp_path):
 
 
 def test_a_display_started_after_a_pass_runs_the_probe_again(tmp_path, monkeypatch):
-    """Xvfb started (or restarted) without a new file in AGENTOS_HOME still changes the key."""
+    """Xvfb started (or restarted) without a new file in OPENAJAR_HOME still changes the key."""
     net = tmp_path / "unix"
     header = "Num       RefCount Protocol Flags    Type St Inode Path\n"
     net.write_text(header + "0: 00000002 00000000 00010000 0001 01 4242 /run/systemd/notify\n")

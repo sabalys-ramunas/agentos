@@ -21,17 +21,17 @@ import pytest
 import pytest_asyncio
 from test_profiles import Ctx
 
-from agentos.core.errors import EngineError, ServiceUnavailable
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
-from agentos.profiles.errors import ProfileInvalid
-from agentos.profiles.models import ProfileState
-from agentos.profiles.service import build
-from agentos.studio.browser import EngineMissing, Limits, ReviewPool
-from agentos.studio.contracts import EngineName
-from agentos.studio.learn import learn_brand
-from agentos.studio.learn.tool import profile_learn_brand
-from agentos.studio.tokens.color import delta_e, parse_color
+from openajar.core.errors import EngineError, ServiceUnavailable
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
+from openajar.profiles.errors import ProfileInvalid
+from openajar.profiles.models import ProfileState
+from openajar.profiles.service import build
+from openajar.studio.browser import EngineMissing, Limits, ReviewPool
+from openajar.studio.contracts import EngineName
+from openajar.studio.learn import learn_brand
+from openajar.studio.learn.tool import profile_learn_brand
+from openajar.studio.tokens.color import delta_e, parse_color
 
 pw = pytest.importorskip("playwright.async_api")
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -105,8 +105,8 @@ async def test_declared_tokens_keep_their_names_and_say_how_often_they_are_used(
     assert pal["color.text"]["light"] == "#18181b" and pal["color.text"]["dark"] == "#fafafa"
     assert pal["color.accent"]["how"] == "declared" and "role_guess" not in pal["color.accent"]
     tree = d.brand["tokens"]
-    unused = tree["base"]["color"]["unused"]["$extensions"]["agentos"]
-    accent = tree["base"]["color"]["accent"]["$extensions"]["agentos"]
+    unused = tree["base"]["color"]["unused"]["$extensions"]["openajar"]
+    accent = tree["base"]["color"]["accent"]["$extensions"]["openajar"]
     assert unused["css_rules"] == 0 and unused["heuristic"] is False
     assert accent["css_rules"] >= 1 and accent["css_elements"] >= 3
     assert d.categories["color"].note == "1 declared token(s) no rule uses"
@@ -167,7 +167,7 @@ async def test_a_messy_page_reports_low_coverage_and_does_not_pretend_to_a_syste
 
 
 async def test_a_page_that_does_not_load_fails_the_call(pool):
-    from agentos.studio.browser import HttpErrorPage
+    from openajar.studio.browser import HttpErrorPage
 
     with pytest.raises(HttpErrorPage):
         await learn_brand(pool, f"{HOST}/nothing-here.html")
@@ -197,7 +197,7 @@ async def test_the_tool_proposes_a_draft_the_owner_must_approve(tmp_path, pool, 
                                           pages=["/hidden-pricing.html"])
     assert out["proposal"]["state"] == "draft" and out["proposal"]["version"] == 2
     assert out["counts"]["color"] == 6 and out["space_step_px"] == 4.0 and "next" in out
-    assert "agentos profile approve biz-a/shop --version 2" in out["owner_action"] and "panel" in out["next"]
+    assert "openajar profile approve biz-a/shop --version 2" in out["owner_action"] and "panel" in out["next"]
     assert agent.seen[-1] == ("draft", None)
     assert svc.store.active("biz-a", "shop").version == 1           # nothing approved
     v2 = svc.store.version("biz-a", "shop", 2)
@@ -241,5 +241,5 @@ async def test_on_a_laptop_the_tool_says_the_command_that_approves_it_there(tmp_
     runtime.require("profiles").save(PRODUCT, by={"kind": "human", "id": "owner"}, as_owner=True)
     agent = Ctx(runtime, Principal(kind="agent", id="agent-1"))
     out = await profile_learn_brand(agent, profile="biz-a/shop", url=f"{HOST}/hidden.html")
-    assert "agentos studio profile approve biz-a/shop --version 2" in out["owner_action"]
-    assert "agentos studio profile approve biz-a/shop --version 2" in out["next"] and "AGENTOS_HOME" not in out["next"]
+    assert "openajar studio profile approve biz-a/shop --version 2" in out["owner_action"]
+    assert "openajar studio profile approve biz-a/shop --version 2" in out["next"] and "OPENAJAR_HOME" not in out["next"]

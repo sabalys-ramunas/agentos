@@ -14,16 +14,16 @@ from test_connector_approvals import _harness, _post
 from test_connector_approvals import _policy as _connector_policy
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, Principal, RunStatus
-from agentos.core.runtime import Runtime
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.ask_first import AskFirst, flow_of_target
-from agentos.policy.grants import LaneCap, Specials
-from agentos.policy.routing import PolicyConfig, RoutingTable, Rule
-from agentos.policy.store import DB
-from agentos.runner.connectors.surfaces import PaceLimited
-from agentos.runner.tools import ask_first_on
+from openajar.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, Principal, RunStatus
+from openajar.core.runtime import Runtime
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.ask_first import AskFirst, flow_of_target
+from openajar.policy.grants import LaneCap, Specials
+from openajar.policy.routing import PolicyConfig, RoutingTable, Rule
+from openajar.policy.store import DB
+from openajar.runner.connectors.surfaces import PaceLimited
+from openajar.runner.tools import ask_first_on
 
 LANE = "biz-a/insta"
 POST = {"lane_id": LANE, "domain": "instagram.com", "summary": "Post 1 photo", "content": {"caption": "hi"}}
@@ -262,7 +262,7 @@ async def test_a_commit_on_a_lane_asks_first_when_a_surface_posting_through_it_d
 # ---------------------------------------------------------------- MCP tools and the runner
 
 def _with_policy(tmp_path):
-    from agentos.runner.fakes import Harness
+    from openajar.runner.fakes import Harness
 
     h = Harness(tmp_path / "runner", dispatch_interval_s=0.05)
     svc, _ = make_service(tmp_path / "policy", clock=Clock())
@@ -274,7 +274,7 @@ def _with_policy(tmp_path):
 
 
 def _tool(h, name: str):
-    from agentos.runner.tools import tool_specs
+    from openajar.runner.tools import tool_specs
 
     return next(s for s in tool_specs(h.runtime) if s.name == name).handler
 
@@ -283,7 +283,7 @@ PARAMS = {"caption": "autumn", "image": "a.jpg"}
 
 
 async def test_an_auto_routine_posts_on_its_own_and_one_that_asks_first_waits(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -308,7 +308,7 @@ async def test_an_auto_routine_posts_on_its_own_and_one_that_asks_first_waits(tm
 
 
 async def test_an_agent_cannot_turn_it_off_through_flow_save(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -324,8 +324,8 @@ async def test_an_agent_cannot_turn_it_off_through_flow_save(tmp_path):
 
 
 async def test_no_tool_and_no_definition_field_turns_it_off(tmp_path):
-    from agentos.runner.fakes import post_flow
-    from agentos.runner.tools import tool_specs
+    from openajar.runner.fakes import post_flow
+    from openajar.runner.tools import tool_specs
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -339,7 +339,7 @@ async def test_no_tool_and_no_definition_field_turns_it_off(tmp_path):
 
 
 async def test_a_new_version_saved_by_an_agent_still_waits(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -363,7 +363,7 @@ async def test_a_new_version_saved_by_an_agent_still_waits(tmp_path):
 
 
 async def test_a_queued_run_asks_when_the_switch_went_on_while_it_waited(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -388,7 +388,7 @@ COPY = "biz-a.social.copy"
 
 
 def _person_asks_first(h, svc):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h.save(post_flow())
     svc.ask_first.set("flow", "biz-a.social.post", True, by="owner", person=True)
@@ -491,7 +491,7 @@ def test_a_database_from_before_why_is_upgraded(tmp_path):
 
 
 async def test_a_queued_run_a_standing_approval_covered_is_not_asked_again(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -542,7 +542,7 @@ async def test_the_ceiling_and_the_lanes_still_bound_a_commit_that_runs_on_its_o
 
 
 async def test_a_retry_with_a_key_never_posts_twice_when_nothing_asks(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -577,7 +577,7 @@ async def test_pace_stops_a_connector_post_that_runs_on_its_own(tmp_path):
 
 
 async def test_ask_first_on_tool_for_a_routine_and_an_account(tmp_path):
-    from agentos.runner.fakes import post_flow
+    from openajar.runner.fakes import post_flow
 
     h, svc = _with_policy(tmp_path)
     _, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -589,7 +589,7 @@ async def test_ask_first_on_tool_for_a_routine_and_an_account(tmp_path):
     assert svc.ask_first.is_on("lane", "biz-a/social")
     with pytest.raises(InvalidRequest):
         await tool(svc.context_for_token(tok, tool="ask_first_on"))
-    from agentos.policy.errors import Denied
+    from openajar.policy.errors import Denied
 
     with pytest.raises(Denied):  # outside the grant's lanes
         await tool(svc.context_for_token(tok, tool="ask_first_on"), lane="biz-b/social")
@@ -610,7 +610,7 @@ async def test_a_cautious_owner_can_make_everything_ask_until_a_person_turns_it_
 
 
 def test_explain_says_a_post_runs_on_its_own_unless_ask_first_is_on():
-    from agentos.policy.explain import _route_phrase
+    from openajar.policy.explain import _route_phrase
 
     phrase = _route_phrase("Publishing", "commit", RoutingTable())
     assert phrase.startswith("Publishing runs on its own, unless Ask me first is on")

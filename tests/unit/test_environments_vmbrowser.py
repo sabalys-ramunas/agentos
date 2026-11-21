@@ -18,17 +18,17 @@ import pytest
 from test_environments import node  # noqa: F401 - the fixture
 from test_lanes import FakeEngine, make
 
-from agentos.core.models import LaneSpec
-from agentos.env.models import ExecResult, RemoteHost
-from agentos.environments import tunnels, vmbrowser
-from agentos.environments.models import Environment, EnvSettings
-from agentos.environments.tunnels import Tunnel, tunnel_argv
-from agentos.node.display import read_xauthority
+from openajar.core.models import LaneSpec
+from openajar.env.models import ExecResult, RemoteHost
+from openajar.environments import tunnels, vmbrowser
+from openajar.environments.models import Environment, EnvSettings
+from openajar.environments.tunnels import Tunnel, tunnel_argv
+from openajar.node.display import read_xauthority
 
 ROOT = Path(__file__).resolve().parents[2]
-PKG = ROOT / "src" / "agentos" / "environments"
+PKG = ROOT / "src" / "openajar" / "environments"
 REMOTE = RemoteHost(vm_id="vm_1", host="127.0.0.1", port=2222, key_path="/k/id", known_hosts="/k/kh",
-                    host_alias="agentos-vm_1", provider="docker", label="docker")
+                    host_alias="openajar-vm_1", provider="docker", label="docker")
 
 
 # ------------------------------------------------------------------ the machine's stack
@@ -55,12 +55,12 @@ def test_the_install_script_writes_the_requirements_and_the_script_then_runs_it(
     s = vmbrowser.install_script()
     req = (PKG / "browser-requirements.txt").read_text().rstrip()
     assert f"<<'AGENTOS_BROWSER_REQUIREMENTS'\n{req}\nAGENTOS_BROWSER_REQUIREMENTS\n" in s
-    assert "AGENTOS_BROWSER_SCRIPT" not in (PKG / "browser.sh").read_text()  # the heredoc's end mark
+    assert "OPENAJAR_BROWSER_SCRIPT" not in (PKG / "browser.sh").read_text()  # the heredoc's end mark
     assert s.rstrip().endswith(f"sh {vmbrowser.SCRIPT_ON_VM}")
 
 
 def test_the_dev_snapshot_gets_the_browser_before_its_cleanup():
-    from agentos.vms.manager import DEFAULT_IMAGE_SCRIPT, IMAGE_CLEANUP, image_script
+    from openajar.vms.manager import DEFAULT_IMAGE_SCRIPT, IMAGE_CLEANUP, image_script
 
     full = image_script(vmbrowser.install_script())
     assert full.startswith(DEFAULT_IMAGE_SCRIPT) and full.endswith(IMAGE_CLEANUP)
@@ -87,9 +87,9 @@ def _ctl_namespace() -> dict:
 
 
 def test_the_control_script_does_nothing_on_import_and_matches_the_tunnel():
-    ns = _ctl_namespace()  # main() runs only as __agentos_vm__, never on an import
+    ns = _ctl_namespace()  # main() runs only as __openajar_vm__, never on an import
     assert ns["VNC_SOCK"] == tunnels.VM_VNC_SOCKET and ns["VENV_PY"] == vmbrowser.VENV_PY
-    # no TCP listener on the machine's screen or its live view, as on the node (agentos.node.display)
+    # no TCP listener on the machine's screen or its live view, as on the node (openajar.node.display)
     script = vmbrowser.ctl_script()
     assert '"-nolisten", "tcp"' in script and '"-rfbport", "0"' in script and '"-rfbportv6", "-1"' in script
     assert 'host="127.0.0.1"' in script
@@ -114,22 +114,25 @@ def test_the_boot_line_carries_no_request():
 # ------------------------------------------------------------------ the tunnel
 
 
-def test_the_tunnel_forwards_the_live_view_and_the_browser_only_for_a_vm_browser():
+def test_the_tunnel_forwards_the_live_view_the_browser_and_the_desktop_only_for_a_vm_browser():
     plain = Tunnel(REMOTE, gateway_port=None)
     assert plain._forwards() == () and plain.browser_port is None and plain.vnc_path is None
+    assert plain.desk_path is None
     vm = Tunnel(REMOTE, gateway_port=4000, vm_browser=True, browser_port=45001)
     vm.dir = "/tmp/agentos-env-x"
     forwards = vm._forwards()
     argv = tunnel_argv(REMOTE, socks_path="/tmp/agentos-env-x/socks", gateway_port=4000, forwards=forwards)
     assert "/tmp/agentos-env-x/vnc:/run/agentos-browser/vnc.sock" in argv
     assert f"/tmp/agentos-env-x/browser:127.0.0.1:{tunnels.VM_BROWSER_PORT}" in argv
-    assert argv.count("-L") == 2 and "StreamLocalBindMask=0177" in argv
+    assert "/tmp/agentos-env-x/desk:/run/agentos-browser/desk.sock" in argv  # the desktop's helper
+    assert argv.count("-L") == 3 and "StreamLocalBindMask=0177" in argv
     assert vm.vnc_path == "/tmp/agentos-env-x/vnc" and vm.browser_port == 45001
+    assert vm.desk_path == "/tmp/agentos-env-x/desk"
     assert "-L" not in tunnel_argv(REMOTE, socks_path="/s", gateway_port=None)
 
 
 def test_the_browser_starts_as_a_desktop_window_with_the_nodes_prefs_and_no_proxy():
-    from agentos.node.camoufox.prefs import CACHE_PREFS, WHEEL_PREFS
+    from openajar.node.camoufox.prefs import CACHE_PREFS, WHEEL_PREFS
 
     opts = vmbrowser.browser_options(LaneSpec(id="env/e1234567890-browser"), identity_os=["linux"])
     assert opts["screen"] == [1920, 1080] and opts["window"] == [1920, 1080] and opts["headless"] is False
@@ -236,7 +239,7 @@ class FakeTunnel:
 
 
 def _env(eid: str, browser: str = "vm") -> Environment:
-    from agentos.core.models import utcnow
+    from openajar.core.models import utcnow
 
     now = utcnow()
     return Environment(id=eid, title="t", grant_id="g", binding="session:x", created_at=now, expires_at=now,
@@ -309,9 +312,9 @@ async def test_a_vm_environments_browser_lane_opens_on_its_machine(routed):
 
 
 async def test_a_vm_browser_opens_with_the_saved_sign_ins_and_keeps_them_when_it_closes(routed, monkeypatch):
-    """A fresh context each launch, so the sign-ins (agentos.environments.signins) go in as its
+    """A fresh context each launch, so the sign-ins (openajar.environments.signins) go in as its
     storage_state, and the context's own are read back when the lane closes, for its next launch."""
-    from agentos.environments import signins
+    from openajar.environments import signins
 
     state = {"cookies": [{"name": "sid", "value": "v1", "domain": "shop.test", "path": "/"}], "origins": []}
     later = {"cookies": [{"name": "sid", "value": "v2", "domain": "shop.test", "path": "/"}], "origins": []}
@@ -341,6 +344,18 @@ async def test_a_vm_browser_opens_with_the_saved_sign_ins_and_keeps_them_when_it
 
 async def _value(v):
     return v
+
+
+async def test_a_cold_browser_lane_shows_its_environments_screen(routed):
+    mgr, vm = routed.mgr, routed.vm
+    await _create(mgr, "env/e1234567890-browser")
+    await _create(mgr, "env/e0987654321-browser")
+    assert mgr.view("env/e1234567890-browser") is None and mgr.get("env/e1234567890-browser").viewer is None
+    vm._screens["e1234567890"] = (1920, 1080)  # the desktop runs on the machine (VmBrowsers.screen_soon)
+    info = mgr.get("env/e1234567890-browser")
+    assert info.state.value == "cold" and info.viewer is not None
+    assert mgr.view("env/e1234567890-browser").vnc_socket == routed.svc.tunnel.vnc_path
+    assert mgr.view("env/e0987654321-browser") is None  # a browser on the node has no such screen
 
 
 async def test_every_other_lane_stays_on_the_node(routed):
@@ -413,7 +428,7 @@ async def test_the_live_views_copy_reads_the_machines_clipboard(routed):
 
 
 async def test_a_clipboard_too_large_on_the_machine_is_the_same_error_as_on_the_node(routed):
-    from agentos.node.lane_clipboard import ClipboardTooLarge
+    from openajar.node.lane_clipboard import ClipboardTooLarge
 
     async def answers(lane_id, cmd, *, timeout_s=None, stdin=None, **_kw):
         req = json.loads(stdin)
@@ -489,13 +504,13 @@ class VmTunnel:
 
 @pytest.fixture
 def vm_node(node, monkeypatch):  # noqa: F811 - test_environments' fixture
-    from agentos.environments import bringup
+    from openajar.environments import bringup
 
     VmTunnel.made, VmTunnel.stopped = [], []
     monkeypatch.setattr(bringup, "Tunnel", VmTunnel)
     lanes = node["lanes"]
     lanes.engine, lanes.displays = FakeEngine(), SimpleNamespace(get=lambda _l: None)  # a lane manager that routes
-    node["mgr"].settings = EnvSettings(browser="vm")
+    node["mgr"].settings = EnvSettings(browser="vm", desktop=False)  # the desktop: test_environments_desktop.py
     return node
 
 
@@ -559,7 +574,7 @@ async def test_a_failed_install_fails_the_environment_with_its_reason(vm_node):
 async def test_a_lane_manager_that_cannot_route_keeps_the_browser_on_the_node(node, monkeypatch):  # noqa: F811
     from test_environments import opened
 
-    from agentos.environments import bringup
+    from openajar.environments import bringup
 
     monkeypatch.setattr(bringup, "Tunnel", VmTunnel)
     node["mgr"].settings = EnvSettings(browser="vm")  # the dev node's simulated lanes have no engine
@@ -588,7 +603,7 @@ async def test_the_node_setting_is_unchanged(node, monkeypatch):  # noqa: F811
     """browser = "node" (the default): the tunnel is made exactly as before, with no browser forwards."""
     from test_environments import opened
 
-    from agentos.environments import bringup
+    from openajar.environments import bringup
 
     made = []
 
@@ -610,11 +625,35 @@ async def test_the_node_setting_is_unchanged(node, monkeypatch):  # noqa: F811
 
 
 def test_setup_says_where_the_browser_runs():
-    from agentos.environments.cli import _browser_line
+    from openajar.environments.cli import _browser_line
 
     assert _browser_line("node", "docker", "img", "docker")[0] == "ok"
     status, _what, words = _browser_line("vm", "hetzner", "img", "docker")
     assert status == "ok" and "dev snapshot" in words
     status, _what, words = _browser_line("vm", "docker", "img", "/nonexistent/docker")
-    assert status == "missing" and "agentos environments setup --pull" in words
+    assert status == "missing" and "openajar environments setup --pull" in words
     assert "—" not in words
+
+
+def test_a_pid_file_from_before_a_save_never_names_a_process_started_after_it(tmp_path, monkeypatch):
+    """A docker save keeps /run: on the resumed machine xvfb.pid may hold the number of a process that
+    started later (a restored job). _running says it is not ours, so _stop never signals it."""
+    import os
+    import time
+
+    ns = _ctl_namespace()
+    ns["DIR"] = str(tmp_path)
+    (tmp_path / "xvfb.pid").write_text(str(os.getpid()))
+    old = time.time() - 3600
+    os.utime(tmp_path / "xvfb.pid", (old, old))
+    ns["_started_at"] = lambda pid: time.time() - 60  # the process with that number began after the file
+    assert ns["_running"]("xvfb") is None
+    killed = []
+    monkeypatch.setattr(ns["os"], "killpg", lambda pid, sig: killed.append(pid))
+    ns["_stop"]("xvfb")
+    assert killed == [] and not (tmp_path / "xvfb.pid").exists()
+    (tmp_path / "xvfb.pid").write_text(str(os.getpid()))
+    ns["_started_at"] = lambda pid: time.time() - 7200  # started before the file was written: ours
+    assert ns["_running"]("xvfb") == os.getpid()
+    ns["_started_at"] = lambda pid: None  # no /proc (not Linux): trusted as before
+    assert ns["_running"]("xvfb") == os.getpid()

@@ -14,14 +14,14 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient, WebSocketDenialResponse
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec, current_request_token
-from agentos.mcp.http import BearerAuth, TrustedHosts, build_app, parse_host
-from agentos.mcp.registry import OwnerContext, build_mcp
-from agentos.node import daemon
-from agentos.node.tools import tool_specs
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec, current_request_token
+from openajar.mcp.http import BearerAuth, TrustedHosts, build_app, parse_host
+from openajar.mcp.registry import OwnerContext, build_mcp
+from openajar.node import daemon
+from openajar.node.tools import tool_specs
 
 TOKEN = "node-token-value"
 GRANT = "grant-token-value"

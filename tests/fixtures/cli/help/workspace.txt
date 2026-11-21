@@ -1,5 +1,5 @@
 
- Usage: agentos workspace [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar workspace [OPTIONS] COMMAND [ARGS]...
 
  Workspaces: one per business or person, lanes from templates, and the login
  queue.
@@ -19,7 +19,7 @@
 │            it has memory unless                                              │
 │            --with-memory.                                                    │
 │ templates  Templates you can apply: the built-in ones and the valid files in │
-│            $AGENTOS_HOME/templates.                                          │
+│            $OPENAJAR_HOME/templates.                                         │
 │ plan       Show what applying a template would do, without creating          │
 │            anything. Exits 1 when there are conflicts.                       │
 │ apply      Create a template's lanes in workspaces. Shows the plan first.    │

@@ -1,21 +1,18 @@
 import { BusinessMark } from '../brand/identity';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
-import { Bell, Check, ChevronRight, ChevronsUpDown, Keyboard, Laptop, LogOut, Moon, Search, Sun, User } from 'lucide-react';
+import { Check, ChevronsUpDown, Keyboard, Laptop, LogOut, Moon, Search, Sun, User } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
-import { useAccess, useApprovals, useSignOut, useSession, useWorkspaces } from '@/api/hooks';
+import { useAccess, useSignOut, useSession, useWorkspaces } from '@/api/hooks';
 import { useLiveConnection } from '@/api/live';
 import { useActiveWorkspace } from '@/lib/active-workspace';
 import { cn } from '@/lib/cn';
-import { timeAgo } from '@/lib/format';
-import { laneName } from '@/lib/labels';
 import { setTheme, useTheme } from '@/lib/theme';
 import type { ThemeChoice } from '@/lib/theme';
-import { Count } from '../ui/badge';
 import { IconButton } from '../ui/button';
-import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Popover, PopoverContent, PopoverTrigger, Tooltip } from '../ui/menu';
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from '../ui/menu';
 import { Avatar } from '../ui/misc';
 import { StatusDot } from '../ui/status';
-import { useRailCounts } from './counts';
+import { NotificationsBell } from './notifications';
 import { useCurrentCrumb } from './crumb';
 import { FrozenChip } from './freeze-control';
 import { placeOf } from './nav';
@@ -24,7 +21,7 @@ import { OrgSwitcher } from './rail';
 import { StatusPill } from './status-pill';
 
 const chip =
-  'inline-flex h-8 items-center gap-2 rounded-md px-2 text-secondary text-muted transition-colors ' +
+  'inline-flex h-9 items-center gap-2 rounded-full px-3 text-secondary text-muted transition-colors ' +
   'duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg data-[state=open]:bg-pressed data-[state=open]:text-fg';
 
 /** The crumb's root: which business the app is showing, and the switch to another. */
@@ -34,7 +31,7 @@ function WorkspaceSwitcher({ org }: { org: string }) {
   const current = workspaces.find((item) => item.id === active);
   return (
     <Menu>
-      <MenuTrigger className={cn(chip, '-ml-2 min-w-0 text-fg')} aria-label="Switch workspace">
+      <MenuTrigger className={cn(chip, '-ml-3 min-w-0 text-muted')} aria-label="Switch workspace">
         {current ? <BusinessMark name={current.name} color={current.color} size={16} /> : null}
         <span className="max-w-32 truncate sm:max-w-48">{current?.name ?? 'All workspaces'}</span>
         <ChevronsUpDown className="size-3 shrink-0 text-faint" aria-hidden="true" />
@@ -42,14 +39,14 @@ function WorkspaceSwitcher({ org }: { org: string }) {
       <MenuContent className="w-64">
         <MenuItem onSelect={() => setActive('')}>
           <span className="flex-1">All workspaces</span>
-          <Check className={cn('size-4 text-muted', active !== '' && 'invisible')} />
+          <Check className={cn('size-4 text-accent-text', active !== '' && 'invisible')} />
         </MenuItem>
         {workspaces.length ? <MenuSeparator /> : null}
         {workspaces.map((item) => (
           <MenuItem key={item.id} onSelect={() => setActive(item.id)}>
             <BusinessMark name={item.name} color={item.color} />
             <span className="min-w-0 flex-1 truncate">{item.name}</span>
-            <Check className={cn('size-4 text-muted', item.id !== active && 'invisible')} />
+            <Check className={cn('size-4 text-accent-text', item.id !== active && 'invisible')} />
           </MenuItem>
         ))}
       </MenuContent>
@@ -57,7 +54,11 @@ function WorkspaceSwitcher({ org }: { org: string }) {
   );
 }
 
-const Sep = () => <ChevronRight aria-hidden="true" className="size-3 shrink-0 text-faint" />;
+const Sep = () => (
+  <span aria-hidden="true" className="shrink-0 px-1 text-secondary text-disabled">
+    /
+  </span>
+);
 
 /** The leaf page's id from the address: a run, a check, a machine, an account (`aster/instagram`). */
 function useAddressCrumb(): string | null {
@@ -88,7 +89,7 @@ function Crumbs({ org }: { org: string }) {
         <span className="hidden min-w-0 items-center gap-1 md:flex">
           <Sep />
           {atPlace || !leaf ? (
-            <span aria-current={atPlace ? 'page' : undefined} className="truncate text-secondary font-medium text-fg">
+            <span aria-current={atPlace ? 'page' : undefined} className="truncate text-secondary font-semibold text-fg">
               {place.label}
             </span>
           ) : (
@@ -99,7 +100,7 @@ function Crumbs({ org }: { org: string }) {
           {leaf && !atPlace ? (
             <>
               <Sep />
-              <span aria-current="page" title={leaf.label} className={cn('min-w-0 truncate font-medium text-fg', leaf.mono ? 'font-mono text-code-caption' : 'text-secondary')}>
+              <span aria-current="page" title={leaf.label} className={cn('min-w-0 truncate font-semibold text-fg', leaf.mono ? 'font-mono text-code-caption' : 'text-secondary')}>
                 {leaf.label}
               </span>
             </>
@@ -150,53 +151,12 @@ function ThemeButton() {
   return (
     <Tooltip label={label} side="bottom">
       <IconButton label={label} onClick={() => setTheme(isDark ? 'light' : 'dark')}>
-        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        {isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
       </IconButton>
     </Tooltip>
   );
 }
 
-function NeedsYouBell({ org }: { org: string }) {
-  const approvals = useApprovals(org).data ?? [];
-  const workspaces = useWorkspaces(org).data ?? [];
-  const count = useRailCounts(org).needsYou;
-  const nameOf = (lane: string) => workspaces.find((item) => item.id === lane.split('/')[0])?.name ?? lane.split('/')[0];
-  return (
-    <Popover>
-      <PopoverTrigger className={cn(chip, 'relative size-8 shrink-0 justify-center px-0 max-md:size-10')} aria-label={count ? `Needs you, ${count} waiting` : 'Needs you'}>
-        <Bell className="size-4" aria-hidden="true" />
-        {count > 0 ? <span className="absolute top-1 right-1 size-2 rounded-full border border-page bg-fg" aria-hidden="true" /> : null}
-      </PopoverTrigger>
-      <PopoverContent className="max-w-[calc(100vw-16px)]">
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <p className="text-body font-medium">Needs you</p>
-          {count > 0 ? <Count value={count} tone="ink" /> : null}
-        </div>
-        {approvals.length ? (
-          <ul className="p-2">
-            {approvals.slice(0, 4).map((item) => (
-              <li key={item.id}>
-                <Link to="/$org/needs-you" params={{ org }} search={{ approval: item.id }} className="block rounded-md px-2 py-2 hover:bg-hover">
-                  <span className="line-clamp-2 text-secondary">{item.outcome && item.needs_you && item.state !== 'pending' ? item.outcome.title : item.summary}</span>
-                  <span className="text-caption text-faint">
-                    {item.place ?? `${nameOf(item.lane)} · ${laneName(item.lane.split('/')[1] ?? '')}`} · {timeAgo(item.created_at)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="px-4 py-6 text-center text-secondary text-muted">Nothing is waiting for you.</p>
-        )}
-        <div className="border-t border-line p-2">
-          <Link to="/$org/needs-you" params={{ org }} className="flex h-8 items-center rounded-md px-2 text-secondary text-muted hover:bg-hover hover:text-fg">
-            Open Needs you
-          </Link>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 const THEMES: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
   { value: 'system', label: 'System', icon: Laptop },
@@ -234,8 +194,8 @@ function AccountMenu({ org }: { org: string }) {
   const navigate = useNavigate();
   return (
     <Menu>
-      <MenuTrigger aria-label="Account" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full max-md:size-10">
-        <Avatar name={user?.name ?? ''} className="size-7" />
+      <MenuTrigger aria-label="Account" className="ml-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full max-md:size-10">
+        <Avatar name={user?.name ?? ''} me className="size-8" />
       </MenuTrigger>
       <MenuContent align="end" className="w-64">
         <div className="px-2 py-2">
@@ -272,10 +232,17 @@ function AccountMenu({ org }: { org: string }) {
  * the machine's, and a number that ticks every second pulls the eye from the one thing allowed to move
  * (work that is running). Times on a page say "2 min ago" and keep themselves fresh.
  */
-export function TopBar({ org }: { org: string }) {
+/** `night`: the page has the night band under the top bar (page-band.ts), so the bar takes the night too. */
+export function TopBar({ org, night = false }: { org: string; night?: boolean }) {
   const { role } = useAccess(org);
   return (
-    <header className="sticky top-0 z-30 flex h-(--topbar-height) items-center gap-2 border-b border-line bg-page/85 px-2 backdrop-blur-md sm:px-4 lg:px-6">
+    <header
+      data-night={night || undefined}
+      className={cn(
+        'sticky top-0 z-30 flex h-(--topbar-height) items-center gap-2 px-2 backdrop-blur-md sm:px-4 lg:pr-8 lg:pl-10',
+        night ? 'top-night' : 'bg-page/85',
+      )}
+    >
       {/* On a phone the rail is gone, so the org's switch comes up here. */}
       <span className="md:hidden">
         <OrgSwitcher org={org} compact />
@@ -305,7 +272,7 @@ export function TopBar({ org }: { org: string }) {
         <span className="hidden sm:inline-flex">
           <ThemeButton />
         </span>
-        <NeedsYouBell org={org} />
+        <NotificationsBell org={org} triggerClass={chip} />
         <AccountMenu org={org} />
       </div>
     </header>

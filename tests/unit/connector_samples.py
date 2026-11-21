@@ -1,4 +1,4 @@
-"""Sample connectors for the runner's fake social site (agentos.runner.fakes.social_site)."""
+"""Sample connectors for the runner's fake social site (openajar.runner.fakes.social_site)."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from agentos.runner.fakes import BASE
+from openajar.runner.fakes import BASE
 
-SITES = {"social": ("social.example",)}  # the fake site, in place of agentos.node.sites.SITES
+SITES = {"social": ("social.example",)}  # the fake site, in place of openajar.node.sites.SITES
 LANE = "biz-a/social"
 BINDING = {"acts_as_id": "biz-a", "account_language": "en"}  # what the surface below fills in
 # the AUD-01 surface the sample runs act as: its own account, through the lane of the same name
@@ -120,7 +120,7 @@ POST_PARAMS = {"caption": "Autumn at the lake", "image": "photo.jpg"}  # post_ph
 
 class Inbox:
     """The runtime "files" service as far as connector approvals need it: each lane's inbox
-    directory (agentos.node.flow_driver.inbox_dir), on disk under `root`."""
+    directory (openajar.node.flow_driver.inbox_dir), on disk under `root`."""
 
     def __init__(self, root: Path):
         self.root = Path(root)
@@ -138,7 +138,7 @@ class Inbox:
 
 def bind(h: Any, **fields: Any):
     """Add a surface (SURFACE with `fields` replaced) to a Harness, as the owner."""
-    from agentos.runner.fakes import OWNER
+    from openajar.runner.fakes import OWNER
 
     surfaces = h.runner.surfaces
     surfaces.sites = surfaces.sites or SITES
@@ -179,7 +179,7 @@ def connector_site(*, lang: str = "en", account: str = "biz-a", posts: list[dict
     type=file, an image once a file is chosen, a Share button named in the account's
     language, profile posts with data-id and links, and post pages whose comments carry
     machine attributes (thingid, author, a time with datetime) and nest their replies."""
-    from agentos.runner.fakes import El, FakeSite
+    from openajar.runner.fakes import El, FakeSite
 
     site = FakeSite()
     site.state = {"posts": copy.deepcopy(posts or []), "account": account, "lang": lang,

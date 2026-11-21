@@ -4,7 +4,7 @@
  * serves. Each step clicks what a person clicks and checks what the node then says.
  *
  *   pnpm build
- *   AGENTOS_PANEL_DIR=$PWD/dist node scripts/dev-node.mjs --port 7451 &
+ *   OPENAJAR_PANEL_DIR=$PWD/dist node scripts/dev-node.mjs --port 7451 &
  *   node scripts/journey-node.mjs --port 7451
  *
  * It changes the dev node's data, so start a fresh dev node for each run.
@@ -100,7 +100,7 @@ await step('Turn the worker on', async () => {
   await page.goto(`${app}/local/settings/workers`);
   await page.getByRole('switch', { name: /Browser worker on/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Turn it on/ }).click();
-  await expect(page.getByText(/next time agentos starts/).first()).toBeVisible({ timeout: 8000 });
+  await expect(page.getByText(/next time openajar starts/).first()).toBeVisible({ timeout: 8000 });
 });
 
 await step('Nothing crashed', async () => expect(crashes).toEqual([]));

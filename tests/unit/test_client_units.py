@@ -15,15 +15,15 @@ import typer
 from test_client_fakes import NodeServer
 from typer.testing import CliRunner
 
-from agentos.client import app as client_app
-from agentos.client.errors import NodeConfigError, PortInUse, SshError, TokenStoreError
-from agentos.client.mcp_http import Failure, McpError, McpSession, ToolError, probe
-from agentos.client.ports import pick_port
-from agentos.client.remote import explain_ssh_failure, parse_reply, remote_script, valid_host
-from agentos.client.state import Paths, default_name, valid_name
-from agentos.client.tokens import KeychainStore, helper_script
-from agentos.client.tunnel import ServiceState, TunnelSpec, systemd_quote
-from agentos.core.config import NodeConfig, save_config
+from openajar.client import app as client_app
+from openajar.client.errors import NodeConfigError, PortInUse, SshError, TokenStoreError
+from openajar.client.mcp_http import Failure, McpError, McpSession, ToolError, probe
+from openajar.client.ports import pick_port
+from openajar.client.remote import explain_ssh_failure, parse_reply, remote_script, valid_host
+from openajar.client.state import Paths, default_name, valid_name
+from openajar.client.tokens import KeychainStore, helper_script
+from openajar.client.tunnel import ServiceState, TunnelSpec, systemd_quote
+from openajar.core.config import NodeConfig, save_config
 
 TOKEN = "Tk_" + "q1W2e3R4t5" * 4
 
@@ -73,7 +73,7 @@ def test_script_prints_only_the_three_top_level_keys(tmp_path):
 
 def test_script_reports_missing_and_unreadable(tmp_path):
     proc = run_script(tmp_path / "nowhere")
-    assert proc.stdout.strip() == "agentos-error=missing"
+    assert proc.stdout.strip() == "openajar-error=missing"
     save_config(NodeConfig(home=tmp_path, mcp_token=TOKEN))
     (tmp_path / "node.toml").chmod(0)
     passwordless_sudo = subprocess.run(["sudo", "-n", "true"], capture_output=True, check=False).returncode == 0 \
@@ -86,7 +86,7 @@ def test_script_reports_missing_and_unreadable(tmp_path):
         proc = run_script(tmp_path)
     finally:
         (tmp_path / "node.toml").chmod(0o600)
-    assert proc.stdout.startswith("agentos-error=unreadable ")
+    assert proc.stdout.startswith("openajar-error=unreadable ")
 
 
 def test_remote_home_is_quoted(tmp_path):
@@ -98,8 +98,8 @@ def test_remote_home_is_quoted(tmp_path):
 
 
 @pytest.mark.parametrize(("stdout", "message"), [
-    ("agentos-error=missing\n", "has no /var/lib/agentos/node.toml"),
-    ("agentos-error=unreadable bob\n", "not readable as bob"),
+    ("openajar-error=missing\n", "has no /var/lib/agentos/node.toml"),
+    ("openajar-error=unreadable bob\n", "not readable as bob"),
     ('name = "n"\nmcp_port = 7400\n', "has no mcp_token"),
     ('mcp_token = "has spaces and \\"quotes\\" in it"\n', "does not expect"),
     (f'mcp_token = "{TOKEN}"\nmcp_port = 99999\n', "invalid mcp_port"),
@@ -135,7 +135,7 @@ def server(tmp_path):
 
 def test_session_reads_whoami_and_lanes(server):
     with McpSession(server.port, TOKEN) as session:
-        assert session.server["name"] == "agentos"
+        assert session.server["name"] == "openajar"
         assert session.session_id
         who = session.call("whoami")
         assert who["node"] == "units" and who["browsers"]["total"] == 2
@@ -229,7 +229,7 @@ def test_keychain_errors_never_echo_the_token(tmp_path):
 def test_helper_script_reads_the_file_then_the_keychain(tmp_path):
     paths = Paths(tmp_path)
     with_keychain = helper_script(paths, "/usr/bin/security")
-    assert "/usr/bin/security find-generic-password -s agentos -a \"$name\" -w" in with_keychain
+    assert "/usr/bin/security find-generic-password -s openajar -a \"$name\" -w" in with_keychain
     assert "security" not in helper_script(paths, None)
     script = tmp_path / "helper"
     script.write_text(helper_script(paths, None))
@@ -241,7 +241,7 @@ def test_helper_script_reads_the_file_then_the_keychain(tmp_path):
 def test_xdg_config_home_is_respected(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     paths = Paths(tmp_path / "home")
-    assert paths.connections_dir == tmp_path / "xdg/agentos/connections"
+    assert paths.connections_dir == tmp_path / "xdg/openajar/connections"
     assert paths.systemd_user_dir == tmp_path / "xdg/systemd/user"
 
 
@@ -262,7 +262,7 @@ def test_mounts_at_the_top_level_of_a_typer_app():
 
 
 def test_client_imports_stay_light():
-    code = ("import sys, agentos.client.cli; "
+    code = ("import sys, openajar.client.cli; "
             "print(sorted(m for m in ('mcp', 'uvicorn', 'camoufox', 'playwright', 'httpx2') if m in sys.modules))")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert out.strip() == "[]"
@@ -271,7 +271,7 @@ def test_client_imports_stay_light():
 # ---- the Claude Code integration ----
 
 INTEGRATION = Path(__file__).resolve().parents[2] / "integrations" / "claude-code"
-SKILLS = Path(__file__).resolve().parents[2] / "src" / "agentos" / "client" / "skills"
+SKILLS = Path(__file__).resolve().parents[2] / "src" / "openajar" / "client" / "skills"
 
 
 def frontmatter(path: Path) -> dict[str, str]:
@@ -280,14 +280,14 @@ def frontmatter(path: Path) -> dict[str, str]:
 
 
 def test_skills_name_the_tools_they_rely_on():
-    offload = SKILLS / "agentos-offload/SKILL.md"
-    lanes = SKILLS / "agentos-lanes/SKILL.md"
+    offload = SKILLS / "openajar-offload/SKILL.md"
+    lanes = SKILLS / "openajar-lanes/SKILL.md"
     meta = frontmatter(offload)
-    assert meta["name"] == "agentos-offload" and meta["disable-model-invocation"] == "true"
-    assert frontmatter(lanes)["name"] == "agentos-lanes"
+    assert meta["name"] == "openajar-offload" and meta["disable-model-invocation"] == "true"
+    assert frontmatter(lanes)["name"] == "openajar-lanes"
     text = offload.read_text()
     for word in ("brain_run", '"prompt"', '"workspace"', '"lanes"', '"context_bundle"', '"git"', '"remote"',
-                 '"ref"', '"files"', '"summary"', "brain_status", "brain_tail", "brain_tasks", "agentos connect"):
+                 '"ref"', '"files"', '"summary"', "brain_status", "brain_tail", "brain_tasks", "openajar connect"):
         assert word in text
     text = lanes.read_text()
     for word in ("browser_snapshot", "browser_act", "browser_view", "browser_request_control", "browser_wait_handback",
@@ -305,7 +305,7 @@ def test_install_script_copies_only_when_run(tmp_path):
     assert "would copy" in dry.stdout and not (tmp_path / ".claude").exists()
 
     subprocess.run(["/bin/sh", str(script)], env=env, capture_output=True, text=True, check=True)
-    for skill in ("agentos-environment", "agentos-offload", "agentos-lanes", "agentos-studio"):
+    for skill in ("openajar-environment", "openajar-offload", "openajar-lanes", "openajar-studio"):
         installed = tmp_path / ".claude/skills" / skill / "SKILL.md"
         assert installed.read_text() == (SKILLS / skill / "SKILL.md").read_text()
 
@@ -315,7 +315,7 @@ def test_install_script_copies_only_when_run(tmp_path):
     other = tmp_path / "claude-config"
     subprocess.run(["/bin/sh", str(script)], env={**env, "CLAUDE_CONFIG_DIR": str(other)}, capture_output=True,
                    text=True, check=True)
-    assert (other / "skills/agentos-lanes/SKILL.md").exists()
+    assert (other / "skills/openajar-lanes/SKILL.md").exists()
 
 
 def test_a_refusal_carries_the_nodes_reason():
@@ -356,7 +356,7 @@ def test_a_refusal_carries_the_nodes_reason():
 def test_codex_editing_keeps_the_owners_file_as_it_was(tmp_path):
     import tomllib
 
-    from agentos.client.codex import CodexConfig
+    from openajar.client.codex import CodexConfig
 
     real = tmp_path / "dotfiles" / "config.toml"
     real.parent.mkdir()
@@ -366,31 +366,31 @@ def test_codex_editing_keeps_the_owners_file_as_it_was(tmp_path):
     (home / ".codex").mkdir(parents=True)
     (home / ".codex/config.toml").symlink_to(real)
     cfg = CodexConfig(home)
-    assert cfg.register("agentos-n", "/bin/agentos", ["mcp-bridge", "n"])
+    assert cfg.register("openajar-n", "/bin/openajar", ["mcp-bridge", "n"])
     assert (home / ".codex/config.toml").is_symlink()  # the dotfiles copy is what changed
     text = real.read_bytes().decode()
     assert "\n" not in text.replace("\r\n", "")  # still CRLF throughout
-    assert tomllib.loads(text)["mcp_servers"]["agentos-n"]["args"] == ["mcp-bridge", "n"]
-    assert not cfg.register("agentos-n", "/bin/agentos", ["mcp-bridge", "n"])
-    assert cfg.unregister("agentos-n") and real.read_bytes().decode() == before
+    assert tomllib.loads(text)["mcp_servers"]["openajar-n"]["args"] == ["mcp-bridge", "n"]
+    assert not cfg.register("openajar-n", "/bin/openajar", ["mcp-bridge", "n"])
+    assert cfg.unregister("openajar-n") and real.read_bytes().decode() == before
 
     # a comment the owner wrote after our table, at the end of the file, survives both ways
-    real.write_text('[mcp_servers.agentos-n]\ncommand = "a"\n# mine: keep\n')
-    cfg.register("agentos-n", "/bin/agentos", ["mcp-bridge", "n"])
+    real.write_text('[mcp_servers.openajar-n]\ncommand = "a"\n# mine: keep\n')
+    cfg.register("openajar-n", "/bin/openajar", ["mcp-bridge", "n"])
     assert "# mine: keep" in real.read_text()
-    cfg.unregister("agentos-n")
+    cfg.unregister("openajar-n")
     assert real.read_text().strip() == "# mine: keep"
 
 
 def test_skills_never_overwrite_or_remove_the_owners_own(tmp_path):
-    from agentos.client import skills
+    from openajar.client import skills
 
-    mine = tmp_path / ".claude/skills/agentos-lanes/SKILL.md"
+    mine = tmp_path / ".claude/skills/openajar-lanes/SKILL.md"
     mine.parent.mkdir(parents=True)
     mine.write_text("---\nname: my-lanes\n---\nmy own notes\n")
-    assert skills.install(tmp_path) == "kept your own agentos-lanes"
+    assert skills.install(tmp_path) == "kept your own openajar-lanes"
     assert mine.read_text() == "---\nname: my-lanes\n---\nmy own notes\n"
-    assert skills.remove(tmp_path) == ["agentos-environment", "agentos-offload", "agentos-studio"] and mine.exists()
+    assert skills.remove(tmp_path) == ["openajar-environment", "openajar-offload", "openajar-studio"] and mine.exists()
 
 
 def test_the_bridge_always_answers(tmp_path):
@@ -398,7 +398,7 @@ def test_the_bridge_always_answers(tmp_path):
     import json as _json
     import socket
 
-    from agentos.client.bridge import UNAUTHORIZED, UNREACHABLE, Bridge
+    from openajar.client.bridge import UNAUTHORIZED, UNREACHABLE, Bridge
 
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -407,7 +407,7 @@ def test_the_bridge_always_answers(tmp_path):
     out = io.BytesIO()
     bridge = Bridge(name="n", host="127.0.0.1", port=port, path="/mcp", token=lambda: "t" * 20, out=out,
                     reopen=lambda: reopened.append(1))
-    import agentos.client.bridge as bridge_mod
+    import openajar.client.bridge as bridge_mod
     bridge_mod.TUNNEL_WAIT, old = 1.0, bridge_mod.TUNNEL_WAIT
     try:
         bridge.forward({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})

@@ -1,7 +1,7 @@
 # The agenda
 
 Every workspace has one agenda: a timeline of planned actions, what may run, what ran, and the
-proof it left. An action is anything agentos can already run. A post is one kind. So are these:
+proof it left. An action is anything openajar can already run. A post is one kind. So are these:
 
 - Send the November invoice reminders on the 1st at 09:00 (a saved flow on the billing lane).
 - Renew the `biz-a.com` domain in the week before it lapses (a flow on the registrar lane, in a
@@ -14,12 +14,12 @@ proof it left. An action is anything agentos can already run. A post is one kind
 - On the 30th, wake the workspace's agent to draft next month's newsletter (a trigger whose
   target is an agent or a brain, with the entry's notes as what to do).
 
-Recurring work stays a schedule (`agentos schedules`): the agenda shows its upcoming fires, but it
+Recurring work stays a schedule (`openajar schedules`): the agenda shows its upcoming fires, but it
 never stores a second copy of them.
 
 ## What is on the timeline
 
-`agenda_list` (MCP), `GET /api/agenda` (panel), `agentos agenda list` (CLI) merge four things for
+`agenda_list` (MCP), `GET /api/agenda` (panel), `openajar agenda list` (CLI) merge four things for
 a range of days, filterable by lane, kind (`flow`, `connector`, `route`, `keepalive`) and state:
 
 | Item | Where it comes from | State |
@@ -43,7 +43,7 @@ these rows muted, under "Show other planned work"; `managed=0` (API), `managed=f
 
 | Source | What it shows | What it cannot show |
 |---|---|---|
-| `keepalive` | each lane's next visit, from the plan its rounds decide on, at an approximate time (`approx`, `~` in the CLI and the panel), with `waits` when a gate holds it for now (a human has control, the lane is in use) | any visit after the next: it is drawn from how this one goes and from the lane's use since. The time moves later whenever the lane is used, and a due visit waits for a free warm slot, memory and a gap after the node's last visit. A lane it does not visit (the node switch off, the lane opted out, no site, quarantined, frozen, signed out or challenged) has no item; `skipped` says why. Managed with `agentos lane keepalive <lane>` and the Keepalive card on the lane's page |
+| `keepalive` | each lane's next visit, from the plan its rounds decide on, at an approximate time (`approx`, `~` in the CLI and the panel), with `waits` when a gate holds it for now (a human has control, the lane is in use) | any visit after the next: it is drawn from how this one goes and from the lane's use since. The time moves later whenever the lane is used, and a due visit waits for a free warm slot, memory and a gap after the node's last visit. A lane it does not visit (the node switch off, the lane opted out, no site, quarantined, frozen, signed out or challenged) has no item; `skipped` says why. Managed with `openajar lane keepalive <lane>` and the Keepalive card on the lane's page |
 
 The CLI asks agentosd for it (`op: planned` on the ops socket), since agentosd owns the lanes the
 plan reads; with agentosd down, the list says so and shows the rest.
@@ -111,7 +111,7 @@ routes the entry:
   slot (if "Ask me first" was turned on in between, the run asks then);
 - a standing approval that covers it spends one use now (`via: standing`);
 - otherwise a person decides (`via: person`): in Needs you, in the panel's Agenda, or with
-  `agentos agenda approve <id>`. Who may decide, four eyes, and "a token never approves what its own
+  `openajar agenda approve <id>`. Who may decide, four eyes, and "a token never approves what its own
   grant family asked for" are the approvals' own rules. Approving with an edit (a caption changed on
   the card) changes the entry's inputs to what the person approved.
 
@@ -187,7 +187,7 @@ An explicit stop is never bypassed:
 - A held or quarantined lane, the lane's pace and the egress guard stop the run as they stop any run:
   it waits inside the window, and the entry is `skipped` with the reason when the window closes.
 
-The lane's posting pace and waking hours (agentos.policy.pace) apply to every commit. Before it
+The lane's posting pace and waking hours (openajar.policy.pace) apply to every commit. Before it
 submits one, the agenda reads the lane's pace. When the pace says not yet and the lane may post later
 inside the entry's window, the entry waits for that time (`retry_at`, `reason: waiting for the lane's
 pace: ...`). When the lane may next post only after the window, the entry is `skipped` with the pace's
@@ -207,12 +207,12 @@ run recorded no readback, page or output, the proof says so.
 
 ## Where it lives
 
-- `src/agentos/agenda/`: the store (`agenda.db`, versioned like the other node stores), the service,
+- `src/openajar/agenda/`: the store (`agenda.db`, versioned like the other node stores), the service,
   the MCP tools (toolset `agenda`), the CLI and the panel API.
-- `agentos.keepalive.service.planned`: what it plans in a range, for the timeline.
+- `openajar.keepalive.service.planned`: what it plans in a range, for the timeline.
 - MCP: `agenda_list`, `agenda_get`, `agenda_draft`, `agenda_update`, `agenda_propose`,
   `agenda_cancel` (docs/TOOLS.md); the `plan_action` recipe in `howto`.
-- CLI: `agentos agenda list | show | add | propose | approve | cancel`.
+- CLI: `openajar agenda list | show | add | propose | approve | cancel`.
 - API: `/api/agenda*` (docs/API.md, "Agenda"). The panel has an Agenda screen per workspace.
 
 ## What it does not do

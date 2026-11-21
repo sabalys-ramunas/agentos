@@ -1,12 +1,12 @@
-# Design: federation between agentos installations
+# Design: federation between openajar installations
 
 Status: design, far out. Date: 2026-11-04. Base: `m1-node-lanes-mcp` at `cf2cfe0`.
 Owner's bet: share a lane or a workspace with another
-person's agentos, with grants crossing the boundary and expiring on your side.
+person's openajar, with grants crossing the boundary and expiring on your side.
 Collaboration without moving passwords, across companies.
 
 Read with: docs/PROTOCOL.md (node channel v1), docs/CONTROLLER.md,
-`src/agentos/policy/issuers.py`, `src/agentos/controller/grants.py`.
+`src/openajar/policy/issuers.py`, `src/openajar/controller/grants.py`.
 
 ## 1. Summary and recommendation
 
@@ -79,8 +79,8 @@ Non-goals:
 
 ### 3.1 An agency works in a client's workspace
 
-Dana runs Client Co's agentos: a controller and a node holding `biz-a/instagram`,
-`biz-a/facebook` and `biz-a/shopify`, logged in. Northwind (an agency) runs its own agentos
+Dana runs Client Co's openajar: a controller and a node holding `biz-a/instagram`,
+`biz-a/facebook` and `biz-a/shopify`, logged in. Northwind (an agency) runs its own openajar
 with its agents (Claude Code for copy, a scheduler flow).
 
 1. Dana opens Shares, New share: workspace `biz-a`, lanes `instagram` and `facebook`,
@@ -137,7 +137,7 @@ has the copy team and the community managers. Both want agents and people on it.
 | Share token | the share's root grant token, signed by the host's org grant key, held by the guest's controller and never given to an agent |
 
 Federation is controller to controller only. A node never learns that a peer exists beyond
-what arrives in `invoke` (section 4.4). An install without a controller runs `agentos up`
+what arrives in `invoke` (section 4.4). An install without a controller runs `openajar up`
 first.
 
 ### 4.2 Trust establishment
@@ -339,7 +339,7 @@ other sees everything it sends.
 
 ### 4.9 How this relates to Tailscale node sharing
 
-| Tailscale node sharing | agentos federation |
+| Tailscale node sharing | openajar federation |
 |---|---|
 | Share one machine with another user's tailnet | Share one lane or workspace with another install |
 | The recipient sees only the shared machine | The guest sees only the shared lanes and tools |
@@ -450,7 +450,7 @@ closed.
 - **`share`** (optional string) on trace events, `approval_request` approvals and `run`
   events, so the host's controller filters a share's audit without parsing principal ids.
   Nodes copy it from block 0.
-- **Error codes** reserved in `agentos.core.errors`: `peer_unavailable`, `share_revoked`,
+- **Error codes** reserved in `openajar.core.errors`: `peer_unavailable`, `share_revoked`,
   `share_expired`, `holder_mismatch`, `federation_unsupported`.
 - **A separate endpoint and namespace**: `wss://<controller>/v1/peer/connect`, its own
   envelope `v: 1`, never mixed with the node channel. Reserved types (the `peer_` and
@@ -499,7 +499,7 @@ Sketches of the two state messages (section 4.4 has the call):
 
 ### Builder brief: phase 0 (with token v2)
 
-You are extending the token v2 work in `src/agentos/policy/` (tokens.py, grants.py,
+You are extending the token v2 work in `src/openajar/policy/` (tokens.py, grants.py,
 issuers.py, service.py) so federation stays possible later. Do not build federation.
 
 1. Header `AG | 2 | flags | nblocks`; refuse `flags != 0` with `invalid_token`.
@@ -516,7 +516,7 @@ issuers.py, service.py) so federation stays possible later. Do not build federat
 5. Copy block 0's `share` into trace events and approvals as an optional `share` field.
 6. PROTOCOL.md: add the reservations in section 5.2 as a "Reserved for federation"
    clarification, plus `enrolled.grant_issuer`, `enrolled.grant_kid` and `grant_keys`.
-   Add the five error codes to `agentos.core.errors`.
+   Add the five error codes to `openajar.core.errors`.
 7. Tests: a non-zero flags byte; a token for node A refused on node B of the same org by
    `aud`; an `aud` widened in a child refused; `hld` refused with `federation_unsupported`;
    a `peer:` owner without `hld` refused; key rotation (two kids, both verify; a retired kid

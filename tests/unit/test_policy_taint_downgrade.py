@@ -14,20 +14,20 @@ from fakes import FakeInteraction, FakeLaneManager
 from pydantic import ValidationError
 from test_policy_support import OWNER, Clock, h_post, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, LaneSpec, SnapshotResult
-from agentos.core.tools import ToolSpec, bind_request_token
-from agentos.mcp.registry import build_mcp
-from agentos.node.tools import tool_specs as node_specs
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.errors import Denied
-from agentos.policy.grants import BrainCap, EmptyCap, InstallCap, LaneCap, ServiceCap, Specials
-from agentos.policy.routing import DEFAULT_DOWNGRADE, load_policy_config
-from agentos.policy.taint import family_key
-from agentos.policy.tools import tool_specs as policy_specs
-from agentos.policy.wrap import bind_request_token as bind_policy_token
-from agentos.policy.wrap import wrap_tool
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, LaneSpec, SnapshotResult
+from openajar.core.tools import ToolSpec, bind_request_token
+from openajar.mcp.registry import build_mcp
+from openajar.node.tools import tool_specs as node_specs
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.errors import Denied
+from openajar.policy.grants import BrainCap, EmptyCap, InstallCap, LaneCap, ServiceCap, Specials
+from openajar.policy.routing import DEFAULT_DOWNGRADE, load_policy_config
+from openajar.policy.taint import family_key
+from openajar.policy.tools import tool_specs as policy_specs
+from openajar.policy.wrap import bind_request_token as bind_policy_token
+from openajar.policy.wrap import wrap_tool
 
 LANE = "biz-a/instagram"
 FLOW = "biz-a.instagram.post"
@@ -132,17 +132,17 @@ def test_only_login_and_vault_fill_raise_the_secret_effect():
     root = Path(__file__).resolve().parents[2]
     # every file on disk, committed or not (the scope check moved to policy/scope.py), and no git needed,
     # so an exported tree that is not a git repository yet runs it too
-    found = [str(path.relative_to(root)) for path in (root / "src" / "agentos").rglob("*.py")
+    found = [str(path.relative_to(root)) for path in (root / "src" / "openajar").rglob("*.py")
              if "Effect.SECRET" in path.read_text(encoding="utf-8")]
-    assert sorted(found) == ["src/agentos/node/vault_tools.py", "src/agentos/policy/scope.py",
-                             "src/agentos/vault/login.py"]
+    assert sorted(found) == ["src/openajar/node/vault_tools.py", "src/openajar/policy/scope.py",
+                             "src/openajar/vault/login.py"]
 
 
 async def test_a_policy_toml_that_lists_secret_does_not_stop_a_login(tmp_path, caplog):
     """The list is written whole, so a file that holds `secret` is most likely the old default copied
     in. The node starts, the owner's rule holds, and the log says what to remove."""
     (tmp_path / "policy.toml").write_text('[taint]\ndowngrade = ["commit", "pay", "secret", "exec"]\n')
-    with caplog.at_level(logging.WARNING, logger="agentos.policy.routing"):
+    with caplog.at_level(logging.WARNING, logger="openajar.policy.routing"):
         cfg = load_policy_config(tmp_path)
     assert cfg.taint.downgrade == ["commit", "pay", "exec"]
     assert "ignored" in caplog.text and "secret" in caplog.text
@@ -441,11 +441,11 @@ async def test_the_owners_daily_posting_flow_runs_unattended(mcp):
 def test_the_cli_shows_and_clears_a_grants_taint(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.core.config import save_config
-    from agentos.policy.cli import app
-    from agentos.policy.service import PolicyService
+    from openajar.core.config import save_config
+    from openajar.policy.cli import app
+    from openajar.policy.service import PolicyService
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     cfg = NodeConfig(home=tmp_path, mcp_token=OWNER)
     save_config(cfg)
     svc = PolicyService(tmp_path, node_config=cfg)

@@ -11,14 +11,14 @@ from pathlib import Path
 import pytest
 from test_wsexport_support import LOG_N, PASSPHRASE, Node
 
-from agentos.core import age
-from agentos.memory import Caller
-from agentos.policy.traces import TraceEvent
-from agentos.workspaces.transfer import export as wsexport
-from agentos.workspaces.transfer import import_ as wsimport
-from agentos.workspaces.transfer import read as wsread
-from agentos.workspaces.transfer import sources as wssources
-from agentos.workspaces.transfer.import_ import ImportOptions
+from openajar.core import age
+from openajar.memory import Caller
+from openajar.policy.traces import TraceEvent
+from openajar.workspaces.transfer import export as wsexport
+from openajar.workspaces.transfer import import_ as wsimport
+from openajar.workspaces.transfer import read as wsread
+from openajar.workspaces.transfer import sources as wssources
+from openajar.workspaces.transfer.import_ import ImportOptions
 
 OWNER = Caller.owner()
 
@@ -74,7 +74,7 @@ def do_import(node, path: Path, **options):
 
 def test_memory_moves_with_its_chain_intact(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     result = export(a, out)
     assert result.counts["memory_entries"] == 3 and result.counts["memory_versions"] == 3
     with out.open("rb") as raw:
@@ -96,7 +96,7 @@ def test_memory_moves_with_its_chain_intact(nodes, tmp_path):
 
 def test_as_moves_memory_keys_and_scopes(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     plan, done = do_import(b, out, rename_to="acme2")
     assert plan.memory["action"] == "import_renamed" and done.memory["ok"] and not done.memory["same_hashes"]
@@ -108,7 +108,7 @@ def test_as_moves_memory_keys_and_scopes(nodes, tmp_path):
 
 def test_an_import_never_merges_memory(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     b.memory.write(OWNER, "acme", {"type": "fact", "title": "already here"})
     contents = wsread.read_export(out, wsread.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
@@ -121,7 +121,7 @@ def test_an_import_never_merges_memory(nodes, tmp_path):
 
 def test_a_failed_import_takes_its_memory_out_again(nodes, tmp_path, monkeypatch):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = wsread.read_export(out, wsread.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
     try:
@@ -141,7 +141,7 @@ def test_a_failed_import_takes_its_memory_out_again(nodes, tmp_path, monkeypatch
 def test_a_format_1_export_still_imports_without_memory(nodes, tmp_path, monkeypatch):
     a, b = nodes
     monkeypatch.setattr(wsexport, "FORMAT_VERSION", 1)
-    out = tmp_path / "v1.agentos"
+    out = tmp_path / "v1.openajar"
     export(a, out)
     monkeypatch.undo()
     plan, done = do_import(b, out)
@@ -154,7 +154,7 @@ def test_a_workspace_without_memory_exports_an_empty_member(nodes, tmp_path):
     a.workspaces.insert_workspace({"id": "empty", "name": "Empty", "color": None, "default_proxy": None,
                                    "notes": "", "created_at": "2026-11-01T00:00:00+00:00",
                                    "updated_at": "2026-11-01T00:00:00+00:00"})
-    out = tmp_path / "empty.agentos"
+    out = tmp_path / "empty.openajar"
     assert export(a, out, workspace="empty").counts["memory_entries"] == 0
     _plan, done = do_import(b, out)
     assert done.memory == {}

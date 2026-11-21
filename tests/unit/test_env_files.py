@@ -9,17 +9,17 @@ import time
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.core.tools import TOOL_NAME_RE
-from agentos.env import files
-from agentos.env import tool_specs as term_specs
-from agentos.env.execs import Capture, encode_output, fit
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.core.tools import TOOL_NAME_RE
+from openajar.env import files
+from openajar.env import tool_specs as term_specs
+from openajar.env.execs import Capture, encode_output, fit
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
 
 
 class Ctx:
@@ -64,8 +64,8 @@ def tool(name):
 
 
 def test_the_file_tools_are_well_formed_terminal_tools():
-    from agentos.core.toolsets import TOOLSETS
-    from agentos.environments.routing import TERMINAL
+    from openajar.core.toolsets import TOOLSETS
+    from openajar.environments.routing import TERMINAL
 
     core = next(t for t in TOOLSETS if t.name == "core").tools
     for spec in files.tool_specs(None):
@@ -106,7 +106,7 @@ async def test_a_long_line_is_cut_and_a_large_file_stops_at_a_whole_line(lane):
     (repo / "wide.txt").write_text("x" * 5000 + "\nshort\n")
     out = await tool("file_read")(ctx, on="ws/bench", path="wide.txt")
     first = out["content"].splitlines()[0]
-    assert first.endswith("[agentos: 3000 more characters on this line]") and "short" in out["content"]
+    assert first.endswith("[openajar: 3000 more characters on this line]") and "short" in out["content"]
     (repo / "big.txt").write_text("".join(f"{i:05d} " + "y" * 90 + "\n" for i in range(3000)))
     big = await tool("file_read")(ctx, on="ws/bench", path="big.txt")
     shown = big["content"].splitlines()

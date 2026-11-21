@@ -12,20 +12,20 @@ import pytest
 from siteapi_http_support import API, PORTAL, SURFACE, definition, portal
 from workflow_support import OWNER, make_node, read_flow
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import ControlState, Effect, Signal
-from agentos.freeze.service import FreezeService
-from agentos.node.channel.reports import workflows_catalog
-from agentos.policy.approval_binding import _TARGET_RE
-from agentos.runner import readvalues
-from agentos.runner.fakes import El
-from agentos.runner.siteapis.cache import SiteCache, cache_key
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.models import local_saved_by
-from agentos.runner.workflows import engine, sitechange
-from agentos.runner.workflows.mail import MAIL_OPERATION
-from agentos.runner.workflows.service import WorkflowInvalid
-from agentos.runner.workflows.sitechange import a_drop, diff, fitted, held, rows_of
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import ControlState, Effect, Signal
+from openajar.freeze.service import FreezeService
+from openajar.node.channel.reports import workflows_catalog
+from openajar.policy.approval_binding import _TARGET_RE
+from openajar.runner import readvalues
+from openajar.runner.fakes import El
+from openajar.runner.siteapis.cache import SiteCache, cache_key
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.models import local_saved_by
+from openajar.runner.workflows import engine, sitechange
+from openajar.runner.workflows.mail import MAIL_OPERATION
+from openajar.runner.workflows.service import WorkflowInvalid
+from openajar.runner.workflows.sitechange import a_drop, diff, fitted, held, rows_of
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 READ = f"connector.{API}.open_orders"
@@ -1356,7 +1356,7 @@ def test_a_row_with_a_lone_surrogate_does_not_stop_the_check():
 
 
 async def test_an_export_leaves_out_what_only_reads_for_a_workflow(node):
-    from agentos.workspaces.transfer.export import _collect_schedules
+    from openajar.workspaces.transfer.export import _collect_schedules
 
     wid = on(node)
     notes = []

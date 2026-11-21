@@ -1,6 +1,6 @@
 # Red team: try to catch our own lanes as bots
 
-Status: built 2026-11-05 (`agentos lane redteam`); first runs on this Mac (Camoufox 158.0.1-beta.41)
+Status: built 2026-11-05 (`openajar lane redteam`); first runs on this Mac (Camoufox 158.0.1-beta.41)
 and on the node VM (scratch lanes, production engine and pins). Complements the stealth audit
 ([stealth.md](stealth.md)): that page asks "is each lane one consistent device?"; this one asks "if
 we ran an anti-bot vendor's sensor and server, would they flag us?", and keeps asking on every
@@ -11,7 +11,7 @@ change.
 A detector site we own, built like a site behind a commercial bot defence, and lanes that visit it
 the way agents drive them.
 
-- **The site** (`agentos/stealth/redteam/site/`): a landing page, a sign-up form and a long feed. Every
+- **The site** (`openajar/stealth/redteam/site/`): a landing page, a sign-up form and a long feed. Every
   page loads `sensor.js`, which does what Akamai, PerimeterX, DataDome and friends do in the page:
   it records every input event (mouse, wheel, keys, input, scroll, focus) with its timing against the
   animation frame, and on the landing page runs active tests a spoofed fingerprint cannot answer
@@ -35,15 +35,15 @@ the way agents drive them.
 
 ```
 # On a Mac or any machine with Camoufox: the agent input path, fast. Not the node's pins or Xvfb.
-agentos lane redteam --local --runs 3
+openajar lane redteam --local --runs 3
 
 # On the node: scratch lanes on a test slot, production engine, pins and displays (like stealth-check)
-AGENTOS_TEST_SLOT=34 scripts/node-test.sh redteam --python -c "from agentos.cli import app; app()" \
+OPENAJAR_TEST_SLOT=34 scripts/node-test.sh redteam --python -c "from openajar.cli import app; app()" \
     lane redteam --slot 34 --lanes 2 --runs 3 --out /tmp/redteam-out/run1
 
 # A human baseline: open the printed URL in your own browser, follow the yellow box, Ctrl-C.
-agentos lane redteam --serve 8777                # saves to bench/redteam-humans/
-agentos lane redteam --local --humans bench/redteam-humans
+openajar lane redteam --serve 8777                # saves to bench/redteam-humans/
+openajar lane redteam --local --humans bench/redteam-humans
 ```
 
 `--out` keeps `report.txt`, `report.json` and every visit's raw session. Each run appends one line to
@@ -149,7 +149,7 @@ some trade-offs on purpose (the global geolocation grant, no back-forward cache 
 
 ## The public gauntlet (2026-11-05)
 
-`agentos lane redteam --slot S --gauntlet --proxy-file F [--targets kinds or names] [--out DIR]`: one
+`openajar lane redteam --slot S --gauntlet --proxy-file F [--targets kinds or names] [--out DIR]`: one
 production scratch lane, through a real proxy, visits 32 public targets (`gauntlet.py`): detection
 panels (CreepJS, BrowserScan, Pixelscan, incolumitas, deviceandbrowserinfo, rebrowser, Sannysoft,
 browserleaks), TLS endpoints, and sites behind Cloudflare, DataDome, Akamai, F5 and Radware (Reddit,

@@ -9,10 +9,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from siteapi_http_support import API, READ_PATH, SURFACE, TOKEN, Node
 
-from agentos.runner.fakes import FakeClock
-from agentos.runner.siteapis.http_migrations import DB
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.usage import RETENTION_S, Usage, percentile
+from openajar.runner.fakes import FakeClock
+from openajar.runner.siteapis.http_migrations import DB
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.usage import RETENTION_S, Usage, percentile
 
 START = datetime(2026, 11, 5, 9, 30, tzinfo=UTC)
 

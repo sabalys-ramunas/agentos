@@ -1,7 +1,7 @@
-"""`agentos expose` on a real Camoufox lane (agentos.node.expose, docs/DEVELOPING.md "Your dev server in
+"""`openajar expose` on a real Camoufox lane (openajar.node.expose, docs/DEVELOPING.md "Your dev server in
 a lane").
 
-Run on the node:  AGENTOS_TEST_SLOT=43 scripts/node-test.sh expose tests/node/test_expose_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=43 scripts/node-test.sh expose tests/node/test_expose_node.py -q
 
 Throwaway lanes under .node-home/ of this checkout, launched through `CamoufoxEngine`. The dev server
 is an HTTP server on a unix socket, standing in for the socket sshd binds for `ssh -R`; a loopback
@@ -26,27 +26,27 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.async_api import Error as PlaywrightError
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.egress import Driver
-from agentos.node.expose import names
-from agentos.node.expose.service import ExposeService
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox.engine import CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.node.egress import Driver
+from openajar.node.expose import names
+from openajar.node.expose.service import ExposeService
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "430"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5430"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6430"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "430"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5430"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6430"))
 PORT = VIEWER_BASE + 7
 PROVIDER = f"http://127.0.0.1:{PORT}"
 LANE, OTHER = "test/expose-a", "test/expose-b"
-HOST = "myapp.expose.agentos.invalid"
+HOST = "myapp.expose.openajar.invalid"
 URL = f"https://{HOST}/"
 AGENT = Driver(kind="agent", id="node-test", grant_id="g", lists=(("127.0.0.1",),), ceiling="draft")
 

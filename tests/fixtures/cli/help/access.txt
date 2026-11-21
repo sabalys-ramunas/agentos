@@ -1,5 +1,5 @@
 
- Usage: agentos access [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar access [OPTIONS] COMMAND [ARGS]...
 
  What agents may do: grants, approvals, freezes and the action log.
 

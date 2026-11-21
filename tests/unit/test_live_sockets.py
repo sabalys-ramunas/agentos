@@ -1,4 +1,4 @@
-"""Live streams end when access does (agentos.core.live): the panel's event stream, viewer and
+"""Live streams end when access does (openajar.core.live): the panel's event stream, viewer and
 terminal close on a revoked grant, a freeze, a sign-out or a removed member, at once or on the
 next heartbeat."""
 
@@ -13,12 +13,12 @@ import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.core import live
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Principal
-from agentos.dev.apifakes import demo_runtime
-from agentos.node import vnc_relay
+from openajar.api import ApiSettings, PanelStore, build_api
+from openajar.core import live
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Principal
+from openajar.dev.apifakes import demo_runtime
+from openajar.node import vnc_relay
 
 H = {"Authorization": "Bearer owner"}
 AGENT = {"Authorization": "Bearer agent-tok"}

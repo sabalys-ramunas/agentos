@@ -10,14 +10,14 @@ from fakes import FakeInteraction
 from starlette.testclient import TestClient
 from test_wsexport_support import IG_PASSWORD, LOG_N, PASSPHRASE, Node
 
-from agentos.api import ApiSettings, build_api
-from agentos.api.auth import PRESENCE_HEADER, PanelStore
-from agentos.core import age
-from agentos.node.daemon import build_node_app, build_services, node_runtime
-from agentos.workspaces.transfer import export as wsexport
+from openajar.api import ApiSettings, build_api
+from openajar.api.auth import PRESENCE_HEADER, PanelStore
+from openajar.core import age
+from openajar.node.daemon import build_node_app, build_services, node_runtime
+from openajar.workspaces.transfer import export as wsexport
 
-SERVICES = ["agentos.api.events", "agentos.policy.service", "agentos.vault.service", "agentos.workspaces.service",
-            "agentos.runner.service"]
+SERVICES = ["openajar.api.events", "openajar.policy.service", "openajar.vault.service", "openajar.workspaces.service",
+            "openajar.runner.service"]
 
 
 class Panel:
@@ -70,7 +70,7 @@ def test_export_streams_and_import_uploads(panels):
         r = client.post("/api/workspaces/acme/export", json={"passphrase": PASSPHRASE}, headers=pa.in_person())
     assert r.status_code == 200, r.text
     assert r.headers["content-type"] == "application/octet-stream"
-    assert r.headers["content-disposition"].startswith('attachment; filename="agentos-acme-')
+    assert r.headers["content-disposition"].startswith('attachment; filename="openajar-acme-')
     summary = json.loads(r.headers["x-agentos-export"])
     assert summary["counts"]["lanes"] == 2 and summary["counts"]["vault_entries"] == 3
     blob = r.content

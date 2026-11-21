@@ -15,10 +15,10 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from test_vault_support import make_vault, private_home
 
-from agentos.api import create_login_code
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.daemon import FEATURE_SERVICES, build_services, node_runtime, serve
+from openajar.api import create_login_code
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.daemon import FEATURE_SERVICES, build_services, node_runtime, serve
 
 TOKEN = "node-token-for-the-e2e-test"
 LANES = ["personal/reddit", "biz-a/instagram", "biz-b/facebook"]
@@ -44,10 +44,10 @@ async def test_panel_and_mcp_on_one_node(tmp_path):
         await manager.create(LaneSpec(id=lane))
     runtime = node_runtime(config, manager, FakeInteraction())
     built = [name for name, _ in build_services(runtime, [m for m in FEATURE_SERVICES if "control" not in m])]
-    assert built[:4] == ["agentos.api.events", "agentos.policy.service", "agentos.freeze.service",
-                         "agentos.vault.service"]
-    assert {"agentos.workspaces.service", "agentos.runner.service", "agentos.brains.service",
-            "agentos.env.service", "agentos.ops.service"} <= set(built)
+    assert built[:4] == ["openajar.api.events", "openajar.policy.service", "openajar.freeze.service",
+                         "openajar.vault.service"]
+    assert {"openajar.workspaces.service", "openajar.runner.service", "openajar.brains.service",
+            "openajar.env.service", "openajar.ops.service"} <= set(built)
 
     port: asyncio.Future[int] = asyncio.get_running_loop().create_future()
     stop = asyncio.Event()

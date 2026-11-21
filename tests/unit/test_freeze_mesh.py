@@ -1,6 +1,6 @@
 """A mesh freeze through the controller: every online node at once, offline nodes in their next
 welcome before anything else runs there, agent grants revoked, and only the controller's own freeze
-lifted by its unfreeze (agentos.freeze, docs/PROTOCOL.md mesh_freeze)."""
+lifted by its unfreeze (openajar.freeze, docs/PROTOCOL.md mesh_freeze)."""
 
 from __future__ import annotations
 
@@ -20,13 +20,13 @@ from channel_support import (
 )
 from fakes import FakeInteraction, FakeLaneManager
 
-from agentos.core import signing
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import LaneSpec
-from agentos.mcp import providers as mcp_providers
-from agentos.node.daemon import build_services, node_runtime, serve
+from openajar.core import signing
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import LaneSpec
+from openajar.mcp import providers as mcp_providers
+from openajar.node.daemon import build_services, node_runtime, serve
 
-SERVICES = ["agentos.policy.service", "agentos.freeze.service", "agentos.node.channel.service"]
+SERVICES = ["openajar.policy.service", "openajar.freeze.service", "openajar.node.channel.service"]
 
 
 async def start(home, name, ctl, lanes, *, config=None) -> RunningNode:

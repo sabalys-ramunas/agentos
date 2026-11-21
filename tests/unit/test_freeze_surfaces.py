@@ -1,5 +1,5 @@
 """The freeze's surfaces: the MCP wrapper's guard, the browser_freeze tool, the push button, the panel
-routes and the CLI (agentos.freeze)."""
+routes and the CLI (openajar.freeze)."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ from test_api_members import ORIGIN, accept, browser, invite, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE
-from agentos.core.models import Effect
-from agentos.core.tools import ToolSpec
-from agentos.freeze import cli as freeze_cli
-from agentos.freeze.tools import tool_specs
-from agentos.policy import ToolCallError, bind_request_token, wrap_tool
-from agentos.policy.freeze_store import FreezeRecord, FreezeStore
+from openajar.api.auth import PRESENCE_HEADER, SESSION_COOKIE
+from openajar.core.models import Effect
+from openajar.core.tools import ToolSpec
+from openajar.freeze import cli as freeze_cli
+from openajar.freeze.tools import tool_specs
+from openajar.policy import ToolCallError, bind_request_token, wrap_tool
+from openajar.policy.freeze_store import FreezeRecord, FreezeStore
 
 EM_DASH = "—"
 
@@ -124,7 +124,7 @@ async def test_a_wide_grant_may_freeze_its_workspace_or_the_node_and_no_tool_unf
 
 async def test_every_owner_push_carries_a_one_tap_freeze_that_works_once(node):
     notifier = node.policy.notifier
-    notifier.update_config({"public_base_url": "https://agentos.example.com", "ntfy": {"topic": "generate"}})
+    notifier.update_config({"public_base_url": "https://openajar.example.com", "ntfy": {"topic": "generate"}})
     one = notifier.ntfy_payload([{"type": "lane.held", "lane": "biz-a/one", "title": "t", "body": "b"}])
     assert [a["label"] for a in one["actions"]][-1] == "Freeze"
     url = httpx.URL(one["actions"][-1]["url"])
@@ -160,7 +160,7 @@ async def test_no_freeze_button_without_a_public_url(node):
 
 @pytest.fixture
 def panel(tmp_path, monkeypatch):
-    monkeypatch.setattr(test_node_panel, "SERVICES", [*test_node_panel.SERVICES, "agentos.freeze.service"])
+    monkeypatch.setattr(test_node_panel, "SERVICES", [*test_node_panel.SERVICES, "openajar.freeze.service"])
     n = Node(tmp_path)
     n.api_app.state.api.limiter.per_key = n.api_app.state.api.limiter.global_max = 10_000
     yield n
@@ -223,7 +223,7 @@ def test_cli_freezes_through_the_files_when_the_daemon_is_down_and_unfreezes_on_
     home = tmp_path / "home"
     home.mkdir()
     (home / "node.toml").write_text('name = "box-1"\nmcp_token = "t0k3n-for-cli-tests"\nmcp_port = 1\n')
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     runner = CliRunner()
     r = runner.invoke(freeze_cli.app, ["lane", "biz-a/one", "--reason", "from the shell"])
     assert r.exit_code == 0, r.output
@@ -248,7 +248,7 @@ def test_cli_uses_the_daemon_when_it_answers(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     (home / "node.toml").write_text('name = "box-1"\nmcp_token = "t0k3n-for-cli-tests"\nmcp_port = 1\n')
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     seen = {}
 
     def fake_request(method, url, json=None, timeout=None, headers=None):
@@ -278,7 +278,7 @@ def test_store_records_round_trip(tmp_path):
     assert (back.reason, back.by, back.revoked, back.id) == ("why", "owner", ["g1"], rec.id)
 
 
-# ---- unfreeze with the node's one-time code (docs/THREAT-MODEL.md, agentos.core.presence) ----
+# ---- unfreeze with the node's one-time code (docs/THREAT-MODEL.md, openajar.core.presence) ----
 
 UNFREEZE_LANE = {"scope": "lane", "target": "biz-a/instagram"}
 
@@ -293,7 +293,7 @@ def _frozen(client) -> list[str]:
 
 
 def test_the_node_token_with_a_one_time_code_unfreezes_the_lane(panel):
-    """`agentos unfreeze` on the node: the node token plus a code it wrote into panel.db is a person for
+    """`openajar unfreeze` on the node: the node token plus a code it wrote into panel.db is a person for
     that one request, so it unfreezes."""
     panel.store.add_code("cli-unfreeze-1", ttl_seconds=60)
     with TestClient(panel.app, base_url=ORIGIN) as client:
@@ -331,7 +331,7 @@ def test_unfreezing_without_a_person_is_refused(panel):
 
 def test_with_members_the_cli_code_does_not_skip_the_passkey_check(panel):
     """A one-time code proves the node's operator, not a passkey: with members, unfreezing over HTTP needs
-    the panel's fresh passkey check, or `agentos unfreeze` on the node itself."""
+    the panel's fresh passkey check, or `openajar unfreeze` on the node itself."""
     boss = owner(panel)
     r = invite(boss, "ada", [role("admin", "biz-a")])
     assert r.status_code == 200, r.text
@@ -342,7 +342,7 @@ def test_with_members_the_cli_code_does_not_skip_the_passkey_check(panel):
         r = client.post("/api/unfreeze", json=UNFREEZE_LANE,
                         headers={**bearer(TOKEN), PRESENCE_HEADER: "cli-unfreeze-members"})
         assert r.status_code == 403 and r.json()["error"]["code"] == "step_up_required", r.text
-        assert "agentos unfreeze" in r.json()["error"]["message"]
+        assert "openajar unfreeze" in r.json()["error"]["message"]
         assert "biz-a/instagram" in _frozen(client)
 
 

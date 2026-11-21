@@ -17,11 +17,13 @@ export const ENV_POLL_MS = 15_000;
 /**
  * The environments the caller may see (`open` or `all`). No events carry them: the list is read every 3 s
  * while one is starting or closing, and every 15 s otherwise. A refused or missing route is not asked again.
+ * `pictures`: the page shows each screen's picture (the list, Home), so the node is asked to keep a recent
+ * still of each screen while it is read; the rail's counts and other readers leave it off.
  */
-export const useEnvironments = (org: string, state: 'open' | 'all' = 'all', enabled = true) =>
+export const useEnvironments = (org: string, state: 'open' | 'all' = 'all', enabled = true, { pictures = false }: { pictures?: boolean } = {}) =>
   useQuery({
-    queryKey: keys.environments(org, state),
-    queryFn: () => environments.list(org, state),
+    queryKey: pictures ? keys.environmentPictures(org, state) : keys.environments(org, state),
+    queryFn: () => environments.list(org, state, pictures),
     enabled,
     refetchInterval: (query) =>
       query.state.error ? false : query.state.data?.environments.some((env) => ENV_MOVING.has(env.state)) ? ENV_FAST_POLL_MS : ENV_POLL_MS,

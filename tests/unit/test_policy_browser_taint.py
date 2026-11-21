@@ -8,12 +8,12 @@ import pytest
 from fakes import FakeInteraction, FakeLaneManager
 from test_policy_support import OWNER, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import EngineError
-from agentos.core.models import ActionKind, Effect, LaneSpec
-from agentos.core.tools import ToolSpec
-from agentos.node.tools import tool_specs
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.core.config import NodeConfig
+from openajar.core.errors import EngineError
+from openajar.core.models import ActionKind, Effect, LaneSpec
+from openajar.core.tools import ToolSpec
+from openajar.node.tools import tool_specs
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 LANE = "biz-a/instagram"
 

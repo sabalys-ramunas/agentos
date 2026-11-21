@@ -1,5 +1,5 @@
 """Saves never leak a snapshot or collide (the 2026-11-15 test: Hetzner made two snapshots while its API
-was out of reach or the server was locked, agentos recorded failures, and both billed until a person
+was out of reach or the server was locked, openajar recorded failures, and both billed until a person
 deleted them). On the fake disk cloud of test_environments_saves."""
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ import httpx
 import pytest
 from test_environments_saves import disk, node, opened, work_on_it  # noqa: F401 - node is the fixture
 
-from agentos.core import catalog
-from agentos.environments import saving
-from agentos.policy.wrap import ToolCallError
-from agentos.vms.hetzner import HetznerProvider
-from agentos.vms.models import VmError
+from openajar.core import catalog
+from openajar.environments import saving
+from openajar.policy.wrap import ToolCallError
+from openajar.vms.hetzner import HetznerProvider
+from openajar.vms.models import VmError
 
 
 async def test_a_snapshot_made_though_its_call_failed_is_adopted(node):  # noqa: F811
@@ -187,7 +187,7 @@ async def test_hetzner_lists_a_saves_snapshots_by_label():
 # ---- a close that takes long goes on in the background ----
 
 async def test_a_slow_close_says_still_working_and_finishes_in_the_background(node, monkeypatch):  # noqa: F811
-    from agentos.core import progress
+    from openajar.core import progress
 
     await opened(node, keep="save")
     cloud = node["cloud"]
@@ -214,7 +214,7 @@ async def test_a_slow_close_says_still_working_and_finishes_in_the_background(no
 # ---- a dev server does not keep a keep "save" machine from its idle save ----
 
 async def test_a_running_dev_server_does_not_block_the_idle_save(node):  # noqa: F811
-    from agentos.core.models import utcnow
+    from openajar.core.models import utcnow
 
     out = await opened(node, keep="save")
     mgr = node["mgr"]
@@ -226,7 +226,7 @@ async def test_a_running_dev_server_does_not_block_the_idle_save(node):  # noqa:
 
 
 async def test_a_build_still_counts_as_busy(node):  # noqa: F811
-    from agentos.core.models import utcnow
+    from openajar.core.models import utcnow
 
     out = await opened(node, keep="save")
     mgr = node["mgr"]
@@ -236,7 +236,7 @@ async def test_a_build_still_counts_as_busy(node):  # noqa: F811
 
 
 def test_which_commands_serve():
-    from agentos.environments.activity import serves
+    from openajar.environments.activity import serves
 
     for cmd in ("pnpm dev --port 5321", "npm run dev", "vite", "python -m http.server 8000", "npm start",
                 "uvicorn app:app", "PORT=3000 node index.js", "next dev"):

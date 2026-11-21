@@ -1,0 +1,23 @@
+/* openajar desktop: Adwaita light, in the desktop's colours (the Dawn design) */
+@define-color theme_bg_color #f6f6f8;
+@define-color theme_base_color #ffffff;
+@define-color theme_fg_color #1f2024;
+@define-color theme_text_color #1f2024;
+@define-color theme_selected_bg_color #6d4aff;
+@define-color theme_selected_fg_color #ffffff;
+@define-color accent_bg_color #6d4aff;
+@define-color borders #d6d6db;
+
+window, .background { background-color: #f6f6f8; }
+/* the terminals: a dark body in a light frame */
+vte-terminal { padding: 14px 18px; }
+menubar, toolbar { background-color: #f6f6f8; border-color: #e3e3e7; }
+scrollbar slider { min-width: 6px; min-height: 6px; border-radius: 6px; background-color: rgba(31, 32, 36, 0.28); }
+.sidebar, placessidebar, placessidebar list { background-color: #f0f0f3; }
+/* pcmanfm's places pane is a tree view: the sidebar's colour, not the system grey */
+treeview.view:not(:selected) { background-color: #f0f0f3; }
+*:selected, treeview.view:selected { background-color: #6d4aff; color: #ffffff; }
+/* pcmanfm's "super user mode" sign and its separator: everything on this machine runs as root, so the sign
+   says nothing. The sign is the toolbar's one bare image (its buttons hold theirs in a button). */
+toolbar > * > image { opacity: 0; }
+toolbar > separator { opacity: 0; margin: 0 -6px 0 -24px; }

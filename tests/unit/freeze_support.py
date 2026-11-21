@@ -13,14 +13,14 @@ from unittest import mock
 from test_lanes import Clock, FakeDisplays, FakeEngine
 from test_policy_support import OWNER
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.freeze.service import FreezeService
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
-from agentos.policy import freeze as freeze_gate
-from agentos.policy.service import PolicyService
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.freeze.service import FreezeService
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
+from openajar.policy import freeze as freeze_gate
+from openajar.policy.service import PolicyService
 
 
 class FakeRunner:
@@ -102,7 +102,7 @@ class Node(SimpleNamespace):
 
     def agent(self, *, workspaces=None, lanes=None, sub="agent-1", during_freeze=False):
         """An agent grant. `during_freeze`: one made while its scope is frozen, as a node before the
-        refusal (agentos.policy.freeze.check_new_grant) could, to test the gates behind it."""
+        refusal (openajar.policy.freeze.check_new_grant) could, to test the gates behind it."""
         with mock.patch.object(freeze_gate, "check_new_grant", lambda *_a: None) if during_freeze \
                 else contextlib.nullcontext():
             g, tok = self.policy.issue(subject={"id": sub}, workspaces=workspaces, lanes=lanes, ceiling=Effect.COMMIT)

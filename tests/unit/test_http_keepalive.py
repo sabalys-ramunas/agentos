@@ -10,13 +10,13 @@ import socket
 import pytest
 from fakes import mcp_port_for_tests
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.mcp.http import build_app
-from agentos.mcp.registry import build_mcp
-from agentos.node import daemon
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.mcp.http import build_app
+from openajar.mcp.registry import build_mcp
+from openajar.node import daemon
 
 TOKEN = "k" * 40
 

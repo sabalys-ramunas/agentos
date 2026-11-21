@@ -1,4 +1,4 @@
-"""The step reader of an assisted login (agentos.vault.steps) on fixture login pages.
+"""The step reader of an assisted login (openajar.vault.steps) on fixture login pages.
 
 Each fixture is what the node reads from a real sign-in page of that shape: the typist's fields,
 the page's buttons and links, labels and text. tests/fixtures/site/assist/ holds the same pages as
@@ -11,9 +11,9 @@ import json
 
 import pytest
 
-from agentos.core.models import Signal
-from agentos.vault.steps import Action, PageRead, StepKind, clean_text, read_step
-from agentos.vault.typist import FieldInfo
+from openajar.core.models import Signal
+from openajar.vault.steps import Action, PageRead, StepKind, clean_text, read_step
+from openajar.vault.typist import FieldInfo
 
 G = "https://accounts.google.com"
 IG = "https://www.instagram.com"

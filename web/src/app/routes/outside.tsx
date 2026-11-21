@@ -97,7 +97,7 @@ export const signInRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/auth/sign-in'), 'SignIn'),
 });
 
-// `agentos panel login` prints this page's address with the code after the #, so it never reaches
+// `openajar panel login` prints this page's address with the code after the #, so it never reaches
 // a server log.
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,

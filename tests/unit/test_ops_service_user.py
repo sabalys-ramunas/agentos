@@ -1,4 +1,4 @@
-"""agentos migrate-service-user: root to a service user and back, with a rollback on every failure."""
+"""openajar migrate-service-user: root to a service user and back, with a rollback on every failure."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ import pytest
 from test_ops_support import FakeHost, make_home
 from typer.testing import CliRunner
 
-from agentos.ops import service_user
-from agentos.ops.service_user import SwitchError, SwitchPlan, SystemSteps, run_rollback, run_switch
+from openajar.ops import service_user
+from openajar.ops.service_user import SwitchError, SwitchPlan, SystemSteps, run_rollback, run_switch
 
 # ---- the order of steps (fake steps) --------------------------------------------------------
 
@@ -163,14 +163,14 @@ class Host(FakeHost):
 def node(tmp_path):
     cfg = make_home(tmp_path)
     prefix = tmp_path / "opt"
-    for f in (".venv/bin/agentos", "deploy/install-node.sh", "deploy/agentosd-hardened.service",
+    for f in (".venv/bin/openajar", "deploy/install-node.sh", "deploy/agentosd-hardened.service",
               "deploy/agentos-runas.service"):
         (prefix / f).parent.mkdir(parents=True, exist_ok=True)
         (prefix / f).write_text("")
     etc = tmp_path / "etc"
     (etc / "systemd" / "system").mkdir(parents=True)
     (etc / "logrotate.d").mkdir()
-    (etc / "systemd" / "system" / "agentosd.service").write_text("[Service]\nExecStart=agentos node serve\n")
+    (etc / "systemd" / "system" / "agentosd.service").write_text("[Service]\nExecStart=openajar node serve\n")
     (etc / "logrotate.d" / "agentos").write_text("su root root\n")
     me = SimpleNamespace(pw_uid=os.getuid(), pw_dir="/var/lib/agentos", pw_shell="/usr/sbin/nologin")
     brain = SimpleNamespace(pw_uid=os.getuid() + 1, pw_dir="/var/lib/agentos-brain", pw_shell="/usr/sbin/nologin")
@@ -184,7 +184,7 @@ def node(tmp_path):
 
 
 def brains_settings(node, **kw) -> None:
-    from agentos.brains.settings import BrainsSettings, save_settings
+    from openajar.brains.settings import BrainsSettings, save_settings
 
     save_settings(node.cfg.home, BrainsSettings(**kw))
 
@@ -202,7 +202,7 @@ def test_preflight_passes_with_a_brain_user_and_without_one_yet(node):
 
 
 def _home_group(n) -> str:
-    """A group that owns something in AGENTOS_HOME (here: the test user's own group)."""
+    """A group that owns something in OPENAJAR_HOME (here: the test user's own group)."""
     import grp
 
     gid = os.lstat(n.plan.home / "node.toml").st_gid
@@ -267,13 +267,13 @@ def test_preflight_refuses_an_existing_login_account_as_the_service_user(node, h
 
 
 def test_preflight_refuses_a_home_the_hardened_unit_hides(node):
-    node.plan.home = Path("/home/someone/agentos")
+    node.plan.home = Path("/home/someone/openajar")
     with pytest.raises(SwitchError, match="ProtectHome"):
         node.steps.preflight(node.plan)
 
 
 def test_preflight_refuses_isolated_env_lanes(node):
-    from agentos.env.models import EnvLane, IsolationProfile
+    from openajar.env.models import EnvLane, IsolationProfile
 
     lane = EnvLane(id="dev/box", profile=IsolationProfile())
     db = sqlite3.connect(node.cfg.home / "env.db")
@@ -372,11 +372,11 @@ def test_install_runs_the_prefixes_installer_with_the_hardened_unit(node):
     node.steps.install(node.plan)
     argv, env = node.host.ran[-1], node.host.envs[-1]
     # the installer creates, and agentos-runas serves, the user brains settings name: not its default
-    assert env["AGENTOS_BRAIN_USER"] == "brainz"
+    assert env["OPENAJAR_BRAIN_USER"] == "brainz"
     assert argv[:2] == ["bash", str(node.plan.prefix / "deploy" / "install-node.sh")]
     assert {"--systemd", "--no-restart", "--skip-apt", "--hardened"} <= set(argv)
     assert argv[argv.index("--user") + 1] == "agentos"
-    assert env["INSTALL_PREFIX"] == str(node.plan.prefix) and env["AGENTOS_HOME"] == str(node.plan.home)
+    assert env["INSTALL_PREFIX"] == str(node.plan.prefix) and env["OPENAJAR_HOME"] == str(node.plan.home)
     assert env.get("HOME") == os.environ.get("HOME")  # root's uv and Camoufox are found through it
 
 
@@ -436,7 +436,7 @@ def test_verify_wants_the_helper_up_and_brains_confined(node):
 def test_a_rollback_removes_the_helper_the_switch_installed(node):
     state = node.steps.save_state(node.plan)
     assert state["runas_unit"] is None
-    node.plan.runas_path.write_text("[Service]\nExecStart=agentos.runas serve\n")
+    node.plan.runas_path.write_text("[Service]\nExecStart=openajar.runas serve\n")
     node.steps.restore(node.plan, state)
     assert not node.plan.runas_path.exists()
     assert ["systemctl", "disable", "--now", "agentos-runas.service"] in node.host.ran
@@ -455,10 +455,10 @@ def test_a_rollback_keeps_a_helper_that_would_not_stop_and_says_so(node):
 def test_verify_wants_the_helper_to_serve_the_brain_user_brains_settings_name(node):
     node.host.commands["systemctl show"] = (0, "LoadState=loaded\nUser=agentos\n")
     node.plan.brain_user = "agentos-brain"
-    node.plan.runas_path.write_text("ExecStart=runas.py serve --caller agentos --brain-user someone-else\n")
+    node.plan.runas_path.write_text("ExecStart=runas.py serve --caller openajar --brain-user someone-else\n")
     ok, detail = node.steps.verify(node.plan, "agentos")
     assert not ok and "starts brains as someone-else, not agentos-brain" in detail
-    node.plan.runas_path.write_text("ExecStart=runas.py serve --caller agentos --brain-user agentos-brain\n")
+    node.plan.runas_path.write_text("ExecStart=runas.py serve --caller openajar --brain-user agentos-brain\n")
     ok, detail = node.steps.verify(node.plan, "agentos")
     assert ok, detail
 
@@ -487,7 +487,7 @@ def test_a_switch_and_a_rollback_end_to_end_on_the_fake_host(node, monkeypatch):
 
     def install(plan):
         plan.unit_path.write_text("[Service]\nUser=agentos\n")
-        plan.runas_path.write_text(f"[Service]\nExecStart=runas.py serve --caller agentos --brain-user {plan.brain_user}\n")
+        plan.runas_path.write_text(f"[Service]\nExecStart=runas.py serve --caller openajar --brain-user {plan.brain_user}\n")
         node.host.commands["systemctl show"] = (0, "LoadState=loaded\nUser=agentos\n")
 
     monkeypatch.setattr(node.steps, "install", install)
@@ -508,10 +508,10 @@ def test_a_switch_and_a_rollback_end_to_end_on_the_fake_host(node, monkeypatch):
 
 
 def test_the_cli_command_is_mounted_and_asks_first(tmp_path, monkeypatch):
-    from agentos.cli import app
+    from openajar.cli import app
 
     cfg = make_home(tmp_path)
-    monkeypatch.setenv("AGENTOS_HOME", str(cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(cfg.home))
     calls = []
     monkeypatch.setattr(service_user, "run_switch", lambda plan, steps, log: calls.append(plan) or
                         service_user.SwitchResult(ok=True, state="switched"))

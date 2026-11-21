@@ -1,4 +1,4 @@
-"""`agentos workspace` commands, run through typer's CliRunner against a temporary AGENTOS_HOME and an
+"""`openajar workspace` commands, run through typer's CliRunner against a temporary OPENAJAR_HOME and an
 in-memory lane manager. The proxy file holds dummy labels and addresses only."""
 
 from __future__ import annotations
@@ -9,21 +9,21 @@ import pytest
 from testkit.workspaces import FakeLanes
 from typer.testing import CliRunner
 
-from agentos.core.config import save_proxies
-from agentos.core.models import ProxyConfig
-from agentos.workspaces import cli
-from agentos.workspaces.cli import app
+from openajar.core.config import save_proxies
+from openajar.core.models import ProxyConfig
+from openajar.workspaces import cli
+from openajar.workspaces.cli import app
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    from agentos.core.config import NodeConfig
+    from openajar.core.config import NodeConfig
 
     root = tmp_path / "home"
     root.mkdir()
-    monkeypatch.setenv("AGENTOS_HOME", str(root))
+    monkeypatch.setenv("OPENAJAR_HOME", str(root))
     save_proxies(NodeConfig(home=root), {
         "lt1": ProxyConfig(label="lt1", host="192.0.2.10", port=1000, username="u", password="not-a-real-secret"),
         "lt2": ProxyConfig(label="lt2", host="192.0.2.11", port=1000, username="u", password="not-a-real-secret"),

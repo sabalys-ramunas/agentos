@@ -11,6 +11,7 @@ import { FreezeDialogs } from './freeze-control';
 import { Rail, TabBar } from './rail';
 import { Shortcuts } from './shortcuts';
 import { TopBar } from './top-bar';
+import { useBandHeight } from './page-band';
 
 /** The org was deleted, or this person was removed from it. They need to know, and a way on. */
 function OrgGone() {
@@ -68,6 +69,7 @@ function Live({ org }: { org: string }) {
  * bar and the page. On a phone the rail goes and the tab bar holds the places.
  */
 export function AppShell({ org }: { org: string }) {
+  const band = useBandHeight();
   if (useGone(org)) return <OrgGone />;
 
   return (
@@ -80,10 +82,12 @@ export function AppShell({ org }: { org: string }) {
       </a>
       <Live org={org} />
       <Rail org={org} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar org={org} />
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+32px)] outline-none md:pb-16">
-          <div className="page-frame mx-auto w-full max-w-(--page-max) px-4 pt-6 sm:px-6 md:pt-8 lg:px-8 lg:pt-8">
+      <div data-page-column className="relative flex min-w-0 flex-1 flex-col">
+        {/* The night band a page asks for (page-band.ts): behind the top bar and the page's top, the whole column wide. */}
+        {band !== null ? <div aria-hidden="true" className="band-night pointer-events-none absolute inset-x-0 top-0" style={{ height: band }} /> : null}
+        <TopBar org={org} night={band !== null} />
+        <main id="main" tabIndex={-1} className="relative min-w-0 flex-1 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+32px)] outline-none md:pb-16">
+          <div className="page-frame mx-auto w-full max-w-(--page-max) px-4 pt-6 sm:px-6 md:pt-8 lg:px-10 lg:pt-6">
             <Outlet />
           </div>
         </main>

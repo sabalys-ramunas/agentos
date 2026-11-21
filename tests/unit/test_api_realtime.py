@@ -13,11 +13,11 @@ import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from agentos.api import ApiSettings, EventBus, PanelStore, build_api
-from agentos.api.bridge import Bridge
-from agentos.core.runtime import Runtime
-from agentos.dev.apifakes import demo_runtime
-from agentos.node import vnc_relay
+from openajar.api import ApiSettings, EventBus, PanelStore, build_api
+from openajar.api.bridge import Bridge
+from openajar.core.runtime import Runtime
+from openajar.dev.apifakes import demo_runtime
+from openajar.node import vnc_relay
 
 H = {"Authorization": "Bearer owner"}
 

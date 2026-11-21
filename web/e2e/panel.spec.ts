@@ -36,7 +36,8 @@ test('Cmd-K finds an account, and accounts only appear once you search', async (
   await page.keyboard.press('ControlOrMeta+k');
   const palette = page.getByRole('dialog', { name: 'Search or run a command' });
   await expect(palette).toBeVisible();
-  await expect(palette.getByRole('option', { name: 'Solstice Studio' })).toBeVisible();
+  // With nothing typed: the places most used and a few actions, never the accounts.
+  await expect(palette.getByRole('option', { name: /^Home\s*G\s*H$/ })).toBeVisible();
   await expect(palette.getByText('Accounts', { exact: true })).toHaveCount(0);
   await page.keyboard.type('aster/medium');
   await page.keyboard.press('Enter');
@@ -134,10 +135,10 @@ test('sign out, then back in through the email link', async ({ page }) => {
   await start(page, ORG);
   await page.getByRole('button', { name: 'Account', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in to agentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in to openajar' })).toBeVisible();
   await page.goto(ORG);
   await expect(page).toHaveURL(/sign-in/);
-  await page.getByLabel('Email').fill('demo@agentos.local');
+  await page.getByLabel('Email').fill('demo@openajar.local');
   await page.getByRole('button', { name: 'Continue with email' }).click();
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await page.goto('/auth/verify?token=mock-valid');
@@ -150,10 +151,10 @@ test('the theme toggle overrides the system and survives a reload', async ({ pag
   await page.getByRole('radio', { name: 'Dark' }).click();
   await page.keyboard.press('Escape');
   const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  // Mono's dark page is black; its cards are one step up.
-  expect(await background()).toBe('rgb(0, 0, 0)');
+  // Dawn's dark page is the night navy (#090b16); its cards are one step up.
+  expect(await background()).toBe('rgb(9, 11, 22)');
   await page.reload();
-  expect(await background()).toBe('rgb(0, 0, 0)');
+  expect(await background()).toBe('rgb(9, 11, 22)');
 });
 
 test('a keyboard user gets a focus ring, and a mouse click leaves none', async ({ page }) => {
@@ -282,7 +283,11 @@ test.describe('at 375 wide', () => {
     await start(page, ORG);
     const tabs = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
     await expect(tabs.getByRole('link')).toHaveCount(5);
-    await tabs.getByRole('link', { name: /Machines/ }).click();
+    // Environments is at the thumb, and Machines went under More (2026-11-15, F12).
+    await tabs.getByRole('link', { name: /Environments/ }).click();
+    await expect(page).toHaveURL(/\/environments$/);
+    await tabs.getByRole('button', { name: /^More/ }).click();
+    await page.getByRole('menuitem', { name: 'Machines' }).click();
     await expect(page).toHaveURL(/\/machines$/);
     await tabs.getByRole('button', { name: /^More/ }).click();
     await page.getByRole('menuitem', { name: 'History' }).click();

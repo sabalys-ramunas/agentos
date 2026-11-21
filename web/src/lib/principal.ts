@@ -49,7 +49,7 @@ export function asPrincipal(principal: PrincipalLike): Principal {
 export const principalId = (principal: PrincipalLike): string => (typeof principal === 'string' ? principal : principal.id);
 
 /**
- * An agent named for the computer it runs on: `agentos connect` names a grant `claude-code@alex-macbook-pro-3`.
+ * An agent named for the computer it runs on: `openajar connect` names a grant `claude-code@alex-macbook-pro-3`.
  * The part before `@` is the agent, the rest is where it runs.
  */
 function agentParts(id: string): { base: string; host: string } {

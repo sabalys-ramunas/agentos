@@ -16,18 +16,18 @@ from typing import Any
 from test_ops_support import FakeHost, fingerprint
 from test_vault_support import FAST_KDF
 
-from agentos.core.config import NodeConfig, save_config, save_proxies
-from agentos.core.models import LaneKind, LaneSpec, ProxyConfig
-from agentos.core.runtime import Runtime
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
-from agentos.policy.service import PolicyService
-from agentos.runner.service import build as build_runner
-from agentos.vault import crypto
-from agentos.vault.service import VaultService, keyfile_path
-from agentos.vault.store import VaultStore
-from agentos.workspaces.store import WorkspaceStore
-from agentos.workspaces.transfer.sources import Sources
+from openajar.core.config import NodeConfig, save_config, save_proxies
+from openajar.core.models import LaneKind, LaneSpec, ProxyConfig
+from openajar.core.runtime import Runtime
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
+from openajar.policy.service import PolicyService
+from openajar.runner.service import build as build_runner
+from openajar.vault import crypto
+from openajar.vault.service import VaultService, keyfile_path
+from openajar.vault.store import VaultStore
+from openajar.workspaces.store import WorkspaceStore
+from openajar.workspaces.transfer.sources import Sources
 
 PASSPHRASE = "export passphrase for the tests"
 LOG_N = 10

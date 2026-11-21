@@ -1,4 +1,4 @@
-"""`agentos audit export`: a self-contained bundle for one day (and lane) that verifies offline,
+"""`openajar audit export`: a self-contained bundle for one day (and lane) that verifies offline,
 with no node, and catches an edited row, a hidden lane row, an edited file or manifest."""
 
 from __future__ import annotations
@@ -12,10 +12,10 @@ import pytest
 from test_policy_support import T0, Clock
 from typer.testing import CliRunner
 
-from agentos.audit.errors import BundleInvalid
-from agentos.audit.service import AuditService, verify_bundle
-from agentos.policy.auditlog import EXIT_OK, EXIT_TAMPERED
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.audit.errors import BundleInvalid
+from openajar.audit.service import AuditService, verify_bundle
+from openajar.policy.auditlog import EXIT_OK, EXIT_TAMPERED
+from openajar.policy.traces import TraceEvent, TraceStore
 
 DAY = "2027-01-15"  # T0 is 2027-01-15T08:00Z
 LANE = "biz-a/instagram"
@@ -103,7 +103,7 @@ def test_an_edited_row_in_a_bundle(node, tmp_path):
 def test_a_lane_row_hidden_as_a_stub(node, tmp_path):
     svc, store, _ = node
     path = Path(svc.export(tmp_path / "day.zip", day=DAY, lane=LANE, tz="UTC")["path"])
-    from agentos.policy.auditlog import stub
+    from openajar.policy.auditlog import stub
 
     row5 = next(r for r in store.chain_rows() if r["seq"] == 5)
 
@@ -133,11 +133,11 @@ def test_not_a_bundle(tmp_path):
 
 
 def test_cli_export_then_verify_bundle(node, tmp_path, monkeypatch):
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     _svc, store, home = node
     store.close()
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     runner = CliRunner()
     out = tmp_path / "b.zip"
     r = runner.invoke(app, ["export", "--day", DAY, "--lane", LANE, "--tz", "UTC", "-o", str(out)])
@@ -149,12 +149,12 @@ def test_cli_export_then_verify_bundle(node, tmp_path, monkeypatch):
 
 
 def test_cli_replay(node, monkeypatch):
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     _svc, store, home = node
     store.checkpoint()
     store.close()
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     r = CliRunner().invoke(app, ["replay", "--lane", LANE, "--day", DAY, "--tz", "UTC"])
     assert r.exit_code == 0, r.output
     lines = r.output.splitlines()
@@ -165,15 +165,15 @@ def test_cli_replay(node, monkeypatch):
 
 def test_cli_replay_says_rows_after_the_last_checkpoint_are_not_sealed_yet(node, monkeypatch):
     """QA 2026-11-10 finding 14: rows the next checkpoint will seal are not "[chain unprovable]"."""
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     _svc, store, home = node
     monkeypatch.setattr(store, "checkpoint", lambda *_a, **_k: None)  # no checkpoint since the rows were written
     store.close()
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     r = CliRunner().invoke(app, ["replay", "--lane", LANE, "--day", DAY, "--tz", "UTC"])
     assert r.exit_code == 0, r.output
     assert "[chain unprovable]" not in r.output and "unprovable:" not in r.output
     assert r.output.count("[not sealed yet]") == 2, r.output
     assert "not sealed yet: 2 step(s) after the last checkpoint. The next checkpoint seals them" in r.output
-    assert "agentos access audit checkpoint" in r.output and "—" not in r.output
+    assert "openajar access audit checkpoint" in r.output and "—" not in r.output

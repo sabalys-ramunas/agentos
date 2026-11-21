@@ -1,12 +1,12 @@
 
- Usage: agentos open [OPTIONS] [lane]
+ Usage: openajar open [OPTIONS] [lane]
 
  Open a lane's live view in your browser, through the node's tunnel.
 
  In the viewer you can take control (the agent waits) and hand it back. The
  link expires. On the node
  itself (no connections) it prints the node's own control link and the SSH
- tunnel, as `agentos lane view
+ tunnel, as `openajar lane view
  --control` does.
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮

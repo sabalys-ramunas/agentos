@@ -244,7 +244,7 @@ const BLUEPRINTS: Blueprint[] = [
   {
     id: 'harbor.shopify.new-order',
     name: 'New order handling',
-    trigger: { kind: 'webhook', label: 'when a new order arrives', hook: { url: 'https://cloud.agentos.example/in/h_7Yq2', secret_hint: 'whsec_...8f2a', last_received_at: null } },
+    trigger: { kind: 'webhook', label: 'when a new order arrives', hook: { url: 'https://cloud.openajar.example/in/h_7Yq2', secret_hint: 'whsec_...8f2a', last_received_at: null } },
     steps: [
       act('stock', 'check the stock', 'harbor.shopify.stock'),
       { id: 'enough', kind: 'branch', label: 'if it is in stock', when: { left: '{{stock.left}}', op: 'more_than', right: '0' }, then: [
@@ -390,7 +390,7 @@ const BLUEPRINTS: Blueprint[] = [
   {
     id: 'aster.gmail.welcome-series',
     name: 'Welcome email',
-    trigger: { kind: 'webhook', label: 'when someone subscribes', hook: { url: 'https://cloud.agentos.example/in/h_9aQz', secret_hint: 'whsec_...41cd', last_received_at: null } },
+    trigger: { kind: 'webhook', label: 'when someone subscribes', hook: { url: 'https://cloud.openajar.example/in/h_9aQz', secret_hint: 'whsec_...41cd', last_received_at: null } },
     steps: [
       { id: 'pause', kind: 'wait', label: 'wait a day', amount: 1, unit: 'days' },
       act('hello', 'send the welcome email', 'aster.gmail.send', { list: 'list.aster.new', inputs: { subject: 'Welcome to Aster Coffee', body: 'Hello {{trigger.name}},\n\nThanks for joining us.' } }),

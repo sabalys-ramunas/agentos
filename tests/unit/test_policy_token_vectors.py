@@ -1,11 +1,11 @@
 """Grant token test vectors (tests/fixtures/tokens/vectors.json, specified in
-src/agentos/policy/TOKENS.md): fixed keys, tokens and the expected verification result, so
+src/openajar/policy/TOKENS.md): fixed keys, tokens and the expected verification result, so
 another implementation (the cloud's minting service) can check itself byte for byte.
 
 `build_vectors()` makes every vector from fixed seeds. One test checks that the fixture is
 exactly what it builds (the format did not drift); another verifies each vector the way a
 node does and compares the outcome. To rewrite the fixture after an intended format change:
-`AGENTOS_WRITE_TOKEN_VECTORS=1 uv run pytest tests/unit/test_policy_token_vectors.py`.
+`OPENAJAR_WRITE_TOKEN_VECTORS=1 uv run pytest tests/unit/test_policy_token_vectors.py`.
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.policy import tokens
-from agentos.policy.errors import Denied
-from agentos.policy.grants import Grant, blocks_from_token
-from agentos.policy.util import b64u, b64u_decode
+from openajar.policy import tokens
+from openajar.policy.errors import Denied
+from openajar.policy.grants import Grant, blocks_from_token
+from openajar.policy.util import b64u, b64u_decode
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "tokens" / "vectors.json"
 ISSUER = "org:org_vectors"
@@ -129,7 +129,7 @@ def build_vectors() -> dict:
             entry["decoded"] = _describe(token)
         out.append(entry)
     return {
-        "about": "Grant token test vectors; see src/agentos/policy/TOKENS.md. Keys are Ed25519 with "
+        "about": "Grant token test vectors; see src/openajar/policy/TOKENS.md. Keys are Ed25519 with "
                  "seed = SHA-256(\"agentos token vector \" + name); public keys are unpadded base64url.",
         "keys": {name: {"seed": hashlib.sha256(f"agentos token vector {name}".encode()).hexdigest(),
                         "public": _pub(name), "kid": tokens.key_id(_key(name))}
@@ -152,7 +152,7 @@ def verify_like_a_node(token: str, verifier: dict) -> str:
     trusted = {(k["iss"], k["kid"]): k["public"] for k in verifier["trusted"]}
 
     def key_for(version: int, authority: dict):
-        from agentos.policy.issuers import load_key
+        from openajar.policy.issuers import load_key
         if version < 2:
             return load_key(verifier["v1_key"])
         if not any(iss == authority.get("iss") for iss, _ in trusted):
@@ -175,7 +175,7 @@ def verify_like_a_node(token: str, verifier: dict) -> str:
 
 def test_fixture_is_what_the_format_builds():
     built = build_vectors()
-    if os.environ.get("AGENTOS_WRITE_TOKEN_VECTORS"):
+    if os.environ.get("OPENAJAR_WRITE_TOKEN_VECTORS"):
         FIXTURE.parent.mkdir(parents=True, exist_ok=True)
         FIXTURE.write_text(json.dumps(built, indent=2, ensure_ascii=False) + "\n")
     assert json.loads(FIXTURE.read_text()) == built

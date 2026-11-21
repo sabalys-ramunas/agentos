@@ -10,9 +10,9 @@ show names, domains and lanes only; proxies show label, host and port only.
 ## Auth
 
 - `Authorization: Bearer <token>` where the token is the node token (the owner) or any grant
-  token (`agentos grants issue`, or `POST /api/grants`), or
+  token (`openajar grants issue`, or `POST /api/grants`), or
 - a session cookie (`agentos_session`, HttpOnly, SameSite=Strict) obtained by
-  `POST /api/session` with `{ "code": "<one-time code>" }` (the owner: `agentos panel login`
+  `POST /api/session` with `{ "code": "<one-time code>" }` (the owner: `openajar panel login`
   prints a URL carrying a one-time code that expires in 10 minutes), or by a passkey
   (`POST /api/session/passkey`, the owner or a member, see Members below).
 - `DELETE /api/session` logs out. Unauthenticated requests get 401.
@@ -68,7 +68,7 @@ holds the lane for them while it runs; they never get input in the live view.
 | Routes | Owner | A member | A grant |
 |---|---|---|---|
 | `POST /api/session` | public (the one-time code is the credential, rate limited) | | |
-| `POST /api/session/device` `{label, ttl_s?}` -> `{session, csrf, id, label, expires_at}` | the node token only, as a bearer (`agentos connect` reads it over SSH for this call): the owner's device credential for the CLI tools on a computer, an owner session with `via` device (90 days by default). It is sent back as the session cookie with the CSRF header; /mcp and the bearer path refuse it. It reads, denies and controls lanes, and is never a person (it never approves) | no (403) | no (403, an admin grant too) |
+| `POST /api/session/device` `{label, ttl_s?}` -> `{session, csrf, id, label, expires_at}` | the node token only, as a bearer (`openajar connect` reads it over SSH for this call): the owner's device credential for the CLI tools on a computer, an owner session with `via` device (90 days by default). It is sent back as the session cookie with the CSRF header; /mcp and the bearer path refuse it. It reads, denies and controls lanes, and is never a person (it never approves) | no (403) | no (403, an admin grant too) |
 | `POST /api/invites/accept/options`, `POST /api/invites/accept`, `POST /api/session/passkey/options`, `POST /api/session/passkey` | public: the invite code and the passkey are the credentials; rate limited, a foreign `Origin` is refused | | |
 | `GET /`, `/assets/...`, any other page path | public: the built panel's files and page shell, never data | | |
 | `DELETE /api/session`, `GET /api/status`, `GET /api/templates`, `GET /api/brains`, `GET /api/me` | yes | yes (status counts only their workspaces) | yes (status counts only its lanes and approvals; no node-wide cost or service list) |
@@ -186,8 +186,8 @@ at the next one.
 ### The feature packages' own routes
 
 Each package's `api.py` was checked against the routes above. Duplicates are not mounted (the
-panel's route serves the real service through `agentos.api.bridge`); the rest are mounted by
-`agentos.api.mounts` behind the same auth, owner-only, CSRF on cookie writes, writes traced:
+panel's route serves the real service through `openajar.api.bridge`); the rest are mounted by
+`openajar.api.mounts` behind the same auth, owner-only, CSRF on cookie writes, writes traced:
 
 | Package | Mounted | Not mounted (covered above, or why) |
 |---|---|---|
@@ -203,7 +203,7 @@ panel's route serves the real service through `agentos.api.bridge`); the rest ar
 
 `{ "error": { "code": "lane_not_found", "message": "..." } }` with a fitting HTTP
 status (400 invalid, 401, 403 denied, 404 not found, 409 busy or conflict, 503
-unavailable). Codes match `agentos.core.errors`. A `fix` line, where the catalog has one, is for the owner
+unavailable). Codes match `openajar.core.errors`. A `fix` line, where the catalog has one, is for the owner
 and agents. A member's error carries it only when it names no command, token or grant (`catalog.member_fix`).
 
 ## Resources
@@ -242,9 +242,9 @@ human.
 - `GET /api/lanes/{ws}/{name}/terminal` (WebSocket) -> PTY for terminal lanes
   (text frames in and out; resize message `{ "type": "resize", "cols", "rows" }`). Close
   codes: 4202 waiting for approval (the reason names it), 4401 signed out, 4403 not allowed,
-  4404 no terminal, 4503 terminals not configured. Terminal and service lanes (agentos.env)
+  4404 no terminal, 4503 terminals not configured. Terminal and service lanes (openajar.env)
   are listed with the browser lanes.
-- Live streams end when access does (agentos.core.live). The event stream, the live view and the
+- Live streams end when access does (openajar.core.live). The event stream, the live view and the
   terminal are checked again after they open: at once when a grant is revoked, a member is changed or
   removed, a panel session is deleted or a freeze lands, and every `live_recheck_seconds` (5) for
   anything else. The socket then closes with 4401 (signed out, the session or grant is gone) or 4403
@@ -263,7 +263,7 @@ human.
   ends.
 
 ### Lane check (is this lane safe to use right now?)
-The same checklist as `agentos lane check` and the `browser_check` MCP tool (agentos.stealth.lanecheck). A check
+The same checklist as `openajar lane check` and the `browser_check` MCP tool (openajar.stealth.lanecheck). A check
 never warms the lane, opens a page or contacts the account's site.
 
 - `GET /api/lanes/{ws}/{name}/check` -> LaneCheck, run now (a proxy probe is reused for 60 s).
@@ -306,8 +306,8 @@ The `session` check's `data.sites.<site>.expires_at` is when the first of that s
 expires (ISO, UTC), or null for a cookie that lives for the browser session only.
 
 ### Lane health
-One grade per lane from the checks the node already runs (agentos.stealth.health, the same as `agentos lane
-health`): the lane check, the `agentos lane audit` pin findings that name the lane or its device, and the
+One grade per lane from the checks the node already runs (openajar.stealth.health, the same as `openajar lane
+health`): the lane check, the `openajar lane audit` pin findings that name the lane or its device, and the
 holds and quarantines the node recorded. It reports consistency, leaks and the challenges sites actually
 showed. It never calls a lane safe or undetectable, and scores nothing about how a person behaves.
 
@@ -331,7 +331,7 @@ LaneHealth (values made up):
   "findings": [
     { "id": "challenges", "level": "warn", "source": "events",
       "sentence": "Sites showed a captcha on 2026-11-08, a rate limit on 2026-11-02 (2 challenges in 30 days).",
-      "fix": "Let the lane rest and lower its pace. Look at what agents did just before each one (agentos lane view biz-a/instagram)." },
+      "fix": "Let the lane rest and lower its pace. Look at what agents did just before each one (openajar lane view biz-a/instagram)." },
     { "id": "check.account", "level": "unknown", "source": "check", "fix": null,
       "sentence": "The lane has no expected account set, so which account is signed in is not checked." } ],
   "days": 30, "at": "2026-11-11T12:00:00+00:00", "checked_at": "2026-11-11T11:56:00+00:00", "state": "cold",
@@ -390,7 +390,7 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
     and its timezone's UTC offset now against the pinned timezone's (`warn` with both values; `unknown`
     when the lookup gave no timezone or the pinned one is not known, since nothing was compared). The
     place comes from ipinfo.io's JSON answer, asked through the proxy at most once a day per proxy
-    (it is that run's proxy probe, so no extra request), cached in `AGENTOS_HOME/cache/exit-geo.json`.
+    (it is that run's proxy probe, so no extra request), cached in `OPENAJAR_HOME/cache/exit-geo.json`.
     The request carries no cookie and nothing about a lane or an account.
   - `webrtc`: from the effective prefs (camoufox.cfg defaults, the launch prefs, the profile's prefs.js
     and user.js, locked prefs). `ok` when WebRTC is off or `media.peerconnection.ice.proxy_only` is set;
@@ -401,7 +401,7 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   - `profile`: the folder exists and is readable, the pin file is readable and version 2 (version 1 is a
     `warn`, completed on the next launch), the pinned Firefox against the installed one, no browser
     nobody owns, no stale lock, the lane's disk use and the disk's free space.
-  - `session`: the site's session cookies (agentos.node.sites) are present, read from the warm
+  - `session`: the site's session cookies (openajar.node.sites) are present, read from the warm
     browser's context or from a copy of the profile's cookies.sqlite. `unknown` when they cannot be read
     or the lane names no site.
   - `account`: the account id in the site's cookies against the lane's pinned `AccountRef` (AUD-12):
@@ -417,14 +417,14 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   note (below) and kept on the control record as `handback_note`;
   `stop_agent`: pause the agent and cancel its runs and brain tasks on this lane;
   `deny_request`: refuse an agent's request for control back. `hand_back` always, and `take` while the lane
-  is held, stopped or quarantined, need the owner in person (the panel session, or `agentos lane handback`
+  is held, stopped or quarantined, need the owner in person (the panel session, or `openajar lane handback`
   and `take` on the node, which send a one-time code beside the token): the node token alone and the device
   credential get `presence_required` (403). `stop_agent` and `deny_request` need no more than the route.
 - `POST /api/lanes/{ws}/{name}/view-link` `{ "mode": "view" | "control", "ttl_s"? }` ->
   `{ "url": "/view/biz-a/instagram?t=...", "expires_at": "...", "mode": ..., "owner": bool }`. A signed,
   short-lived link for one lane (default 15 minutes), usable without a session (it is what the agent
   hands to a human for a CAPTCHA or a first login). A control link asked for by the owner in person (the
-  panel, or `agentos lane view --control` on the node) is an owner link (`owner: true`): from it, the
+  panel, or `openajar lane view --control` on the node) is an owner link (`owner: true`): from it, the
   owner can allow a refused host in one click (below). `browser_view` and grants (even admin grants) never
   get one. Every link has a hard end from when it was made that renewing never moves: 30 minutes for a
   link anyone but a person made (`browser_view`, a grant, the node token, the device credential), 8 hours for
@@ -439,22 +439,22 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   `{ lane, sites, strict, changed, running }`. Changes the lane's site list on the daemon's own lane
   manager, so a warm lane's egress guard has it at once (no restart; `running` says a warm lane got it).
   `add` appends what is not there, `remove` refuses entries that are not on the list, `set` replaces it
-  (`[]`: no lane restriction). Entries as in `agentos lane sites` (docs/design/egress-guard.md, section 5:
+  (`[]`: no lane restriction). Entries as in `openajar lane sites` (docs/design/egress-guard.md, section 5:
   `frame:<host>`, `accounts.google.@cc`). The owner in person only: the owner's panel session, or
-  `agentos lane sites` on the node (the node token with a one-time code from panel.db). The node token
+  `openajar lane sites` on the node (the node token with a one-time code from panel.db). The node token
   alone and the device credential get `presence_required` (403); a member or any grant, an admin grant
-  included, gets `denied` (403). `agentos lane sites` uses it while agentosd runs and writes the store
+  included, gets `denied` (403). `openajar lane sites` uses it while agentosd runs and writes the store
   when it does not.
 - `GET /api/lanes/{ws}/{name}/gate-log?since=24h` -> `{ lane, shapes: [{ id, host, path, method, op,
   fields, field_sets, decisions, why, rule, count, first, last, promoted? }], promoted: [...], identities:
   [{ site, id, field, rules, count, flow, verified_field, why, first, last }] }`: what the commit gate
   classified without a rule while agents drove the lane, by shape (names only, never a value), and the
-  identities agentos does not know that publishes on the lane acted as (egress-guard.md 8.10; ids and
+  identities openajar does not know that publishes on the lane acted as (egress-guard.md 8.10; ids and
   field names only). `POST` the same path with `{ "allow_read": id }`, `{ "as_commit": name, "shape": id }` or
   `{ "remove": id }` -> `{ lane, promoted | removed }`: the node's own read allowlist and commit rules
   (docs/design/egress-guard.md 8.9), each change a `gate_shape` row in the action log. The owner only:
   the node token or the owner's own session; a member's session or any grant gets `denied` (403).
-  `agentos lane gate-log` uses it while agentosd runs and writes the file itself when it does not.
+  `openajar lane gate-log` uses it while agentosd runs and writes the file itself when it does not.
   `?observed=1` also lists the shapes observe mode traced that no commit or write rule matched
   (`observed_only` when the gate never classified one); those can be named with `as_commit` only.
 - `GET /api/rules/health?lane=&stale_days=14` -> `{ generated_at, since, stale_days, rules: [{ id, site,
@@ -462,10 +462,12 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   method, op, count, decisions, sources, lanes, first, last, write_like, kind, promoted }], unruled: [{ lane,
   sites, hosts, shapes }], flags: [{ kind: stale_rule | new_unknowns | no_rules, site, rule?, rules?, lanes,
   shapes, message }] }`: effect rule health from the lanes' egress traces (docs/design/egress-guard.md
-  8.12; names and shapes only). The owner only, like the gate log. `agentos lane rules` prints the same.
-- `GET /view/{ws}/{name}?t=<token>`: the standalone viewer page (live view scaled to the
-  window, who is in control, Take control, Hand back, Stop agent, a banner when the agent
-  asks for control back, and the agent's recent actions on this lane). The page's own
+  8.12; names and shapes only). The owner only, like the gate log. `openajar lane rules` prints the same.
+- `GET /view/{ws}/{name}?t=<token>`: the standalone viewer page (the live view as a card scaled
+  to the window, a pill that says who has control with Take over or Hand back, Stop agent and the
+  agent's recent actions on this lane under More, and a banner when the agent asks for control
+  back). Its boot data carries `agent`, the agent's name for an environment's lane (the
+  environment's agent, else its MCP client), or null. The page's own
   `POST /view/{ws}/{name}/control?t=`, `/renew?t=` and `/sites?t=` need an `Origin` of
   this host: a request with a foreign Origin or none is refused (403 `denied`), so a link alone
   cannot take a lane or change its site list from a script. `browser_view` called with a grant from a controller's org
@@ -488,7 +490,7 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   and `egress`: a document the lane's site list refused while a human had control,
   `{ lane, seq, at, host, path, kind: subframe | redirect | navigation | popup | committed, frame, rule,
   reason, repeats, allow, command }` (host and path only, never the query). `allow` is the entry that would
-  admit it and `command` the `agentos lane sites <lane> add <allow>` line. At most one per (rule, host,
+  admit it and `command` the `openajar lane sites <lane> add <allow>` line. At most one per (rule, host,
   kind) every 30 s, with `repeats` counting what was folded in, and five a lane in any 30 s.
 - `GET /viewer-ws/{ws}/{name}?t=<token>` (WebSocket): the live-view relay. The server drops
   every keyboard, pointer and clipboard message from the viewer unless the lane's control
@@ -499,7 +501,8 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
 - On an open agent environment's own browser (`env/<id>-browser`) a control link counts as the person for
   `/control`, `/clipboard` and the relay: it takes over (a held lane too), types, copies and hands back with no
   panel session, recorded `by: "link holder"` (docs/THREAT-MODEL.md, "Viewer links"). Every account lane keeps
-  the rules above.
+  the rules above, and so does an environment whose screen runs the desktop on a server node (not in local
+  mode): its dock opens a root terminal on the machine (docs/THREAT-MODEL.md, "An environment's desktop").
 - `GET /view/env/{id}-browser/proof/{proof}.png?t=<token>` -> the PNG of a proof an agent kept in that
   environment (`browser_screenshot(proof=...)`), `Cache-Control: private, no-store`. The token is the proof's
   own signed link (15 minutes, from `environment()`), not a viewer token; any other answers 403 `denied`.
@@ -521,7 +524,7 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   agent's link while the lane is frozen; a `HEAD` answers 405 and spends nothing. The file on the node is
   deleted once served. docs/design/environments.md, "Downloads".
 
-### Exposes and forwards (`agentos expose`, `agentos lane forward`)
+### Exposes and forwards (`openajar expose`, `openajar lane forward`)
 - `GET /api/exposes` -> `{ links: [{ id, kind, lane, port, state, by, created_at, expires_at, socket, name?,
   host?, url? }] }`: what is open now.
 - `POST /api/exposes` `{ "kind": "expose", "lane", "name", "port", "ttl_s"? }` -> the link, `state:
@@ -551,7 +554,7 @@ grant, an admin grant included, and the node token get `presence_required` (403)
   wider grant is kept, and every call it makes inside the scope fails with `frozen` until the unfreeze.
 - `POST /api/unfreeze` `{ "scope": "lane" | "workspace" | "node" | "mesh", "target"? }`: the owner signed in, in
   person (a cookie session). When the node has members, the session needs a passkey check inside the step-up
-  window (`step_up_required` otherwise). No bearer token unfreezes; on the node, `agentos unfreeze`. Nothing
+  window (`step_up_required` otherwise). No bearer token unfreezes; on the node, `openajar unfreeze`. Nothing
   is restored: revoked grants stay revoked, paused schedules and triggers stay paused.
 - `POST /api/freeze/link?scope=&t=&e=&n=&s=`: a push's one-tap Freeze button. The signed link (single use, 30
   minutes) is the only credential, and it can only freeze. Anything else is 401.
@@ -568,7 +571,7 @@ Control returns to agents automatically after `control_idle_seconds` (default 60
 human input. SSE event type `control` carries `{ "lane": id, "control": {...} }`. After a hand back
 the record also has `handback_note` (the human's note, or null).
 
-The hand-back note (agentos.node.handback): when agents get a lane back (a hand back, the idle hand back,
+The hand-back note (openajar.node.handback): when agents get a lane back (a hand back, the idle hand back,
 a resume, the end of a hold), the next thing each agent session sees on that lane carries `handback`: the
 `browser_wait_handback` or `browser_control` result, or the first `browser_navigate`, `browser_snapshot`,
 `browser_act` or `browser_wait` result. It says what changed while agents did not have the lane:
@@ -673,7 +676,7 @@ node's token has `principal_kind: node`, never `human`.
 | The owner's session | `panel` | `signed_in` |
 | A member's session with a passkey check from the last 15 minutes | `panel` | `signed_in` |
 | Either, with a fresh check made for this approval | `passkey` | `present` |
-| `agentos approvals` on the node | `cli` | `signed_in` |
+| `openajar approvals` on the node | `cli` | `signed_in` |
 | `approval_confirm` in a chat client | `chat` | `chat` |
 | A bearer token (the node token, an admin grant) | none | none: it proves no person, and reaches up to `signed_in` |
 | A controller with a proof | its method | at most `controller_max_level` |
@@ -700,13 +703,13 @@ turned off is 403 `method_unavailable`.
   `signed_in` or above and at what `policy.toml` says; `owner_only` when an admin names a row of the owner's;
   403 `method_unavailable` for a level no ready method reaches, so nothing is locked out.
 - What can be turned off: `chat` and `telegram`, and only those (`methods_off: ["chat"]`, or
-  `agentos confirmation set chat off`; the same for `telegram`).
+  `openajar confirmation set chat off`; the same for `telegram`).
   `panel`, `cli` and `passkey` cannot, so a person can always decide. Raising `commit.level` to `signed_in`
   has the same effect for commits. Only the owner turns chat back on.
 - `GET /api/confirmation/methods` -> `[{ id, label, level, status, on, can_turn_off }]`: ready and planned.
-- On the node: `agentos confirmation show`, `agentos confirmation set <row.field> <value> [--apply-to-waiting]`.
+- On the node: `openajar confirmation show`, `openajar confirmation set <row.field> <value> [--apply-to-waiting]`.
 
-`card` (agentos.policy.cards) is what the approval will do, as the node built it from the content it
+`card` (openajar.policy.cards) is what the approval will do, as the node built it from the content it
 binds (null when there is nothing more to show than the summary and preview):
 ```json
 { "type": "post", "operation": "instagram.post_photo", "title": "Post a photo with a caption",
@@ -735,7 +738,7 @@ same right as approving (members: `decide`). The approval then binds the edited 
 the parked run with the edited params. A retried call with the old content never consumes an edited
 approval, and a run whose edited params no longer make the approved content fails with `edit_mismatch`.
 Right before a run an approval released executes, the runner makes the run's binding again
-(`ActionBinding` in `agentos.policy.approvals`, the one way every card binds its content): when the
+(`ActionBinding` in `openajar.policy.approvals`, the one way every card binds its content): when the
 approval no longer covers it (other content, another lane, or other params), the run fails with `approval_mismatch` and nothing is done. A trigger proposal and a
 workflow send step check their card the same way; a changed send step asks again.
 
@@ -769,7 +772,7 @@ gives it. Requests live in the node's memory only.
   request is 404 `vault_code_request_closed`. The code is write-only: it goes to the typist, and no
   response, trace, event, log line or database row ever holds it.
 - `POST /api/codes/{id}/decline` -> `state: "declined"`; the login stops with `needs: "human"`.
-- The web contract (`src/agentos/api/web/codes.py`) lists only the open cards, so the app never shows one that
+- The web contract (`src/openajar/api/web/codes.py`) lists only the open cards, so the app never shows one that
   is closed.
 Both are traced as `panel.code.enter` and `panel.code.decline`; the login's own call traces
 `vault.code_requested`, then `vault.code_used` (`source: "manual"`), `vault.code_declined` or
@@ -777,7 +780,7 @@ Both are traced as `panel.code.enter` and `panel.code.decline`; the login's own 
 
 ### Repository cards (a token the owner pastes for a private repository, on the node's own page)
 `environment_open` on a repository the node cannot read opens a question in Needs you, one per
-repository (agentos.environments.connect). `GET /api/questions` marks it with `repo_connect`:
+repository (openajar.environments.connect). `GET /api/questions` marks it with `repo_connect`:
 `{ "repo": "github.com/acme/app", "host": "github.com", "reason": "not_connected" | "refused",
 "token_url", "classic_token_url", "deploy_keys_url" }` (the last three on GitHub only). The routes take
 the card's approval id, and all of them need the owner signed in with a person present: an agent's
@@ -789,7 +792,7 @@ token, any grant and the node token alone are `presence_required`, a member is `
   script, no outside asset, a strict CSP, `no-store`, only over https or on this computer), and waits on
   `GET /api/forms/trips/{id}`. The page's POST (urlencoded `token`) asks
   `GET https://api.github.com/repos/{owner}/{name}` with the token, then runs `git ls-remote` with it as
-  the gateway fetches, keeps it as `agentos environments repo add --token` does (this one repository,
+  the gateway fetches, keeps it as `openajar environments repo add --token` does (this one repository,
   declared for `env`), and approves the card. A check that fails shows what to do on the page (400), and
   nothing is kept; the same link takes another try until it runs out (15 minutes). One that works ends
   the link, and the trip says `"stage": "done"` with `"outcome": { "repo", "token_expires_at" }`
@@ -807,7 +810,7 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
 ### Environment downloads (the owner copies a file or a folder off a machine)
 - `POST /api/environments/{id}/download` `{ "path" }` -> `{ "url", "expires_at", "path", "kind": "file" |
   "folder", "files", "bytes", "sha256", "max_bytes", "fetch", "unpack", "next" }`: what `environment_download`
-  answers an agent, for `agentos environments download ID PATH [--to DIR]`. `path` is a file or a folder
+  answers an agent, for `openajar environments download ID PATH [--to DIR]`. `path` is a file or a folder
   under `/work` (a relative one starts at the workdir). The owner only, as on the other owner routes: an agent's
   grant is `denied` and uses the tool instead. 400 `invalid` (outside `/work`, a link out
   of it, missing, over 512 MB packed), 404 (no such environment), 409 `environment_not_ready`. Traced as
@@ -815,13 +818,13 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
 
 ### Prepared machines (the owner builds one now)
 - `POST /api/environments/prepare` `{ "repo", "ref"?, "force"? }` -> `{ "repo", "key", "started", "why" }`: starts
-  the build of the repository's prepared machine (its `.agentos/environment.toml`, docs/ENVIRONMENTS.md
-  "Prepared machines"), for `agentos environments prepare`, which then follows the build's steps in the node's
+  the build of the repository's prepared machine (its `.openajar/environment.toml`, docs/ENVIRONMENTS.md
+  "Prepared machines"), for `openajar environments prepare`, which then follows the build's steps in the node's
   store. The owner in person only (a panel session, or the node's CLI with its one-time code in panel.db; the
   bare node token is 403 `presence_required`, because an agent may hold it). 400 `invalid` when the repository has no usable file, when one is ready already
   (without `force`), or when the node has no room for a build now. Traced as `panel.environment.prepare`.
 - `GET /api/orgs/{org}/environments/prepared` -> `{ "machines": [...], "eur_month", "eur_per_gb_month", "pool",
-  "month" }` for the app. `machines` are the rows of `agentos environments prepared --json`, newest build first;
+  "month" }` for the app. `machines` are the rows of `openajar environments prepared --json`, newest build first;
   `eur_month` what their images cost together, at `eur_per_gb_month` (`snapshot_eur_per_gb_month`). `pool` is
   the warm pool (`warm`, `target`, `minutes`, `machines`) plus `price_hourly_eur` (a warm machine's own price,
   else what the pool would rent at the default size; null when the provider cannot say), `worst_eur_month`
@@ -832,7 +835,7 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
   "cold" }] }`, `recent` the last 40 that became ready, oldest first (`at` the open, `seconds` until ready).
   The owner only (a member or a grant is 403); 404 on a computer with no environments.
 
-### Saved environments (keep "save", agentos.environments.saving)
+### Saved environments (keep "save", openajar.environments.saving)
 An environment opened with `keep: "save"` is saved when it idles, at its time limit and on close, and
 `environment_open` with its title resumes it; one with `keep: "none"` gets a rescue save when the reaper
 must delete it with unsaved work (docs/design/environments.md, "Keeping"). The web contract shows them:
@@ -855,7 +858,7 @@ must delete it with unsaved work (docs/design/environments.md, "Keeping"). The w
   and saves a `keep: "save"` one first (502 `save_failed` keeps the machine).
 - `GET /api/orgs/{org}/environments/{id}`: each of `ports` is `{ "port", "process", "link", "tunnel"? }`.
   `link` is null unless the agent shared the port with `environment_port`; then it is the node's forward,
-  `http://127.0.0.1:<p>/` (on agentos local it opens as is), and on a server node `tunnel` is the
+  `http://127.0.0.1:<p>/` (on openajar local it opens as is), and on a server node `tunnel` is the
   `ssh -N -L <p>:127.0.0.1:<p> <node>` line that brings it to the person's computer first. The forward
   ends when the environment closes.
 - `GET /api/orgs/{org}/environments/{id}` also has `bringup`, its bring-up step by step: `{ "total_s", "ok",
@@ -874,7 +877,7 @@ must delete it with unsaved work (docs/design/environments.md, "Keeping"). The w
   `owner_woken` (the owner resumed it and no chat has taken it yet) and `resumed_at` (its open, which is when
   the resume began; null when not resumed). `environment()` gets `bringup` too.
 
-### Environment tools (agentos.environments.tools, builder I3)
+### Environment tools (openajar.environments.tools, builder I3)
 What an agent gets back, beside the web contract above:
 - `environment_open(title?, repo?, ..., keep?, signins?)`: no `title` with `repo` uses that repository's one
   open or saved environment (several: `environment_choice`, which lists each title, newest first; none: a new
@@ -896,7 +899,7 @@ What an agent gets back, beside the web contract above:
   Only a branch the environment created; never a merge. Errors: `denied`, `invalid` (not on github.com),
   `pull_request_failed` (no token on the node, or GitHub refused; the token never appears).
 
-### Checkpoints, watching and the owner's resume (agentos.environments.checkpoints, watching, waking)
+### Checkpoints, watching and the owner's resume (openajar.environments.checkpoints, watching, waking)
 Checkpoints are git's, on the machine (docs/ENVIRONMENTS.md, "Checkpoints"); a person watching counts as
 use; the owner resumes a save held by no chat.
 - `GET /api/orgs/{org}/environments/{id}` adds `watched` (null, or `{ "since", "viewers", "live_views",
@@ -927,7 +930,7 @@ use; the owner resumes a save held by no chat.
   the browser. `already_open`: its title is open, and that one is returned unchanged. The next
   `environment_open` with its title takes it with `opened: "resumed"`. The owner in person only, as Forget.
   Traced as `environment.resume`.
-- `POST /api/environments/resume` `{ "ref": "<title or save id>" }` -> the same answer, for `agentos environments
+- `POST /api/environments/resume` `{ "ref": "<title or save id>" }` -> the same answer, for `openajar environments
   resume`, the owner in person only (a panel session, or the node's CLI with its one-time code in panel.db; the
   bare node token is 403 `presence_required`). A title shared by saves of several
   agents is 400 `invalid` naming their save ids.
@@ -950,15 +953,15 @@ use; the owner resumes a save held by no chat.
   resumed for the agent.
 
 ### Assisted login (the owner fills a form, the node types it)
-A person should almost never log in through the live view. `agentos.node.login_assist` reads the
+A person should almost never log in through the live view. `openajar.node.login_assist` reads the
 lane's sign-in page, shows the owner a form with exactly the fields this step asks for, types what
 the owner enters with the vault's typist at human pace, presses the step's own continue button, and
-reads the next page. The panel's lane modal, the live view's side section and `agentos lane login`
+reads the next page. The panel's lane modal, the live view's side section and `openajar lane login`
 are three faces of it. One login per lane; it takes control of the lane while it runs (agents get
 `human_in_control`) and gives it back as it was when it ends.
 
 - `POST /api/lanes/{ws}/{name}/login` `{ "url"? }` -> a Login. Warms the lane and opens the site's
-  sign-in page from the sites table (`agentos.node.sites`, `Site.login`), the `url` given, or stays on
+  sign-in page from the sites table (`openajar.node.sites`, `Site.login`), the `url` given, or stays on
   the page the lane shows when it is already on the site. A login already running is returned as is.
 - `GET /api/lanes/{ws}/{name}/login` -> the Login, or `{ "lane", "state": "none" }`.
   `?after=<version>&wait=<s>` (at most 30) answers when the version moves past `after`.
@@ -984,7 +987,7 @@ it cannot read: take control), `paused` (the owner has the live view), `signed_i
 `done`. `step` is `{ "id", "kind", "heading", "message", "number", "fields": [{ "name", "label",
 "secret", "length", "autocomplete" }], "choices": [{ "id", "label", "kind" }], "submit", "reason" }`,
 with `kind` one of `sign_in`, `code`, `approve`, `choose`, `confirm`, `captcha`, `stuck`, `signed_in`
-(agentos.vault.steps). Heading, message, labels and the number are the page's own words, for the
+(openajar.vault.steps). Heading, message, labels and the number are the page's own words, for the
 owner only; they never decide anything. `requested` is an agent's `browser_login_request` (`why`, `by`,
 `at`). `signed_in` is the site's session cookie plus an `ok` signal.
 
@@ -997,7 +1000,7 @@ event or log line holds it; a trace names the step and the fields (`panel.lane.l
 and password stay in the node's memory until the login ends, for the save offer, then are dropped;
 a code never is kept. Live events (`login`) carry the lane, state, version and step kind only.
 
-The live view has the same form in a side section (agentos.node.viewer_app), on its signed link:
+The live view has the same form in a side section (openajar.node.viewer_app), on its signed link:
 `GET`, `POST /view/{ws}/{name}/login?t=` (`{"action": start|step|refresh|take|resume|cancel|save, ...}`)
 and `GET /view/{ws}/{name}/login.png?t=`. Only a person runs it: an owner link, or a control link with the
 owner's panel session in the same browser (`presence_required` otherwise); a view link is refused.
@@ -1016,7 +1019,7 @@ owner's panel session in the same browser (`presence_required` otherwise); a vie
 
 ### Audit (the tamper-evident action log)
 
-The action log is hash-chained and checkpointed with a node audit key (src/agentos/policy/AUDIT-LOG.md).
+The action log is hash-chained and checkpointed with a node audit key (src/openajar/policy/AUDIT-LOG.md).
 These routes read it; the panel's timeline scrubber is built on `replay`.
 
 - `GET /api/audit/replay?lane=&day=&tz=` -> one lane's actions on one day (default today, in the
@@ -1089,7 +1092,7 @@ These routes read it; the panel's timeline scrubber is built on `replay`.
   carries `ask_first` and `ask_first_by`.
 - `GET /api/lanes/{ws}/{name}/worker` -> `LaneWorker`: the browser worker on one lane and that lane's
   Ask me first. `PUT /api/lanes/{ws}/{name}/worker` `{ "on": bool }` -> `LaneWorker` turns the worker on
-  or off there (`src/agentos/pilot/README.md`). `PUT /api/lanes/{ws}/{name}/worker/ask-first`
+  or off there (`src/openajar/pilot/README.md`). `PUT /api/lanes/{ws}/{name}/worker/ask-first`
   `{ "ask_first": bool }` -> `LaneWorker` is the person's choice: `true` is "Asks you first", `false` is
   "Runs on its own". `true` takes any caller whose grant reaches the lane, a token included, as
   `POST /api/ask-first` does; `false` and the other two are for a person signed in. A lane that does not
@@ -1103,7 +1106,7 @@ LaneWorker:
                  "set_by": null, "by_person": null, "set_at": null } }
 ```
 - `worker.on`: `false` when a person turned it off here, or `problem` says the plugin state cannot be
-  read. It says nothing about the node: `plugin_status` is `agentos plugins`' status, and only
+  read. It says nothing about the node: `plugin_status` is `openajar plugins`' status, and only
   `running` means a run can start at all.
 - `ask_first.choice`: `"asks_first"`, `"runs_on_its_own"`, or `null` when nobody chose yet.
 - `ask_first.asks`: a publish on this lane asks because of a switch now (the lane's, a connector surface
@@ -1137,7 +1140,7 @@ same instant in UTC.
 ### Agenda
 
 Planned one-off actions per workspace, their approval and their proof (docs/AGENDA.md). Owner
-routes (the owner or an admin grant), mounted from `agentos.agenda.api`.
+routes (the owner or an admin grant), mounted from `openajar.agenda.api`.
 
 - `GET /api/agenda?workspace=&start=&end=&lane=&kind=&state=&managed=` -> the timeline for `[start, end)`
   (ISO 8601; default: from a day ago for 8 days; at most 93 days): `{ "start", "end", "workspace",
@@ -1201,7 +1204,7 @@ horizon, or why nothing is shown) and `skipped` (lanes it does not visit, with w
   "managed_by": "keepalive", "kind": "keepalive", "state": "planned", "at": "2026-11-09T13:42:07+00:00",
   "approx": true, "workspace": "biz-a", "lane": "biz-a/instagram", "site": "Instagram",
   "title": "Keepalive visit to Instagram", "effect": "read", "due_now": false, "timezone": "Europe/Vilnius",
-  "manage": "agentos lane keepalive biz-a/instagram" }
+  "manage": "openajar lane keepalive biz-a/instagram" }
 ```
 
 ### Nodes
@@ -1231,7 +1234,7 @@ A mailbox id goes in a path as `biz-a~mail` for `biz-a/mail`. Owner only.
   anything else is refused (`mail_confirm_hosts`, as it is when only DNS named the servers and `confirmed` is not true).
   `imap` and `smtp` are what a person typed, may be on a private address, and both typed need no `digest`. Both logins
   come first, and a failure saves nothing (`mail_connect_failed`). This is one of the two ways to change a mailbox that
-  exists, and `agentos mail connect` is the other.
+  exists, and `openajar mail connect` is the other.
 - `GET /api/mail/requests` -> `{ requests: [ { id, address, mailbox } ] }`: what agents asked to connect, by the id of
   each card. In person.
 - `POST /api/mail/requests/{id}/link` -> `{ url, path, tunnel, expires_at, found }`: the link for one open card. In
@@ -1257,21 +1260,21 @@ A mailbox id goes in a path as `biz-a~mail` for `biz-a/mail`. Owner only.
 ### Grants and tokens
 - `GET /api/grants` -> issued grants (subject, scope, expiry, revoked), each with `explain`: the grant in
   plain sentences, most important first (where it reaches, what it may do, what waits for a person,
-  budgets and expiry), the same lines `agentos grants explain <id>` prints
-  (`agentos.policy.explain`). A revoked or expired grant has one sentence saying it allows nothing now.
+  budgets and expiry), the same lines `openajar grants explain <id>` prints
+  (`openajar.policy.explain`). A revoked or expired grant has one sentence saying it allows nothing now.
   Scoped like the list itself: a member sees only their own agents' grants.
 - `POST /api/grants` `{ "subject", "workspaces", "lanes"?, "ceiling", "specials",
   "budget"?, "ttl" }` -> `{ "id", "token" }` (token shown once). `specials` names any of
   `secret`, `exec`, `install_overlay`, `install_base`, `service`, `brain` and `memory`; `memory`
   reads and writes the grant's workspaces' memory, without private or owner-only entries
-  (`agentos grants issue --special memory` sets the other fields); `memory_read` is the same
-  special without write (memory_context, memory_search, memory_get), what `agentos connect` gives an
+  (`openajar grants issue --special memory` sets the other fields); `memory_read` is the same
+  special without write (memory_context, memory_search, memory_get), what `openajar connect` gives an
   agent by default
 - `POST /api/grants/{id}/revoke` (cascades to children)
 - `POST /api/grants/{id}/route` `{ "ssh_host", "local_port" }` (the owner): how the computer that holds this
-  grant reaches the node. `agentos connect` records it for the grant it issued or kept, and `browser_view` then
+  grant reaches the node. `openajar connect` records it for the grant it issued or kept, and `browser_view` then
   gives that grant (and those narrowed from it) a link on that local port and a tunnel command for that SSH
-  host, instead of this node's own port and hostname. Kept in `AGENTOS_HOME/connect-routes.json`.
+  host, instead of this node's own port and hostname. Kept in `OPENAJAR_HOME/connect-routes.json`.
 
 ### Site APIs (`/api/site-apis`, docs/SITE-APIS.md)
 
@@ -1306,7 +1309,7 @@ member signed in to the panel. A bearer token never does, even the owner's.
 - `DELETE /api/site-apis/{id}`: a person. Refused while a schedule or workflow uses it. Runs stay in
   history.
 
-`agentos site-api discover|new|try|activate|pause|list|show|remove` does the same at the node;
+`openajar site-api discover|new|try|activate|pause|list|show|remove` does the same at the node;
 `discover`, `new --url` and `try` go through agentosd, which owns the lanes' browsers.
 
 ### Site APIs over HTTP (`/v1/sites`, docs/SITE-APIS.md)
@@ -1370,7 +1373,7 @@ of the end is a new grant, and a run still queued under an old one stops. `DELET
 freeze holds every key) revokes its grant like any other: the key answers 503 `frozen` during the
 freeze and 401 after it, because unfreezing restores no grant, so make a new key. A key that also
 reaches lanes outside a lane or workspace freeze keeps its grant: its calls in the frozen scope
-answer `frozen` until the unfreeze, and its other lanes keep working. `agentos site-api keys add|list|revoke` does the same
+answer `frozen` until the unfreeze, and its other lanes keep working. `openajar site-api keys add|list|revoke` does the same
 on the node. A key with an end gets a grant that outlives it. A key with no end outlives its grant: a
 call in the old one's last 30 days gets it a new grant, the old one stays live until its end so that
 what is queued or parked under it finishes, and the new one starts with the labels of the old. A key
@@ -1382,11 +1385,11 @@ totals}`, one point per hour with no gaps, ready to plot: `{hour, calls, cached,
 n}, p50_ms, p95_ms}`. `hours` is 1 to 720. A call without a real API and endpoint behind it, and a run
 poll, write no row.
 
-`agentos site-api openapi <api> [--server URL] [--out FILE]` prints the document with every endpoint
+`openajar site-api openapi <api> [--server URL] [--out FILE]` prints the document with every endpoint
 and surface; the route gives each key its own.
 
 ### Meters, queues and taint
-Today's use against daily and hourly limits, per grant and per lane (`agentos.policy.meters`,
+Today's use against daily and hourly limits, per grant and per lane (`openajar.policy.meters`,
 ROUTING.md step 5). A day is the owner's calendar day in the node's time zone (`[meters] timezone` in
 policy.toml, else the host's): it resets at local midnight, so a DST day has 23 or 25 hours, and where
 the clocks jump over midnight the day starts at the first instant after the jump. A zone change keeps
@@ -1398,7 +1401,7 @@ matched to a commit rule (past a commit limit that request is aborted before it 
 names no lane counts against the lane its grant implies when the grant reaches a single lane; otherwise
 it is grant-metered only. A brain attempt's tokens and metered dollars are charged to the task's grant
 when it ends. What a person does in person in the panel is not metered. A grant's come from its budget (`POST /api/grants` `budget`); a lane's
-from the owner (below, or `agentos grants meters --lane <id> --limit commits_per_day=6`), else the first
+from the owner (below, or `openajar grants meters --lane <id> --limit commits_per_day=6`), else the first
 `[meters.lanes]` pattern in policy.toml that matches it.
 
 - `GET /api/meters` -> `{ "timezone", "day", "resets_at", "warn_at": [0.8], "grants": [Meter], "lanes": [Meter] }`.
@@ -1409,7 +1412,7 @@ from the owner (below, or `agentos grants meters --lane <id> --limit commits_per
   only. `{}` means no limits on this lane (it also overrides a policy.toml pattern); `null` removes the
   lane's own limits. Traced as `lane.limits` and `meter_limits`.
 - `GET /api/lanes/{ws}/{name}/pace` -> LanePace (anyone who can see the lane): the lane's posting pace
-  (`agentos.policy.pace`, AUD-13). `{ "lane", "pace": { "commits_per_day", "min_gap_minutes",
+  (`openajar.policy.pace`, AUD-13). `{ "lane", "pace": { "commits_per_day", "min_gap_minutes",
   "active_hours": ["08:00-22:00", "sat,sun 10:00-23:00"], "timezone" } | null, "paced", "zone": { "timezone",
   "source": "lane|pin|workspace|node", "source_words", "exit_timezone", "unreadable", "note" }, "local_now",
   "workspace_timezone", "preset", "set", "posts_today", "last_post_at", "may_post_now", "blocked_by":
@@ -1436,11 +1439,11 @@ from the owner (below, or `agentos grants meters --lane <id> --limit commits_per
   member their own agents), without them.
 - `POST /api/grants/{id}/taint/clear` `{ "confirm": "clear" }` -> `{ "grant_id", "family", "origins_cleared" }`:
   the owner signed in to the panel, in person, starts the grant's family clean, turns included (as
-  `agentos grants taint <id> --clear`). It is a security decision, so it always needs a fresh in-person
+  `openajar grants taint <id> --clear`). It is a security decision, so it always needs a fresh in-person
   step, members or not: the typed confirmation (400 without it), and a passkey check within the step-up
   window when the owner has a passkey (`step_up_required`), else a panel sign-in with a new one-time code
   within that window (403 says to sign in again). A token, even the owner's or an admin grant, and a
-  device credential from `agentos connect` never clear taint (403). Traced as `taint.clear` and
+  device credential from `openajar connect` never clear taint (403). Traced as `taint.clear` and
   `taint_cleared`.
 
 Meter:
@@ -1482,7 +1485,7 @@ their own meters in `grant_info` (`meters`).
   before anything changes | `POST /api/lanes/{ws}/{name}/device` `{ "device": str | null,
   "confirm": bool }` -> `{ "plan", "lane" }`. A move the lane's site would notice (it has launched,
   so a new fingerprint or a new IP) without `confirm` answers 409 `confirm_required` and changes
-  nothing. The move needs a person (the panel, or `agentos lane set-device` on the node).
+  nothing. The move needs a person (the panel, or `openajar lane set-device` on the node).
 - `GET /api/settings/notifications` | `PUT` | `POST /api/settings/notifications/test`
 
 ### Live updates
@@ -1494,7 +1497,10 @@ their own meters in `grant_info` (`meters`).
   seats), `task` (status, tail), `code` (a code card opened or closed, never the code), `login` (an
   assisted login moved: `{ "id", "lane", "state", "version", "step" }`, never a value or page text), `meter`
   (a warning, a cutoff or new lane limits; `{}` for a member or a grant, who refetch `GET /api/meters`), `freeze` (a
-  freeze made or lifted: `{ "state": "frozen" | "unfrozen", "scope", "target" }`, so read `GET /api/freeze` again), and `resync`
+  freeze made or lifted: `{ "state": "frozen" | "unfrozen", "scope", "target" }`, so read `GET /api/freeze` again), `pointer`
+  (where the agent acts on a screen: `{ "lane", "x", "y", "w", "h", "kind" }` in the screen's pixels, or
+  `{ "lane", "hide" }`; sent only while a live view of that lane is open through `/api/lanes/{ws}/{name}/vnc`,
+  with no `id:`, never replayed, and only to the owner and members who may watch that screen), and `resync`
   (events were missed: refetch what you show).
 - A comment, `: ping`, whenever the wire has been quiet for `sse_heartbeat` seconds (15 by default),
   so a proxy keeps the stream open. Events the caller may not see do not count as traffic.

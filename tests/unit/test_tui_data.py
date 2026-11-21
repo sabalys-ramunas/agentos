@@ -1,4 +1,4 @@
-"""agentos dash data layer: connection resolution, the API client and its SSE stream, the state
+"""openajar dash data layer: connection resolution, the API client and its SSE stream, the state
 and its derived views, and the sync loop, all against the in-process fake node (no sockets)."""
 
 import asyncio
@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig, save_config
-from agentos.dev.tuidemo import FakeNode
-from agentos.tui import fmt
-from agentos.tui.client import ApiClient, ApiError, AuthFailed, NodeUnreachable, SseParser, Unavailable
-from agentos.tui.connect import DEFAULT_URL, normalize_url, resolve
-from agentos.tui.state import RESOURCES, DashState
-from agentos.tui.sync import Syncer
+from openajar.core.config import NodeConfig, save_config
+from openajar.dev.tuidemo import FakeNode
+from openajar.tui import fmt
+from openajar.tui.client import ApiClient, ApiError, AuthFailed, NodeUnreachable, SseParser, Unavailable
+from openajar.tui.connect import DEFAULT_URL, normalize_url, resolve
+from openajar.tui.state import RESOURCES, DashState
+from openajar.tui.sync import Syncer
 
 NOW = datetime(2026, 11, 4, 8, 0, tzinfo=UTC)  # 10:00 in Europe/Vilnius
 EM_DASH = "—"
@@ -43,28 +43,28 @@ async def loaded(node) -> DashState:
 # ---------------------------------------------------------------- connection
 def test_flags_beat_env_beat_node_toml(tmp_path):
     save_config(NodeConfig(home=tmp_path, mcp_port=7431, mcp_token="toml-token", ssh_host="mynode"))
-    env = {"AGENTOS_HOME": str(tmp_path)}
+    env = {"OPENAJAR_HOME": str(tmp_path)}
     conn = resolve(env=env)
     assert conn.url == "http://127.0.0.1:7431"
     assert conn.token == "toml-token" and conn.token_source.endswith("node.toml")
     assert conn.tunnel_hint == "ssh -N -L 7431:localhost:7431 mynode"
 
-    env |= {"AGENTOS_URL": "http://127.0.0.1:7400/", "AGENTOS_TOKEN": "env-token"}
+    env |= {"OPENAJAR_URL": "http://127.0.0.1:7400/", "OPENAJAR_TOKEN": "env-token"}
     conn = resolve(env=env)
-    assert (conn.url, conn.token, conn.token_source) == ("http://127.0.0.1:7400", "env-token", "AGENTOS_TOKEN")
+    assert (conn.url, conn.token, conn.token_source) == ("http://127.0.0.1:7400", "env-token", "OPENAJAR_TOKEN")
 
     conn = resolve(url="localhost:7499/api", token="flag-token", env=env)
     assert (conn.url, conn.token, conn.url_source) == ("http://localhost:7499", "flag-token", "--url")
 
 
 def test_defaults_when_nothing_is_set(tmp_path):
-    conn = resolve(env={"AGENTOS_HOME": str(tmp_path / "missing")})
+    conn = resolve(env={"OPENAJAR_HOME": str(tmp_path / "missing")})
     assert conn.url == DEFAULT_URL and not conn.has_token and conn.tunnel_hint is None
 
 
 def test_unreadable_node_toml_falls_back(tmp_path):
     (tmp_path / "node.toml").write_text("this is [not toml")
-    conn = resolve(env={"AGENTOS_HOME": str(tmp_path)})
+    conn = resolve(env={"OPENAJAR_HOME": str(tmp_path)})
     assert conn.url == DEFAULT_URL and not conn.has_token
 
 
@@ -329,7 +329,7 @@ async def test_events_off_falls_back_to_polling(node):
 
 
 def test_no_em_dashes_in_dashboard_sources():
-    root = Path(__file__).resolve().parents[2] / "src" / "agentos" / "tui"
+    root = Path(__file__).resolve().parents[2] / "src" / "openajar" / "tui"
     for path in root.rglob("*"):
         if path.suffix in (".py", ".tcss"):
             assert EM_DASH not in path.read_text(), path
@@ -338,7 +338,7 @@ def test_no_em_dashes_in_dashboard_sources():
 def test_a_lane_at_a_checkpoint_needs_you():
     """A checkpoint (the site asks the account holder a question) is the lane that needs the person
     most; it was missing from the dash's Needs you."""
-    from agentos.tui.models import Lane
+    from openajar.tui.models import Lane
 
     state = DashState()
     lane = Lane(id="biz/facebook", state="warm", signal="checkpoint")
@@ -360,7 +360,7 @@ async def test_an_environment_is_named_by_its_title_and_kept_out_of_the_accounts
 
 
 def test_a_rich_text_post_reads_as_its_text():
-    from agentos.tui.fmt import readable
+    from openajar.tui.fmt import readable
 
     doc = '{"document":[{"e":"par","c":[{"e":"text","t":"QA check of the approval gate."}]},{"e":"par","c":[{"e":"text","t":"Line two"}]}]}'
     assert readable(doc) == "QA check of the approval gate.\nLine two"

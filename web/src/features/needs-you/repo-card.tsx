@@ -73,7 +73,7 @@ export function RepoConnectDetail({ org, question, owner, onLeave }: RepoConnect
         <>
           <p className="text-body text-muted">
             {card.reason === 'refused' ? 'The token this computer had for it stopped working. ' : ''}
-            Its computer cannot read this repository yet. Paste a token from your own {hostName(card)} account, on a page this computer serves: you do not need to be an admin of the repository. agentos checks the token, then keeps it on this computer only. The agent never sees it.
+            Its computer cannot read this repository yet. Paste a token from your own {hostName(card)} account, on a page this computer serves: you do not need to be an admin of the repository. openajar checks the token, then keeps it on this computer only. The agent never sees it.
           </p>
           {way === 'token' ? (
             <TokenStep org={org} id={question.id} card={card} onDone={setDone} onDeclined={leave} onKey={() => setWay('key')} />

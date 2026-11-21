@@ -3,9 +3,9 @@ typing, a human click), frozen through the real freeze, policy and lane services
 from the freeze call to the last in-flight agent action being stopped, and checks the browser is
 left as it was (warm, same process, page state kept) with a human still able to look.
 
-Run on the node:  AGENTOS_TEST_SLOT=43 scripts/node-test.sh freeze tests/node/test_freeze_node.py -q -s
-Uses the slot's display and port ranges (AGENTOS_TEST_*) and an AGENTOS_HOME under .node-home/.
-Set AGENTOS_TEST_FREEZE_ROUNDS to change how many freezes are measured (default 5).
+Run on the node:  OPENAJAR_TEST_SLOT=43 scripts/node-test.sh freeze tests/node/test_freeze_node.py -q -s
+Uses the slot's display and port ranges (OPENAJAR_TEST_*) and an OPENAJAR_HOME under .node-home/.
+Set OPENAJAR_TEST_FREEZE_ROUNDS to change how many freezes are measured (default 5).
 """
 
 from __future__ import annotations
@@ -21,31 +21,31 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import Frozen
-from agentos.core.models import Effect, LaneSpec, LaneState
-from agentos.core.runtime import Runtime
-from agentos.freeze.service import FreezeService
-from agentos.node import human
-from agentos.node.camoufox.engine import browser_pids_under
-from agentos.node.display import kill_processes
-from agentos.node.lanes import build_lane_manager
-from agentos.policy.service import PolicyService
+from openajar.core.config import NodeConfig
+from openajar.core.errors import Frozen
+from openajar.core.models import Effect, LaneSpec, LaneState
+from openajar.core.runtime import Runtime
+from openajar.freeze.service import FreezeService
+from openajar.node import human
+from openajar.node.camoufox.engine import browser_pids_under
+from openajar.node.display import kill_processes
+from openajar.node.lanes import build_lane_manager
+from openajar.policy.service import PolicyService
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-RANGES = {"display_base": int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "430")),
-          "vnc_base": int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5430")),
-          "viewer_base": int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6430")), "max_slots": 10}
-ROUNDS = int(os.environ.get("AGENTOS_TEST_FREEZE_ROUNDS", "5"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+RANGES = {"display_base": int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "430")),
+          "vnc_base": int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5430")),
+          "viewer_base": int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6430")), "max_slots": 10}
+ROUNDS = int(os.environ.get("OPENAJAR_TEST_FREEZE_ROUNDS", "5"))
 LANE = "freeze/one"
 TARGET_MS = 2000
 
-PAGE = """<!doctype html><html><head><title>agentos freeze test</title></head><body style="background:#fff">
+PAGE = """<!doctype html><html><head><title>openajar freeze test</title></head><body style="background:#fff">
 <h1>freeze</h1><textarea id="t" style="width:400px;height:80px"></textarea>
 <button id="b" style="width:200px;height:60px" onclick="this.dataset.clicks=+(this.dataset.clicks||0)+1"
  onmousedown="this.dataset.downs=+(this.dataset.downs||0)+1" onmouseup="this.dataset.ups=+(this.dataset.ups||0)+1"
@@ -147,7 +147,7 @@ async def test_freeze_stops_real_agent_work_fast_and_keeps_the_browser(node):
             pid = pid or session.pid
             assert session.pid == pid and session.alive  # the same browser, never restarted
             async with mgr.using(LANE, principal_kind="human") as page:  # a human looks
-                assert await page.title() == "agentos freeze test"
+                assert await page.title() == "openajar freeze test"
             await freeze.unfreeze("lane", LANE, by="owner")
 
     # the page kept its state through every freeze: what the agent typed and clicked is still there

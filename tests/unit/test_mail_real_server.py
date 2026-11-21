@@ -29,15 +29,15 @@ from test_vault_support import make_vault, private_home
 from typer.testing import CliRunner
 from workflow_support import make_node
 
-from agentos.runner.mail import cli as mail_cli
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.connect import MailConnectFailed, connect
-from agentos.runner.mail.cursor import MailCursors, split
-from agentos.runner.mail.discovery import Found, Server
-from agentos.runner.mail.net import RealNet
-from agentos.runner.mail.outbox import UseAList
-from agentos.runner.mail.session import MailFailed
-from agentos.runner.workflows.mail import (
+from openajar.runner.mail import cli as mail_cli
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.connect import MailConnectFailed, connect
+from openajar.runner.mail.cursor import MailCursors, split
+from openajar.runner.mail.discovery import Found, Server
+from openajar.runner.mail.net import RealNet
+from openajar.runner.mail.outbox import UseAList
+from openajar.runner.mail.session import MailFailed
+from openajar.runner.workflows.mail import (
     Mailbox,
     MessageGone,
     SendRefused,
@@ -45,8 +45,8 @@ from agentos.runner.workflows.mail import (
     TlsTransport,
     build_message,
 )
-from agentos.runner.workflows.sends import Unsubscribe
-from agentos.vault.secret import Secret
+from openajar.runner.workflows.sends import Unsubscribe
+from openajar.vault.secret import Secret
 
 pytestmark = pytest.mark.mailserver
 UNSUB = Unsubscribe("tok", None, "mailto:owner@example.test?subject=unsubscribe-tok")
@@ -487,7 +487,7 @@ async def test_the_probe_of_step_six_sends_no_credential_and_checks_the_certific
 def test_the_cli_connects_to_the_real_server_and_a_wrong_password_saves_nothing(server, tmp_path, monkeypatch):
     home = private_home(tmp_path)
     make_vault(home)
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     monkeypatch.setenv("SSL_CERT_FILE", str(server.ca))  # the default context, as the daemon's, trusting this CA
     args = ["connect", FRIEND, "--id", "biz-a/inbox", "--imap-host", HOST, "--imap-port", str(server.ports[993]),
             "--smtp-host", HOST, "--smtp-port", str(server.ports[465])]

@@ -138,7 +138,7 @@ def input_conformance(views: list[dict[str, Any]], log: list[dict[str, Any]] | N
     """Human input only. The page's listener (`views`) is the witness for where presses landed and
     what the page saw happen; the node's input log (`log`, inputlog.py) for pointer travel and
     timing, which a page that runs late cannot measure. `humanized`: the lane's browser glides
-    every pointer move itself (Camoufox's humanize), as every agentos lane does."""
+    every pointer move itself (Camoufox's humanize), as every openajar lane does."""
     findings: list[str] = []
     stats: dict[str, Any] = {"views": len(views), "moves": 0, "clicks": 0, "centered": 0, "wheels": 0,
                              "scrolls": 0, "unwheeled_scrolls": 0, "keys": 0, "untrusted": 0, "max_lag_ms": 0,
@@ -283,7 +283,7 @@ def suite_center_rate(runs: list[dict[str, Any]]) -> dict[str, Any]:
 
 def patch_problems(patch: dict[str, Any] | None) -> list[str]:
     """What makes a locator patch unusable before it is tried on a page."""
-    from agentos.core.locator import Locator
+    from openajar.core.locator import Locator
 
     if not patch:
         return ["no patch"]

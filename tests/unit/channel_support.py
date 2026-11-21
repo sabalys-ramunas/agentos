@@ -14,16 +14,16 @@ from fakes import FakeInteraction, FakeLaneManager
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from agentos.controller.app import Controller, serve_controller
-from agentos.controller.config import ControllerConfig
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, LaneSpec
-from agentos.core.tools import ToolSpec
-from agentos.mcp import providers as mcp_providers
-from agentos.node.channel.enroll import enroll
-from agentos.node.channel.node import Timings
-from agentos.node.daemon import build_services, node_runtime, serve
-from agentos.policy.ceiling import ControllerCeiling
+from openajar.controller.app import Controller, serve_controller
+from openajar.controller.config import ControllerConfig
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, LaneSpec
+from openajar.core.tools import ToolSpec
+from openajar.mcp import providers as mcp_providers
+from openajar.node.channel.enroll import enroll
+from openajar.node.channel.node import Timings
+from openajar.node.daemon import build_services, node_runtime, serve
+from openajar.policy.ceiling import ControllerCeiling
 
 AGENT_TOKEN = "aga_test_agent_token_for_the_controller"
 OWNER_TOKEN = "owner-token-for-controller-tests"
@@ -109,7 +109,7 @@ async def join_node(home: Path, name: str, ctl: RunningController, *, org_id: st
     config = NodeConfig(home=home, name=name, mcp_token=f"node-token-{name}", mcp_port=0)
     home.mkdir(parents=True, exist_ok=True)
     _, token = ctl.controller.create_join_token(org_id or ctl.org, name=name)
-    # the owner's own controller, as `agentos up` joins it: the full ceiling (test_controller_ceiling.py
+    # the owner's own controller, as `openajar up` joins it: the full ceiling (test_controller_ceiling.py
     # covers the hosted default)
     return await enroll(config, ctl.node_url, token, ceiling=ControllerCeiling.full())
 
@@ -122,7 +122,7 @@ async def start_node(home: Path, name: str, ctl: RunningController, lanes: list[
         await manager.create(LaneSpec(id=lane))
     interaction = FakeInteraction()
     runtime = node_runtime(config, manager, interaction)
-    build_services(runtime, ["agentos.policy.service", "agentos.node.channel.service"])
+    build_services(runtime, ["openajar.policy.service", "openajar.node.channel.service"])
     runtime.get("channel").timings = FAST
     runtime.get("channel")._backoff.low, runtime.get("channel")._backoff.high = FAST.backoff_min, FAST.backoff_max
     stop = asyncio.Event()

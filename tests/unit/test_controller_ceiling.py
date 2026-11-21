@@ -1,4 +1,4 @@
-"""The controller ceiling (agentos.policy.ceiling): what the node's owner lets a controller do,
+"""The controller ceiling (openajar.policy.ceiling): what the node's owner lets a controller do,
 set in node.toml and applied to the org's grants, lane_control and stream_open."""
 
 from __future__ import annotations
@@ -15,20 +15,20 @@ from channel_support import AGENT_TOKEN, OWNER_TOKEN, start_controller, start_no
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_qa_controller_up import builder, until_connected
 
-from agentos.controller.config import ControllerConfig, save_controller_config
-from agentos.controller.up import run_up
-from agentos.core import signing
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.models import ControlState, Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.node.channel import wire
-from agentos.policy import tokens
-from agentos.policy.ceiling import ControllerCeiling
-from agentos.policy.errors import Denied
-from agentos.policy.grants import GrantBlock, Specials
-from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
-from agentos.policy.service import build
-from agentos.policy.util import new_id
+from openajar.controller.config import ControllerConfig, save_controller_config
+from openajar.controller.up import run_up
+from openajar.core import signing
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.models import ControlState, Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.node.channel import wire
+from openajar.policy import tokens
+from openajar.policy.ceiling import ControllerCeiling
+from openajar.policy.errors import Denied
+from openajar.policy.grants import GrantBlock, Specials
+from openajar.policy.issuers import SERVICE_NAME, TrustedIssuers
+from openajar.policy.service import build
+from openajar.policy.util import new_id
 
 
 def mint(key, *, ceiling="irreversible", specials=True, **fields):
@@ -304,7 +304,7 @@ async def test_an_invoke_above_the_ceiling_is_refused_with_the_reason(hosted):
     assert result.body["error"]["message"].startswith("controller_ceiling: ")
 
 
-# ---- the controller shows it; `agentos up` and `node join` write it ----
+# ---- the controller shows it; `openajar up` and `node join` write it ----
 
 async def test_the_controller_lists_the_ceiling_a_node_reported(tmp_path):
     ctl = await start_controller(tmp_path / "ctl")
@@ -342,7 +342,7 @@ async def run_once(node_home, ctl_cfg) -> None:
         await asyncio.wait_for(task, 20)
 
 
-async def test_agentos_up_writes_the_full_ceiling_and_keeps_one_the_owner_lowered(up_home):
+async def test_openajar_up_writes_the_full_ceiling_and_keeps_one_the_owner_lowered(up_home):
     node_home, ctl_cfg = up_home
     await run_once(node_home, ctl_cfg)
     assert ControllerCeiling.from_config(load_config(node_home)) == ControllerCeiling.full()
@@ -352,7 +352,7 @@ async def test_agentos_up_writes_the_full_ceiling_and_keeps_one_the_owner_lowere
     assert load_config(node_home).controller_streams == ["view"]  # the owner's choice stays
 
 
-async def test_agentos_up_gives_a_node_joined_before_the_ceiling_the_full_one(up_home):
+async def test_openajar_up_gives_a_node_joined_before_the_ceiling_the_full_one(up_home):
     node_home, ctl_cfg = up_home
     await run_once(node_home, ctl_cfg)
     path = node_home / "node.toml"
@@ -365,7 +365,7 @@ async def test_agentos_up_gives_a_node_joined_before_the_ceiling_the_full_one(up
     assert ControllerCeiling.from_config(load_config(node_home)) == ControllerCeiling.full()
 
 
-async def test_agentos_up_upgrades_an_old_node_after_any_save(up_home):
+async def test_openajar_up_upgrades_an_old_node_after_any_save(up_home):
     """node.toml is saved whole on any change (rotate-token and the like), so a node from before the
     ceiling has every ceiling key afterwards; up must still give it the full ceiling."""
     node_home, ctl_cfg = up_home
@@ -383,7 +383,7 @@ async def test_agentos_up_upgrades_an_old_node_after_any_save(up_home):
     assert loaded.controller_ceiling_by == "self_hosted"
 
 
-async def test_agentos_up_keeps_a_lowered_ceiling_through_saves_and_one_the_owner_pinned(up_home):
+async def test_openajar_up_keeps_a_lowered_ceiling_through_saves_and_one_the_owner_pinned(up_home):
     node_home, ctl_cfg = up_home
     await run_once(node_home, ctl_cfg)
     save_config(load_config(node_home).model_copy(update=ControllerCeiling().settings()))  # lowered to hosted
@@ -409,7 +409,7 @@ def test_who_set_the_ceiling_decides_whether_up_may_raise_it():
 
 
 async def test_joining_another_controller_resets_the_ceiling(tmp_path):
-    from agentos.node.channel.enroll import enroll
+    from openajar.node.channel.enroll import enroll
 
     ctl = await start_controller(tmp_path / "ctl")
     try:

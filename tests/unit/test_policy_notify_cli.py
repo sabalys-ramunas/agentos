@@ -1,4 +1,4 @@
-"""`agentos policy notify` for members: hours, member channels, rotate, remove, test."""
+"""`openajar policy notify` for members: hours, member channels, rotate, remove, test."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ import pytest
 from test_policy_support import OWNER
 from typer.testing import CliRunner
 
-from agentos.core.config import NodeConfig, save_config
-from agentos.policy.cli import app
+from openajar.core.config import NodeConfig, save_config
+from openajar.policy.cli import app
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, mcp_token=OWNER))
     return tmp_path
 
@@ -41,7 +41,7 @@ def test_hours_for_the_owner_members_and_defaults(home):
 
 def test_a_member_channel_rotate_remove_and_test(home):
     made = run("member", "m_va")
-    assert made.exit_code == 0 and "subscribe to the topic agentos-" in made.stdout
+    assert made.exit_code == 0 and "subscribe to the topic openajar-" in made.stdout
     topic = made.stdout.split("topic ")[1].split()[0]
     shown = json.loads(run("show", "--member", "m_va").stdout)
     assert shown["topic"] == topic and shown["quiet_hours"] == ["21:00", "08:00"]  # the member defaults

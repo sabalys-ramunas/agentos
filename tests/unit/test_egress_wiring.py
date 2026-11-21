@@ -10,16 +10,16 @@ from fakes import FakeInteraction, FakeLaneManager
 from test_egress import FakeContext
 from test_lanes import FakeEngine, FakeSession, make
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import EgressRefused, EngineError, InvalidRequest
-from agentos.core.models import ActionKind, ControlState, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.node import egress
-from agentos.node import tools as node_tools
-from agentos.node.egress import Driver, EgressTrace, LaneGuard
-from agentos.node.routes import RouteDispatcher
-from agentos.workspaces.planner import make_plan
-from agentos.workspaces.templates import parse_template
+from openajar.core.config import NodeConfig
+from openajar.core.errors import EgressRefused, EngineError, InvalidRequest
+from openajar.core.models import ActionKind, ControlState, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.node import egress
+from openajar.node import tools as node_tools
+from openajar.node.egress import Driver, EgressTrace, LaneGuard
+from openajar.node.routes import RouteDispatcher
+from openajar.workspaces.planner import make_plan
+from openajar.workspaces.templates import parse_template
 
 LANE = "biz-a/instagram"
 
@@ -99,7 +99,7 @@ def test_a_template_surface_can_set_the_lane_site_list():
     plan = make_plan(tpl, ["biz-a"], proxies={"biz-a/store": None, "biz-a/blog": None}, existing={},
                      override=False, reason=None)
     assert [s.sites for s in plan.steps] == [["shop.example.com", "*.shopifycdn.com"], None]
-    from agentos.workspaces.templates import TemplateInvalid
+    from openajar.workspaces.templates import TemplateInvalid
 
     with pytest.raises(TemplateInvalid, match="sites"):
         parse_template("bad", TEMPLATE.replace('"*.shopifycdn.com"', '"*"'))

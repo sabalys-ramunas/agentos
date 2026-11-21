@@ -1,7 +1,7 @@
 # Any computer as a node: desktop lanes, macOS first
 
-Status: design, 2026-11-04. Not built: today a Mac cannot be a node (`agentos up --here` says so
-and points to `agentos dev up --seed`, the fake node, for trying agentos on a Mac). Owner's bet: "Any computer as a node, including your Mac and
+Status: design, 2026-11-04. Not built: today a Mac cannot be a node (`openajar up --here` says so
+and points to `openajar dev up --seed`, the fake node, for trying openajar on a Mac). Owner's bet: "Any computer as a node, including your Mac and
 Windows. Make a macOS node first-class, with computer-use over the real desktop, native
 apps, and the Keychain as a vault backend."
 
@@ -13,7 +13,7 @@ before builders depend on it.
 
 ## 1. Summary and recommendation
 
-agentos today has one kind of screen: a browser on a Linux node, under Xvfb, driven
+openajar today has one kind of screen: a browser on a Linux node, under Xvfb, driven
 through Playwright. This design adds a second kind, the **desk**: a real macOS (later
 Windows) graphical session that an agent drives with computer use, under the same grants,
 effect classes, approvals, take over and vault as a browser lane.
@@ -30,7 +30,7 @@ Recommendations, in order of weight:
    on that screen.
 2. **Three desk hosts, picked by trust and load:**
    - **Dedicated desk** (the default, on a home Mac mini): a separate, non-admin macOS
-     user whose session belongs to agentos. Full computer use, its own cursor, real Apple
+     user whose session belongs to openajar. Full computer use, its own cursor, real Apple
      hardware. One per Mac unless spike S1 shows more sessions are practical.
    - **VM desk** (for isolation, on the Mac mini): a macOS guest in Apple's
      Virtualization framework [A9]. Strongest isolation, but at most two macOS guests run
@@ -40,7 +40,7 @@ Recommendations, in order of weight:
      time to a named set of app windows. AX actions only by default, no cursor fights,
      paused the instant the owner touches the mouse or keyboard. Light by construction:
      no warm browser lanes, no scheduled work.
-3. **One signed native helper app does every privileged macOS thing.** `agentos.app`
+3. **One signed native helper app does every privileged macOS thing.** `openajar.app`
    (Swift, Developer ID signed, notarized [A16]) holds the TCC permissions (Accessibility,
    Screen Recording, Input Monitoring), runs per graphical session as a LaunchAgent
    registered with SMAppService [A13], and talks to `agentosd` over a Unix socket. The
@@ -66,7 +66,7 @@ Recommendations, in order of weight:
 
 The scariest case is an agent with desktop control on the owner's own Mac. The design
 answers it with five hard rules (section 4.9): input only into allowlisted app windows,
-checked at every event; a fixed blocklist (agentos's own UI, System Settings, Terminal,
+checked at every event; a fixed blocklist (openajar's own UI, System Settings, Terminal,
 password managers, security prompts) that no grant can lift; approvals that need Touch ID
 or the phone, never a click a synthetic event could make; real owner input always wins;
 and a kill switch that does not depend on the agent, the controller or the network.
@@ -114,9 +114,9 @@ and a kill switch that does not depend on the agent, the controller or the netwo
 
 The owner buys (or already has) an Apple silicon Mac mini, plugs it into the home router
 by Ethernet and leaves it on a shelf. One install creates a macOS user `agentos-desk1`
-(non-admin), installs `agentos.app` and `agentosd`, and joins the mesh. The owner sits at
+(non-admin), installs `openajar.app` and `agentosd`, and joins the mesh. The owner sits at
 it once, with a keyboard or over Apple's Screen Sharing, ticks the helper under Privacy &
-Security for Accessibility and Screen Recording, and `agentos doctor` on the mini goes
+Security for Accessibility and Screen Recording, and `openajar doctor` on the mini goes
 green.
 
 The Meta lanes (`biz-a/facebook`, `biz-a/instagram`, `personal/facebook`) are browser
@@ -189,26 +189,26 @@ heavy is offered to the mini instead: "this app is also on mini-1; run it there?
 ```
 +------------------------------- Mac mini (profile: dedicated) ----------------------------+
 |  launchd (system)                                                                        |
-|    agentosd  (LaunchDaemon, user _agentos, no GUI)                                       |
+|    agentosd  (LaunchDaemon, user _openajar, no GUI)                                       |
 |      lane manager, grants, vault (key wrapped by the Secure Enclave), channel, runner    |
 |      egress forwarders, pf anchor (spike S6), viewer relay, MCP                          |
 |        |  Unix socket per desk, peer checked (uid + code signature)                      |
 |        v                                                                                 |
 |  GUI session of agentos-desk1 (non-admin, auto-start rules in 4.5)                       |
-|    agentos.app in desk mode (LaunchAgent via SMAppService, TCC: AX, Screen, Input Mon.)  |
+|    openajar.app in desk mode (LaunchAgent via SMAppService, TCC: AX, Screen, Input Mon.)  |
 |      AX outline + actions | ScreenCaptureKit capture | CGEvent input | RFB over socket   |
 |      launches lane apps and Camoufox as agentos-desk1                                    |
 |    lane apps: Books.app, Camoufox (biz-a/instagram), Camoufox (personal/facebook) ...    |
 |                                                                                          |
 |  VM desks (optional, at most 2 macOS guests): Virtualization.framework, run by agentosd  |
-|    inside each guest: agentos.app in desk mode, reached over a virtio socket             |
+|    inside each guest: openajar.app in desk mode, reached over a virtio socket             |
 +------------------------------------------------------------------------------------------+
 
 +------------------------------- MacBook (profile: daily) ---------------------------------+
-|  agentos.app in owner mode (menu bar): approvals with Touch ID, status, lend, offload     |
+|  openajar.app in owner mode (menu bar): approvals with Touch ID, status, lend, offload     |
 |    holds the lend session; no browser lanes, no schedules                                |
 |  agentosd (LaunchAgent in the owner's session, only when desktop-lend is enabled)        |
-|  agentos connect tunnels (today's client, unchanged)                                     |
+|  openajar connect tunnels (today's client, unchanged)                                     |
 +------------------------------------------------------------------------------------------+
 ```
 
@@ -222,7 +222,7 @@ small signed app has one stable designated requirement (team id plus bundle id),
 grant survives updates and belongs to exactly that code. The helper keeps no policy: it
 executes, checks a few invariants on every event (section 4.9), and reports.
 
-Why the daemon runs as `_agentos` and not as the desk user on the mini. Lane apps
+Why the daemon runs as `_openajar` and not as the desk user on the mini. Lane apps
 (including a browser rendering hostile pages) run as `agentos-desk1`. If agentosd ran as
 that user too, a compromised lane app could read the vault database, grants and other
 lanes' state. A separate service user puts the main secrets behind a uid boundary, the
@@ -266,7 +266,7 @@ because Playwright delivers their input inside the browser, not through the OS.
 
 **The snapshot: the AX tree as an outline with refs.** The helper walks the AX tree of
 the lane's allowed apps [A1, A2] and agentosd renders it in the browser snapshot grammar
-(`src/agentos/node/snapshot.py`), so agents and flows reuse what they know:
+(`src/openajar/node/snapshot.py`), so agents and flows reuse what they know:
 
 - One `app` line per allowed app, then its windows, then the element tree. The menu bar
   is listed only when asked (`scope="menu"`), because walking menus is slow.
@@ -311,7 +311,7 @@ step needs it, or for points.
 teleporting pointer, wheel scrolling, a look-before-you-act pause, a random point inside
 the target, a real press duration, typing one character at a time with uneven rhythm.
 To keep one source of truth, agentosd computes the input plan in Python (the same
-generators as `src/agentos/node/human.py`: a curved path with timings, wheel steps,
+generators as `src/openajar/node/human.py`: a curved path with timings, wheel steps,
 key timings), and the helper replays it as CGEvents [A6, A7] with the given delays,
 re-checking the target at each step. Native apps rarely profile input the way Meta does,
 so pacing on desks can be faster by profile, but never instantaneous.
@@ -336,7 +336,7 @@ What the helper needs, per Mac:
 
 How the grant is obtained once:
 
-1. The installer places `agentos.app` in `/Applications` and registers its LaunchAgent
+1. The installer places `openajar.app` in `/Applications` and registers its LaunchAgent
    with SMAppService [A13] (the owner sees one "Background item added" notice).
 2. The app opens to a setup checklist. Each row has an "Open the setting" button that
    deep-links to the right Privacy & Security pane and a live tick that turns green when
@@ -345,7 +345,7 @@ How the grant is obtained once:
    Screen Sharing. **(spike S3)** confirms that Screen Sharing input is accepted in the
    permission panes and prompts; macOS filters synthetic input from some security
    prompts [R1], which is exactly why a helper cannot click its own permission.
-4. `agentos doctor` on the node checks all of them and states the fix in one sentence.
+4. `openajar doctor` on the node checks all of them and states the fix in one sentence.
 5. The grant belongs to the signed code identity, so updates keep it as long as the team
    id and bundle id stay the same. Whether a grant made in one user's session covers the
    desk users too, or must be made once per user, is **(spike S3)**; the checklist handles
@@ -404,7 +404,7 @@ every Linux preset. That is the phase 1b quick win.
 ### 4.5 The node daemon on macOS: launchd, the menu bar, sleep and power
 
 **Processes and launchd.** On a dedicated Mac: `agentosd` is a LaunchDaemon (system
-domain, user `_agentos`, `KeepAlive`), so it runs before anyone logs in and owns the
+domain, user `_openajar`, `KeepAlive`), so it runs before anyone logs in and owns the
 channel, the vault and the grants. The helper is a LaunchAgent in each desk user's
 session, `LimitLoadToSessionType = Aqua`, registered with SMAppService [A13, A14]; it
 connects to the daemon's socket for its desk and refuses to start in any other user's
@@ -458,7 +458,7 @@ Camoufox ships macOS builds, arm64 only going forward [R3]. On a Mac:
 - **How agentosd drives it.** The daemon cannot be the parent of a process in another
   user's session, so the helper starts Camoufox in remote server mode and hands the
   daemon a per-launch endpoint with a random secret path; the daemon connects Playwright
-  to it. The endpoint is loopback only and the pf anchor allows only `_agentos` to reach
+  to it. The endpoint is loopback only and the pf anchor allows only `_openajar` to reach
   it **(spike S5)**. If that proves fragile, the fallback is a small lane runner process
   in the desk session that owns Playwright and exposes the `BrowserSession` contract over
   the desk socket.
@@ -488,7 +488,7 @@ What macOS allows, plainly [A19, A20, A21, A25]:
 
 - An app can create and read its own Keychain items freely. In the data protection
   keychain (the modern one), items are readable only by apps in the same keychain access
-  group, which is tied to the signing team. agentos cannot read other vendors' items there.
+  group, which is tied to the signing team. openajar cannot read other vendors' items there.
 - Items in the file-based login keychain carry per-item access lists. Reading another
   app's item makes macOS ask the user, in a system dialog, to allow it once or always,
   with the login password. That dialog is a security prompt an agent cannot click
@@ -504,7 +504,7 @@ The design uses these in three ways:
 
 1. **Key custody (phase 4, the default on Macs).** A new `KeyCustody` backend:
    `keychain-se`. The vault's master key (today `secrets/vault.key` or a passphrase,
-   `src/agentos/vault/crypto.py`) is wrapped with a Secure Enclave P-256 key using ECIES
+   `src/openajar/vault/crypto.py`) is wrapped with a Secure Enclave P-256 key using ECIES
    (`SecKeyCreateEncryptedData` [A20]); the wrapped blob lives in the vault meta, the key
    handle in the helper's keychain. Unwrap needs the helper, so the helper is the only
    process that can unseal; it returns the master key to agentosd over the peer-checked
@@ -528,13 +528,13 @@ The design uses these in three ways:
    labels the owner chose to import.
 
 **Secrets into native apps.** The vault's No-Body-Injection rule
-(`src/agentos/vault/policy.py`) gains three sinks: `app_username`, `app_password`,
+(`src/openajar/vault/policy.py`) gains three sinks: `app_username`, `app_password`,
 `app_otp`. An entry is bound to an app by bundle id plus team id (the analogue of a
 registrable domain); a field qualifies only if it is in a window of that app, the app's
 running code passes its designated requirement check (team id), the element is
 `AXSecureTextField` for passwords (an `AXTextField` with a matching `AXIdentifier` or
 content type for usernames and codes), enabled and focused. The desktop typist adapter
-implements the existing `Typist` contract (`src/agentos/vault/typist.py`): the helper
+implements the existing `Typist` contract (`src/openajar/vault/typist.py`): the helper
 receives the secret as a binary frame, focuses the field, and before every keystroke
 re-checks the frontmost app's pid and team id, the focused element and its subrole; any
 change aborts with `TypistAborted`. Keys are sent as CGEvents carrying the character
@@ -566,10 +566,10 @@ Two different situations:
 
 | Threat | Example | Blast radius | Mitigation |
 |---|---|---|---|
-| A hijacked agent drives the owner's own Mac | injected text tells the agent to open Terminal, or Mail, or the agentos panel and approve itself | everything the owner can do | lend is opt-in, per app window, time boxed, Touch ID to start; the fixed blocklist; input only into allowlisted windows checked per event; approvals never clickable; real input wins; kill chord |
-| The agent approves its own request | clicks Approve in the panel or the menu bar, or "Always Allow" in a Keychain prompt | every gate | approvals on a Mac need Touch ID or the phone (biometry cannot be synthesized); agentos's own windows and every system security prompt are on the blocklist; capture excludes agentos's own windows |
+| A hijacked agent drives the owner's own Mac | injected text tells the agent to open Terminal, or Mail, or the openajar panel and approve itself | everything the owner can do | lend is opt-in, per app window, time boxed, Touch ID to start; the fixed blocklist; input only into allowlisted windows checked per event; approvals never clickable; real input wins; kill chord |
+| The agent approves its own request | clicks Approve in the panel or the menu bar, or "Always Allow" in a Keychain prompt | every gate | approvals on a Mac need Touch ID or the phone (biometry cannot be synthesized); openajar's own windows and every system security prompt are on the blocklist; capture excludes openajar's own windows |
 | Reading secrets off the screen | the agent opens Passwords or a password manager in a lent or desk session | the owner's passwords | blocklist; capture is per allowed window; secure fields never read; desk users have no password manager |
-| A lane app escapes on the mini | a hostile page exploits the browser, then reads other lanes' profiles | lanes of that desk | engine sandbox for content processes; desk user has no admin, cannot read `_agentos`; pf limits its network to its forwarders; VM desks for untrusted apps |
+| A lane app escapes on the mini | a hostile page exploits the browser, then reads other lanes' profiles | lanes of that desk | engine sandbox for content processes; desk user has no admin, cannot read `_openajar`; pf limits its network to its forwarders; VM desks for untrusted apps |
 | Foreign dialog steals focus | a system alert or another app's modal appears between check and click | the click lands in the wrong place | the helper checks the window under the point and the frontmost pid immediately before each event and refuses (`blocked:foreign_window`); AX actions target a specific element, not a location |
 | The helper is compromised or replaced | a different binary claims to be the helper | full desk control | daemon checks the peer's code signature (audit token, designated requirement) on every socket connection; the helper checks the daemon's uid; helper has no network access and no listener other than its socket |
 | TCC grant abused by something else | another process asks the helper to act | desk control | the socket is in a 0700 directory, peer uid and signature checked; the helper accepts commands only from agentosd |
@@ -582,7 +582,7 @@ Two different situations:
    for AX actions and pointer and keyboard alike. Launching an app outside the list is
    refused. Open and save panels belong to the app and are allowed; the files they reach
    on a desk are the desk user's.
-2. **The fixed blocklist, no grant can lift it:** agentos.app and the panel in any browser,
+2. **The fixed blocklist, no grant can lift it:** openajar.app and the panel in any browser,
    System Settings, Terminal and other terminal emulators, Script Editor, Automator,
    Shortcuts, Keychain Access, Passwords, known password managers, Activity Monitor,
    Installer, the login window and screen lock, and every system security prompt and
@@ -648,7 +648,7 @@ Two different situations:
 
 **The Interaction protocol, generalized.** Today `LaneManager.using()` yields a Playwright
 `Page` and `Interaction` takes a `Page`. ANDROID.md already proposed a parallel protocol;
-this design unifies them. Sketch for `src/agentos/node/interfaces.py` (a lead change):
+this design unifies them. Sketch for `src/openajar/node/interfaces.py` (a lead change):
 
 ```python
 class Target(BaseModel):
@@ -698,20 +698,20 @@ they already work per lane.
 
 | Package | Change |
 |---|---|
-| `agentos.core.models` | `LaneKind.DESKTOP`; `AppRef`, `DesktopSpec`, `LaneSpec.desktop`; `ActionKind` adds `double_click`, `right_click`, `drag`, `chord`, `menu`; `Signal` details for `foreign_window`, `secure_input`, `locked`, `permission_lost`; `Effect` specials `desktop`, `desktop:lend`; node profile enum `dedicated`, `daily` |
-| `agentos.node.interfaces` | `Surface`, `Target`, `LaneHandle`, `DeskEngine`, `DeskSession` (sketch above); `REF_RE` widened |
-| `agentos.node.snapshot` | the outline renderer split into a shared core and two front ends: Playwright aria text (today) and an AX JSON dump (new); same budget, hints and value rules |
-| `agentos.node.desktop` (new) | the desk engine client: helper socket protocol, input plans from `human.py`, desk input lock, app profile loader, `desktop_*` tools |
-| `agentos.node.lanes` | dispatch on kind to a browser engine or a desk engine; `using()` yields a handle; desk sessions count against warm limits with their own memory estimate |
-| `agentos.node.vnc_relay`, `viewer_app` | relay to a Unix socket endpoint as well as a TCP port; nothing else |
-| `agentos.node.control_tools` | none; `lane_control` works for desktop lanes as is |
-| `agentos.node.daemon` | macOS startup: node profile, power assertions, the desk sockets, FileVault and session checks in health |
-| `agentos.vault` | sinks `app_username`, `app_password`, `app_otp`; entries bound by `app` (bundle id plus team id); `KeyCustody` protocol with `file`, `passphrase`, `keychain-se`; Credential Exchange importer behind the menu-bar app |
-| `agentos.policy` | effect rules for desktop tools and app profiles; `desktop:lend` grant constraints (no schedules, no flows, no brains, TTL ceiling); trifecta check for lend |
-| `agentos.env` | a `MacHost` alongside `NullHost` and `LinuxHost`: uid-based process control, the resource watchdog, pf anchor management; presets report the macOS mapping honestly (`can_isolate` per dial) |
-| `agentos.client` | `agentos connect` unchanged; the menu-bar app reuses its Keychain token store |
-| `agentos.ops` | `doctor` checks: TCC states, SMAppService status, FileVault, power settings, display, desk session up |
-| new `macos/` (Swift package) | `agentos.app`: menu bar, setup checklist, desk helper (AX, ScreenCaptureKit, CGEvent, event tap, RFB encoder, Secure Enclave custody, LocalAuthentication) |
+| `openajar.core.models` | `LaneKind.DESKTOP`; `AppRef`, `DesktopSpec`, `LaneSpec.desktop`; `ActionKind` adds `double_click`, `right_click`, `drag`, `chord`, `menu`; `Signal` details for `foreign_window`, `secure_input`, `locked`, `permission_lost`; `Effect` specials `desktop`, `desktop:lend`; node profile enum `dedicated`, `daily` |
+| `openajar.node.interfaces` | `Surface`, `Target`, `LaneHandle`, `DeskEngine`, `DeskSession` (sketch above); `REF_RE` widened |
+| `openajar.node.snapshot` | the outline renderer split into a shared core and two front ends: Playwright aria text (today) and an AX JSON dump (new); same budget, hints and value rules |
+| `openajar.node.desktop` (new) | the desk engine client: helper socket protocol, input plans from `human.py`, desk input lock, app profile loader, `desktop_*` tools |
+| `openajar.node.lanes` | dispatch on kind to a browser engine or a desk engine; `using()` yields a handle; desk sessions count against warm limits with their own memory estimate |
+| `openajar.node.vnc_relay`, `viewer_app` | relay to a Unix socket endpoint as well as a TCP port; nothing else |
+| `openajar.node.control_tools` | none; `lane_control` works for desktop lanes as is |
+| `openajar.node.daemon` | macOS startup: node profile, power assertions, the desk sockets, FileVault and session checks in health |
+| `openajar.vault` | sinks `app_username`, `app_password`, `app_otp`; entries bound by `app` (bundle id plus team id); `KeyCustody` protocol with `file`, `passphrase`, `keychain-se`; Credential Exchange importer behind the menu-bar app |
+| `openajar.policy` | effect rules for desktop tools and app profiles; `desktop:lend` grant constraints (no schedules, no flows, no brains, TTL ceiling); trifecta check for lend |
+| `openajar.env` | a `MacHost` alongside `NullHost` and `LinuxHost`: uid-based process control, the resource watchdog, pf anchor management; presets report the macOS mapping honestly (`can_isolate` per dial) |
+| `openajar.client` | `openajar connect` unchanged; the menu-bar app reuses its Keychain token store |
+| `openajar.ops` | `doctor` checks: TCC states, SMAppService status, FileVault, power settings, display, desk session up |
+| new `macos/` (Swift package) | `openajar.app`: menu bar, setup checklist, desk helper (AX, ScreenCaptureKit, CGEvent, event tap, RFB encoder, Secure Enclave custody, LocalAuthentication) |
 | `docs/PROTOCOL.md` | additive only (below) |
 
 **Protocol (additive, stays v1).** `enroll` already carries `os` and `capabilities`; new
@@ -782,14 +782,14 @@ Swift package is safe; running the helper is not, outside those places.
 Goal: the data shapes and the outline renderer, so a desk can be described and its tree
 shown exactly like a page.
 - Add `LaneKind.DESKTOP`, `AppRef`, `DesktopSpec`, `LaneSpec.desktop`, the new
-  `ActionKind` values and signal details in `agentos.core.models`, with validation
+  `ActionKind` values and signal details in `openajar.core.models`, with validation
   (allowlist non-empty, team id shape, lend forces `input="ax"`).
 - Propose the `Surface`, `Target`, `LaneHandle`, `DeskEngine`, `DeskSession` protocols for
-  `agentos.node.interfaces` as a patch for the lead (that file is lead-owned); keep the
+  `openajar.node.interfaces` as a patch for the lead (that file is lead-owned); keep the
   browser path compiling with `handle.page`.
 - Split `snapshot.py` into a shared outline core and the Playwright front end, with no
   behaviour change (existing tests stay green), and add the AX front end: input is a JSON
-  dump of the AX tree (define its schema in `agentos.node.desktop.axdump`), output is the
+  dump of the AX tree (define its schema in `openajar.node.desktop.axdump`), output is the
   outline of section 4.2: role map, `[id=]`, `[box=]`, window and menu refs, secure fields
   never valued, `[ax=poor]` marking, the same size budget.
 - Fixtures: hand-written AX dumps for an AppKit form window, a table, a menu, an Electron
@@ -798,8 +798,8 @@ shown exactly like a page.
   browser snapshot tests unchanged.
 
 **Brief P1-B: desktop tools, policy and the fake desk.**
-Goal: agents can use desktop lanes end to end on `agentos dev up` with a fake desk.
-- `agentos.node.desktop`: the desk client against an abstract socket transport, the
+Goal: agents can use desktop lanes end to end on `openajar dev up` with a fake desk.
+- `openajar.node.desktop`: the desk client against an abstract socket transport, the
   per-desk input lock, input plans built from `human.py` generators (a plan is a list of
   timed events; the helper will replay it), and the tools `desktop_snapshot`,
   `desktop_act`, `desktop_screenshot`, `desktop_apps`, `desktop_launch`,
@@ -807,7 +807,7 @@ Goal: agents can use desktop lanes end to end on `agentos dev up` with a fake de
 - A `FakeDesk` engine (promoted next to the other dev fakes): a scripted app with windows
   and an AX dump, which applies acts to its own state, can raise a foreign window, lose
   permissions and hold secure input on demand.
-- Policy in `agentos.policy`: the `desktop` and `desktop:lend` specials, app allowlist and
+- Policy in `openajar.policy`: the `desktop` and `desktop:lend` specials, app allowlist and
   the fixed blocklist checks at the daemon, app profile effect rules, the lend
   constraints (TTL ceiling, no schedules, flows or brains, not narrowable into a run),
   the lend trifecta check.
@@ -822,7 +822,7 @@ Goal: agents can use desktop lanes end to end on `agentos dev up` with a fake de
 **Brief P1-C: vault app sinks and key custody.**
 Goal: secrets can be bound to an app and typed by a desktop typist; the master key can
 live behind a custodian.
-- `agentos.vault.policy`: sinks `app_username`, `app_password`, `app_otp`; entries bound
+- `openajar.vault.policy`: sinks `app_username`, `app_password`, `app_otp`; entries bound
   by `app` (bundle id plus team id) with the same MAC-protected metadata as domains;
   field qualification from structural AX facts only (subrole, identifier, content type,
   enabled, focused, owning app and team).
@@ -830,7 +830,7 @@ live behind a custodian.
   transport: secret sent as a binary frame, per-keystroke checks reported back by the
   helper, abort semantics; tested with the `FakeDesk` from P1-B (coordinate the fake's
   interface with that builder, or stub it locally).
-- `KeyCustody` protocol in `agentos.vault.crypto` with today's `file` and `passphrase`
+- `KeyCustody` protocol in `openajar.vault.crypto` with today's `file` and `passphrase`
   moved behind it unchanged, and a `FakeEnclave` custodian implementing wrap, unwrap and a
   presence-gated release, so the `keychain-se` backend can drop in later.
 - Done when: a password reaches only a secure field of the bound app with matching team
@@ -878,7 +878,7 @@ Same lane kind, same `Surface`, a `windows-session` desk engine:
   (`WTSQueryUserToken` plus `CreateProcessAsUser` [M8]) and talks to the service over a
   named pipe with a restrictive DACL.
 - **Desks:** a client edition of Windows has one interactive session at a time; a
-  dedicated Windows mini PC with an `agentos-desk` user is the dedicated desk. Microsoft's
+  dedicated Windows mini PC with an `openajar-desk` user is the dedicated desk. Microsoft's
   experimental Agent Workspace, a separate session under a separate agent account [M14],
   may be the native answer and should be evaluated when it leaves preview. Hyper-V and
   Windows Sandbox [M12, M13] are the VM desk analogue.
@@ -904,7 +904,7 @@ Same lane kind, same `Surface`, a `windows-session` desk engine:
 
 ## 8. Open questions for the owner
 
-1. **Apple Developer Program membership** for signing and notarizing `agentos.app`, and
+1. **Apple Developer Program membership** for signing and notarizing `openajar.app`, and
    for requesting the persistent content capture entitlement. Recommended default: yes,
    under the owner's own team; without it, TCC grants break on every rebuild.
 2. **FileVault on the Mac mini.** Recommended default: on, with SSH unlock from the home

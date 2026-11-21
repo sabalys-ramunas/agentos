@@ -6,12 +6,12 @@ import time
 
 import pytest
 
-from agentos.core.errors import PolicyDenied
-from agentos.env.execs import Capture, encode_output
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager, program_allowed
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
+from openajar.core.errors import PolicyDenied
+from openajar.env.execs import Capture, encode_output
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager, program_allowed
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def test_capture_keeps_head_and_tail():
         c.feed(b"0123456789")
     assert c.total == 500 and len(c.head) == 25 and len(c.tail) == 75 and c.dropped == 400
     text, enc = encode_output(c)
-    assert enc == "utf-8" and "[agentos: 400 bytes truncated here, of 500 in all; the start and the end are kept]" in text
+    assert enc == "utf-8" and "[openajar: 400 bytes truncated here, of 500 in all; the start and the end are kept]" in text
 
 
 def test_encode_output_handles_multibyte_cuts_and_binary():
@@ -68,6 +68,15 @@ async def test_exec_timeout_terminates_then_kills(mgr):
     t = time.monotonic()
     r = await mgr.exec("ws/bench", "trap '' TERM; sleep 30", timeout_s=0.3)
     assert r.timed_out and r.signal == "SIGKILL" and time.monotonic() - t < 6
+
+
+async def test_a_stop_ends_the_command_at_once_and_its_last_words_are_kept(mgr):
+    stop = asyncio.Event()
+    asyncio.get_running_loop().call_later(0.3, stop.set)
+    t = time.monotonic()
+    r = await mgr.exec("ws/bench", "trap 'echo let go; exit 0' TERM; echo typing; while :; do sleep 0.05; done",
+                       timeout_s=30, stop=stop)
+    assert r.stdout == "typing\nlet go\n" and not r.timed_out and time.monotonic() - t < 3
 
 
 async def test_background_children_do_not_hold_the_exec(mgr):

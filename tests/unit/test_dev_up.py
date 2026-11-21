@@ -1,4 +1,4 @@
-"""`agentos dev up`, in process: the daemon's composition over the dev fakes, served over real HTTP.
+"""`openajar dev up`, in process: the daemon's composition over the dev fakes, served over real HTTP.
 
 MCP is called over HTTP with the printed token, the panel is signed in with the printed code, and
 the node shuts down with every port closed and a temporary home removed."""
@@ -18,9 +18,9 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from websockets.asyncio.client import connect
 
-from agentos.core.config import NodeConfig
-from agentos.dev.cli import banner
-from agentos.dev.node import (
+from openajar.core.config import NodeConfig
+from openajar.dev.cli import banner
+from openajar.dev.node import (
     LANES,
     SEED_QUESTION,
     SEED_SUMMARY,
@@ -30,7 +30,7 @@ from agentos.dev.node import (
     run,
     seed,
 )
-from agentos.vault.service import keyfile_path
+from openajar.vault.service import keyfile_path
 
 
 def free_port() -> int:
@@ -50,7 +50,7 @@ async def refused(port: int) -> bool:
 
 @asynccontextmanager
 async def dev_node(*, home: Path | None = None, seed: bool = True):
-    """`agentos dev up` in this process; yields its DevNode and stops it on exit."""
+    """`openajar dev up` in this process; yields its DevNode and stops it on exit."""
     announced: asyncio.Future[DevNode] = asyncio.get_running_loop().create_future()
     stop = asyncio.Event()
 
@@ -75,7 +75,7 @@ def ref_for(text: str, name: str) -> str:
 async def test_dev_node_serves_mcp_and_the_panel_on_one_port():
     async with dev_node() as node:
         assert node.mcp_url.endswith("/mcp") and node.agent_token in node.claude_add
-        assert "agentos-dev" in node.claude_add and node.mcp_url in node.claude_add
+        assert "openajar-dev" in node.claude_add and node.mcp_url in node.claude_add
 
         async with (
             httpx2.AsyncClient(headers={"Authorization": f"Bearer {node.agent_token}"}) as http,
@@ -215,3 +215,31 @@ async def test_seeding_a_persistent_home_twice_adds_nothing_twice(tmp_path):
     assert pending.count(SEED_SUMMARY) == 1 and pending.count(SEED_QUESTION) == 1
     assert {ws.id for ws in runtime.workspaces.list_workspaces()} == {"biz-a", "biz-b"}
     await lanes.shutdown()
+
+
+def test_a_second_dev_node_never_registers_the_clients_unless_asked(monkeypatch, tmp_path):
+    """`openajar dev up` registers Claude Code and Codex only as itself (no --home, the default port), or with
+    --connect: a builder's or a test's node with its own home or port leaves the person's folders alone."""
+    from typer.testing import CliRunner
+
+    from openajar.cli import app
+    from openajar.dev import cli as dev_cli
+    from openajar.dev import node as dev_node_mod
+
+    asked: list[int] = []
+    monkeypatch.setattr(dev_cli, "connect_clients", lambda port, token: asked.append(port) or [])
+    monkeypatch.setattr(dev_cli, "port_is_free", lambda port: True)
+    monkeypatch.setattr(dev_cli, "banner", lambda node, connected=None: "up")
+
+    async def fake_run(*, home, port, seed_lanes, announce):
+        announce(type("N", (), {"port": port, "agent_token": "t"})())
+
+    monkeypatch.setattr(dev_node_mod, "run", fake_run)
+    runner = CliRunner()
+    for args, want in ((["--home", str(tmp_path)], []), (["--port", "7461"], []), ([], [dev_cli.DEFAULT_PORT]),
+                       (["--home", str(tmp_path), "--connect"], [dev_cli.DEFAULT_PORT]),
+                       (["--no-connect"], [])):
+        asked.clear()
+        out = runner.invoke(app, ["dev", "up", *args])
+        assert out.exit_code == 0, out.output
+        assert asked == want, args

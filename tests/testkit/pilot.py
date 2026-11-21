@@ -6,8 +6,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from agentos.pilot.deciders import Pick, Reply, Text
-from agentos.pilot.hands import ToolFailed
+from openajar.pilot.deciders import Pick, Reply, Text
+from openajar.pilot.hands import ToolFailed
 
 
 def pick(key: str, confidence: float = 0.9) -> dict[str, Any]:

@@ -14,7 +14,7 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from test_dev_up import dev_node
 
-from agentos.dev.web import CHALLENGE_URL
+from openajar.dev.web import CHALLENGE_URL
 
 ON = {"on": "biz-a/shop"}
 

@@ -12,10 +12,10 @@ from datetime import UTC, datetime
 import pytest
 from workflow_support import MAIL, make_node
 
-from agentos.runner.mail import net, session, wire
-from agentos.runner.mail.cursor import MailCursors, compose
-from agentos.runner.mail.session import MailFailed
-from agentos.runner.workflows.mail import Mailbox, Received, TlsTransport
+from openajar.runner.mail import net, session, wire
+from openajar.runner.mail.cursor import MailCursors, compose
+from openajar.runner.mail.session import MailFailed
+from openajar.runner.workflows.mail import Mailbox, Received, TlsTransport
 
 BOX = Mailbox(id="biz-a/mail", address="hello@biz-a.example", imap_host="127.0.0.1", smtp_host="127.0.0.1",
               username="hello@biz-a.example", secret_ref="r", private_hosts=["127.0.0.1"])

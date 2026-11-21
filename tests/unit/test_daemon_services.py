@@ -12,11 +12,11 @@ from fakes import FakeInteraction, FakeLaneManager, mcp_port_for_tests
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.mcp import providers as mcp_providers
-from agentos.node import daemon
-from agentos.node.daemon import build_services, node_runtime, serve
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.mcp import providers as mcp_providers
+from openajar.node import daemon
+from openajar.node.daemon import build_services, node_runtime, serve
 
 TOKEN = "node-token-for-services-test"
 
@@ -69,7 +69,7 @@ async def test_services_start_after_lanes_and_stop_before_them_in_reverse(config
     events: list[str] = []
     names = [fake_module(monkeypatch, f"fake_feature_{n}", lambda rt, n=n: Recorder(n, events)) for n in "ab"]
     runtime = node_runtime(config, Manager(config, events), FakeInteraction())
-    build_services(runtime, [*names, "agentos.not_a_feature.service"])  # a missing package is skipped
+    build_services(runtime, [*names, "openajar.not_a_feature.service"])  # a missing package is skipped
     stop = asyncio.Event()
     stop.set()
     await asyncio.wait_for(serve(config, runtime, stop=stop, providers=[]), 15)
@@ -121,9 +121,9 @@ async def test_real_features_are_served_through_the_policy_wrapper(config):
     manager = FakeLaneManager(config)
     await manager.create(LaneSpec(id="personal/reddit"))
     runtime = node_runtime(config, manager, FakeInteraction())
-    built = [name for name, _ in build_services(runtime, ["agentos.policy.service", "agentos.vault.service",
-                                                          "agentos.runner.service"])]
-    assert built == ["agentos.policy.service", "agentos.vault.service", "agentos.runner.service"]
+    built = [name for name, _ in build_services(runtime, ["openajar.policy.service", "openajar.vault.service",
+                                                          "openajar.runner.service"])]
+    assert built == ["openajar.policy.service", "openajar.vault.service", "openajar.runner.service"]
     assert runtime.has("policy") and runtime.has("vault") and runtime.has("runner")
 
     port: asyncio.Future[int] = asyncio.get_running_loop().create_future()
@@ -195,14 +195,14 @@ async def test_viewer_and_control_api_are_served_with_their_own_auth(tmp_path):
     from edge_lanes import make_manager
     from starlette.testclient import TestClient
 
-    from agentos.node.daemon import build_node_app
+    from openajar.node.daemon import build_node_app
 
     manager, _, cfg = make_manager(tmp_path, mcp_token=TOKEN)
     await manager.create(LaneSpec(id="personal/reddit"))
     await manager.open("personal/reddit")
     runtime = node_runtime(cfg, manager, FakeInteraction())
     app = build_node_app(cfg, runtime, providers=[])
-    from agentos.node.control_tools import take_over_link
+    from openajar.node.control_tools import take_over_link
 
     link = take_over_link(runtime, "personal/reddit")
     with TestClient(app, base_url="http://localhost") as http:
@@ -229,7 +229,7 @@ async def test_with_the_panel_the_control_routes_live_behind_the_panel_auth(tmp_
     from edge_lanes import make_manager
     from starlette.testclient import TestClient
 
-    from agentos.node.daemon import build_node_app
+    from openajar.node.daemon import build_node_app
 
     manager, _, cfg = make_manager(tmp_path, mcp_token=TOKEN)
     await manager.create(LaneSpec(id="personal/reddit"))
@@ -251,7 +251,7 @@ def test_build_runtime_routes_every_signal_to_the_lane_manager(tmp_path, monkeyp
     """Holds need every signal an interaction reads: the daemon wraps the interaction."""
     from edge_lanes import make_manager
 
-    from agentos.node.lanes import SignalWatch
+    from openajar.node.lanes import SignalWatch
 
     manager, _, cfg = make_manager(tmp_path, mcp_token=TOKEN)
     monkeypatch.setattr(daemon, "_build_lane_manager", lambda c: manager)
@@ -266,15 +266,15 @@ def test_policy_build_attaches_the_notifier_to_lane_holds(tmp_path):
 
     manager, _, cfg = make_manager(tmp_path, mcp_token=TOKEN)
     runtime = node_runtime(cfg, manager, FakeInteraction())
-    build_services(runtime, ["agentos.policy.service"])
+    build_services(runtime, ["openajar.policy.service"])
     notifier = runtime.get("notifier")
     assert notifier.on_lane_control in manager._listeners, "policy's notifier should listen to lane control"
 
 
 def test_a_flow_upload_resolves_a_files_put_id_through_the_files_service(config, monkeypatch):
     """browser_file_put stores inbox/<id>/<name>; without a files service the driver could not find an id."""
-    from agentos.node.files import INBOX, FilesConfig, LaneFiles
-    from agentos.node.flow_driver import resolve_inbox_file
+    from openajar.node.files import INBOX, FilesConfig, LaneFiles
+    from openajar.node.flow_driver import resolve_inbox_file
 
     monkeypatch.setattr(daemon, "_build_lane_manager", lambda c: FakeLaneManager(c))
     monkeypatch.setattr(daemon, "_build_interaction", lambda c: FakeInteraction())

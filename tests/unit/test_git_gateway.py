@@ -21,11 +21,11 @@ import pytest
 from test_policy_support import PRESENT, Clock, make_service
 from test_vault_support import make_vault, private_home
 
-from agentos.core.models import Effect
-from agentos.git.gateway import Caller
-from agentos.git.service import GitService, rewrite_pairs
-from agentos.git.upstream import config_env
-from agentos.git.wire import Remote, pkt
+from openajar.core.models import Effect
+from openajar.git.gateway import Caller
+from openajar.git.service import GitService, rewrite_pairs
+from openajar.git.upstream import config_env
+from openajar.git.wire import Remote, pkt
 
 HOST = "example.test"
 REPO = "owner/app"
@@ -87,7 +87,7 @@ class Node:
         return git("rev-parse", ref, cwd=self.upstream).stdout.strip()
 
     async def add_token(self) -> None:
-        from agentos.git import keys
+        from openajar.git import keys
         await self.vault.put_secret("git:test-token", TOKEN, kind=keys.TOKEN_KIND, label="t",
                                     scope=keys.token_scope(HOST, [REPO], None))
 
@@ -143,7 +143,7 @@ async def test_an_undeclared_repository_is_refused_with_what_to_do(node):
     r = await node.run("clone", "-q", f"https://{HOST}/owner/other.git", str(node.tmp / "x"), token=node.token(g.id))
     assert r.returncode != 0
     assert "example.test/owner/other is not declared for dev/code" in r.stderr
-    assert "agentos git remote allow dev example.test/owner/other" in r.stderr
+    assert "openajar git remote allow dev example.test/owner/other" in r.stderr
     [ev] = node.traces("git_refused")
     assert ev.grant_id == g.id and ev.status == "denied" and ev.args["remote"] == "example.test/owner/other"
 
@@ -170,7 +170,7 @@ async def test_a_revoked_grant_cannot_fetch(node):
 
 
 async def test_a_lane_token_on_another_lane_listener_is_refused(node):
-    from agentos.git.gateway import Refused
+    from openajar.git.gateway import Refused
 
     g, _ = node.grant()
     tok = node.token(g.id, lane="dev/other")
@@ -339,7 +339,7 @@ async def test_no_credential_no_push(node):
     git("checkout", "-q", "feature", cwd=work)
     await commit(node, work, tok)
     r = await node.run("push", "origin", "feature", cwd=work, token=tok)
-    assert r.returncode != 0 and "holds no credential" in r.stderr and "agentos git key add" in r.stderr
+    assert r.returncode != 0 and "holds no credential" in r.stderr and "openajar git key add" in r.stderr
 
 
 # ------------------------------------------------------------------ an agent environment's VM
@@ -548,7 +548,7 @@ async def test_a_mixed_push_with_one_foreign_rewrite_sends_nothing(node):
 
 
 async def test_an_environments_checkpoints_never_leave_it(node):
-    """refs/agentos/* are the machine's own checkpoints (agentos.environments.checkpoints): a push of one
+    """refs/agentos/* are the machine's own checkpoints (openajar.environments.checkpoints): a push of one
     is refused, alone or with a branch, and neither the mirror nor the remote gets it."""
     _g, run, work, _env = await vm(node)
     git("update-ref", "refs/agentos/checkpoints/1", "HEAD", cwd=work)
@@ -572,7 +572,7 @@ async def test_requests_that_wait_for_the_mirror_share_the_fetch_that_ran_meanwh
     """A clone, the agent's own fetch and the node's warm-up of one repository at once: each waited for
     the mirror's lock and then fetched from the remote again (the 2026-11-16 run: 163 s and 124 s for
     fetches the one before had just done). One fetch serves the requests that came while it ran."""
-    from agentos.git.upstream import Mirror
+    from openajar.git.upstream import Mirror
 
     real, fetches = Mirror.fetch, []
 
@@ -637,7 +637,7 @@ async def test_an_environment_clones_blobless_and_git_fetches_a_file_when_a_comm
 def test_a_public_repository_vm_config_sends_only_pushes_to_the_gateway(tmp_path):
     """fetch_direct: git on the VM fetches the repository from its host, in any form it is written (ssh
     forms become https, which needs no key), and pushes it to the gateway with the token."""
-    from agentos.git.service import vm_gitconfig
+    from openajar.git.service import vm_gitconfig
 
     home = tmp_path / "vm"
     home.mkdir()
@@ -675,7 +675,7 @@ def pack_of(work: Path, new: str, have: str) -> bytes:
 
 
 async def receive_pack(node: Node, env: dict, body: bytes):
-    from agentos.git.gateway import Request
+    from openajar.git.gateway import Request
 
     return await node.git.gateway.handle(
         Request("POST", f"/{HOST}/{REPO}.git/git-receive-pack", {"x-agentos-git": vm_token(env)}, body),
@@ -696,7 +696,7 @@ def colleague_adds(node: Node, branch: str) -> str:
 async def test_a_force_push_of_its_own_branch_never_overwrites_a_commit_pushed_meanwhile(node, monkeypatch):
     """The lease holds for a force push too: a colleague who pushes between the gateway's refresh and its
     push upstream keeps their commit (the refspec has no `+`, which would make git skip the lease)."""
-    from agentos.git import gateway as gw
+    from openajar.git import gateway as gw
 
     _g, run, work, env = await vm(node)
     git("checkout", "-q", "-b", "agent/own", cwd=work)
@@ -756,7 +756,7 @@ async def test_a_push_that_asks_for_no_report_is_refused_before_the_mirror_takes
 
 
 async def test_an_unexpected_error_after_the_mirror_took_the_pack_puts_every_ref_back(node, monkeypatch):
-    from agentos.git import gateway as gw
+    from openajar.git import gateway as gw
 
     _g, run, work, env = await vm(node)
     git("checkout", "-q", "-b", "agent/err", cwd=work)

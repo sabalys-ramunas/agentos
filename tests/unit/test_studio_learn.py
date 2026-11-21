@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.profiles.service import merge
-from agentos.studio.learn import cluster as cl
-from agentos.studio.learn.draft import Reads, build_draft
-from agentos.studio.learn.learn import MAX_PAGES, signature_changed, site_pages
-from agentos.studio.learn.read import ScreenRead, class_roots, origins_from
-from agentos.studio.learn.tool import brand_change, replace_patch
-from agentos.studio.tokens.color import delta_e, parse_color
+from openajar.core.errors import InvalidRequest
+from openajar.profiles.service import merge
+from openajar.studio.learn import cluster as cl
+from openajar.studio.learn.draft import Reads, build_draft
+from openajar.studio.learn.learn import MAX_PAGES, signature_changed, site_pages
+from openajar.studio.learn.read import ScreenRead, class_roots, origins_from
+from openajar.studio.learn.tool import brand_change, replace_patch
+from openajar.studio.tokens.color import delta_e, parse_color
 
 
 def o(value, prop="color", cat="color", loc=None, reach=0, tag="div"):
@@ -174,13 +174,13 @@ def test_a_draft_with_a_system_is_valid_dtcg_and_labels_its_guesses():
             o("#9ca3af", loc=(0, "p2", "color"))]
     draft = build_draft(Reads(url="http://localhost:3000/", pages=["/"], light=[_screen(origins)],
                               dark=[_screen(dark, "dark")], screens=["default@1280-light", "default@1280-dark"]))
-    from agentos.profiles.sections import check_tokens  # imported here: sections loads through models
+    from openajar.profiles.sections import check_tokens  # imported here: sections loads through models
 
     assert draft.categories["color"].system == "found" and draft.space_step_px == 4.0
     check_tokens(draft.brand["tokens"])                 # what profile_propose will validate
     tree = draft.brand["tokens"]
     t1 = tree["light"]["color"]["text"]["1"]
-    assert t1["$extensions"]["agentos"]["heuristic"] is True and t1["$description"].startswith("heuristic")
+    assert t1["$extensions"]["openajar"]["heuristic"] is True and t1["$description"].startswith("heuristic")
     dark1 = parse_color(tree["dark"]["color"]["text"]["1"]["$value"]["hex"])
     assert delta_e(dark1, parse_color("#f9fafb")) < 0.002
     assert tree["base"]["space"]["3"]["$value"] == {"value": 12, "unit": "px"}
@@ -201,8 +201,8 @@ def test_values_that_fit_nothing_make_no_system_and_no_brand():
 
 
 def test_the_tool_is_in_the_profiles_toolset_and_says_no_em_dash():
-    from agentos.mcp.toolsets import TOOLSETS
-    from agentos.studio import tools
+    from openajar.mcp.toolsets import TOOLSETS
+    from openajar.studio import tools
 
     specs = {s.name: s for s in tools.tool_specs(None)}
     assert specs["profile_learn_brand"].tags == ("profiles",)

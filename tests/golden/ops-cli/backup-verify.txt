@@ -1,4 +1,4 @@
-$ agentos backup verify <TMP>/backups/agentos-test-node-<TS>.tar.gz.age --passphrase-file <TMP>/pw --json
+$ openajar backup verify <TMP>/backups/openajar-test-node-<TS>.tar.gz.age --passphrase-file <TMP>/pw --json
 exit 0
 {
   "ok": true,
@@ -25,6 +25,6 @@ exit 0
   ],
   "skipped": [],
   "sqlite_checked": [
-    "agentos.db"
+    "openajar.db"
   ]
 }

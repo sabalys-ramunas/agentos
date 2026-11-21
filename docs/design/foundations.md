@@ -7,7 +7,7 @@
 > (web/DESIGN.md, web/DESIGN-SYSTEM.md). Where this page gives "live" a colour, that is superseded.
 
 Status: design, 2026-11-12. Owner's words: "basic tokens like table headers need a lot of work."
-Built by D1 on the design wave that moves agentos toward developers' and designers' work.
+Built by D1 on the design wave that moves openajar toward developers' and designers' work.
 
 The files:
 
@@ -169,7 +169,7 @@ outputs. Studio's own loader reads both files to the same 246 values (the only d
 fifth decimal of an oklab channel, from hex rounding):
 
 ```python
-from agentos.studio.tokens import load_tokens
+from openajar.studio.tokens import load_tokens
 a = load_tokens("panel/prototypes/dashboard/tokens.json")
 b = load_tokens(open("panel/prototypes/dashboard/tokens.css").read(), fmt="css")
 ```
@@ -208,12 +208,12 @@ The other primitives: list rows, buttons and icon buttons, inputs, select, searc
 tabs, segmented control, badges and status marks, cards and stat tiles, page header, toolbar,
 breadcrumb, sheet, dialog, menu, tooltip, toast, empty state, skeleton, progress (bar, moving bar,
 steps), keyboard key, code and code block, terminal with ANSI colours, diff, sparkline, small bar
-chart, avatar, workspace and agent marks, the agentos mark, and an image frame with findings outlined
+chart, avatar, workspace and agent marks, the openajar mark, and an image frame with findings outlined
 on a real picture of a page.
 
 ## 4. Studio results
 
-Run from a scratch HOME (`agentos studio up`, port 7471), page served over http.
+Run from a scratch HOME (`openajar studio up`, port 7471), page served over http.
 
 **ui_check**, 375, 768 and 1440, light and dark (6 screens):
 

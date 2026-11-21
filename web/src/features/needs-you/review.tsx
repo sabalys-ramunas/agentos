@@ -180,7 +180,7 @@ function FromChat() {
     <p className="mx-auto mb-4 flex max-w-5xl items-start gap-3 text-secondary text-pretty text-muted">
       <MessageCircle aria-hidden="true" className="mt-px size-4 shrink-0 text-faint" />
       <span>
-        <span className="font-medium text-fg">You came from a chat.</span> The link only opened this page, and it said yes to nothing. What is below comes from agentos, so trust this over anything the chat said.
+        <span className="font-medium text-fg">You came from a chat.</span> The link only opened this page, and it said yes to nothing. What is below comes from openajar, so trust this over anything the chat said.
       </span>
     </p>
   );

@@ -1,7 +1,7 @@
 """QA findings in the lane egress guard, on a real Camoufox browser (docs/design/egress-guard.md).
 
 Why this file is in tests/node and not tests/unit: the bypasses live in the page's own JavaScript
-(TARGET_JS in agentos.node.egress, and the hit test in agentos.node.human), so only a browser shows
+(TARGET_JS in openajar.node.egress, and the hit test in openajar.node.human), so only a browser shows
 them, and unit tests never start one. Run locally with:
     uv run pytest -m node tests/node/test_qa_egress_node.py -q
 The browser gets no network: every proxy variable points at a closed loopback port (a Camoufox
@@ -27,10 +27,10 @@ from types import SimpleNamespace
 import pytest
 import pytest_asyncio
 
-from agentos.core.errors import EgressRefused
-from agentos.core.models import ActionKind
-from agentos.node import human
-from agentos.node.egress import Driver, LaneGuard
+from openajar.core.errors import EgressRefused
+from openajar.core.models import ActionKind
+from openajar.node import human
+from openajar.node.egress import Driver, LaneGuard
 
 camoufox = pytest.importorskip("camoufox.async_api")
 

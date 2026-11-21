@@ -15,8 +15,8 @@ from pathlib import Path
 import pytest
 from fakes import FakeInteraction, FakeLaneManager, mcp_port_for_tests
 
-from agentos.core.config import NodeConfig
-from agentos.node.daemon import node_runtime, serve
+from openajar.core.config import NodeConfig
+from openajar.node.daemon import node_runtime, serve
 
 CHILD = Path(__file__).with_name("shutdown_child.py")
 HARD_EXIT = 3  # the exit code of a forced stop: not a crash (1), not a usage error (2)
@@ -31,7 +31,7 @@ class Daemon:
         self.marks.mkdir(parents=True)
         self.log_path = home / "stderr.log"
         self.stderr = self.log_path.open("w")
-        env = {**os.environ, "AGENTOS_TEST_SLOW_SHUTDOWN": str(slow), "AGENTOS_TEST_DEADLINE": str(deadline)}
+        env = {**os.environ, "OPENAJAR_TEST_SLOW_SHUTDOWN": str(slow), "OPENAJAR_TEST_DEADLINE": str(deadline)}
         self.proc = subprocess.Popen([sys.executable, str(CHILD), str(home)], env=env,
                                      stdout=subprocess.DEVNULL, stderr=self.stderr)
 

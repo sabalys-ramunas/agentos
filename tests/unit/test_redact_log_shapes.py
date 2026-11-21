@@ -3,7 +3,7 @@ alone, and the address masker the node uses on everything a controller reads."""
 
 import pytest
 
-from agentos.policy.redact import mask_addresses, redact_text
+from openajar.policy.redact import mask_addresses, redact_text
 
 
 @pytest.mark.parametrize("text, secret", [
@@ -56,7 +56,7 @@ def test_addresses_are_masked(text, kept):
 
 
 @pytest.mark.parametrize("text", [
-    "agentos 1.2.3 (camoufox 135.0.1)",
+    "openajar 1.2.3 (camoufox 135.0.1)",
     "at 2026-11-04T10:12:34.567Z, 10:12:34 local",
     "took 12:34:56 to finish",
     "the class Foo::Bar and std::vector",

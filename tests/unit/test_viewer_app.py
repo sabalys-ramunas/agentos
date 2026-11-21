@@ -22,13 +22,13 @@ from test_vnc_relay import HANDSHAKE_IN, HANDSHAKE_OUT, FakeVnc, fbur, key, poin
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node import viewer_app, viewer_tokens, vnc_relay
-from agentos.node.viewer_actions import apply_action
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_routes import control_api_routes
-from agentos.node.viewer_tokens import TokenError, ViewMode, ViewTokens, load_or_create_key, make_view_link
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node import viewer_app, viewer_tokens, vnc_relay
+from openajar.node.viewer_actions import apply_action
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_routes import control_api_routes
+from openajar.node.viewer_tokens import TokenError, ViewMode, ViewTokens, load_or_create_key, make_view_link
 
 LANE = "personal/reddit"
 EM_DASH = "\u2014"
@@ -304,7 +304,7 @@ class Node:
 
 
 def boot_of(html: str) -> dict:
-    m = re.search(r'<script type="application/json" id="agentos-boot">(.*?)</script>', html, re.DOTALL)
+    m = re.search(r'<script type="application/json" id="openajar-boot">(.*?)</script>', html, re.DOTALL)
     assert m, "no boot data in the page"
     return json.loads(m.group(1))
 
@@ -313,7 +313,7 @@ async def test_page_serves_with_boot_data_and_strict_headers(node):
     async with httpx.AsyncClient() as client:
         r = await client.get(node.url("/view/personal/reddit", node.token("view")))
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
-    assert "{{" not in r.text and "personal/reddit · agentos" in r.text
+    assert "{{" not in r.text and "personal/reddit · openajar" in r.text
     boot = boot_of(r.text)
     assert boot["mode"] == "view" and boot["lane"]["id"] == LANE and boot["lane"]["live"] is True
     assert boot["lane"]["control"]["state"] == "agent" and boot["traces"] is True
@@ -352,18 +352,18 @@ async def test_pasting_types_into_the_lane_and_the_login_button_sits_in_the_bar(
 
 async def test_copying_in_the_lane_brings_it_to_this_computer_only_on_a_key_or_a_click(node):
     """Copying out reads the lane's clipboard through its own route (the VNC clipboard carries nothing): a
-    moment after the person's own copy key, or on a click of "Copy from the lane"; never on a timer, and the
+    moment after the person's own copy key, or on a click of "Copy from the screen"; never on a timer, and the
     write starts inside the handler (the promise form Safari asks for), with the plain form as a fallback."""
     async with httpx.AsyncClient() as client:
         r = await client.get(node.url("/view/personal/reddit", node.token("control")))
         js = (await client.get(f"http://{node.host}/viewer-assets/viewer.js")).text
     assert boot_of(r.text)["paths"]["clipboard"] == "/view/personal/reddit/clipboard"
-    assert 'id="btn-copy-out"' in r.text and ">Copy from the lane<" in r.text
+    assert 'id="btn-copy-out"' in r.text and ">Copy from the screen<" in r.text
     assert "new ClipboardItem({ 'text/plain': text.then(" in js and "navigator.clipboard.writeText(got)" in js
     assert "copyFromLane(COPY_SETTLE_MS)" in js and "e.isTrusted" in js
     assert "setInterval(copyFromLane" not in js and js.count("copyFromLane(") == 3  # the key, the click, itself
-    assert "'Copied to this computer.'" in js and "'Nothing is copied in the lane.'" in js
-    assert "cannot be pasted on this computer yet" not in js and "Copy from the lane" in js
+    assert "'Copied to this computer.'" in js and "'Nothing is copied on the screen.'" in js
+    assert "cannot be pasted on this computer yet" not in js and "Copy from the screen" in js
     assert "clipboardPasteFrom" not in js and EM_DASH not in js and EM_DASH not in r.text
 
 
@@ -671,7 +671,7 @@ async def test_control_api_routes(tmp_path):
         assert r.json()["id"] == LANE and r.json()["workspace"] == "personal" and r.json()["state"] == "cold"
         r = await client.post(f"{api}/control", json={"action": "hand_back"})  # the node token alone
         assert r.status_code == 403 and r.json()["error"]["code"] == "presence_required"
-        from agentos.api.auth import PRESENCE_HEADER, PanelStore
+        from openajar.api.auth import PRESENCE_HEADER, PanelStore
 
         code = "c0de-" + "y" * 20
         PanelStore.for_home(mgr.config.home).add_code(code, 60)  # the node's CLI, a person
@@ -722,7 +722,7 @@ async def test_a_hand_back_keeps_a_challenge_hold_until_the_person_says_the_chec
 
 
 async def test_viewer_app_from_runtime(tmp_path):
-    from agentos.core.runtime import Runtime
+    from openajar.core.runtime import Runtime
 
     mgr, *_ = make(tmp_path)
     app = viewer_app.viewer_app_from_runtime(Runtime(lanes=mgr, config=mgr.config))

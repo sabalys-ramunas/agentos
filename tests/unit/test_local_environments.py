@@ -1,7 +1,7 @@
-"""agentos local, the environment side: an environment opens with its browser on its VM, the VM
+"""openajar local, the environment side: an environment opens with its browser on its VM, the VM
 firewall follows the laptop's public address, and after a sleep (or a restart) the reapers close what
 is past its time limit at once and say so. test_environments.py's fixture, with the local node's lane
-manager (agentos.local.lanes, routed to the VM as agentos.local.node does it) and VM settings
+manager (openajar.local.lanes, routed to the VM as openajar.local.node does it) and VM settings
 (follow_ip, no fixed ssh_from). The VM's browser and screen are fakes (test_environments_vmbrowser's)."""
 
 from __future__ import annotations
@@ -15,23 +15,23 @@ from test_environments import TITLE, Machine, ok_probe, readable_repo
 from test_environments_vmbrowser import FakePlaywright, VmTunnel
 from test_policy_support import Clock, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, utcnow
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import bringup, vmbrowser
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.local import wake
-from agentos.local.lanes import NO_LOCAL_BROWSER, build_local_lanes
-from agentos.local.node import LOCAL_TOOLS, route_browsers
-from agentos.policy.wrap import bind_request_token, wrap_tool
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmError, VmSettings
-from agentos.vms.provider import FakeProvider
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, utcnow
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import bringup, vmbrowser
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.local import wake
+from openajar.local.lanes import NO_LOCAL_BROWSER, build_local_lanes
+from openajar.local.node import LOCAL_TOOLS, route_browsers
+from openajar.policy.wrap import bind_request_token, wrap_tool
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmError, VmSettings
+from openajar.vms.provider import FakeProvider
 
 HOME_V4, HOME_V6, CAFE_V4 = "203.0.113.5", "2001:db8::5", "198.51.100.20"
 
@@ -49,7 +49,7 @@ class Where:
 
 
 class VmMachine(Machine):
-    """The fake VM, which also answers the browser's control script (agentos.environments.vmbrowser)."""
+    """The fake VM, which also answers the browser's control script (openajar.environments.vmbrowser)."""
 
     def __init__(self):
         super().__init__()
@@ -81,7 +81,7 @@ async def local(tmp_path, monkeypatch):
     rt.register("vms", vms)
     lanes = build_local_lanes(NodeConfig(home=home, self_check=False), reaper_interval=0.05)
     rt.register("lanes", lanes)
-    from agentos.node.interaction import create_interaction
+    from openajar.node.interaction import create_interaction
 
     rt.register("interaction", lanes.watch(create_interaction()))
     pw = FakePlaywright()
@@ -96,8 +96,8 @@ async def local(tmp_path, monkeypatch):
     await lanes.start()
     _, token = policy.issue(subject={"id": "agent-1"}, workspaces=["*"], ceiling=Effect.COMMIT,
                             specials={"vm": {"lanes": ["env/*"]}, "exec": {"lanes": ["env/*"]}})
-    from agentos.env import tool_specs as term_specs
-    from agentos.mcp.providers import tool_providers
+    from openajar.env import tool_specs as term_specs
+    from openajar.mcp.providers import tool_providers
 
     specs = {s.name: s for provider in tool_providers(LOCAL_TOOLS) for s in provider(rt) if hasattr(s, "handler")}
     calls = {name: wrap_tool(spec, rt) for name, spec in {**specs, **{s.name: s for s in term_specs(rt)}}.items()}
@@ -143,11 +143,11 @@ async def test_the_browser_opens_on_the_vm_through_the_routed_engine(local):
     assert env.state == "ready", env.error
     lanes, machine = local["lanes"], local["machine"]
     await asyncio.gather(*local["mgr"]._warming)  # it started during the open (bringup.start_browser)
-    assert [a["action"] for a in machine.asked] == ["display", "browser"]  # the VM's screen, then its browser
+    # the VM's screen (started with the environment, and asked for again, which keeps it), then its browser
+    asked = [a["action"] for a in machine.asked]
+    assert asked[0] == "display" and asked[-1] == "browser" and set(asked[:-1]) == {"display"}
     out = await local["call"]("browser_open")  # no `on`: the environment's browser
     assert out["state"] == "warm"
-    # (this fake's live-view socket is no file, so the lane manager starts the screen again: the same steps)
-    assert [a["action"] for a in machine.asked][-2:] == ["display", "browser"]
     assert local["pw"].connected_to[-1] == f"ws://127.0.0.1:45999{machine.asked[-1]['ws_path']}"
     assert lanes.view(env.browser_lane).vnc_socket == "/tmp/agentos-env-fake/vnc"  # the live view: the tunnel
     session = lanes.live_session(env.browser_lane)
@@ -164,7 +164,7 @@ async def test_the_browser_tools_are_served_on_a_local_node(local):
 
 
 async def test_no_account_lane_is_made_on_this_computer(local):
-    from agentos.core.models import LaneSpec
+    from openajar.core.models import LaneSpec
 
     with pytest.raises(Exception, match="a browser runs only on an environment's VM") as err:
         await local["lanes"].create(LaneSpec(id="personal/reddit"))
@@ -178,7 +178,7 @@ async def test_a_lane_that_is_not_routed_to_a_vm_never_starts_a_browser_here(loc
     import asyncio
     import subprocess
 
-    from agentos.core.models import LaneSpec
+    from openajar.core.models import LaneSpec
 
     started: list = []
 
@@ -292,7 +292,7 @@ async def test_the_catch_up_at_start_says_nothing_was_past_its_limit(local):
 
 
 async def test_status_right_after_a_start_names_this_start_not_the_one_before(local):
-    """`agentos local status` right after a restart said "The service started at" the start before (seen twice
+    """`openajar local status` right after a restart said "The service started at" the start before (seen twice
     on 2026-11-16): the record was written only when the reapers were done, and they can take minutes."""
     import asyncio
     import json

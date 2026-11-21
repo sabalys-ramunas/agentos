@@ -23,17 +23,17 @@ from connector_samples import (
 )
 from test_policy_support import Clock
 
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.approval_binding import call_targets, content_digest
-from agentos.policy.service import PolicyService
-from agentos.policy.taint import family_key
-from agentos.policy.util import content_hash
-from agentos.runner import tools as runner_tools
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.surfaces import APPROVAL_KEYS, ConnectorBroken, PaceLimited
-from agentos.runner.connectors.taint import output_labels
-from agentos.runner.fakes import OWNER, FakeApprovals, FakeCtx, FakeLanes, FakeNotifier, FakePolicy, Harness
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.approval_binding import call_targets, content_digest
+from openajar.policy.service import PolicyService
+from openajar.policy.taint import family_key
+from openajar.policy.util import content_hash
+from openajar.runner import tools as runner_tools
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.surfaces import APPROVAL_KEYS, ConnectorBroken, PaceLimited
+from openajar.runner.connectors.taint import output_labels
+from openajar.runner.fakes import OWNER, FakeApprovals, FakeCtx, FakeLanes, FakeNotifier, FakePolicy, Harness
 
 FID = "connector.social.post_photo"
 LANE = "biz-a/social"
@@ -314,8 +314,8 @@ def test_output_labels_name_untrusted_and_private():
 async def test_files_put_on_a_surface_stages_the_photo_where_the_run_reads_it(tmp_path):
     import base64
 
-    from agentos.core.config import NodeConfig
-    from agentos.node import io_tools
+    from openajar.core.config import NodeConfig
+    from openajar.node import io_tools
 
     png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
                         "0000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
@@ -342,7 +342,7 @@ async def test_files_put_on_a_surface_stages_the_photo_where_the_run_reads_it(tm
 
 async def test_a_connector_post_outside_the_lanes_waking_hours_is_refused_with_when_it_may_post(tmp_path):
     """AUD-13: the lane's posting pace holds for a typed connector tool too, before any approval."""
-    from agentos.policy.pace import LanePaced
+    from openajar.policy.pace import LanePaced
 
     h, _ = _harness(tmp_path, ops={"post_photo": _no_pace()})
     svc, tok = _policy(h, tmp_path)

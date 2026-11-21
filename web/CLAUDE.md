@@ -10,6 +10,6 @@ In short:
   token classes and type roles. A hand-drawn card, dot, spinner, table or error fails `pnpm design:check`,
   and the failure says what to use.
 - Run `pnpm design:check` while you work, and `pnpm typecheck && pnpm lint && pnpm knip && pnpm test`
-  before you commit. Start the dev server with `AGENTOS_API_TARGET=http://127.0.0.1:9` so it stays on the mock.
-- With the agentos-studio tools, `ui_check` the page you changed, in both themes, at 390 and 1440.
+  before you commit. Start the dev server with `OPENAJAR_API_TARGET=http://127.0.0.1:9` so it stays on the mock.
+- With the openajar-studio tools, `ui_check` the page you changed, in both themes, at 390 and 1440.
 - Never raise a count in `src/test/design-allowlist.json`, and never write an em dash in text a person reads.

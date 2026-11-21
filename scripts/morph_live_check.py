@@ -1,16 +1,16 @@
-"""A live check of the Morph Cloud provider (agentos.vms.morph) with a real API key: what the unit
+"""A live check of the Morph Cloud provider (openajar.vms.morph) with a real API key: what the unit
 tests could only fake. It spends a few cents and cleans up after itself.
 
 Run it with the key in a file of mode 600 (never on a command line) and a scratch home:
 
-    uv run python scripts/morph_live_check.py --key-file ~/.agentos/secrets/morph.token --home /tmp/morph-check
+    uv run python scripts/morph_live_check.py --key-file ~/.openajar/secrets/morph.token --home /tmp/morph-check
 
-or with no --key-file, and it asks for the key (hidden). It uses agentos's own code for every step:
+or with no --key-file, and it asks for the key (hidden). It uses openajar's own code for every step:
 
 1. the key is checked (GET /instance), and the SSH gateway's host key is pinned (ssh-keyscan);
 2. one morph-small instance (2 vCPU, 4 GB, 32 GB: 2 MCUs an hour, about USD 0.10) boots from
    Morph's base image with a 20-minute TTL as a backstop, labelled agentos-check;
-3. SSH as agentos does it (agentos.vms.ssh.ssh_base: the instance's own key, the pinned host key,
+3. SSH as openajar does it (openajar.vms.ssh.ssh_base: the instance's own key, the pinned host key,
    `<instance id>@ssh.cloud.morph.so`, BatchMode): `uname -a` and `id`;
 4. the forwards the environments use: -D (a SOCKS proxy, on a Unix socket as the browser tunnel has
    it) reaching a server on the instance's loopback, -R (the git gateway's) reaching a server here,
@@ -26,9 +26,9 @@ estimated cost. What it checks is listed as "unverified" in docs/design/vms.md u
 The whole round trip of an environment (open with keep="save", close: paused, open: resumed) on a
 node of your own, after this check passes:
 
-    agentos vm setup --provider morph --home /tmp/morph-node          # the key, the gateway pinned
-    agentos vm image build dev --home /tmp/morph-node                 # the dev snapshot (a few minutes)
-    agentos dev up --no-connect --port 7463 --home /tmp/morph-node
+    openajar vm setup --provider morph --home /tmp/morph-node          # the key, the gateway pinned
+    openajar vm image build dev --home /tmp/morph-node                 # the dev snapshot (a few minutes)
+    openajar dev up --no-connect --port 7463 --home /tmp/morph-node
     # then, from an agent connected to that node: environment_open(title="morph check", repo=...,
     # keep="save"), start a dev server with terminal_job_start, environment_close(note="..."): `machine` is
     # "paused"; environment_open(title="morph check"): resumed.from is "paused" and the dev server's
@@ -50,12 +50,12 @@ import threading
 import time
 from pathlib import Path
 
-from agentos.env.models import RemoteHost
-from agentos.environments.tunnels import tunnel_argv
-from agentos.vms import keys as vmkeys
-from agentos.vms.morph import MorphProvider, gateway_known_hosts, pin_gateway
-from agentos.vms.provider import ServerSpec
-from agentos.vms.ssh import ssh_base
+from openajar.env.models import RemoteHost
+from openajar.environments.tunnels import tunnel_argv
+from openajar.vms import keys as vmkeys
+from openajar.vms.morph import MorphProvider, gateway_known_hosts, pin_gateway
+from openajar.vms.provider import ServerSpec
+from openajar.vms.ssh import ssh_base
 
 LABELS = {"agentos-check": "morph-live"}
 TTL_S = 20 * 60
@@ -89,13 +89,13 @@ def forwards(remote: RemoteHost, work: Path) -> None:
     threading.Thread(target=server.serve_forever, daemon=True).start()
     here_port = server.server_address[1]
     code, said = run_ssh(remote, "nohup python3 -m http.server 8123 --bind 127.0.0.1 >/dev/null 2>&1 & "
-                                 "nohup python3 -c \"import socket,os;p='/tmp/agentos-check.sock';"
+                                 "nohup python3 -c \"import socket,os;p='/tmp/openajar-check.sock';"
                                  "os.path.exists(p) and os.unlink(p);s=socket.socket(socket.AF_UNIX);s.bind(p);s.listen(1);"
                                  "c,_=s.accept();c.sendall(b'from the instance socket')\" >/dev/null 2>&1 & sleep 1; echo up")
     step("start a web server and a Unix socket on the instance", code == 0, said[-200:])
     socks = work / "socks.sock"
     argv = tunnel_argv(remote, socks_path=str(socks), gateway_port=here_port,
-                       forwards=((str(work / "vnc.sock"), "/tmp/agentos-check.sock"),))
+                       forwards=((str(work / "vnc.sock"), "/tmp/openajar-check.sock"),))
     t0 = time.monotonic()
     tunnel = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
@@ -149,11 +149,11 @@ async def check(key: str, home: Path) -> None:
     step("pinned the gateway's host key", bool(prov.host_keys), "; ".join(prints)[:200])
     server = None
     snaps: list[str] = []
-    work = Path(tempfile.mkdtemp(prefix="agentos-morph-check-"))
+    work = Path(tempfile.mkdtemp(prefix="openajar-morph-check-"))
     try:
         t0 = time.monotonic()
         keys = vmkeys.make(home / "vms", "vm_check")
-        server = await prov.create_server(ServerSpec(name="agentos-morph-check", server_type="morph-small",
+        server = await prov.create_server(ServerSpec(name="openajar-morph-check", server_type="morph-small",
                                                      image=await prov.resolve_image("ubuntu-24.04"), location="morph",
                                                      user_data="", labels=LABELS, ttl_s=TTL_S))
         vmkeys.adopt(home / "vms", "vm_check", server)
@@ -167,13 +167,13 @@ async def check(key: str, home: Path) -> None:
                             key_path=str(keys.client_key), known_hosts=str(keys.known_hosts), host_alias=keys.alias)
         t0 = time.monotonic()
         code, said = run_ssh(remote, "uname -a; id -un; command -v systemctl cloud-init apt-get python3 | tr '\\n' ' '")
-        step("SSH as agentos does it (own key, pinned gateway, no secret on argv)", code == 0, said[-300:],
+        step("SSH as openajar does it (own key, pinned gateway, no secret on argv)", code == 0, said[-300:],
              time.monotonic() - t0)
         if code != 0:
             return
         forwards(remote, work)
-        code, said = run_ssh(remote, "echo kept > /tmp/agentos-check.txt; nohup sleep 100000 >/dev/null 2>&1 & "
-                                     "echo $! > /tmp/agentos-check.pid; cat /tmp/agentos-check.pid")
+        code, said = run_ssh(remote, "echo kept > /tmp/openajar-check.txt; nohup sleep 100000 >/dev/null 2>&1 & "
+                                     "echo $! > /tmp/openajar-check.pid; cat /tmp/openajar-check.pid")
         pid = said.strip().splitlines()[-1] if code == 0 else ""
         step("a process to outlive the pause", code == 0 and pid.isdigit(), f"pid {pid}")
         t0 = time.monotonic()
@@ -187,11 +187,11 @@ async def check(key: str, home: Path) -> None:
         t0 = time.monotonic()
         resumed = await prov.resume_server(server.id)
         vmkeys.adopt(home / "vms", "vm_check", resumed)
-        code, said = run_ssh(remote, f"cat /tmp/agentos-check.txt; kill -0 {pid} && echo running")
+        code, said = run_ssh(remote, f"cat /tmp/openajar-check.txt; kill -0 {pid} && echo running")
         step("resume, with the process still running", code == 0 and "running" in said and "kept" in said, said[-120:],
              time.monotonic() - t0)
         t0 = time.monotonic()
-        sid = await prov.create_snapshot(server.id, "agentos live check", {**LABELS, "agentos-save": "scheck"})
+        sid = await prov.create_snapshot(server.id, "openajar live check", {**LABELS, "agentos-save": "scheck"})
         snaps.append(sid)
         img = await prov.get_image(sid)
         listed = await prov.list_images({"agentos-save": "scheck"})
@@ -221,7 +221,7 @@ def main() -> int:
     ap.add_argument("--home", type=Path, default=None, help="a scratch folder for the keys (default: a temp one)")
     args = ap.parse_args()
     key = args.key_file.read_text().strip() if args.key_file else getpass.getpass("Morph API key (hidden): ").strip()
-    home = args.home or Path(tempfile.mkdtemp(prefix="agentos-morph-home-"))
+    home = args.home or Path(tempfile.mkdtemp(prefix="openajar-morph-home-"))
     home.mkdir(parents=True, exist_ok=True)
     os.chmod(home, 0o700)
     began = time.monotonic()

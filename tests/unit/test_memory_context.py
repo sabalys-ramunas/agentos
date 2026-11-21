@@ -7,7 +7,7 @@ import json
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.memory.models import Caller
+from openajar.memory.models import Caller
 
 OWNER = Caller.owner()
 FAMILY = "family:gr_a"

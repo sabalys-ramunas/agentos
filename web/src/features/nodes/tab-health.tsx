@@ -177,14 +177,14 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
         <Rounds rounds={rounds.data} node={node} notHere={notHere} names={names} />
       </Panel>
 
-      <Panel title="Version" description="The agentos this machine runs.">
+      <Panel title="Version" description="The openajar this machine runs.">
         {upgrade.isPending ? (
           <Skeleton className="h-24 rounded-xl" />
         ) : upgrade.data ? (
           <div className="grid gap-4">
             <Card className="p-4 sm:p-6">
               <p className="text-body">
-                Running agentos <span className="mono">{upgrade.data.running}</span>.
+                Running openajar <span className="mono">{upgrade.data.running}</span>.
               </p>
               <p className="mt-1 text-secondary text-muted">
                 This machine cannot see a newer release from here, so it does not say whether one is out.
@@ -192,7 +192,7 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
             </Card>
             <div className="grid gap-2">
               <p className="text-secondary text-muted">
-                Upgrading restarts agentos on this machine, so every account pauses while it runs. Do it in a terminal on the machine,
+                Upgrading restarts openajar on this machine, so every account pauses while it runs. Do it in a terminal on the machine,
                 after pulling the new code.
               </p>
               {technical ? <CodeBlock code={upgrade.data.command} label="Upgrade command" /> : null}

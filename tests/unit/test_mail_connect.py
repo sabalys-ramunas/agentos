@@ -10,19 +10,19 @@ import pytest
 from test_vault_support import make_vault, private_home
 from workflow_support import make_node
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.mail import connect as connecting
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.connect import (
+from openajar.core.errors import InvalidRequest
+from openajar.runner.mail import connect as connecting
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.connect import (
     MailboxTaken,
     MailConfirmHosts,
     MailConnectFailed,
     MailJobEnded,
     connect,
 )
-from agentos.runner.mail.discovery import Found, Server, discover, typed
-from agentos.runner.workflows.mail import SendRefused, SignInFailed
-from agentos.vault.secret import Secret
+from openajar.runner.mail.discovery import Found, Server, discover, typed
+from openajar.runner.workflows.mail import SendRefused, SignInFailed
+from openajar.vault.secret import Secret
 
 PASSWORD = "the-very-secret-password"
 BOX = "biz-a/inbox"

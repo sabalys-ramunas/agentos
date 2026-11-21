@@ -28,12 +28,12 @@ from test_viewer_app import (  # noqa: F401  (fixtures)
 from test_vnc_relay import HANDSHAKE_OUT, FakeVnc, fbur, key, pointer
 from websockets.asyncio.client import connect
 
-from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE, PanelStore
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node import viewer_app, viewer_tokens
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_routes import control_api_routes
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.api.auth import PRESENCE_HEADER, SESSION_COOKIE, PanelStore
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node import viewer_app, viewer_tokens
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_routes import control_api_routes
+from openajar.node.viewer_tokens import ViewTokens
 
 HOLD = "needs_human:captcha"
 CONTROL = "/view/personal/reddit/control"
@@ -137,7 +137,7 @@ async def test_a_frozen_agents_link_shows_no_page(node, monkeypatch):
     monkeypatch.setattr(viewer, "_frozen", lambda lane_id: True)
     async with client(node) as c:
         r = await c.get(node.url("/view/personal/reddit", node.token("control")))
-        assert r.status_code == 403 and "agentos-boot" not in r.text
+        assert r.status_code == 403 and "openajar-boot" not in r.text
         owner = node.tokens.issue(LANE, "control", owner=True).token
         assert (await c.get(node.url("/view/personal/reddit", owner))).status_code == 200
 
@@ -367,7 +367,7 @@ async def test_one_link_reads_only_so_often(node, lane_clip, monkeypatch):
 
 
 async def test_xclip_missing_tells_the_owner_how_to_install_it(node, monkeypatch):
-    from agentos.node.lane_clipboard import INSTALL_XCLIP, XclipMissing
+    from openajar.node.lane_clipboard import INSTALL_XCLIP, XclipMissing
 
     async def read(display, xauthority):
         raise XclipMissing()

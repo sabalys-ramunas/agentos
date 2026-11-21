@@ -1,6 +1,6 @@
 """browser_console and browser_network on real Camoufox (run on the node).
 
-Run on the node:  AGENTOS_TEST_SLOT=37 scripts/node-test.sh devtools tests/node/test_devtools_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=37 scripts/node-test.sh devtools tests/node/test_devtools_node.py -q
 
 A small app on its own port (the slot's viewer base + 5) logs at every level, throws an uncaught
 error, calls an API that answers 500 with a token in its URL, reads one that answers JSON with a
@@ -25,15 +25,15 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
-from agentos.node import devtools_tools
-from agentos.node.camoufox.engine import PageTracker
-from agentos.node.devtools import MASKED, capture_for
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
+from openajar.node import devtools_tools
+from openajar.node.camoufox.engine import PageTracker
+from openajar.node.devtools import MASKED, capture_for
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
-PORT = int(os.environ.get("AGENTOS_TEST_DEVTOOLS_PORT") or int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6120")) + 5)
+PORT = int(os.environ.get("OPENAJAR_TEST_DEVTOOLS_PORT") or int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6120")) + 5)
 LANE = "dev/app"
 
 APP = """<!doctype html><html lang="en"><head><title>Broken app</title></head><body>

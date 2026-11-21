@@ -2,7 +2,7 @@
 
 Two fixture origins (two ports on 127.0.0.1) serve tests/fixtures/site and record form
 posts, so a test can check what a login form really submitted. Ports come from
-AGENTOS_TEST_TYPIST_PORT (origin A) and the next port (origin B); the display and the
+OPENAJAR_TEST_TYPIST_PORT (origin A) and the next port (origin B); the display and the
 browser come from conftest.py. Only the two origins are reachable from the test pages.
 """
 
@@ -23,22 +23,22 @@ import pyotp
 import pytest
 import pytest_asyncio
 
-from agentos.core.errors import InvalidRequest, RefNotFound
-from agentos.core.runtime import Runtime
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.snapshot import find_refs
-from agentos.node.typist import Locator, PlaywrightTypist, typist_factory
-from agentos.vault import crypto
-from agentos.vault.errors import ResolutionDenied, TypistAborted
-from agentos.vault.login import fill_flow, login_flow
-from agentos.vault.policy import FieldRole, Reason, Sink, classify_fields, decide
-from agentos.vault.service import VaultService, keyfile_path
-from agentos.vault.store import VaultStore
+from openajar.core.errors import InvalidRequest, RefNotFound
+from openajar.core.runtime import Runtime
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.snapshot import find_refs
+from openajar.node.typist import Locator, PlaywrightTypist, typist_factory
+from openajar.vault import crypto
+from openajar.vault.errors import ResolutionDenied, TypistAborted
+from openajar.vault.login import fill_flow, login_flow
+from openajar.vault.policy import FieldRole, Reason, Sink, classify_fields, decide
+from openajar.vault.service import VaultService, keyfile_path
+from openajar.vault.store import VaultStore
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
 SITE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "site"
-PORT_A = int(os.environ.get("AGENTOS_TEST_TYPIST_PORT", str(int(os.environ.get("AGENTOS_TEST_SITE_PORT", "6120")) + 2)))
+PORT_A = int(os.environ.get("OPENAJAR_TEST_TYPIST_PORT", str(int(os.environ.get("OPENAJAR_TEST_SITE_PORT", "6120")) + 2)))
 PORT_B = PORT_A + 1
 
 LANE = "test/typist"
@@ -49,9 +49,9 @@ SEED = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
 # Runs in Camoufox's isolated world, invisible to the page.
 WATCH_MUTATIONS_JS = """
 () => {
-  window.__agentosTestMutations = [];
+  window.__openajarTestMutations = [];
   new MutationObserver((records) => {
-    for (const r of records) window.__agentosTestMutations.push(r.type + ':' + (r.attributeName || ''));
+    for (const r of records) window.__openajarTestMutations.push(r.type + ':' + (r.attributeName || ''));
   }).observe(document, {subtree: true, childList: true, attributes: true, characterData: true});
   return document.documentElement.outerHTML;
 }
@@ -147,7 +147,7 @@ async def assert_untouched(page: Any, before: dict[Any, str]) -> None:
     assert set(page.frames) == set(before)
     for frame, html in before.items():
         assert await frame.evaluate("document.documentElement.outerHTML") == html, frame.url
-        assert await frame.evaluate("window.__agentosTestMutations") == [], frame.url
+        assert await frame.evaluate("window.__openajarTestMutations") == [], frame.url
 
 
 def value_of(selector: str) -> str:
@@ -448,7 +448,7 @@ async def vault_with_entry(tmp_path: Path, monkeypatch, **extra: Any) -> VaultSe
     home = tmp_path / "home"
     home.mkdir(mode=0o700)
     os.chmod(home, 0o700)
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     key = os.urandom(32)
     crypto.write_keyfile(keyfile_path(home), key)
     VaultStore(home / "vault.db").initialize(mode="keyfile", master=key, kdf=None)

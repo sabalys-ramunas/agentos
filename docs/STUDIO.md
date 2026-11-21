@@ -2,7 +2,7 @@
 
 Studio gives an AI agent a real browser to look at the web pages it builds. The agent changes
 the code, asks studio whether the page is all right, and fixes what studio measured, before you
-ever see it. In an agentos environment ([ENVIRONMENTS.md](ENVIRONMENTS.md)), studio checks the
+ever see it. In an openajar environment ([ENVIRONMENTS.md](ENVIRONMENTS.md)), studio checks the
 environment's dev server: `ui_check(url="http://localhost:3000")` measures the page on the VM.
 On its own, studio runs on your computer and needs no node and no account.
 
@@ -12,21 +12,21 @@ Studio is new. This page says what it does today and, just as plainly, what it d
 
 ```
 uv sync --extra studio      # once: the browser library and the image library
-uv run agentos studio up    # starts studio on this computer, at http://127.0.0.1:7460
+uv run openajar studio up    # starts studio on this computer, at http://127.0.0.1:7460
 ```
 
 It prints one `claude mcp add ...` line. Run that line once, and Claude Code can use studio in
 every new session. The same line, its token and the studio's pid are also kept in
-`~/.agentos/studio/up.json` (readable by you only), so a script can read them. One studio runs
+`~/.openajar/studio/up.json` (readable by you only), so a script can read them. One studio runs
 per home: a second `studio up` with the same home refuses and names the first. Two checkouts on
 one computer each need their own HOME and port. Stop a studio with Ctrl-C or `kill <its pid>`,
 never by name: another one may be running. Studio uses the Google Chrome on your computer, or Playwright's Chromium
 (`python -m playwright install chromium`). Firefox and WebKit are optional; `studio up` prints
 the command that adds each.
 
-The `agentos-studio` skill teaches an agent the loops below. `studio up` puts it in Claude Code's
+The `openajar-studio` skill teaches an agent the loops below. `studio up` puts it in Claude Code's
 skills folder when Claude Code is on this computer (`--no-skill` leaves it out), and says where.
-`agentos connect` installs it with the other agentos skills; from a checkout,
+`openajar connect` installs it with the other openajar skills; from a checkout,
 `integrations/claude-code/install.sh` does the same.
 
 Then ask your agent, for example: "change the pricing page so the cards stack on a phone, and
@@ -68,12 +68,12 @@ brand from your running site (`profile_learn_brand`) or propose a change to it
 (`profile_propose`), but only you approve. On a laptop:
 
 ```
-uv run agentos studio profile list
-uv run agentos studio profile show personal/shop --version 2
-uv run agentos studio profile approve personal/shop --version 2
+uv run openajar studio profile list
+uv run openajar studio profile show personal/shop --version 2
+uv run openajar studio profile approve personal/shop --version 2
 ```
 
-`agentos profile ...` works too when this computer runs no node: it finds the profiles studio
+`openajar profile ...` works too when this computer runs no node: it finds the profiles studio
 keeps here.
 
 `docs/PROFILES.md` has the profile format.

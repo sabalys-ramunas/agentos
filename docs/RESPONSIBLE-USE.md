@@ -1,12 +1,12 @@
 # Responsible use
 
-agentos drives real, logged-in accounts. That makes it useful, and it makes the person who
+openajar drives real, logged-in accounts. That makes it useful, and it makes the person who
 runs it responsible for what those accounts do. These are the rules the project is built
-around. By using agentos you agree to follow them.
+around. By using openajar you agree to follow them.
 
 ## Your own accounts
 
-Use agentos with accounts that are yours, or that you are authorised to run (your company's
+Use openajar with accounts that are yours, or that you are authorised to run (your company's
 pages, a client who asked you to). Never with accounts you bought, borrowed without
 permission, or took over.
 
@@ -16,10 +16,10 @@ Every site has terms of service and rules for automation. Read them for each sit
 connect, and stay within them. Some sites forbid automation outright, some allow it with
 limits, some offer an official API you should use instead. If a site tells you to stop, stop.
 
-agentos makes a lane look like an ordinary computer so that a real person's account keeps
+openajar makes a lane look like an ordinary computer so that a real person's account keeps
 working when it moves off their laptop. It is not a tool for getting around a ban, a block,
 a rate limit or a verification step. When a site challenges a lane (a captcha, a checkpoint,
-a rate limit), agentos stops that lane and hands it to you. Do not build around that.
+a rate limit), openajar stops that lane and hands it to you. Do not build around that.
 
 ## No spam
 
@@ -31,14 +31,14 @@ a rate limit), agentos stops that lane and hands it to you. Do not build around 
 
 ## No mass accounts
 
-One person or one business, with the handful of accounts it really has. agentos is not for
+One person or one business, with the handful of accounts it really has. openajar is not for
 creating accounts in bulk, running networks of fake personas, or operating accounts that
 pretend to be different people.
 
 ## No harm to people
 
 No scraping people's personal data, no tracking or profiling individuals, no harassment, no
-impersonation, no fraud. Do not use agentos to collect credentials or payment details from
+impersonation, no fraud. Do not use openajar to collect credentials or payment details from
 anyone.
 
 ## What the project will not build
@@ -49,5 +49,5 @@ evasion for banned accounts, spam at scale, scraping people) will not be merged.
 
 ## Reporting abuse
 
-If you see agentos used against these rules, or find a way it makes abuse easier than it
+If you see openajar used against these rules, or find a way it makes abuse easier than it
 should be, tell the maintainers ([SECURITY.md](../SECURITY.md) has the private channel).

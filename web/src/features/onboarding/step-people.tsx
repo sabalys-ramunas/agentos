@@ -7,10 +7,11 @@ import { Smartphone, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useApprovals, useCreateInvite } from '@/api/hooks';
 import type { Role } from '@/api/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Choice, ChoiceGroup } from '@/components/ui/choice';
 import { Field, Input } from '@/components/ui/field';
 import { StatusDot } from '@/components/ui/status';
-import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/errors';
 import { plural } from '@/lib/format';
 import type { StepContext } from './context';
@@ -92,7 +93,7 @@ export function PeopleStep({ ctx }: { ctx: StepContext }) {
       setup={setup}
       wide
       title="Stay in the loop, from anywhere"
-      description="Most days, agentos needs a few seconds of your time. Get asked on your phone, and choose who else can say yes."
+      description="Most days, openajar needs a few seconds of your time. Get asked on your phone, and choose who else can say yes."
       footer={<StepFooter ctx={ctx} step="people" note="You can do both of these later from Home." later={false} continueLabel="Finish and go to Needs you" />}
     >
       <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -131,28 +132,18 @@ export function PeopleStep({ ctx }: { ctx: StepContext }) {
             <Field label="Their email" error={invite.isError ? describeError(invite.error) : null}>
               <Input type="email" required placeholder="priya@example.com" className="h-10" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" />
             </Field>
-            <div role="radiogroup" aria-label="What they can do" className="divide-y divide-line overflow-hidden rounded-xl border border-line">
-              {CHOICES.map((choice) => {
-                const on = role === choice.role;
-                return (
-                  <button
-                    key={choice.role}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    onClick={() => setRole(choice.role)}
-                    className={cn('flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover', on && 'bg-inset')}
-                  >
-                    <span aria-hidden="true" className={cn('inline-flex size-4 shrink-0 rounded-full border', on ? 'border-[5px] border-fg' : 'border-line-strong')} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body">{choice.label(name)}</span>
-                      <span className="block text-secondary text-muted">{choice.hint}</span>
-                    </span>
-                    {choice.role === 'approver' ? <span className="hidden text-caption text-faint sm:inline">Recommended</span> : null}
-                  </button>
-                );
-              })}
-            </div>
+            <ChoiceGroup label="What they can do" value={role} onValueChange={setRole} className="gap-0">
+              {CHOICES.map((choice) => (
+                <Choice
+                  key={choice.role}
+                  value={choice.role}
+                  className="p-3"
+                  title={choice.label(name)}
+                  description={choice.hint}
+                  badge={choice.role === 'approver' ? <Badge tone="accent">Recommended</Badge> : undefined}
+                />
+              ))}
+            </ChoiceGroup>
             <div className="flex flex-wrap items-center gap-3">
               <p className="min-w-0 flex-1 text-secondary text-muted">
                 {email.trim() ? `${who} gets` : 'They get'} an email that explains what they will be asked, and joins with one click.

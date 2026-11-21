@@ -22,13 +22,13 @@ from test_webbotauth_route import (
 )
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.config import load_config
-from agentos.core.models import LaneSpec
-from agentos.node.store import LaneStore
-from agentos.webbotauth import keys, settings
-from agentos.webbotauth.route import LaneSigner
-from agentos.webbotauth.settings import LaneIdentity
+from openajar.cli import app
+from openajar.core.config import load_config
+from openajar.core.models import LaneSpec
+from openajar.node.store import LaneStore
+from openajar.webbotauth import keys, settings
+from openajar.webbotauth.route import LaneSigner
+from openajar.webbotauth.settings import LaneIdentity
 
 NO_COOKIE = [h for h in BROWSER_HEADERS if h[0] != "Cookie"]
 
@@ -52,7 +52,7 @@ async def test_qa_identity_1_a_removed_host_is_not_signed_while_the_lane_is_open
     settings.save(secrets, ident)
     signer = LaneSigner(key, ident, proxied=True)
     await signer.install(Context())
-    # the owner runs `agentos identity hosts remove` while the lane is open
+    # the owner runs `openajar identity hosts remove` while the lane is open
     settings.remove_host(ident, SIGNED, by="owner:cli")
     settings.save(secrets, ident)
     route = Route()
@@ -69,7 +69,7 @@ async def test_qa_identity_1_a_removal_from_another_process_stops_signing_at_onc
     signer = LaneSigner(key, ident, proxied=True, secrets_dir=secrets)
     await signer.install(Context())
     assert signer.signing_origins() == {SIGNED}
-    other = settings.load(secrets, LANE)  # what `agentos identity hosts remove` reads and writes
+    other = settings.load(secrets, LANE)  # what `openajar identity hosts remove` reads and writes
     settings.remove_host(other, SIGNED, by="owner:cli")
     settings.save(secrets, other)
     route = Route()
@@ -101,7 +101,7 @@ def _serve(handler: type[http.server.BaseHTTPRequestHandler]) -> http.server.Thr
 @pytest.fixture
 def cli_home(tmp_path, monkeypatch):
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     assert CliRunner().invoke(app, ["node", "init"]).exit_code == 0
     cfg = load_config(home)
     LaneStore(cfg.db_path).add(LaneSpec(id=LANE))

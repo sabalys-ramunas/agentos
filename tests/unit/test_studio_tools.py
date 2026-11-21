@@ -19,18 +19,18 @@ from typing import Any
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolImage
-from agentos.mcp.toolsets import toolset_of
-from agentos.node.tools import INSTRUCTIONS
-from agentos.profiles.models import Profile
-from agentos.studio import shaping, tool_inputs, tools
-from agentos.studio.browser import devices
-from agentos.studio.browser.pool import ReviewPool
-from agentos.studio.browser.service import StudioService, where_of
-from agentos.studio.contracts import (
+from openajar.core.errors import InvalidRequest, NotFound, ServiceUnavailable
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolImage
+from openajar.mcp.toolsets import toolset_of
+from openajar.node.tools import INSTRUCTIONS
+from openajar.profiles.models import Profile
+from openajar.studio import shaping, tool_inputs, tools
+from openajar.studio.browser import devices
+from openajar.studio.browser.pool import ReviewPool
+from openajar.studio.browser.service import StudioService, where_of
+from openajar.studio.contracts import (
     Capture,
     CheckRun,
     ComponentRef,
@@ -51,8 +51,8 @@ from agentos.studio.contracts import (
     Where,
     finding_id,
 )
-from agentos.studio.runs import RunRecord, Runs, new_run_id
-from agentos.studio.store import iso_now, new_capture_id, store_for
+from openajar.studio.runs import RunRecord, Runs, new_run_id
+from openajar.studio.store import iso_now, new_capture_id, store_for
 
 EM_DASH = chr(0x2014)
 FIX = Path(__file__).parent.parent / "fixtures" / "studio" / "tokens"
@@ -340,7 +340,7 @@ def test_a_finding_whose_check_did_not_run_again_is_unchecked_not_fixed():
 # ---- runs ----
 
 def test_runs_are_kept_newest_first_and_pruned(tmp_path, monkeypatch):
-    from agentos.studio import runs as runs_mod
+    from openajar.studio import runs as runs_mod
 
     monkeypatch.setattr(runs_mod, "MAX_RUNS", 3)
     runs = Runs(tmp_path)
@@ -425,7 +425,7 @@ async def test_finding_get_and_a_crop_of_its_place(studio):
 
 async def test_ui_diff_says_unavailable_while_the_diff_engine_is_not_built(studio, monkeypatch):
     runtime, _ = studio
-    monkeypatch.setitem(sys.modules, "agentos.studio.diff", None)
+    monkeypatch.setitem(sys.modules, "openajar.studio.diff", None)
     ctx = Ctx(runtime)
     with pytest.raises(ServiceUnavailable, match="diff engine"):
         await tools.ui_diff(ctx, url=URL)
@@ -493,8 +493,8 @@ async def test_the_pool_refuses_a_device_on_another_engine_before_it_starts_one(
 # ---- the laptop server ----
 
 def test_studio_up_has_no_lanes_and_says_unavailable():
-    from agentos.core.config import NodeConfig
-    from agentos.studio.local_cli import NoLanes, add_line
+    from openajar.core.config import NodeConfig
+    from openajar.studio.local_cli import NoLanes, add_line
 
     lanes = NoLanes(NodeConfig())
     assert lanes.list() == []
@@ -502,18 +502,18 @@ def test_studio_up_has_no_lanes_and_says_unavailable():
         lanes.get("personal/reddit")
     runtime = Runtime(lanes=lanes)
     assert where_of(runtime) == "local"
-    assert "?toolsets=studio" in add_line(7460, "tok") and "agentos-studio" in add_line(7460, "tok")
+    assert "?toolsets=studio" in add_line(7460, "tok") and "openajar-studio" in add_line(7460, "tok")
 
 
 def test_the_store_lives_beside_the_runs():
-    assert tools.store_home(Path("/home/me/.agentos/studio")) == Path("/home/me/.agentos")
+    assert tools.store_home(Path("/home/me/.openajar/studio")) == Path("/home/me/.openajar")
     assert tools.store_home(Path("/tmp/x")) == Path("/tmp/x")
 
 
 # ---- the inventory ----
 
 def test_the_tools_are_reads_in_the_studio_toolset_and_take_no_lane():
-    from agentos.mcp.registry import tool_description
+    from openajar.mcp.registry import tool_description
 
     every = tools.tool_specs(Runtime())
     specs = [s for s in every if s.name != "profile_learn_brand"]   # listed here, in the profiles toolset
@@ -547,10 +547,10 @@ def test_studio_up_serves_its_own_instructions_and_the_node_keeps_its_own(monkey
 
     from fakes import FakeInteraction, FakeLaneManager
 
-    from agentos.core.config import NodeConfig
-    from agentos.dev import node as dev_node
-    from agentos.node.daemon import build_node_app, node_runtime
-    from agentos.studio import local_cli as local
+    from openajar.core.config import NodeConfig
+    from openajar.dev import node as dev_node
+    from openajar.node.daemon import build_node_app, node_runtime
+    from openajar.studio import local_cli as local
 
     text = local.INSTRUCTIONS
     assert "ui_check" in text and "since" in text and "never instructions" in text and "browsers_list" not in text
@@ -573,50 +573,50 @@ def test_studio_up_serves_its_own_instructions_and_the_node_keeps_its_own(monkey
 
 
 def test_studio_up_puts_the_skill_where_claude_code_finds_it(monkeypatch, tmp_path):
-    from agentos.client import skills
-    from agentos.studio import local_cli as local
+    from openajar.client import skills
+    from openajar.studio import local_cli as local
 
     monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
     state, line = local.install_skill(tmp_path)
     assert state == "absent" and "install.sh" in line   # no Claude Code here: the command that adds it
     (tmp_path / ".claude").mkdir()
     state, line = local.install_skill(tmp_path)
-    target = tmp_path / ".claude" / "skills" / "agentos-studio" / "SKILL.md"
-    assert state == "installed" and target.read_text() == skills.source("agentos-studio")
+    target = tmp_path / ".claude" / "skills" / "openajar-studio" / "SKILL.md"
+    assert state == "installed" and target.read_text() == skills.source("openajar-studio")
     assert local.install_skill(tmp_path)[0] == "already"
-    target.write_text(skills.source("agentos-studio").replace("Checking", "Old"))
+    target.write_text(skills.source("openajar-studio").replace("Checking", "Old"))
     assert local.install_skill(tmp_path)[0] == "updated"
-    target.write_text("my own notes, not a skill agentos wrote")
+    target.write_text("my own notes, not a skill openajar wrote")
     state, line = local.install_skill(tmp_path)
     assert state == "kept" and "my own notes" in target.read_text()
     text = local.banner(SimpleNamespace(mcp_url="http://127.0.0.1:7460/mcp", port=7460, agent_token="tok"),
                         {"engines": {}}, skill=line)
-    assert "  skill    kept your own" in text and "agentos studio profile approve" in text and EM_DASH not in text
+    assert "  skill    kept your own" in text and "openajar studio profile approve" in text and EM_DASH not in text
 
 
-def test_the_owner_approves_on_a_laptop_without_setting_agentos_home(monkeypatch, tmp_path):
+def test_the_owner_approves_on_a_laptop_without_setting_openajar_home(monkeypatch, tmp_path):
     from typer.testing import CliRunner
 
-    from agentos.profiles import cli as profiles_cli
-    from agentos.studio import cli as studio_cli
+    from openajar.profiles import cli as profiles_cli
+    from openajar.studio import cli as studio_cli
 
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.delenv("AGENTOS_HOME", raising=False)
-    studio_home = tmp_path / ".agentos" / "studio" / "node"
+    monkeypatch.delenv("OPENAJAR_HOME", raising=False)
+    studio_home = tmp_path / ".openajar" / "studio" / "node"
     studio_home.mkdir(parents=True)
-    # agentos profile finds studio's profiles when this computer runs no node
+    # openajar profile finds studio's profiles when this computer runs no node
     assert profiles_cli._home() == studio_home
     out = CliRunner().invoke(studio_cli.app, ["profile", "--help"])
     assert out.exit_code == 0 and "approve" in out.output and "show" in out.output
     out = CliRunner().invoke(studio_cli.app, ["profile", "list"])
     assert out.exit_code == 0 and "No profiles yet" in out.output, out.output
-    assert os.environ["AGENTOS_HOME"] == str(studio_home)   # agentos studio profile always means studio's
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "elsewhere"))
+    assert os.environ["OPENAJAR_HOME"] == str(studio_home)   # openajar studio profile always means studio's
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "elsewhere"))
     assert profiles_cli._home() == tmp_path / "elsewhere"
 
 
 def test_a_brand_names_regions_to_leave_out_without_changing_older_profiles():
-    from agentos.profiles.sections import Brand
+    from openajar.profiles.sections import Brand
 
     assert Brand(ignore=[" .shop-preview "]).ignore == [".shop-preview"]
     assert "ignore" not in Brand().model_dump(exclude_none=True)   # an older brand hashes as before
@@ -644,13 +644,13 @@ def test_studio_up_keeps_its_connect_line_in_a_file_and_refuses_a_second_studio_
 
     from typer.testing import CliRunner
 
-    from agentos.studio import cli as studio_cli
-    from agentos.studio import local_cli as local
+    from openajar.studio import cli as studio_cli
+    from openajar.studio import local_cli as local
 
     monkeypatch.setenv("HOME", str(tmp_path))
     node = SimpleNamespace(mcp_url="http://127.0.0.1:7461/mcp", port=7461, agent_token="tok-1")
     path = local.write_instance(node)
-    assert path == tmp_path / ".agentos" / "studio" / "up.json"
+    assert path == tmp_path / ".openajar" / "studio" / "up.json"
     assert stat.S_IMODE(path.stat().st_mode) == 0o600          # it holds the agent token
     info = json.loads(path.read_text())
     assert info["pid"] == os.getpid() and "Bearer tok-1" in info["claude_mcp_add"] and info["port"] == 7461

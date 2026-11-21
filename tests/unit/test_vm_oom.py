@@ -12,18 +12,18 @@ import asyncio
 import pytest
 from test_env_jobs import Ctx, tools
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.runtime import Runtime
-from agentos.env import lane_jobs, oom
-from agentos.env.host import FakeHost
-from agentos.env.jobs import Job
-from agentos.env.lanes import LaneRuntime
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher, Workload
-from agentos.env.tools import self_kill_note
-from agentos.environments import machine, scripts
-from agentos.vms import ssh
+from openajar.core.errors import InvalidRequest
+from openajar.core.runtime import Runtime
+from openajar.env import lane_jobs, oom
+from openajar.env.host import FakeHost
+from openajar.env.jobs import Job
+from openajar.env.lanes import LaneRuntime
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher, Workload
+from openajar.env.tools import self_kill_note
+from openajar.environments import machine, scripts
+from openajar.vms import ssh
 
 SESSION = "/user.slice/user-0.slice/session-7.scope"
 KERNEL = f"""U 211647.09

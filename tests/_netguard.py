@@ -51,7 +51,7 @@ def _guard(name: str, original: Any, attempts: list[str]) -> Any:
                                  "@pytest.mark.network if it really needs the network")
         return original(self, *args, **kwargs)
 
-    guarded.__agentos_netguard__ = True  # type: ignore[attr-defined]
+    guarded.__openajar_netguard__ = True  # type: ignore[attr-defined]
     return guarded
 
 

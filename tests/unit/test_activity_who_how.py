@@ -11,9 +11,9 @@ import pytest
 from test_api_members import owner, pending
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.api.actors import actor
-from agentos.api.auth import PRESENCE_HEADER
-from agentos.core.ratelimit import RateLimiter
+from openajar.api.actors import actor
+from openajar.api.auth import PRESENCE_HEADER
+from openajar.core.ratelimit import RateLimiter
 
 LANE = "biz-a/instagram"
 

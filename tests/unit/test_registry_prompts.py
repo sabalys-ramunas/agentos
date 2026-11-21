@@ -6,9 +6,9 @@ from __future__ import annotations
 import pytest
 from mcp import Client
 
-from agentos.core.runtime import Runtime
-from agentos.core.tools import PromptArg, PromptSpec, ToolSpec
-from agentos.mcp.registry import build_mcp, collect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import PromptArg, PromptSpec, ToolSpec
+from openajar.mcp.registry import build_mcp, collect
 
 
 async def plain(ctx) -> dict:

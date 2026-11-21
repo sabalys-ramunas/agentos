@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import asyncio
 
-from agentos.api import access as access_mod
-from agentos.api.access import PolicyAccess
-from agentos.core.models import Effect
-from agentos.core.presence import Presence
+from openajar.api import access as access_mod
+from openajar.api.access import PolicyAccess
+from openajar.core.models import Effect
+from openajar.core.presence import Presence
 
 
 class _Ctx:

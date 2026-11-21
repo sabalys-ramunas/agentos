@@ -14,7 +14,7 @@ that. Hairlines, not tinted panels. Everyday words from `src/lib/vocabulary.ts`.
    the parts your screen needs. Read the group index for each (below).
 2. **Compose, do not draw.** `PageHeader` on top; `Card` with `CardHeader` for each block; `Table` for rows;
    `StatTile` for numbers; `Status` for state; `QueryView` for loading and errors; `EmptyState` for nothing
-   yet; `InlineError` for a refusal. Reuse the agentos composites (live view, terminal list, proofs) as they are.
+   yet; `InlineError` for a refusal. Reuse the openajar composites (live view, terminal list, proofs) as they are.
 3. **Style only with tokens.** Classes on roles (`bg-card`, `text-muted`, `border-line`, `text-bad`), type
    roles (`text-body`, `text-secondary`, `text-caption`), the 4 px grid. No hex, no `p-[7px]`, no `style={{ color }}`.
 4. **Words from the vocabulary.** Machine, not node; account, not lane; routine, not flow. Technical terms
@@ -50,7 +50,7 @@ there, run `python3 tokens/build-tokens.py`, and use it. Never edit `tokens.css`
 | Actions and forms | `Button`, `Field`, `Select`, `Switch`, `Tabs`, `Menu`, `CodeBlock` | [actions](design-system/actions.md) |
 | Overlays | `Dialog`, `ConfirmDialog`, `Drawer`, `SidePanel`, `Tooltip` | [overlays](design-system/overlays.md) |
 | The instrument layer | `TimeChart`, `StackedBars`, `Sparkline`, `ImageFrame`, the board | [instrument](design-system/instrument.md) |
-| agentos composites | The live view, the terminal list, proofs, checkpoints, the cost line | [composites](design-system/composites.md) |
+| openajar composites | The live view, the terminal list, proofs, checkpoints, the cost line | [composites](design-system/composites.md) |
 
 A new component goes in `src/components/`, with an entry in `src/catalog/registry.tsx` and a line in its
 group's index; the test fails without both. Keep its API to what real screens need.

@@ -7,14 +7,14 @@ from __future__ import annotations
 import pytest
 from test_policy_support import OWNER, PRESENT, Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.memory import Caller, build
-from agentos.memory.tools import tool_specs
-from agentos.policy.grants import Specials
-from agentos.policy.memory_rules import MemoryCap
-from agentos.policy.traces import TraceEvent
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.memory import Caller, build
+from openajar.memory.tools import tool_specs
+from openajar.policy.grants import Specials
+from openajar.policy.memory_rules import MemoryCap
+from openajar.policy.traces import TraceEvent
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 OWNER_CLI = Caller.owner()
 
@@ -256,7 +256,7 @@ async def test_get_without_a_workspace_finds_only_what_the_grant_covers(node):
 
 async def test_context_for_a_workspace_that_is_not_there_is_not_found(node, tmp_path):
     """QA 2026-11-15 P2-9: memory_context answered ok with an empty pack for a typo."""
-    from agentos.workspaces.service import build as build_workspaces
+    from openajar.workspaces.service import build as build_workspaces
 
     node.runtime.register("lanes", type("NoLanes", (), {"list": lambda self: []})())
     build_workspaces(node.runtime, home=tmp_path, labels=lambda: set())

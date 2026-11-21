@@ -9,12 +9,12 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from starlette.testclient import TestClient
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.mcp.http import BearerAuth
-from agentos.mcp.server import build_http_app, build_server
-from agentos.node.daemon import build_node_app, node_runtime, serve
-from agentos.node.tools import normalize_url
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.mcp.http import BearerAuth
+from openajar.mcp.server import build_http_app, build_server
+from openajar.node.daemon import build_node_app, node_runtime, serve
+from openajar.node.tools import normalize_url
 
 TOKEN = "s3cr3t-token-value"
 INIT = {
@@ -70,7 +70,7 @@ def test_rejects_every_path_without_token(http):
 def test_accepts_right_token(http, scheme):
     response = http.post("/mcp", json=INIT, headers=MCP_HEADERS | {"Authorization": f"{scheme} {TOKEN}"})
     assert response.status_code == 200
-    assert "agentos" in response.text
+    assert "openajar" in response.text
 
 
 def test_empty_token_refuses_to_build():

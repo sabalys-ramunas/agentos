@@ -50,7 +50,7 @@ TASK = Task(
     id="t02_dev_server_proof",
     title="start the dev server, check the page in the browser, keep a proof",
     repo="shop",
-    sessions=[Session("In agentos, start the dev server of {repo}, check its home page in the browser and keep a "
+    sessions=[Session("In openajar, start the dev server of {repo}, check its home page in the browser and keep a "
                       "screenshot as proof for me.")],
     check=check, perfect=perfect, careless=careless,
 )

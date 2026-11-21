@@ -1,10 +1,10 @@
-"""The nodes' instructions and prompts on the controller's /mcp (agentos.controller.guide)."""
+"""The nodes' instructions and prompts on the controller's /mcp (openajar.controller.guide)."""
 
 from types import SimpleNamespace
 
 import pytest
 
-from agentos.controller import guide
+from openajar.controller import guide
 
 
 def node(name, instructions, prompts=()):

@@ -1,7 +1,7 @@
 # Architecture
 
-How agentos is built. This is the technical companion to [VISION.md](VISION.md); read that first
-for what agentos is and why. agentos gives every agent its own computer in the cloud: an
+How openajar is built. This is the technical companion to [VISION.md](VISION.md); read that first
+for what openajar is and why. openajar gives every agent its own computer in the cloud: an
 **environment**, a VM the node rents for one chat. Everything below (lanes, grants, the vault, the
 git gateway, the audit log) is what that rests on, and the older pieces (logged-in browser lanes
 for accounts, brains, flows) are features beside it.
@@ -14,7 +14,7 @@ in [Not built yet](#not-built-yet) at the end.
 Guiding invariants, true everywhere below:
 
 - **The agent's machine holds nothing of yours.** An environment's VM has no account, no key and
-  no part of agentos. Its one token reaches the git gateway for its own repository, through its
+  no part of openajar. Its one token reaches the git gateway for its own repository, through its
   own tunnel, until it closes. Git credentials and the browser's identity stay on the node.
 - **Two planes.** A control plane (the controller) decides and renders the UI. A data plane (the
   node daemon) holds everything sensitive and does the work.
@@ -43,11 +43,11 @@ Guiding invariants, true everywhere below:
              v                                                 v
   +--------------------------- VM (Hetzner or Docker) -------------------------------+
   |  /work/shop (the repo), the dev server on :3000, git -> 127.0.0.1:3129 -> node    |
-  |  no agentos, no key, no account; one gateway token for /work/shop's repo only    |
+  |  no openajar, no key, no account; one gateway token for /work/shop's repo only    |
   +----------------------------------------------------------------------------------+
 ```
 
-- **Machine.** `environment_open` plans and creates a VM through `agentos.vms` (the cheapest
+- **Machine.** `environment_open` plans and creates a VM through `openajar.vms` (the cheapest
   server type that fits, unless a size is set; Hetzner Cloud or a Docker container). It never
   asks a person: the grant needs the `vm` special, and the node's limits bound it (open at once,
   the longest life, a monthly budget; `environment_limit` past one). The image is
@@ -59,7 +59,7 @@ Guiding invariants, true everywhere below:
   declarations: a push never asks, a force push or a delete of the default branch is refused
   (`push_refused`), the key stays in the vault ([GIT.md](GIT.md)).
 - **Browser.** A browser lane on the node (`env/<id>-browser`) with no account, no keepalive and no
-  vault entry but the logins the owner bound to it (agentos.environments.logins), whose proxy is a
+  vault entry but the logins the owner bound to it (openajar.environments.logins), whose proxy is a
   SOCKS tunnel over the VM's SSH. Every request, DNS included, leaves from the VM: `localhost` is the VM. Studio's review browser takes the same proxy, so
   `ui_check` on `http://localhost:3000` checks the VM's dev server. The live view and take over
   work as on any lane.
@@ -73,7 +73,7 @@ Guiding invariants, true everywhere below:
   commits not pushed, then deletes the VM and the browser lane. The reaper closes one that is
   idle for `idle_minutes` or past its time limit, never for idleness while work is unsaved.
 
-Around it, the nouns: a **Node** (the machine agentos runs on, which only dials out), a
+Around it, the nouns: a **Node** (the machine openajar runs on, which only dials out), a
 **Workspace** (one per business or person, plus `env` for environments), **Lanes** (isolated
 places where one thing runs: a terminal, a service, a VM, a logged-in browser), a **Vault** that
 fills logins and holds keys the model never sees, **Grants** that say what an agent may do and
@@ -88,7 +88,7 @@ anything hard to undo waits for you in Needs you.
               |  MCP over streamable HTTP at /mcp                      |
               |  (localhost, reached over an SSH tunnel)               |
               v                                                        v
- +-------------------- CONTROLLER (optional, `agentos controller serve`) ---------+
+ +-------------------- CONTROLLER (optional, `openajar controller serve`) ---------+
  |  MCP gateway (/mcp, port 7401) | grants | approvals | traces (controller.db)   |
  |  owner pages and the live view relay                                           |
  +--------------+----------------------------------------------+-----------------+
@@ -96,21 +96,21 @@ anything hard to undo waits for you in Needs you.
                 |  (signed JSON envelopes, docs/PROTOCOL.md)                    |
   +-------------+--+                +----------------+                +---------+------+
   | node A         |                | node B         |                | a Mac          |
-  | agentosd       |                | agentosd       |                | agentos connect|
+  | agentosd       |                | agentosd       |                | openajar connect|
   | lanes, vault,  |                | lanes, brains  |                | (SSH tunnel to |
   | brains, flows  |                | + proxies      |                |  one node)     |
   +----------------+                +----------------+                +----------------+
   profiles, vault, subscription sessions and schedules live on the NODE, never on the controller
 ```
 
-There are two ways to run agentos, and both are built:
+There are two ways to run openajar, and both are built:
 
-- **One node, no controller.** `agentos node serve` (the `agentosd` systemd unit) runs the
+- **One node, no controller.** `openajar node serve` (the `agentosd` systemd unit) runs the
   MCP server on `127.0.0.1:7400/mcp`, the panel API and the live view. From a Mac,
-  `agentos connect <ssh-host>` keeps an SSH tunnel up, mints a grant for your agents, keeps
+  `openajar connect <ssh-host>` keeps an SSH tunnel up, mints a grant for your agents, keeps
   the token in the Keychain and registers the server with Claude Code. This is the main path
   today.
-- **Several nodes behind a controller.** `agentos controller serve` (or `agentos up`, which
+- **Several nodes behind a controller.** `openajar controller serve` (or `openajar up`, which
   starts a controller and a node together) is the control plane: it authenticates agents on
   its own `/mcp`, relays each tool call to the right node, keeps the redacted traces and
   shows the approvals. Each node dials out to it ([CONTROLLER.md](CONTROLLER.md)).
@@ -126,7 +126,7 @@ its own schedules, flows and brains (the model router and the seat accounting ru
 store artifacts on local disk. The node is the source of truth for execution facts; the
 controller is the source of truth for config and authority.
 
-Where data lives on a node: everything is under `AGENTOS_HOME` (default `/var/lib/agentos`):
+Where data lives on a node: everything is under `OPENAJAR_HOME` (default `/var/lib/agentos`):
 `node.toml`, SQLite databases in WAL mode (lanes, runs, brains, memory, traces, policy,
 plugins, vault), `secrets/` (the vault key, chmod 600) and `lanes/<workspace>/<name>/`
 (each lane's browser profile and files).
@@ -134,10 +134,10 @@ plugins, vault), `secrets/` (the vault key, chmod 600) and `lanes/<workspace>/<n
 ## 2. Nodes, joining, and degraded mode
 
 A node joins a controller with one command and a short-lived join token from
-`agentos controller join-token` (or the hosted cloud):
+`openajar controller join-token` (or the hosted cloud):
 
 ```
-agentos node join [--self-hosted] [--name NAME] <controller-url> <join-token>
+openajar node join [--self-hosted] [--name NAME] <controller-url> <join-token>
 ```
 
 The URL is `wss://...` (plain `ws://` only to localhost). On first connect the node sends
@@ -306,7 +306,7 @@ Every response carries a **state signal** read from deterministic sources, never
 from page text: `ok | captcha | rate_limited | blocked | logged_out | error`. The model
 never reads the page to decide this, so it cannot be fooled or see secrets.
 
-Engines sit behind one interface (`Engine` in `src/agentos/node/interfaces.py`: launch a
+Engines sit behind one interface (`Engine` in `src/openajar/node/interfaces.py`: launch a
 session for a lane, sweep orphans after a restart). Camoufox (a hardened Firefox fork, driven
 through Playwright) is the one engine built today. Chrome and Android engines are planned
 ([Not built yet](#not-built-yet)).
@@ -328,7 +328,7 @@ A brain keeps an agent working on the node when your laptop sleeps. It is an opt
 
 - **Brain runner**: a node-side worker running `claude -p`, `codex exec` or an MCP-client agent
   inside a lane's network namespace, so its own tools reach the model only through the egress
-  forwarder ([src/agentos/brains/README.md](../src/agentos/brains/README.md)).
+  forwarder ([src/openajar/brains/README.md](../src/openajar/brains/README.md)).
 - **Model router** (`brains/router.py`): privacy decides the pool (a local-only workspace never
   touches the cloud, tainted steps go local or ask), cost decides the order (your flat-rate
   subscription first, then a local model, then a metered API), a budget gate drops what the grant
@@ -340,14 +340,14 @@ A brain keeps an agent working on the node when your laptop sleeps. It is an opt
   router drops to local models and cloud steps wait.
 - **The terms boundary**: bring your own subscription, for your own use, on your own node. The
   hosted edition never pools one subscription across people. If a provider closes the door, the
-  plugin is turned off and the rest of agentos stands.
+  plugin is turned off and the rest of openajar stands.
 
 ## 5. Grants and security
 
 ### Grants
 
-A grant is a signed token of agentos's own: a chain of Ed25519-signed blocks, each one only
-narrowing the one before (`src/agentos/policy/tokens.py`). Nodes hold only the public key and
+A grant is a signed token of openajar's own: a chain of Ed25519-signed blocks, each one only
+narrowing the one before (`src/openajar/policy/tokens.py`). Nodes hold only the public key and
 verify offline, a child is provably a subset of its parent, and every block carries a
 revocation id. The checks (effect class, taint, egress) are plain Python, not a Datalog
 authorizer. The grant is the MCP bearer token. (Biscuit and an OAuth 2.1 resource server were
@@ -413,7 +413,7 @@ declares and what its steps do: navigation, waits and reads are `read`; any inpu
 run carries the grant that created it (the caller's, the schedule creator's, or the owner's
 for the panel and CLI), checked when it is queued and again right before it runs; a revoked
 or expired grant fails the run before it acts. One approval releases exactly one run.
-Details: [src/agentos/runner/README.md](../src/agentos/runner/README.md).
+Details: [src/openajar/runner/README.md](../src/openajar/runner/README.md).
 
 ### Threat model (expanded surface)
 
@@ -470,7 +470,7 @@ secret, or exfiltrate its own session token, because the token was never in its 
 ## 6. Vault and secrets
 
 A sealed store on the node: items are encrypted with ChaCha20-Poly1305 under a node key in
-`secrets/vault.key` (`src/agentos/vault/crypto.py`; `age` is used for backups only). It
+`secrets/vault.key` (`src/openajar/vault/crypto.py`; `age` is used for backups only). It
 imports Bitwarden JSON, 1Password and Apple Passwords CSV exports. Secrets are bound to a
 domain and a lane. Per-lane keys, a Touch ID or hardware unseal and the hosted
 zero-knowledge sync are planned ([Not built yet](#not-built-yet)).
@@ -497,7 +497,7 @@ account, for example `biz-a/instagram`; a second account is `biz-a/instagram-2`,
 handle lives in `LaneSpec.account`).
 
 [TOOLS.md](TOOLS.md) is the generated reference for every tool the node exposes (run
-`agentos tools` for the list on your build). The main groups:
+`openajar tools` for the list on your build). The main groups:
 
 - **Environments:** `environment_open` (the title names the computer), `environment`,
   `environment_close`, `environment_save`, `environment_upload`, `environment_download`,
@@ -573,13 +573,13 @@ control; migrating self-hosted to hosted is a controller swap, not a data move.
 ## 9. UX surfaces
 
 - **MCP** is the main surface: the intro an agent reads first leads with the environment, and the
-  Claude Code skills (`agentos-environment`, `agentos-studio`, `agentos-lanes`) teach the loops.
+  Claude Code skills (`openajar-environment`, `openajar-studio`, `openajar-lanes`) teach the loops.
 - **The web app** (`web/`): Home, Needs you, Runs, Checks, Brand, Machines and the environment
   pages (commands, calls, ports, git, cost, extend and close), in light and dark
   ([WEB-NODE.md](WEB-NODE.md)). Not in the public repository yet.
 - **The live view**: a signed link to watch a lane's browser and take control, served by the node
-  (`src/agentos/node/viewer/`).
-- **The CLI and the terminal dashboard** (`agentos open --terminal`): the same facts without a
+  (`src/openajar/node/viewer/`).
+- **The CLI and the terminal dashboard** (`openajar open --terminal`): the same facts without a
   browser.
 
 ## 10. Open source vs hosted
@@ -591,9 +591,9 @@ adds only what is hosted, multi-party or costs money: VMs without your own provi
 multi-tenant control plane, hosted push and phone approvals, teams with SSO, managed proxies for
 account lanes. Pricing never counts runs or executions.
 
-## 11. What agentos is not
+## 11. What openajar is not
 
-The spine is general; the product stays sharp. Five lines agentos will not cross, each of
+The spine is general; the product stays sharp. Five lines openajar will not cross, each of
 which also protects a core invariant:
 
 1. **Not a general PaaS.** Services keep your agent's own work alive, not arbitrary public
@@ -601,10 +601,10 @@ which also protects a core invariant:
 2. **Not a CI/CD system.** An environment runs what the agent runs, for one chat; it is not
    pipelines or a runner fleet, and it is deleted when the work is pushed.
 3. **Not a model marketplace or reseller.** Brains are BYO subscriptions and local models;
-   agentos never resells tokens, which would break the BYO constraint and provider terms.
+   openajar never resells tokens, which would break the BYO constraint and provider terms.
 4. **Not a flow or skill marketplace.** Flows stay first-party and reviewed. An open store is
    a supply-chain attack surface for no gain to a single self-hoster.
-5. **Not an agent, chat, or IDE.** agentos gives agents a computer; it never becomes the
+5. **Not an agent, chat, or IDE.** openajar gives agents a computer; it never becomes the
    agent. Blurring that makes it one more agent to choose instead of the body they all share.
 
 ## 12. Key decisions and open questions
@@ -613,7 +613,7 @@ which also protects a core invariant:
    (An embedded mesh and relay were the original plan; see Not built yet.)
 2. The controller relays MCP but stays off the bulk-data path (artifacts stay on the node and
    travel on streams), one audit and quota chokepoint without a bandwidth bottleneck.
-3. Signed, attenuable grants of agentos's own (Ed25519 block chains), for offline public-key
+3. Signed, attenuable grants of openajar's own (Ed25519 block chains), for offline public-key
    verification and provable attenuation.
 4. Generalize `Lane` to carry a kind and a four-dial isolation profile; the browser account
    is the all-on preset, and existing rows migrate in place. Keep the word "Lane".
@@ -632,7 +632,7 @@ which also protects a core invariant:
 11. Attached agents run inside the lane's netns so grants are enforced, not advisory.
 12. The No-Body-Injection rule and node-authored approval text, so a compromised gateway leaks
     nothing and a hijacked model cannot social-engineer approval.
-13. An environment is a cloud VM per chat, deleted when the work is pushed. Nothing of agentos
+13. An environment is a cloud VM per chat, deleted when the work is pushed. Nothing of openajar
     runs on it and it holds no account and no key, only a gateway token for its own repository, so
     commands on it never ask; git goes through the node's gateway and the browser's traffic through
     the VM. Only the agent that opened it (its grant family) reaches it (owner, 2026-11-13).
@@ -658,7 +658,7 @@ Open questions still to settle:
 
 ## 13. Layers
 
-The packages of `src/agentos` sit on six layers. A module imports its own layer and the ones
+The packages of `src/openajar` sit on six layers. A module imports its own layer and the ones
 below it, never one above, and packages on one layer never import each other in a circle.
 `make layers` checks it (scripts/layers.py, the order in scripts/layers.toml); the imports that
 still break it are listed there with a reason, and that list only shrinks. Top to bottom:
@@ -674,9 +674,9 @@ still break it are listed there with a reason, and that list only shrinks. Top t
 4. **Node runtime**: `node`, `env`, `vms`, `git`, `stealth`, `vault`, `webbotauth`, `runas`.
 5. **Safety**: `policy` (grants, approvals, traces, scrubbing).
 6. **Core**: `core`, the contracts and small shared pieces (config, errors, models, tools,
-   layout, migrations, clock). It imports nothing else of agentos.
+   layout, migrations, clock). It imports nothing else of openajar.
 
-[src/agentos/README.md](../src/agentos/README.md) says where things live.
+[src/openajar/README.md](../src/openajar/README.md) says where things live.
 
 ## Not built yet
 
@@ -692,7 +692,7 @@ one is a plan, not a promise.
   coordinator for unpinned work, no model router and no vault custodian. Schedules, the
   router and the vault are all node-side.
 - **Biscuit grants with a Datalog authorizer, and an OAuth 2.1 resource server** (with CIMD
-  for phone apps). Grants are agentos's own signed tokens, sent as a bearer token.
+  for phone apps). Grants are openajar's own signed tokens, sent as a bearer token.
 - **Typed flow tools listed lazily** (`flow:bizA.instagram.post(image, caption)`). Today each
   saved flow is one `flow_<name>` tool, and every tool is listed.
 - **Engines other than Camoufox:** Chrome (Patchright) and Android (redroid) lanes, WebDriver

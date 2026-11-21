@@ -1,4 +1,4 @@
-"""Pins one step of the offline replay page (agentos.audit.replay_page._step): its HTML for each kind
+"""Pins one step of the offline replay page (openajar.audit.replay_page._step): its HTML for each kind
 of step, with and without the arguments' values."""
 
 from __future__ import annotations
@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from pinned import check, outcome
 
-from agentos.audit.replay_page import _step
+from openajar.audit.replay_page import _step
 
 TZ = ZoneInfo("Europe/Vilnius")
 AT = "2026-11-14T10:00:00Z"

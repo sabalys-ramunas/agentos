@@ -3,12 +3,12 @@ from datetime import timedelta
 
 import pytest
 
-from agentos.core.models import utcnow
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.pty import Ring
-from agentos.env.sandbox import DirectLauncher
+from openajar.core.models import utcnow
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.pty import Ring
+from openajar.env.sandbox import DirectLauncher
 
 
 @pytest.fixture

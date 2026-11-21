@@ -1,4 +1,4 @@
-"""Whose authority an agenda entry's run carries (agentos.agenda.service, "Whose authority a run
+"""Whose authority an agenda entry's run carries (openajar.agenda.service, "Whose authority a run
 carries"): the drafter's grant; when it merely expired and a person approved the entry, a grant for
 that one run derived from the approver's authority (PolicyService.approved_run_grant). Explicit
 stops win: a revoked drafter's grant cancels its entries, a freeze fails them."""
@@ -11,11 +11,11 @@ from types import SimpleNamespace
 import pytest
 from test_agenda import FLOW, LANE, PARAMS, Env, ny
 
-from agentos.agenda import tools as agenda_tools
-from agentos.agenda.models import EntryState
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Effect
-from agentos.runner.fakes import FakeClock
+from openajar.agenda import tools as agenda_tools
+from openajar.agenda.models import EntryState
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Effect
+from openajar.runner.fakes import FakeClock
 
 AT = ny(17, 11)          # 12 days out: the drafting agent's week-long grant has expired by then
 MEMBER = "m_ana"

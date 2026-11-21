@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.svg" width="96" height="96" alt="agentos logo">
+  <img src="assets/icon.svg" width="96" height="96" alt="openajar logo">
 </p>
 
-<h1 align="center">agentos</h1>
+<h1 align="center">openajar</h1>
 
 <p align="center">
   <strong>A computer for your agent, with a browser, a terminal and a disk that stay.</strong><br>
@@ -29,14 +29,21 @@
 
 <br>
 
+<p align="center">
+  <img src="assets/readme/live-view.png" width="100%" alt="The openajar live view: the agent's computer as a card on a dark stage. Its desktop shows a top bar that says Claude Code is using the browser, and a browser window on a launch checklist page, where a violet pointer labelled Claude Code has just ticked Welcome email. Under the card, one pill says Claude Code has control, with a Take over button, and next to it the record, full screen and More buttons.">
+</p>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/how-it-works-dark.svg">
-  <img src="assets/readme/how-it-works-light.svg" width="100%" alt="How agentos works. 1: you ask your agent in Claude Code, Codex or T3 Code, on your laptop as today. 2: it gets its own computer, a VM with a terminal, a real browser and your repository, ready in about two minutes. 3: you get the result, a screenshot as proof and a pull request, and the computer is saved when idle and back tomorrow for cents a month.">
+  <img src="assets/readme/how-it-works-light.svg" width="100%" alt="How openajar works. 1: you ask your agent in Claude Code, Codex or T3 Code, on your laptop as today. 2: it gets its own computer, a VM with a terminal, a real browser and your repository, ready in about two minutes. 3: you get the result, a screenshot as proof and a pull request, and the computer is saved when idle and back tomorrow for cents a month.">
 </picture>
+
+> openajar was called agentos until November 2026 (legacy-name). Your setup keeps working: see
+> [the names that stay](docs/LEGACY-NAMES.md) and run the installer again to upgrade.
 
 ## Is it for you?
 
-agentos is for people who already use an agent (**Claude Code**, **Codex**, **T3 Code** or any MCP
+openajar is for people who already use an agent (**Claude Code**, **Codex**, **T3 Code** or any MCP
 client) and want it to have a computer of its own, one that is still there tomorrow:
 
 - ✅ **A computer that stays.** Its installs, its branch, its dev server and its browser are there
@@ -49,9 +56,9 @@ client) and want it to have a computer of its own, one that is still there tomor
   and no key sits there.
 - ✅ **One computer per agent.** Several agents work at once, each on its own machine, so they never
   fight over ports, branches, cookies or `node_modules`.
-- ✅ **Use its own shell on the machine**: `ssh agentos-<id>`, `rsync` and `scp`, as if it were local.
+- ✅ **Use its own shell on the machine**: `ssh openajar-<id>`, `rsync` and `scp`, as if it were local.
 
-It is not another agent, chat or IDE. Your agent stays where it is, and agentos gives it a computer.
+It is not another agent, chat or IDE. Your agent stays where it is, and openajar gives it a computer.
 
 ## Install
 
@@ -67,7 +74,7 @@ login, and it connects Claude Code and Codex for you (and `ssh` to your agents' 
 can be skipped and changed later.
 
 <p align="center">
-  <img src="assets/readme/setup.png" width="100%" alt="agentos setup in a terminal: the install line, a welcome that says nothing bills until a VM opens, a quick start, then five steps (VMs on Hetzner Cloud with the token checked and a dev snapshot built, the GitHub login from gh, how environments stay with saves when idle chosen, Claude Code, Codex and the skills connected, and ssh from your shell), a health check where every row says ready, and the line All set. Nothing bills until an agent opens a VM.">
+  <img src="assets/readme/setup.png" width="100%" alt="openajar setup in a terminal: the install line, a welcome that says nothing bills until a VM opens, a quick start, then five steps (VMs on Hetzner Cloud with the token checked and a dev snapshot built, the GitHub login from gh, how environments stay with saves when idle chosen, Claude Code, Codex and the skills connected, and ssh from your shell), a health check where every row says ready, and the line All set. Nothing bills until an agent opens a VM.">
 </p>
 
 > [!TIP]
@@ -83,14 +90,14 @@ can be skipped and changed later.
 - Claude Code, Codex or T3 Code
 - For the VMs, one of:
   - a [Hetzner Cloud](https://www.hetzner.com/cloud) account (about 0.011 EUR an hour while a VM is
-    open). Make a project just for agentos: its token can delete any server in that project.
+    open). Make a project just for openajar: its token can delete any server in that project.
   - Docker running on your computer (free, less isolated)
 - Optional: the [GitHub CLI](https://cli.github.com) (`gh`), so setup can reuse your login for
   private repositories
 
-The installer puts `uv` and `agentos` in `~/.local/bin`, never asks for `sudo`, and is safe to run
-again: it updates agentos in place. To install a branch or an older release, set `AGENTOS_GIT_REF`
-(for example `AGENTOS_GIT_REF=v0.2.0`).
+The installer puts `uv` and `openajar` in `~/.local/bin`, never asks for `sudo`, and is safe to run
+again: it updates openajar in place. To install a branch or an older release, set `OPENAJAR_GIT_REF`
+(for example `OPENAJAR_GIT_REF=v0.2.0`).
 
 </details>
 
@@ -98,35 +105,35 @@ again: it updates agentos in place. To install a branch or an older release, set
 
 Start a new Claude Code or Codex session and say:
 
-> Work in agentos on github.com/you/app: fix the failing checkout test, show me the page working,
+> Work in openajar on github.com/you/app: fix the failing checkout test, show me the page working,
 > and open a pull request.
 
-The agent opens its computer, gives you a **live view link** to watch its browser, and comes back
-with a screenshot and the pull request link. You can take over the browser at any time.
+The agent opens its computer, gives you a **live view link** to watch its screen, and comes back
+with a screenshot and the pull request link. You can take over at any time.
 
 ## How it works
 
-1. **Your agent asks for its computer** when the task needs one. agentos rents a VM in your own
+1. **Your agent asks for its computer** when the task needs one. openajar rents a VM in your own
    account (Hetzner or Morph) or starts a Docker container, clones your repository into it and
    starts a browser there.
 2. **The agent works on it like on its own laptop.** It edits files, runs the tests in its
    terminal, starts the dev server and opens the page in its browser, where `localhost` is the
-   machine. It can also use its own shell: `ssh agentos-<id>`, `rsync` and `scp`. Dev servers keep
-   running when agentos restarts or updates.
-3. **It signs in when it needs to.** On a sign-in page it asks agentos, which types a login you
+   machine. It can also use its own shell: `ssh openajar-<id>`, `rsync` and `scp`. Dev servers keep
+   running when openajar restarts or updates.
+3. **It signs in when it needs to.** On a sign-in page it asks openajar, which types a login you
    chose from your vault into its browser. The model never sees the password.
 4. **It shows you the result**: screenshots and videos kept as proof, and a pushed branch with its
-   pull request. Pushes go through agentos, so the machine never holds your key.
+   pull request. Pushes go through openajar, so the machine never holds your key.
 5. **It stays.** When the agent goes idle or stops for the day, the whole machine is saved and the
    VM deleted, so it costs cents a month. The next chat that asks for it by its title gets it back:
    in seconds on Morph, in about a minute on Hetzner.
 
-The thinking stays on your laptop, in the agent you already use. agentos rents the machines in
+The thinking stays on your laptop, in the agent you already use. openajar rents the machines in
 your account, and bills you nothing of its own.
 
 ## Keep it and come back
 
-Each computer has a title. Say *"continue the checkout fix in agentos"* in any new chat, and the
+Each computer has a title. Say *"continue the checkout fix in openajar"* in any new chat, and the
 agent gets the same machine back: the branch, the files, `node_modules`, Docker volumes, the dev
 server and the browser's sign-ins, plus the note the last agent left.
 
@@ -149,18 +156,18 @@ You choose which logins from your vault a computer may use, by its title, its re
 them (the password comes from a hidden prompt, never the command line):
 
 ```sh
-agentos environments login add admin.example.com --title "Shop admin"   # or --repo me/shop, or --all
+openajar environments login add admin.example.com --title "Shop admin"   # or --repo me/shop, or --all
 ```
 
-When the agent reaches a sign-in page, it calls the login tool. agentos types the stored login into
+When the agent reaches a sign-in page, it calls the login tool. openajar types the stored login into
 that computer's browser, and the model never sees it. If the site signs it out later, the agent signs
 in again the same way, without asking you, or you do it from your laptop:
-`agentos environments login "Shop admin" admin.example.com`. Nothing else in your vault reaches the
+`openajar environments login "Shop admin" admin.example.com`. Nothing else in your vault reaches the
 machine.
 
 ## What it costs
 
-agentos itself is free and open source. You pay your VM provider directly, with your own account.
+openajar itself is free and open source. You pay your VM provider directly, with your own account.
 
 | | Price |
 |:--|:--|
@@ -171,14 +178,14 @@ agentos itself is free and open source. You pay your VM provider directly, with 
 | Docker on your own computer | **free** |
 
 Setup sets limits that hold whatever an agent asks: **10 EUR a month, 4 hours per VM, 2 VMs at
-once**. Change them any time with `agentos setup limits`. The agent sees the cost so far, and so do
+once**. Change them any time with `openajar setup limits`. The agent sees the cost so far, and so do
 you.
 
 ## Safe by default
 
 - 🔑 **No keys on the machine.** No key, token or password reaches the machine unless you bind a
   login to it, and the model never sees one. Your GitHub and cloud tokens stay on your laptop. A
-  push goes through agentos with a token for that one repository, which dies with the VM.
+  push goes through openajar with a token for that one repository, which dies with the VM.
 - 🔐 **Logins you choose.** A login you bind is typed into that computer's browser, so its browser
   holds that session. A computer gets no other login.
 - 🌿 **Your branches are safe.** The agent pushes new branches. It never deletes or rewrites your
@@ -188,8 +195,9 @@ you.
   work on the same computer by accident.
 - ✍️ **Commits are yours.** With your GitHub login saved, commits carry your GitHub name and noreply
   address, so they link to your account without showing your email.
-- 👀 **You can always watch.** Every environment has a live view of its browser, and you can take
-  over with one click.
+- 👀 **You can always watch.** Every environment has a live view of its screen, and you can take
+  over with one click: the agent's tools then stay off the screen. It is still the agent's computer,
+  so sign in there only to accounts the agent is meant to use.
 - 💶 **Hard limits.** Past the monthly cap, the time limit or the VM count, opening is refused.
 - 🗑️ **Nothing left running.** An idle computer is saved and its VM deleted after an hour (a
   single-use one is deleted), and work that was never pushed gets a rescue save instead of being
@@ -201,43 +209,51 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 
 | Agent | Setup |
 |:--|:--|
-| **Claude Code** | connected by `agentos setup`, with the agentos skills |
-| **Codex** | connected by `agentos setup` |
+| **Claude Code** | connected by `openajar setup`, with the openajar skills |
+| **Codex** | connected by `openajar setup` |
 | **T3 Code** | nothing more: it uses Claude Code's and Codex's settings, and shows the live view in its preview pane |
 | **Any MCP client** (Cursor, for example) | by hand: Streamable HTTP at `http://127.0.0.1:7410/mcp`, with the token setup keeps for your agents |
 
 ## The web app
 
-agentos has a small web app at `http://127.0.0.1:7410/` that lists every computer, what each costs
-and how long it has left. Each one has a page with its live browser, the proofs, a replay of what
+The live view link shows the agent's computer as it is now: a small desktop with the browser on it,
+and a violet pointer with the agent's name wherever it clicks, types or scrolls. Press **Take over**
+to click and type yourself, and **Hand back** when you are done. A live view link shows everything
+on that screen, the agent's commands and their output included, so share it as you would the
+screen. The round record button saves what you see as a video on your computer, ready to share. It
+is made in your browser and never uploaded.
+
+<p align="center">
+  <img src="assets/readme/live-view-clip.webp" width="100%" alt="A clip recorded with the live view's record button: Claude Code ticks three items on a launch checklist, its violet pointer gliding from one to the next, types a note for the team, runs a command in its terminal window while the pointer steps aside, and ticks the last item.">
+</p>
+
+openajar has a small web app at `http://127.0.0.1:7410/` that lists every computer, what each costs
+and how long it has left. Each one has a page with its live screen, the proofs, a replay of what
 its browser did, the commands it ran and its pushed branches. It is open source like the rest
 (Apache-2.0, in [web/](web/README.md)).
 
-The one-line install includes the web app, as an option: `agentos setup` offers it (yes by default)
+The one-line install includes the web app, as an option: `openajar setup` offers it (yes by default)
 and downloads the copy built for your version, checked against its release's sha256. Running the
-installer again updates it with agentos. To leave it out, answer no, or add it later with
-`agentos web install` (`agentos web remove` takes it away). Without it, every computer still has
-its live view link, and `agentos environments list` in the terminal.
+installer again updates it with openajar. To leave it out, answer no, or add it later with
+`openajar web install` (`openajar web remove` takes it away). Without it, every computer still has
+its live view link, and `openajar environments list` in the terminal.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
-  <img src="assets/readme/environment-light.png" width="100%" alt="One environment in the agentos web app: the agent's live browser with Take over and Stop agent buttons, its git branch and pushes, the ports listening on the VM, the commands its terminal ran, the time left, the cost so far, and a Close button.">
+  <img src="assets/readme/environment-light.png" width="100%" alt="One environment in the openajar web app: the agent's live screen with one pill under it that says Claude Code has control, with Stop agent and Take over, its git branch and pushes with their pull request links, the ports listening on the VM, the proof screenshots, the time left, the cost so far, and a Close button.">
 </picture>
 
 <details>
-<summary><b>More screenshots</b>: the environments list and the live view</summary>
+<summary><b>More screenshots</b>: the environments list</summary>
 
 <br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environments-dark.png">
-  <img src="assets/readme/environments-light.png" width="100%" alt="The Environments list in the agentos web app: three open environments (starting, working and idle) with their repository, branch, agent, age, cost and time left, and six closed ones below with how long each ran and what it cost.">
+  <img src="assets/readme/environments-light.png" width="100%" alt="The Environments list in the openajar web app: three open environments (starting, working and idle) with their repository, branch, agent, age, cost and time left, and six closed ones below with how long each ran and what it cost.">
 </picture>
 
-The live view link works on its own, without the web app. Here the VM's browser shows its own
-`localhost:3000`, and **Take control** lets you drive it:
-
-<img src="assets/readme/live-view.png" width="100%" alt="The agentos live view of an environment's browser: a Firefox window on http://localhost:3000 showing the page 'Hello from the VM', with the status Agent in control and the buttons Stop agent and Take control.">
+The live view link works on its own, without the web app.
 
 
 </details>
@@ -263,12 +279,12 @@ laptop stays free.
 
 The idea is the same: an agent gets a computer of its own, with a browser, a terminal and files,
 that stays between conversations. The difference is whose agent and whose machine. Those are hosted
-agents: you use their agent, on computers they run. agentos is for the agent you already use
+agents: you use their agent, on computers they run. openajar is for the agent you already use
 (Claude Code, Codex, T3 Code or any MCP client), on machines in your own account (Hetzner, Morph, or
 Docker on your computer). Each agent or chat gets a computer of its own, not one shared box. Logins
 come from your own vault and are typed in without the model seeing them, pushes go through a git
 gateway so no key sits on the machine, and you set the limits on spend. It is open source, with no
-agentos account in between.
+openajar account in between.
 
 </details>
 
@@ -279,7 +295,7 @@ agentos account in between.
 
 Those are sandboxes for code your product runs: your code starts one through an SDK, runs
 something in it and throws it away, so the next run starts from nothing. They fit when you build a
-product that runs code for your users. agentos is a computer that stays and is signed in, for the
+product that runs code for your users. openajar is a computer that stays and is signed in, for the
 agent in your chat: the agent asks for it itself over MCP, and tomorrow it gets the same machine
 back, with its installs, its branch, its dev server and its browser's sign-ins. You can watch that
 browser live and take it over.
@@ -304,10 +320,10 @@ browser holds that session, and a save keeps it.
 
 <br>
 
-Yes, while an agent works. The agent runs on your laptop and reaches its computer through agentos
+Yes, while an agent works. The agent runs on your laptop and reaches its computer through openajar
 there. When the laptop sleeps, each computer is saved and its VM deleted (unless you keep one
-running), so nothing bills overnight. A dev server on the VM keeps running while agentos restarts or updates. For
-machines that keep working while you sleep, run agentos on a server (below).
+running), so nothing bills overnight. A dev server on the VM keeps running while openajar restarts or updates. For
+machines that keep working while you sleep, run openajar on a server (below).
 
 </details>
 
@@ -329,7 +345,7 @@ repository. The token never goes through the chat, and the agent never sees it.
 
 Hetzner Cloud, Morph Cloud (machines start in about a second, and a saved environment pauses with
 its memory, so it comes back in seconds with its dev server still running), and Docker on your own
-computer. Each uses your own account. The provider layer (`agentos.vms`) is small, and more providers
+computer. Each uses your own account. The provider layer (`openajar.vms`) is small, and more providers
 are welcome.
 
 </details>
@@ -356,18 +372,18 @@ accounts on the server itself, and run studio's page checks (`ui_check`). A node
 later, or Debian 12). On the node:
 
 ```sh
-git clone https://github.com/sabalys-ramunas/agentos && cd agentos
+git clone https://github.com/sabalys-ramunas/agentos openajar && cd openajar
 sudo deploy/install-node.sh --systemd --user agentos --hardened
-sudo agentos vm setup                      # paste the Hetzner token
-sudo agentos vm image build dev            # the snapshot each VM boots from
-sudo agentos environments setup            # says what is still missing
+sudo openajar vm setup                      # paste the Hetzner token
+sudo openajar vm image build dev            # the snapshot each VM boots from
+sudo openajar environments setup            # says what is still missing
 ```
 
 Then on your computer, with the node in `~/.ssh/config` as `mynode`:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
-agentos connect mynode
+openajar connect mynode
 ```
 
 Install, hardening, backups and upgrades: [deploy/README.md](deploy/README.md).
@@ -392,7 +408,7 @@ The default list is the loop of an agent on its own computer:
 | `environment_upload()`, `environment_download(path)` | one-use links to send a local checkout up, or a file down to you |
 | `terminal_exec`, `terminal_job_start`, `terminal_job_read(until_port=3000)`, `terminal_job_cancel` | run a command in its terminal; dev servers and long jobs, waiting until a port listens |
 | `file_read`, `file_write`, `file_edit` | read (several files in one call), write and edit code |
-| `ssh agentos-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
+| `ssh openajar-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
 | `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_wait`, `browser_tabs`, `browser_dialog` | its browser, tabs and dialogs: read the page as an outline, act by reference |
 | `browser_wait_handback` | waits while you have taken the browser over |
 | `browser_screenshot(proof=...)`, `browser_record` | a screenshot or a video kept as proof, at desktop or phone width |
@@ -410,7 +426,7 @@ a page you build), `devtools`, `control`, `vault`, `flows`, `workflows`, `mail`,
 
 The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
 skill that teaches an agent the loop:
-[agentos-environment](src/agentos/client/skills/agentos-environment/SKILL.md).
+[openajar-environment](src/openajar/client/skills/openajar-environment/SKILL.md).
 
 </details>
 
@@ -426,11 +442,11 @@ skill that teaches an agent the loop:
 
 | | |
 |:--|:--|
-| [docs/LOCAL.md](docs/LOCAL.md) | agentos on your laptop: the service, sleep, costs, where tokens live |
+| [docs/LOCAL.md](docs/LOCAL.md) | openajar on your laptop: the service, sleep, costs, where tokens live |
 | [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) | the agent's computer in depth: setup, keeping, limits, troubleshooting |
 | [docs/TOOLS.md](docs/TOOLS.md), [docs/ERRORS.md](docs/ERRORS.md) | every MCP tool, every error code and its fix |
-| [docs/GIT.md](docs/GIT.md) | how git works through agentos |
-| [deploy/README.md](deploy/README.md) | running agentos on a server |
+| [docs/GIT.md](docs/GIT.md) | how git works through openajar |
+| [deploy/README.md](deploy/README.md) | running openajar on a server |
 | [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) | what it defends against |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/VISION.md](docs/VISION.md) | how it is built, and where it is going |
 | [docs/DEVELOPING.md](docs/DEVELOPING.md) | the dev loop and the tests |
@@ -438,7 +454,7 @@ skill that teaches an agent the loop:
 ## Contributing
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the dev loop: no cloud
-account needed (`uv run agentos dev up` and the unit tests run on a laptop). For a security
+account needed (`uv run openajar dev up` and the unit tests run on a laptop). For a security
 problem, see [SECURITY.md](SECURITY.md) and report it privately.
 
 ## License

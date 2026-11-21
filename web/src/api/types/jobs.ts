@@ -1,4 +1,4 @@
-// ---- Runs: commands started with `agentos run` (GET /api/orgs/{org}/jobs). Not routine runs (`Run`). ----
+// ---- Runs: commands started with `openajar run` (GET /api/orgs/{org}/jobs). Not routine runs (`Run`). ----
 
 /** How a run ended, or `running`. `passed` is exit code 0; `failed` is any other code, or a signal. */
 export type JobState = 'running' | 'passed' | 'failed' | 'cancelled' | 'timed_out' | 'lost';
@@ -13,7 +13,7 @@ export interface JobSync {
 }
 
 /**
- * The git branch and commit of the tree `agentos run` sent, as the sending computer said
+ * The git branch and commit of the tree `openajar run` sent, as the sending computer said
  * (`told_by: 'client'`): the node did not read them from the files. Absent when the run synced
  * nothing, or came from an older client.
  */

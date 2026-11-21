@@ -83,8 +83,8 @@ def test_executors_by_name():
 
 
 async def test_the_mcp_agent_grant_stand_in_keeps_to_the_lane_and_the_ceiling():
-    from agentos.core.errors import PolicyDenied
-    from agentos.core.models import Effect
+    from openajar.core.errors import PolicyDenied
+    from openajar.core.models import Effect
 
     ctx = BenchContext(runtime=None, tool="browser_act", lane="lanebench/feed-like", ceiling="draft",
                        sites=["127.0.0.1"])
@@ -92,7 +92,7 @@ async def test_the_mcp_agent_grant_stand_in_keeps_to_the_lane_and_the_ceiling():
     for effect, lane in ((Effect.COMMIT, None), (Effect.SECRET, None), (Effect.READ, "other/lane")):
         with pytest.raises(PolicyDenied):
             await ctx.authorize(effect, lane_id=lane)
-    from agentos.node.egress import Driver
+    from openajar.node.egress import Driver
 
     driver = Driver.from_context(ctx)
     assert driver.kind == "agent" and driver.ceiling == "draft" and driver.lists == (("127.0.0.1",),)

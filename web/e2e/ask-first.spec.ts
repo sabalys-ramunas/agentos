@@ -34,7 +34,7 @@ for (const [name, width, height] of [['desk', 1440, 900], ['phone', 375, 812]] a
       await openSettings(page);
       const panel = page.getByRole('region', { name: 'Ask me first' });
       const control = panel.getByRole('switch');
-      await expect(panel.getByText(/stops posts on sites agentos recognises/)).toBeVisible();
+      await expect(panel.getByText(/stops posts on sites openajar recognises/)).toBeVisible();
       const size = async () => (await rectOf(panel)).split(',').slice(2).join();
       const before = await size();
       await control.click();

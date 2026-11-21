@@ -1,13 +1,13 @@
 """A lane's browser identity is the same on every launch, as a page reads it.
 
-Run on the node:  AGENTOS_TEST_SLOT=31 scripts/node-test.sh fpin tests/node/test_fingerprint_pin_node.py -q
-Throwaway lanes only, under an AGENTOS_HOME in .node-home/ of this checkout, on the slot's first
+Run on the node:  OPENAJAR_TEST_SLOT=31 scripts/node-test.sh fpin tests/node/test_fingerprint_pin_node.py -q
+Throwaway lanes only, under an OPENAJAR_HOME in .node-home/ of this checkout, on the slot's first
 display; one browser at a time. A small server on the slot's last viewer port serves the fixture
 site (tests/fixtures/site/fingerprint.html, whose own script dumps navigator, screen, window,
 WebGL, fonts, canvas, audio, voices, timezone, languages and the request headers) and echoes
 request headers at /headers. Only these lanes may reach it.
 
-Set AGENTOS_TEST_EVIDENCE to a directory to keep every dump as JSON there.
+Set OPENAJAR_TEST_EVIDENCE to a directory to keep every dump as JSON there.
 """
 
 from __future__ import annotations
@@ -24,9 +24,9 @@ from typing import Any
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox.engine import (
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox.engine import (
     AVAIL_TOP,
     LAUNCHER_KEYS,
     PIN_META,
@@ -39,20 +39,20 @@ from agentos.node.camoufox.engine import (
     read_browser_config,
     write_private_json,
 )
-from agentos.node.display import DisplayManagerImpl, kill_processes
+from openajar.node.display import DisplayManagerImpl, kill_processes
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "310"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5310"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6310"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "310"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5310"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6310"))
 SITE_PORT = VIEWER_BASE + 9
 SITE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "site"
-EVIDENCE = os.environ.get("AGENTOS_TEST_EVIDENCE")
+EVIDENCE = os.environ.get("OPENAJAR_TEST_EVIDENCE")
 LAUNCHES = 3
 
 # The keys Camoufox drew afresh on a pinned relaunch before the full pin.

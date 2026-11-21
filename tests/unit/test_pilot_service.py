@@ -12,26 +12,26 @@ import pytest
 from test_policy_support import Clock
 from testkit.pilot import pick, step
 
-from agentos.core.errors import InvalidRequest, PolicyDenied, ServiceUnavailable
-from agentos.core.models import AccountRef, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.net import DEV_HOST, DEV_RULES
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.node import commitgate, egress, human
-from agentos.node import io_tools as node_io
-from agentos.node import tools as node_tools
-from agentos.node.flow_driver import DWELL_MS
-from agentos.pilot import service as pilot_service
-from agentos.pilot.grant import pins_for
-from agentos.pilot.modes import GOAL
-from agentos.pilot.service import PilotService, Settings, load_settings, parse_values, values_of
-from agentos.pilot.tools import lane_do
-from agentos.policy.service import PolicyService
-from agentos.policy.wrap import bind_request_token, wrap_tool
-from agentos.runner import service as runner_service
-from agentos.runner import tools as runner_tools
-from agentos.runner.fakes import BASE
+from openajar.core.errors import InvalidRequest, PolicyDenied, ServiceUnavailable
+from openajar.core.models import AccountRef, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.net import DEV_HOST, DEV_RULES
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.node import commitgate, egress, human
+from openajar.node import io_tools as node_io
+from openajar.node import tools as node_tools
+from openajar.node.flow_driver import DWELL_MS
+from openajar.pilot import service as pilot_service
+from openajar.pilot.grant import pins_for
+from openajar.pilot.modes import GOAL
+from openajar.pilot.service import PilotService, Settings, load_settings, parse_values, values_of
+from openajar.pilot.tools import lane_do
+from openajar.policy.service import PolicyService
+from openajar.policy.wrap import bind_request_token, wrap_tool
+from openajar.runner import service as runner_service
+from openajar.runner import tools as runner_tools
+from openajar.runner.fakes import BASE
 
 LANE = "biz-a/social"
 CAPTION = "Autumn menu is here."
@@ -91,7 +91,7 @@ class Node:
         self.specs = {s.name: s for s in specs if hasattr(s, "handler")}
         self.pilot = PilotService(self.runtime, settings or Settings(),
                                   wiring=(self.specs, wrap_tool, bind_request_token))
-        self.pilot.rules = egress.EFFECT_RULES + DEV_RULES  # as this lane's guard reads them (agentos.dev.net)
+        self.pilot.rules = egress.EFFECT_RULES + DEV_RULES  # as this lane's guard reads them (openajar.dev.net)
         self.pilot.attach()
         self.runtime.register("pilot", self.pilot)
         _, self.token = self.policy.issue(subject={"id": "claude-code"}, workspaces=["biz-a"], ceiling=Effect.COMMIT)
@@ -403,7 +403,7 @@ def test_settings_read_the_file_and_a_bad_file_falls_back(tmp_path) -> None:
 
 
 def test_error_codes_read_like_the_catalog() -> None:
-    from agentos.core import catalog
+    from openajar.core import catalog
 
     for code in pilot_service.ERROR_CODES.values():
         assert catalog.entry(code) is not None and "—" not in catalog.entry(code).meaning
@@ -411,8 +411,8 @@ def test_error_codes_read_like_the_catalog() -> None:
 
 
 async def test_the_plugin_builds_the_service_and_it_takes_pilot_runs(tmp_path) -> None:
-    """What agentos.node.daemon.build_plugins does with `agentos.pilot.service`."""
-    from agentos.core.models import RunKind
+    """What openajar.node.daemon.build_plugins does with `openajar.pilot.service`."""
+    from openajar.core.models import RunKind
 
     runtime = Runtime(interaction=DevInteraction())
     runner = runner_service.build(runtime, home=tmp_path / "runner", max_concurrent=1)

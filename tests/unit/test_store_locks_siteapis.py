@@ -1,6 +1,6 @@
 """siteapis/http.db: a request's usage row, key touch and cached result never wait for a lock
 another process holds, and dropping an API's results stays behind a queued put
-(agentos.core.sqlite)."""
+(openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from datetime import UTC, datetime
 
 from lockheld import _hold, loop_stays_free
 
-from agentos.runner.fakes import FakeClock
-from agentos.runner.siteapis.cache import SiteCache
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.usage import Usage
+from openajar.runner.fakes import FakeClock
+from openajar.runner.siteapis.cache import SiteCache
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.usage import Usage
 
 START = datetime(2026, 11, 5, 9, 30, tzinfo=UTC)
 

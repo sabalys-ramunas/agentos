@@ -6,12 +6,12 @@ import json
 
 from test_toolsets import every_spec, node_server
 
-from agentos.core import toolnames
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.core.toolsets import TOOLSETS
-from agentos.mcp.registry import build_mcp
+from openajar.core import toolnames
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.core.toolsets import TOOLSETS
+from openajar.mcp.registry import build_mcp
 
 
 def test_no_tool_says_lane_and_every_new_name_is_served():

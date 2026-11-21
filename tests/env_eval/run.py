@@ -1,13 +1,14 @@
-"""Run the environments eval (docs/EVALS.md): does agentos get better for the agents that use it?
+"""Run the environments eval (docs/EVALS.md): does openajar get better for the agents that use it?
 
     uv run python tests/env_eval/run.py                          # the free suite: perfect and careless
     uv run python tests/env_eval/run.py --agent claude --model haiku --task t01_fix_push_pr --repeat 3
-    uv run python tests/env_eval/run.py --ref <sha>              # the same suite on another commit's agentos
+    uv run python tests/env_eval/run.py --ref <sha>              # the same suite on another commit's openajar
     uv run python tests/env_eval/run.py compare [--against <sha>] [--agent perfect]
     uv run python tests/env_eval/run.py list                     # the tasks
+    uv run python tests/env_eval/run.py smoke                    # the budgets, with no node and no model
     uv run python tests/env_eval/run.py clean                    # what a killed run left in Docker
 
-Each task runs on a node of its own: agentos's local node with the docker provider in a scratch home
+Each task runs on a node of its own: openajar's local node with the docker provider in a scratch home
 (tests/env_eval/node.py), the task's fixture repository as a local bare repository, a stand-in for
 GitHub's pull request API (ghstub.py), and a recording MCP proxy in front (proxy.py) that every agent
 goes through. Per task it records whether the checker passed, the wall time, the time to a ready
@@ -69,7 +70,7 @@ def git_state(where: Path) -> tuple[str, bool]:
 # ---- one session, one task ----
 
 async def scripted_session(task: Task, kind: str, ctx: Ctx, i: int, url: str, token: str) -> tuple[str, str | None]:
-    from agentos.dev.slotnode import mcp_client
+    from openajar.dev.slotnode import mcp_client
 
     try:
         async with mcp_client(url, token, timeout=400) as client:
@@ -110,7 +111,7 @@ def _sum_metrics(parts: list[dict[str, Any]]) -> dict[str, Any]:
 async def requires_missing(node: EvalNode, task: Task, url: str) -> list[str]:
     if not task.requires:
         return []
-    from agentos.dev.slotnode import mcp_client, text_of
+    from openajar.dev.slotnode import mcp_client, text_of
 
     async with mcp_client(url, node.owner_token, timeout=60) as c:
         listed = text_of(await c.call_tool("tools_more", {}))
@@ -120,6 +121,8 @@ async def requires_missing(node: EvalNode, task: Task, url: str) -> list[str]:
 async def run_task(args: argparse.Namespace, task: Task, kind: str, rep: int, *, gh: GitHubStub, proxy: McpProxy,
                    out: Path, cap_usd: float) -> dict[str, Any]:
     base = {"task": task.id, "agent": kind, "model": args.model if kind not in SCRIPTED else None, "repeat": rep}
+    if task.scripted_only and kind not in SCRIPTED:
+        return {**base, "skipped": task.scripted_only}
     if task.repo and not has_node():
         return {**base, "skipped": "the checker runs the repository's tests with node, which is not installed here"}
     where = out / kind / f"{task.id}-r{rep}"
@@ -138,7 +141,7 @@ async def run_task(args: argparse.Namespace, task: Task, kind: str, rep: int, *,
         node.serve()
         missing = await requires_missing(node, task, node.mcp_url)
         if missing:
-            return {**base, "skipped": f"this agentos has no {', '.join(missing)}"}
+            return {**base, "skipped": f"this openajar has no {', '.join(missing)}"}
         t0s: list[float] = []
         mark0 = rec.mark()
         for i, session in enumerate(task.sessions):
@@ -327,7 +330,7 @@ def pick_tasks(asked: list[str] | None) -> list[Task]:
 
 @contextlib.contextmanager
 def ref_tree(ref: str | None):
-    """A temporary worktree of `ref` (its src/ is the agentos under test), removed on the way out."""
+    """A temporary worktree of `ref` (its src/ is the openajar under test), removed on the way out."""
     if not ref:
         yield None
         return
@@ -374,7 +377,7 @@ def cmd_run(argv: list[str]) -> int:
         args.src = tree / "src" if tree else None
         args.tree = tree or REPO
         print(f"env eval: {len(tasks)} tasks, agents {', '.join(args.agent)}"
-              + (f", agentos at {args.ref}" if args.ref else "") + f"; results in {out}", flush=True)
+              + (f", openajar at {args.ref}" if args.ref else "") + f"; results in {out}", flush=True)
         try:
             results = asyncio.run(run_all(args, tasks, out, cap))
         except KeyboardInterrupt:
@@ -437,6 +440,15 @@ def cmd_compare(argv: list[str]) -> int:
     return 0
 
 
+def cmd_smoke() -> int:
+    """The smoke checks (smoke.py): no node, no Docker, no model; exit 1 when one is over its budget."""
+    from env_eval import smoke
+
+    checks = smoke.run()
+    print(smoke.show(checks))
+    return 0 if all(c["ok"] for c in checks.values()) else 1
+
+
 def cmd_list() -> int:
     for t in all_tasks():
         extra = f" (needs {', '.join(t.requires)})" if t.requires else ""
@@ -450,6 +462,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_compare(argv[1:])
     if argv[:1] == ["list"]:
         return cmd_list()
+    if argv[:1] == ["smoke"]:
+        return cmd_smoke()
     if argv[:1] == ["clean"]:
         print(f"removed: {sweep_stale()}")
         return 0

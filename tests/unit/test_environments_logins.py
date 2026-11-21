@@ -1,4 +1,4 @@
-"""Logins for agent environments (agentos.environments.logins): the owner's bindings by title, repository
+"""Logins for agent environments (openajar.environments.logins): the owner's bindings by title, repository
 or all, the vault's decision on an environment's lane, the agent's `login` through the environment's
 routing and lease, signing in again, the owner's CLI and sign-in now, and that no value reaches argv, a
 log, a trace, a result or a replay caption, nor a frame taken while a fill runs."""
@@ -16,16 +16,16 @@ from test_environments_replay import Shots, settled
 from test_vault_support import FakeTypist, Page, fld, make_vault, private_home
 from typer.testing import CliRunner
 
-from agentos.api.bridge import panel_specials
-from agentos.core.errors import AgentosError, InvalidRequest, NotFound
-from agentos.core.models import Effect, Signal
-from agentos.environments import logins
-from agentos.environments import replay as replay_mod
-from agentos.environments.models import Environment
-from agentos.node import vault_tools
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
-from agentos.vault.models import EntryMeta
-from agentos.vault.policy import Reason, Sink, decide, entry_bound
+from openajar.api.bridge import panel_specials
+from openajar.core.errors import InvalidRequest, NotFound, OpenajarError
+from openajar.core.models import Effect, Signal
+from openajar.environments import logins
+from openajar.environments import replay as replay_mod
+from openajar.environments.models import Environment
+from openajar.node import vault_tools
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.vault.models import EntryMeta
+from openajar.vault.policy import Reason, Sink, decide, entry_bound
 
 SITE = "http://localhost:8099"
 LOGIN_URL = SITE + "/login"
@@ -168,7 +168,7 @@ def test_no_tool_takes_a_login_binding():
     params = {name: set(inspect.signature(fn).parameters) - {"ctx"} for name, fn in
               (("login", vault_tools.login), ("vault_fill", vault_tools.vault_fill), ("vault_list", vault_tools.vault_list))}
     assert params == {"login": {"on", "entry"}, "vault_fill": {"on", "field", "entry"}, "vault_list": {"on"}}
-    from agentos.environments.tools import environment_open
+    from openajar.environments.tools import environment_open
 
     assert not set(inspect.signature(environment_open).parameters) & {"login", "logins", "entry", "scope"}
 
@@ -195,7 +195,7 @@ def test_the_policy_refuses_a_login_on_an_environment_it_does_not_cover():
     for wrong in (facts("Blog"), facts(TITLE, family="g-another-agent"), None):
         d = decide(entry, **args, lane_facts=wrong)
         assert not d.allowed and d.reason is Reason.LANE_NOT_BOUND
-    unscoped = meta()  # bound to env/* some other way (agentos vault bind): every environment, as before
+    unscoped = meta()  # bound to env/* some other way (openajar vault bind): every environment, as before
     assert decide(unscoped, **args, lane_facts=None).allowed
     text_field = fld("pass", SITE, type="text", name="password", form="f")  # a password goes only into a password input
     d = decide(entry, **{**args, "field": text_field, "fields": [site_form()[0], text_field]}, lane_facts=facts(TITLE))
@@ -207,7 +207,7 @@ def test_the_policy_refuses_a_login_on_an_environment_it_does_not_cover():
 
 @pytest.fixture
 async def agent(node, vault, monkeypatch):  # noqa: F811
-    """The node fixture with a vault, the typist and the login tools, called as `agentos connect`'s agent."""
+    """The node fixture with a vault, the typist and the login tools, called as `openajar connect`'s agent."""
     rt, mgr = node["rt"], node["mgr"]
     rt.register("vault", vault)
     mgr.logins_install()
@@ -225,7 +225,7 @@ async def agent(node, vault, monkeypatch):  # noqa: F811
                                         specials=panel_specials(["environments"]))
     specs = {s.name: s for s in vault_tools.tool_specs(rt)}
     calls = {name: wrap_tool(spec, rt) for name, spec in specs.items()}
-    from agentos.environments.tools import tool_specs as env_specs
+    from openajar.environments.tools import tool_specs as env_specs
 
     calls.update({s.name: wrap_tool(s, rt) for s in env_specs(rt)})
 
@@ -292,7 +292,7 @@ async def test_only_the_holders_handle_reaches_the_machine(agent):
 
 async def test_several_logins_name_themselves_and_none_says_how_to_bind_one(agent):
     on = (await agent.call("environment_open", title=TITLE))["on"]
-    with pytest.raises(ToolCallError, match="agentos environments login add"):
+    with pytest.raises(ToolCallError, match="openajar environments login add"):
         await agent.call("login", on=on)
     await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"all": True})
     await logins.add(agent.vault, "https://example.com/login", user=USER, password=PASSWORD, scope={"all": True})
@@ -357,11 +357,11 @@ async def test_the_owner_signs_an_environment_in_now_and_hears_when_the_person_i
     agent.site.current = "login"
     stuck = await agent.mgr.sign_in_now(TITLE, "localhost")
     assert stuck["ok"] is False and stuck["needs"] == "captcha" and stuck["links"]["browser"]
-    from agentos.environments.logins_cli import signed_in_words
+    from openajar.environments.logins_cli import signed_in_words
 
     assert "CAPTCHA" in signed_in_words(stuck) and "Live view: http://127.0.0.1:1/view/x" in signed_in_words(stuck)
     assert "Signed in to localhost" in signed_in_words(done)
-    with pytest.raises(NotFound, match="agentos environments resume"):
+    with pytest.raises(NotFound, match="openajar environments resume"):
         await agent.mgr.sign_in_now("Nothing open", "localhost")
     with pytest.raises(NotFound, match="no login"):
         await agent.mgr.sign_in_now(TITLE, "example.com")
@@ -373,8 +373,8 @@ async def test_the_owner_signs_an_environment_in_now_and_hears_when_the_person_i
 
 @pytest.fixture
 def cli(vault, monkeypatch):
-    from agentos.environments import cli as env_cli
-    from agentos.environments import logins_cli
+    from openajar.environments import cli as env_cli
+    from openajar.environments import logins_cli
 
     monkeypatch.setattr(logins_cli, "_vault", lambda: vault)
     shop = SimpleNamespace(id="eabc123", title=TITLE, family=FAMILY, agent="agent-1")  # the computer an agent has
@@ -385,7 +385,7 @@ def cli(vault, monkeypatch):
 
 
 def run(cli, *args, input=None):
-    from agentos.environments.resume_cli import app
+    from openajar.environments.resume_cli import app
 
     return CliRunner().invoke(app, ["login", *args], input=input)
 
@@ -454,7 +454,7 @@ def test_login_title_site_signs_in_now_through_agentosd(cli, monkeypatch):
 async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent, tmp_path):
     import httpx
 
-    from agentos.api import ApiSettings, build_api
+    from openajar.api import ApiSettings, build_api
 
     await agent.call("environment_open", title=TITLE)
     await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
@@ -468,7 +468,7 @@ async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent,
         r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}"})
         assert r.status_code == 403 and "presence_required" in r.text  # the bare node token: an agent may hold it
         assert agent.site.typed == []
-        from agentos.commands.base import operator_presence
+        from openajar.commands.base import operator_presence
 
         person = operator_presence(agent.rt.get("config"))  # the node's own CLI: a one-time code in panel.db
         assert person
@@ -479,4 +479,4 @@ async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent,
 
 def test_an_error_names_its_fix():
     e = NotFound(logins._none_words(SimpleNamespace(title=TITLE), [], None))
-    assert isinstance(e, AgentosError) and "--title \"Shop fix\"" in e.message
+    assert isinstance(e, OpenajarError) and "--title \"Shop fix\"" in e.message

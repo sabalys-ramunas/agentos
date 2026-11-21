@@ -1,8 +1,8 @@
 """Lanes cycling for an hour on a real node: open, act, close, again and again (docs/BENCH.md).
 
-    AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_soak.py -q
-    AGENTOS_SOAK_SECONDS=600 ...                 # shorter (default 3600)
-    AGENTOS_SOAK_REPORT=/tmp/soak.json ...       # where the samples go (default: next to the homes)
+    OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_soak.py -q
+    OPENAJAR_SOAK_SECONDS=600 ...                 # shorter (default 3600)
+    OPENAJAR_SOAK_REPORT=/tmp/soak.json ...       # where the samples go (default: next to the homes)
 
 Two lanes take turns; every cycle opens each, navigates, reads, clicks, types, takes a screenshot
 and closes it (one warm lane at a time: the node is shared, and a refusal at the memory floor is
@@ -24,18 +24,18 @@ from pathlib import Path
 import pytest
 from soak_support import FEED, FORM, POST, ok, one_ref
 
-from agentos.dev.slotnode import footprint, leftovers, mcp_client, text_of
+from openajar.dev.slotnode import footprint, leftovers, mcp_client, text_of
 
 pytestmark = [pytest.mark.soak]
 
-SECONDS = int(os.environ.get("AGENTOS_SOAK_SECONDS", "3600"))
+SECONDS = int(os.environ.get("OPENAJAR_SOAK_SECONDS", "3600"))
 LANES = ("soak/a", "soak/b")
 WARMUP_CYCLES = 3
 RSS_GROWTH_MB = 40   # agentosd's own memory, last quarter against the first after warm-up
 FD_GROWTH = 8
 MAX_MEMORY_WAITS = 60  # 30 s each
-TRACE = os.environ.get("AGENTOS_SOAK_TRACEMALLOC") == "1"  # snapshots to find what agentosd keeps
-TRACE_AT = int(os.environ.get("AGENTOS_SOAK_TRACE_AT", "25"))
+TRACE = os.environ.get("OPENAJAR_SOAK_TRACEMALLOC") == "1"  # snapshots to find what agentosd keeps
+TRACE_AT = int(os.environ.get("OPENAJAR_SOAK_TRACE_AT", "25"))
 
 
 async def one_cycle(client, lane: str) -> int:
@@ -54,7 +54,7 @@ async def one_cycle(client, lane: str) -> int:
 
 async def test_lanes_cycle_without_leaks(node):
     daemon = node(LANES)
-    report_path = Path(os.environ.get("AGENTOS_SOAK_REPORT") or daemon.home.parent / "soak-report.json")
+    report_path = Path(os.environ.get("OPENAJAR_SOAK_REPORT") or daemon.home.parent / "soak-report.json")
     samples: list[dict] = []
     leaks: list[str] = []
     cycles = calls = memory_waits = 0

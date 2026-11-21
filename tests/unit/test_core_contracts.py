@@ -1,9 +1,9 @@
 import pytest
 
-from agentos.core.errors import ApprovalPending, ServiceUnavailable
-from agentos.core.models import Effect, IsolationProfile, LaneKind, Preset, RunStatus
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolImage, ToolSpec
+from openajar.core.errors import ApprovalPending, ServiceUnavailable
+from openajar.core.models import Effect, IsolationProfile, LaneKind, Preset, RunStatus
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolImage, ToolSpec
 
 
 def test_effect_ladder_and_specials():

@@ -49,7 +49,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
         </Calm>
       ) : (
         <Calm icon={<FlaskConical />} title="No test summary">
-          agentos found no test runner&apos;s summary in this output (pytest, Vitest, Jest, swift test or go test), so no tests are listed.
+          openajar found no test runner&apos;s summary in this output (pytest, Vitest, Jest, swift test or go test), so no tests are listed.
           {job.state === 'failed' ? ' The output shows what went wrong.' : ''}
         </Calm>
       );
@@ -62,7 +62,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
   } else if (!failures.length) {
     body = (
       <Calm icon={<CircleAlert className="text-bad" />} title={`${plural(count, 'test')} failed`}>
-        {RUNNER[tests.runner]} says so in its summary, but the lines about each failure are not in a form agentos reads
+        {RUNNER[tests.runner]} says so in its summary, but the lines about each failure are not in a form openajar reads
         {trimmed ? ', or they were in the part of the output this page let go' : ''}. Filter the output for them.
       </Calm>
     );
@@ -95,7 +95,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
         ))}
         {count > failures.length ? (
           <li className="px-5 py-3 text-secondary text-muted">
-            {plural(count - failures.length, 'more failure')} in the summary had no lines agentos could read.
+            {plural(count - failures.length, 'more failure')} in the summary had no lines openajar could read.
           </li>
         ) : null}
       </ol>
@@ -226,7 +226,7 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
                 <div className="flex min-w-0 items-baseline gap-2">
                   <p className="min-w-0 flex-1 text-label [overflow-wrap:anywhere] text-fg">{step.title}</p>
                   {step.at ? (
-                    <time dateTime={step.at} title={dateTime(step.at)} className="shrink-0 font-mono text-code-caption text-faint tabular">
+                    <time dateTime={step.at} title={dateTime(step.at)} className="shrink-0 text-caption text-faint tabular">
                       {clock(step.at)}
                     </time>
                   ) : null}

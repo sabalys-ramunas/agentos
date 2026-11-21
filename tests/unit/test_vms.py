@@ -1,4 +1,4 @@
-"""Disposable cloud VMs (agentos.vms): lifecycle on a fake cloud, the reaper, limits, the SSH
+"""Disposable cloud VMs (openajar.vms): lifecycle on a fake cloud, the reaper, limits, the SSH
 command line, the Hetzner client against a mock transport, and the tools."""
 
 from __future__ import annotations
@@ -9,20 +9,20 @@ from datetime import timedelta
 import httpx
 import pytest
 
-from agentos.core.errors import InvalidRequest, LaneExists, PolicyDenied
-from agentos.core.models import Effect, Principal, utcnow
-from agentos.core.runtime import Runtime
-from agentos.env.host import FakeHost
-from agentos.env.lanes import SandboxError
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher, Workload
-from agentos.vms import ssh
-from agentos.vms.hetzner import HetznerProvider
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmError, VmLimit, VmSettings
-from agentos.vms.provider import FakeProvider, Server, ServerSpec
-from agentos.vms.tools import tool_specs
+from openajar.core.errors import InvalidRequest, LaneExists, PolicyDenied
+from openajar.core.models import Effect, Principal, utcnow
+from openajar.core.runtime import Runtime
+from openajar.env.host import FakeHost
+from openajar.env.lanes import SandboxError
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher, Workload
+from openajar.vms import ssh
+from openajar.vms.hetzner import HetznerProvider
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmError, VmLimit, VmSettings
+from openajar.vms.provider import FakeProvider, Server, ServerSpec
+from openajar.vms.tools import tool_specs
 
 
 class Clock:
@@ -169,7 +169,7 @@ async def test_reaper_deletes_orphans_and_notices_servers_deleted_elsewhere(env)
 
 
 async def test_two_homes_with_one_node_name_never_sweep_each_others_servers(env, tmp_path):
-    """Two agentos homes on one cloud project or docker host, both named node-1 (the default): each
+    """Two openajar homes on one cloud project or docker host, both named node-1 (the default): each
     home's labels carry its own random id, so neither reaper takes the other's servers for orphans."""
     vms, _envs, prov, clock = env
     rec = await vms.create("dev/a", ttl_minutes=60)
@@ -221,7 +221,7 @@ async def test_a_failed_delete_is_retried_and_an_overdue_vm_alerts(env):
 
 
 async def test_a_vm_whose_ssh_never_answers_is_deleted(env, monkeypatch):
-    import agentos.vms.manager as m
+    import openajar.vms.manager as m
     vms, envs, prov, _clock = env
 
     async def bad_probe(remote, *, timeout_s=15):
@@ -237,7 +237,7 @@ async def test_a_vm_whose_ssh_never_answers_is_deleted(env, monkeypatch):
 
 
 async def test_a_boot_failure_with_an_empty_message_still_says_why(env, monkeypatch, caplog):
-    import agentos.vms.manager as m
+    import openajar.vms.manager as m
     vms, _envs, _prov, _clock = env
 
     async def silent_probe(remote, *, timeout_s=15):
@@ -245,7 +245,7 @@ async def test_a_boot_failure_with_an_empty_message_still_says_why(env, monkeypa
 
     vms._probe = silent_probe
     monkeypatch.setattr(m, "BOOT_POLL_S", 0.01)
-    with caplog.at_level("WARNING", logger="agentos.vms"):
+    with caplog.at_level("WARNING", logger="openajar.vms"):
         rec = await vms.create("dev/b", ttl_minutes=30, wait_s=5)
     fresh = vms.store.get(rec.id)
     assert fresh.state == "failed" and fresh.error.startswith("TimeoutError; the provider says the server is ")
@@ -278,11 +278,11 @@ async def test_a_create_that_fails_leaves_no_keys_or_lane(env):
 
 
 def test_ssh_command_pins_the_host_key_and_forwards_nothing(tmp_path):
-    from agentos.env.models import RemoteHost
-    r = RemoteHost(vm_id="vm_1", host="203.0.113.9", key_path="/k", known_hosts="/kh", host_alias="agentos-vm_1")
+    from openajar.env.models import RemoteHost
+    r = RemoteHost(vm_id="vm_1", host="203.0.113.9", key_path="/k", known_hosts="/kh", host_alias="openajar-vm_1")
     argv = ssh.ssh_base(r)
     joined = " ".join(argv)
-    for opt in ("StrictHostKeyChecking=yes", "UserKnownHostsFile=/kh", "HostKeyAlias=agentos-vm_1",
+    for opt in ("StrictHostKeyChecking=yes", "UserKnownHostsFile=/kh", "HostKeyAlias=openajar-vm_1",
                 "BatchMode=yes", "IdentitiesOnly=yes", "IdentityAgent=none", "ForwardAgent=no",
                 "PasswordAuthentication=no", "GlobalKnownHostsFile=/dev/null"):
         assert opt in joined
@@ -340,7 +340,7 @@ async def test_hetzner_401_says_how_to_fix_and_404_delete_is_fine():
 
     p = _mock(handler)
     await p.delete_server("1")
-    with pytest.raises(VmError, match="agentos vm setup"):
+    with pytest.raises(VmError, match="openajar vm setup"):
         await p.check()
 
 
@@ -437,24 +437,24 @@ async def test_tools_authorize_vm_with_the_price_and_profile_then_exec_works_lik
 
 
 async def test_exec_on_a_vm_lane_is_routed_as_isolated_and_runs_over_ssh(env):
-    from agentos.env.tools import tool_specs as env_specs
+    from openajar.env.tools import tool_specs as env_specs
     vms, envs, _, _ = env
     await vms.create("dev/a", ttl_minutes=30)
     Ctx(vms.runtime)
     lane = envs.get("dev/a")
-    from agentos.env.tools import _facts, _where
+    from openajar.env.tools import _facts, _where
     assert _facts(lane) == {"isolated": True} and "disposable cloud machine" in _where(lane)
     rt = await envs.warm("dev/a")
     cmd = rt.launcher.command(None, lane, Workload(wid="w", argv=["uname", "-a"], env={}), cgroup=None,
                               workdir=envs.paths.workdir("dev/a"))
     assert cmd.argv[0] == "ssh" and cmd.argv[-1].endswith(" sh uname -a") and "setsid -w" in cmd.argv[-1] and f"root@{lane.remote.host}" in cmd.argv
-    assert "AGENTOS" not in json.dumps(cmd.env)
+    assert "OPENAJAR" not in json.dumps(cmd.env)
     assert {s.name for s in env_specs(vms.runtime)} >= {"terminal_exec", "shell_open"}
 
 
 def test_policy_routes_vm_to_a_person_and_grants_limit_profiles():
-    from agentos.policy.grants import Specials, VmCap
-    from agentos.policy.routing import RoutingTable
+    from openajar.policy.grants import Specials, VmCap
+    from openajar.policy.routing import RoutingTable
     table = RoutingTable()
     assert table.decide(Effect.VM, {}).then == "approval"
     assert "vm" in table.standing_effects and "vm" in table.sink_effects
@@ -464,8 +464,8 @@ def test_policy_routes_vm_to_a_person_and_grants_limit_profiles():
     assert VmCap(repos=["github.com/acme/*"]).repos == ["github.com/acme/*"]
     with pytest.raises((ValueError, InvalidRequest)):
         VmCap(repos=["https://github.com/acme/*"])
-    from agentos.core import globs
-    from agentos.policy.grants import _cap_widening
+    from openajar.core import globs
+    from openajar.policy.grants import _cap_widening
     assert globs.repo_match("github.com/acme/*", "github.com/acme/api")
     assert not globs.repo_match("github.com/acme/*", "github.com/acme2/api")
     parent, child = VmCap(repos=["github.com/acme/*"]), VmCap(repos=["github.com/other/x"])
@@ -520,7 +520,7 @@ async def test_no_fallback_type_has_a_smaller_disk_than_the_image(env):
     assert plan["server_type"] == "cpx22" and plan["image"] == "snapshot:dev"   # cx23 has 40 GB
     assert all(prov.specs[t][2] >= 60 for t, _p in plan["fallbacks"])
     # a type the provider refuses for its disk is skipped in every location, and the error says so
-    from agentos.vms import capacity
+    from openajar.vms import capacity
     calls = []
 
     async def make(t, loc):
@@ -532,7 +532,7 @@ async def test_no_fallback_type_has_a_smaller_disk_than_the_image(env):
 
 
 def test_no_room_words_name_every_type_and_location_tried():
-    from agentos.vms import capacity
+    from openajar.vms import capacity
     words = capacity.no_room_words("hetzner", [("cx23", "nbg1"), ("cx23", "fsn1"), ("cx23", "hel1"), ("cx33", "nbg1")])
     assert words == ("Hetzner has no room for cx23 in nbg1, fsn1 or hel1 now, nor for cx33 in nbg1; "
                      "try again in 5 minutes")
@@ -563,7 +563,7 @@ class RepoVault:
 
 
 def test_repo_names_are_https_on_public_hosts_without_credentials():
-    from agentos.vms.repos import best_match, parse_pattern, parse_repo
+    from openajar.vms.repos import best_match, parse_pattern, parse_repo
     for text in ("github.com/acme/api", "https://github.com/acme/api.git", "git@github.com:acme/api.git",
                  "ssh://git@github.com/acme/api"):
         r = parse_repo(text)
@@ -582,7 +582,7 @@ def test_repo_names_are_https_on_public_hosts_without_credentials():
 
 
 async def test_repo_tokens_live_in_the_vault_and_need_one():
-    from agentos.vms.repos import RepoTokens, parse_repo
+    from openajar.vms.repos import RepoTokens, parse_repo
     with pytest.raises(VmError, match="vault init"):
         await RepoTokens(None).add("github.com/acme/*", "tok")
     vault = RepoVault()
@@ -604,7 +604,7 @@ def git_origin(tmp_path, monkeypatch):
     command here, so the tar stream lands in tmp_path."""
     import subprocess
 
-    from agentos.vms import repos as vmrepos
+    from openajar.vms import repos as vmrepos
     src = tmp_path / "origin"
     src.mkdir()
     run = {"cwd": src, "capture_output": True,
@@ -636,7 +636,7 @@ async def test_vm_clone_copies_the_checkout_and_never_the_token(env, git_origin,
     await vms.create("dev/a", ttl_minutes=30)
     specs = {s.name: s for s in tool_specs(vms.runtime)}
     ctx = Ctx(vms.runtime)
-    with pytest.raises(Exception, match="agentos vm repo add"):
+    with pytest.raises(Exception, match="openajar vm repo add"):
         await specs["vm_clone"].handler(ctx, on="dev/a", repo="github.com/acme/api")
     assert ctx.calls == []  # no approval asked for a clone that cannot happen
     await vms.repo_tokens().add("github.com/acme/*", "ghp_TOPSECRET")
@@ -664,7 +664,7 @@ async def test_vm_clone_copies_the_checkout_and_never_the_token(env, git_origin,
 
 
 def test_git_errors_never_show_the_token():
-    from agentos.vms.repos import _scrub
+    from openajar.vms.repos import _scrub
     assert _scrub("fatal: https://x:ghp_abc@github.com failed", "ghp_abc") == "fatal: https://x:***@github.com failed"
 
 
@@ -672,13 +672,13 @@ def test_a_docker_machine_is_made_with_its_walls_and_vms_tomls_limits(tmp_path):
     """The docker provider's `docker create` (proven on a real docker in test_environments_docker.py)."""
     s = VmSettings(provider="docker", docker_cpus=1.5, docker_memory_gb=2, docker_pids=256)
     prov = VmManager(tmp_path, runtime=Runtime(), settings=s).provider()
-    spec = ServerSpec(name="agentos-vm-abc", server_type="docker", image="agentos-env:latest", location="local",
+    spec = ServerSpec(name="openajar-vm-abc", server_type="docker", image="agentos-env:latest", location="local",
                       user_data="", labels={"agentos-node": "n", "agentos-home": "h1"})
     args = prov.run_args(spec)
     from itertools import pairwise
 
     pairs = set(pairwise(args))
-    assert {("--network", "agentos-vm-abc"), ("--cpus", "1.5"), ("--memory", str(2 * 2**30)),
+    assert {("--network", "openajar-vm-abc"), ("--cpus", "1.5"), ("--memory", str(2 * 2**30)),
             ("--memory-swap", str(2 * 2**30)), ("--pids-limit", "256"), ("--cap-drop", "ALL"),
             ("-e", "AGENTOS_ENV_WALL=1"), ("-p", "127.0.0.1::22"), ("--label", "agentos-home=h1")} <= pairs
     added = {b for a, b in pairs if a == "--cap-add"}
@@ -687,7 +687,7 @@ def test_a_docker_machine_is_made_with_its_walls_and_vms_tomls_limits(tmp_path):
 
 
 def test_setup_says_plainly_what_the_docker_provider_does_not_isolate():
-    from agentos.environments.cli import docker_isolation_words
+    from openajar.environments.cli import docker_isolation_words
 
     mac, linux = docker_isolation_words("darwin"), docker_isolation_words("linux")
     for words in (mac, linux):

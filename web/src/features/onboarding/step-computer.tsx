@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useNodes } from '@/api/hooks';
 import { isNotServed } from '@/api/http';
 import { Badge } from '@/components/ui/badge';
+import { Choice as ChoiceCard, ChoiceGroup } from '@/components/ui/choice';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { computerName } from '@/lib/computers';
@@ -48,28 +49,11 @@ const OPTIONS: { key: Choice; title: string; body: string; badge: string; icon: 
   },
 ];
 
-function Option({ option, chosen, onChoose }: { option: (typeof OPTIONS)[number]; chosen: boolean; onChoose: () => void }) {
+function OptionIcon({ icon: Icon }: { icon: (typeof OPTIONS)[number]['icon'] }) {
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={chosen}
-      onClick={onChoose}
-      className={cn(
-        'grid content-start gap-2 rounded-xl border bg-card p-4 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
-        chosen ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
-      )}
-    >
-      <span className="flex items-center gap-2">
-        <span aria-hidden="true" className="inline-flex size-9 items-center justify-center rounded-lg border border-line bg-inset text-muted">
-          <option.icon className="size-4" />
-        </span>
-        <Badge className={cn(!option.soon && 'border-(--ok-soft) bg-(--ok-soft) text-fg')}>{option.badge}</Badge>
-        <span aria-hidden="true" className={cn('ml-auto inline-flex size-4 rounded-full border', chosen ? 'border-[5px] border-fg' : 'border-line-strong')} />
-      </span>
-      <span className="mt-2 text-label">{option.title}</span>
-      <span className="text-secondary text-muted">{option.body}</span>
-    </button>
+    <span aria-hidden="true" className="inline-flex size-8 items-center justify-center rounded-md bg-inset text-muted group-data-[state=checked]:bg-accent-soft group-data-[state=checked]:text-accent-text">
+      <Icon className="size-4" />
+    </span>
   );
 }
 
@@ -78,7 +62,7 @@ function mailSteps(business: string, command: string | null, token: string | nul
   const lines = [
     `Hi,`,
     ``,
-    `I am setting up agentos for ${business}. It needs a computer that stays on (a Mac mini, an old laptop or a server). Could you add one for me?`,
+    `I am setting up openajar for ${business}. It needs a computer that stays on (a Mac mini, an old laptop or a server). Could you add one for me?`,
     ``,
     `1. On that computer, open Terminal and run:`,
     `   ${command ?? '(open the setup page to get the command)'}`,
@@ -146,11 +130,19 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
         <p className="rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">Adding a computer is not switched on here yet. You can do it later from Computers.</p>
       ) : (
         <div className="grid gap-6">
-          <div role="radiogroup" aria-label="Where should it work?" className="grid gap-3 md:grid-cols-3">
+          <ChoiceGroup label="Where should it work?" value={choice} onValueChange={setChoice} columns={3}>
             {OPTIONS.map((option) => (
-              <Option key={option.key} option={option} chosen={choice === option.key} onChoose={() => setChoice(option.key)} />
+              <ChoiceCard
+                key={option.key}
+                value={option.key}
+                layout="stacked"
+                icon={<OptionIcon icon={option.icon} />}
+                badge={<Badge tone={option.soon ? 'neutral' : 'ok'}>{option.badge}</Badge>}
+                title={option.title}
+                description={option.body}
+              />
             ))}
-          </div>
+          </ChoiceGroup>
 
           {soon ? (
             <div className="grid gap-4 rounded-xl border border-dashed border-line-strong p-4 sm:p-6">
@@ -168,7 +160,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                     Open the download
                   </PictureStep>
                   <PictureStep n={2} picture={<ComputerPicture />}>
-                    Drag agentos to Applications
+                    Drag openajar to Applications
                   </PictureStep>
                   <PictureStep n={3} picture={<GreenPicture name="This Mac" />}>
                     Click Allow when the code matches
@@ -183,7 +175,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
             <div className="grid gap-4 rounded-xl border border-line p-4 sm:p-6">
               <div>
                 <p className="text-lede font-medium">How it works</p>
-                <p className="mt-1 text-body text-muted">A small program goes on the computer. It keeps a private browser for each account and only talks to agentos.</p>
+                <p className="mt-1 text-body text-muted">A small program goes on the computer. It keeps a private browser for each account and only talks to openajar.</p>
               </div>
               <ol aria-label="How it works" className="grid gap-3 sm:grid-cols-3">
                 <PictureStep n={1} picture={<ComputerPicture />}>

@@ -1,17 +1,17 @@
-"""The env eval's node: agentos's local node (`agentos local serve`'s composition) in a scratch home.
+"""The env eval's node: openajar's local node (`openajar local serve`'s composition) in a scratch home.
 
     python -P tests/env_eval/node_main.py prepare <home> <port> <name>   # node.toml, vault, agent grant
     python -P tests/env_eval/node_main.py serve <home> <port> <github api base>
 
 The harness (tests/env_eval/node.py) writes vms.toml (the docker provider), environments.toml, the
-declared fixture repositories and the token for them, and runs `serve` with AGENTOS_GIT_ALLOW_FILE=1,
-so remotes declared with a local path are served. `prepare` makes the home as `agentos local serve`
+declared fixture repositories and the token for them, and runs `serve` with OPENAJAR_GIT_ALLOW_FILE=1,
+so remotes declared with a local path are served. `prepare` makes the home as `openajar local serve`
 does, with the node's own name (so its containers carry a label of their own), and issues the agent
-grant `agentos local` gives Claude Code; it prints {"token": ...} on stdout.
+grant `openajar local` gives Claude Code; it prints {"token": ...} on stdout.
 
 The one seam in `serve`: the environments service's GitHub API base points at the run's stand-in
 (tests/env_eval/ghstub.py), so environment_pull_request never reaches github.com. It prints
-`READY <port>` once MCP listens. Both run the `agentos` the PYTHONPATH gives them, so
+`READY <port>` once MCP listens. Both run the `openajar` the PYTHONPATH gives them, so
 `run.py --ref <sha>` puts a commit's node under the same harness.
 """
 
@@ -28,11 +28,11 @@ AGENT_TTL_S = 2 * 86400
 
 
 def prepare(home: Path, port: int, name: str) -> None:
-    from agentos.api.bridge import panel_specials
-    from agentos.client.choices import DEFAULT_CEILING, DEFAULT_SPECIALS
-    from agentos.core.config import NodeConfig, save_config
-    from agentos.local import home as local_home
-    from agentos.policy.service import PolicyService
+    from openajar.api.bridge import panel_specials
+    from openajar.client.choices import DEFAULT_CEILING, DEFAULT_SPECIALS
+    from openajar.core.config import NodeConfig, save_config
+    from openajar.local import home as local_home
+    from openajar.policy.service import PolicyService
 
     home.mkdir(parents=True, exist_ok=True)
     home.chmod(0o700)
@@ -49,19 +49,19 @@ def prepare(home: Path, port: int, name: str) -> None:
 
 
 async def serve(home: Path, port: int, github_api: str) -> None:
-    from agentos.core import logs
-    from agentos.local import home as local_home
-    from agentos.local.node import build_runtime, run
-    from agentos.node.daemon import install_log_scrubbers
+    from openajar.core import logs
+    from openajar.local import home as local_home
+    from openajar.local.node import build_runtime, run
+    from openajar.node.daemon import install_log_scrubbers
 
     cfg = local_home.ensure(home, port)
     logs.setup(home, verbose=False, journal=False)
     install_log_scrubbers(cfg)
-    os.environ["AGENTOS_HOME"] = str(home)  # as run() sets it, before the services read their files
+    os.environ["OPENAJAR_HOME"] = str(home)  # as run() sets it, before the services read their files
     runtime = build_runtime(cfg)
     envs = runtime.get("environments")
     if envs is not None:
-        envs.github_api = github_api  # agentos.environments.pulls reads it (the tests' seam)
+        envs.github_api = github_api  # openajar.environments.pulls reads it (the tests' seam)
 
     def started(bound: int) -> None:
         print(f"READY {bound}", flush=True)

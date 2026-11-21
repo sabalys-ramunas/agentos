@@ -1,4 +1,4 @@
-"""`agentos brains ...` CLI: credentials only from stdin or files, never echoed."""
+"""`openajar brains ...` CLI: credentials only from stdin or files, never echoed."""
 
 import json
 
@@ -6,7 +6,7 @@ import pytest
 from testkit.brains import OAUTH, OWNER_TOKEN, make_service
 from typer.testing import CliRunner
 
-from agentos.brains import cli as brains_cli
+from openajar.brains import cli as brains_cli
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_no_vault_means_no_plain_file_unless_asked(svc):
     """Without a vault a subscription credential would land in a plain file: refused by default."""
     invoke("add", "claude-max", "--kind", "subscription", "--provider", "anthropic", "--no-credential")
     code, out = invoke("auth", "claude-max", "--stdin", input=OAUTH + "\n")
-    assert code == 1 and "agentos vault init" in out and "--insecure-dev-store" in out and OAUTH not in out
+    assert code == 1 and "openajar vault init" in out and "--insecure-dev-store" in out and OAUTH not in out
     assert not svc.creds.dev_path.exists()
     code, out = invoke("add", "other", "--kind", "subscription", "--provider", "anthropic", "--stdin",
                        input=OAUTH + "\n")
@@ -93,7 +93,7 @@ def test_test_command_and_tasks(svc):
     assert code == 0, out
     assert "succeeded_unverified" in out and "reply: Done." in out
     code, out = invoke("tasks", "list")
-    assert code == 0 and "agentos-test" in out
+    assert code == 0 and "openajar-test" in out
     tid = svc.list_tasks()[0]["id"]
     code, out = invoke("tasks", "tail", tid)
     assert code == 0 and "result" in out
@@ -111,24 +111,24 @@ def test_doctor(svc):
 
 
 def test_brains_auth_stores_into_the_nodes_vault(tmp_path, monkeypatch):
-    """`agentos brains auth --stdin` from the real CLI wiring: the key-file vault opens the way
+    """`openajar brains auth --stdin` from the real CLI wiring: the key-file vault opens the way
     the daemon opens it, and the credential is sealed there, never in the plain dev file."""
     import asyncio
 
     from test_vault_support import make_vault
     from testkit.brains import make_service
 
-    from agentos import cli as agentos_cli
-    from agentos.brains.credentials import DEV_FILE_NAME, brain_ref
-    from agentos.core.config import NodeConfig, save_config
+    from openajar import cli as openajar_cli
+    from openajar.brains.credentials import DEV_FILE_NAME, brain_ref
+    from openajar.core.config import NodeConfig, save_config
 
     home = tmp_path / "node"
     home.mkdir(mode=0o700)
     save_config(NodeConfig(home=home, mcp_token="node-token-for-cli-test"))
     make_vault(home)
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
-    monkeypatch.setattr(brains_cli, "runtime_factory", agentos_cli.cli_runtime)
-    rt = agentos_cli.cli_runtime()
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
+    monkeypatch.setattr(brains_cli, "runtime_factory", openajar_cli.cli_runtime)
+    rt = openajar_cli.cli_runtime()
     assert rt.has("vault")
     # the fake CLIs from the test helpers, on the same home and the same vault
     svc = make_service(tmp_path / "b", runtime=rt)
@@ -145,12 +145,12 @@ def test_brains_auth_stores_into_the_nodes_vault(tmp_path, monkeypatch):
 
 
 def test_cli_runtime_without_a_vault_has_none(tmp_path, monkeypatch):
-    from agentos import cli as agentos_cli
-    from agentos.core.config import NodeConfig, save_config
+    from openajar import cli as openajar_cli
+    from openajar.core.config import NodeConfig, save_config
 
     home = tmp_path / "node"
     home.mkdir(mode=0o700)
     save_config(NodeConfig(home=home, mcp_token="node-token-for-cli-test"))
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
-    assert not agentos_cli.cli_runtime().has("vault")
-    assert brains_cli.runtime_factory is not None  # wired by agentos.cli at import
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
+    assert not openajar_cli.cli_runtime().has("vault")
+    assert brains_cli.runtime_factory is not None  # wired by openajar.cli at import

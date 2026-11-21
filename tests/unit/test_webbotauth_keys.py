@@ -8,10 +8,10 @@ import threading
 
 import pytest
 
-from agentos.webbotauth import keys, settings
-from agentos.webbotauth.keys import IdentityError
-from agentos.webbotauth.settings import LaneIdentity
-from agentos.webbotauth.verify import verify_request
+from openajar.webbotauth import keys, settings
+from openajar.webbotauth.keys import IdentityError
+from openajar.webbotauth.settings import LaneIdentity
+from openajar.webbotauth.verify import verify_request
 
 LANE = "acme/research"
 

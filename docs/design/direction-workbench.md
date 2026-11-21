@@ -14,7 +14,7 @@ taking the screenshots again).
 
 ## The idea in three sentences
 
-agentos is the bench your agents work at, so the web UI is a precise tool that shows the work
+openajar is the bench your agents work at, so the web UI is a precise tool that shows the work
 itself: the test run with its output, the page with its findings drawn on it, the machine with
 its load. Dense but calm, keyboard first, with type and alignment doing the work, monospace
 wherever output is output, one accent and clear status. Everything moves only because the work
@@ -34,7 +34,7 @@ never run a test can still read the sentence and the colours.
 | # | Screen | Route | What it shows |
 |---|---|---|---|
 | 1 | Home | `#/` | Status sentence, five numbers, the last hour per machine, running now (live output line, progress, time), needs you, design checks with drawn pages and markers, machines with live load, finished today |
-| 2 | A dev task, open | `#/runs/job-7f3a2c91` | `agentos run -- pnpm vitest run` on hel-1: a map of all 440 tests filling in, the streaming output with filter, wrap and follow, the 2 failures with expected and received and the code line, what the agent did and does next (it arrives step by step when the run ends), the change it ran on |
+| 2 | A dev task, open | `#/runs/job-7f3a2c91` | `openajar run -- pnpm vitest run` on hel-1: a map of all 440 tests filling in, the streaming output with filter, wrap and follow, the 2 failures with expected and received and the code line, what the agent did and does next (it arrives step by step when the run ends), the change it ran on |
 | 3 | A design check, open | `#/checks/run_8d2f` | The product page at 360, 768 and 1280 in light and dark; findings outlined and numbered on the drawn screenshot on a measuring bench with rulers; each finding with measured, expected, where and the fix; how much is on the design system and the values that only look like a token; what the change did as before and after with a slider and the cause sentence |
 | 4 | Machines | `#/machines` | A laptop (studio only, a Mac cannot be a node), a VPS, a spare box, a disposable VM with its price and delete time, and one not answering; load, lanes (browsers, terminals, services), what runs, the queue; a side panel with a live graph and every lane; three ways to add a machine and an install sheet |
 | 5 | Brand | `#/brand` | The acme/shop product profile: the blue ramp as swatches, what each colour is for in light and dark, type set in the brand's own font, spacing, corners, checked and advisory guidelines, references drawn as small pictures, and Claude Code's proposal for version 5 with the Add to cart button before and after, the token diff and Approve |
@@ -108,7 +108,7 @@ button before and after, small drawings of reference sites. No grey boxes.
 
 ## What studio measured
 
-Studio ran from a scratch HOME (`agentos studio up` on port 7461), never the real `~/.agentos`,
+Studio ran from a scratch HOME (`openajar studio up` on port 7461), never the real `~/.openajar`,
 over MCP: `ui_check` on Home, the run, the check, Machines and Brand at 360, 768 and 1280 in
 light and dark, then again with `since`; `system_check tokens="page"` on Home and Machines at
 375 and 1440; `ui_image` to look at a finding.

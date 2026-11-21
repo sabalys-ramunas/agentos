@@ -11,7 +11,7 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from test_dev_up import dev_node
 
-from agentos.node.claims import Holder
+from openajar.node.claims import Holder
 
 ON = {"on": "biz-a/social"}
 

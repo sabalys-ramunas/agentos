@@ -9,7 +9,7 @@ Every hook takes `org` first and an optional `enabled` last. Live mode shows onl
 serves: a field marked optional below is absent when the node cannot know it, and the screen says
 so in plain words.
 
-## Runs (`agentos run` jobs)
+## Runs (`openajar run` jobs)
 
 Not the routine runs of History (`Run`). Routes: `GET /jobs`, `GET /jobs/{id}`, `POST /jobs/{id}/cancel`.
 

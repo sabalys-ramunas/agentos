@@ -23,8 +23,8 @@ describe('plainDetail', () => {
   });
 
   it('drops the commands from the sentences that carry them', () => {
-    expect(plainDetail('4 lane(s) at format 1; 4 not stamped yet (agentos migrate run stamps them)')).toBe('4 accounts at format 1; 4 need updating (a migration updates them)');
-    expect(plainDetail('4 lane(s); check each one with: agentos lane check --all')).toBe('4 accounts, and check each one on the computer');
+    expect(plainDetail('4 lane(s) at format 1; 4 not stamped yet (openajar migrate run stamps them)')).toBe('4 accounts at format 1; 4 need updating (a migration updates them)');
+    expect(plainDetail('4 lane(s); check each one with: openajar lane check --all')).toBe('4 accounts, and check each one on the computer');
     expect(plainDetail('no node.toml in home')).toBe('The settings file is missing');
     expect(plainDetail('no node.toml in /var/folders/x/T/agentos-dev')).toBe('The settings file is missing');
     expect(plainDetail('4 lane(s) at format 1')).toBe('4 accounts at format 1');
@@ -36,7 +36,7 @@ describe('plainDetail', () => {
   });
 
   it('leaves text no rule knows as the node wrote it', () => {
-    expect(plainDetail('Running agentos 0.1.0.')).toBe('Running agentos 0.1.0.');
+    expect(plainDetail('Running openajar 0.1.0.')).toBe('Running openajar 0.1.0.');
   });
 });
 
@@ -48,26 +48,26 @@ describe('ids on the account screens', () => {
   });
 
   it('says a profile restore in words, with the command under Technical details', () => {
-    const restore = fixWords('restore home/lanes/biz-a/social/profile from a backup (agentos backup restore)');
+    const restore = fixWords('restore home/lanes/biz-a/social/profile from a backup (openajar backup restore)');
     expect(restore.plain).toBe('Restore it from a backup kept on this computer.');
-    expect(restore.command).toBe('restore home/lanes/biz-a/social/profile from a backup (agentos backup restore)');
-    expect(restore.plain).not.toMatch(/home\/lanes|agentos/);
+    expect(restore.command).toBe('restore home/lanes/biz-a/social/profile from a backup (openajar backup restore)');
+    expect(restore.plain).not.toMatch(/home\/lanes|openajar/);
   });
 });
 
 describe('fixWords', () => {
   it('says what to do in a sentence and keeps the command for Technical details', () => {
-    const backup = fixWords('agentos backup create --to /mnt/backup (or --to s3://bucket/agentos)');
+    const backup = fixWords('openajar backup create --to /mnt/backup (or --to s3://bucket/openajar)');
     expect(backup.plain).toBe('Keep a backup on another disk, so one dead disk cannot take every login.');
-    expect(backup.command).toBe('agentos backup create --to /mnt/backup (or --to s3://bucket/agentos)');
-    expect(fixWords('AGENTOS_HOME=home agentos node init').plain).not.toMatch(/agentos|node init/);
+    expect(backup.command).toBe('openajar backup create --to /mnt/backup (or --to s3://bucket/openajar)');
+    expect(fixWords('OPENAJAR_HOME=home openajar node init').plain).not.toMatch(/openajar|node init/);
     expect(fixWords('sudo apt-get install -y bubblewrap').plain).toMatch(/system programs/);
   });
 
   it('keeps a plain sentence the node wrote before its command', () => {
-    const disk = fixWords('Free some disk, or keep the backups elsewhere: agentos backup create --to /mnt/backup');
+    const disk = fixWords('Free some disk, or keep the backups elsewhere: openajar backup create --to /mnt/backup');
     expect(disk.plain).toBe('Free some disk, or keep the backups elsewhere.');
-    expect(disk.command).toBe('Free some disk, or keep the backups elsewhere: agentos backup create --to /mnt/backup');
+    expect(disk.command).toBe('Free some disk, or keep the backups elsewhere: openajar backup create --to /mnt/backup');
   });
 
   it('falls back to a sentence that points at Technical details', () => {
@@ -103,9 +103,9 @@ describe('plainReason', () => {
   });
 
   it('says how to sign in without naming the command', () => {
-    expect(plainReason('Sign in first. Run `agentos panel login` on this computer.')).toBe('Sign in again with a new code from this computer.');
+    expect(plainReason('Sign in first. Run `openajar panel login` on this computer.')).toBe('Sign in again with a new code from this computer.');
     // The node's own sign-in words for a session that ended
-    expect(plainReason('Sign in to the panel first. Run `agentos panel login` on the node for a sign-in link.')).toBe('Sign in again with a new code from this computer.');
+    expect(plainReason('Sign in to the panel first. Run `openajar panel login` on the node for a sign-in link.')).toBe('Sign in again with a new code from this computer.');
   });
 });
 
@@ -141,8 +141,8 @@ describe('words a computer says about its workers, environments and tools', () =
     expect(plainReason('the desktop worker is planned for later: no desktop engine exists yet')).toBe(
       'Desktop apps are not supported yet, so this worker is not available here',
     );
-    expect(plainReason('Browser accounts are built by agentos itself. Other browser engines and fonts are not here yet.')).toBe(
-      'Browser accounts are built by agentos itself. Other browsers and fonts are not here yet.',
+    expect(plainReason('Browser accounts are built by openajar itself. Other browser engines and fonts are not here yet.')).toBe(
+      'Browser accounts are built by openajar itself. Other browsers and fonts are not here yet.',
     );
   });
 

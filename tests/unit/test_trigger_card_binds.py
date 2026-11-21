@@ -6,9 +6,9 @@ from __future__ import annotations
 import pytest
 from events_support import OWNER, World, check_flow, no_quiet
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Principal
-from agentos.events.models import DeliveryState as S
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Principal
+from openajar.events.models import DeliveryState as S
 
 AGENT = Principal(kind="agent", id="claude-code", grant_id="gr_agent0001")
 
@@ -76,7 +76,7 @@ async def test_a_waiting_card_without_a_version_creates_nothing(tmp_path):
     (doc,) = [d for a, d in w.store.pending_proposals() if a == aid]
     doc["route"]["target"]["version"] = None  # as a card made before this release holds it
     w.store.put_proposal(aid, "pending", w.clock.now(), doc)
-    from agentos.events.service import _proposal_binding
+    from openajar.events.service import _proposal_binding
     binding = _proposal_binding(doc["route"], doc["id"], "biz-a/social", doc["summary"])
     w.approvals.items[aid].content_hash, w.approvals.items[aid].content_digest = binding.content_hash, binding.content_digest
     w.approvals.items[aid].state = "approved"

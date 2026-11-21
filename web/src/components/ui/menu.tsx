@@ -27,7 +27,7 @@ export function MenuItem({ className, ...props }: ComponentProps<typeof Primitiv
   return (
     <Primitive.Item
       className={cn(
-        'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body text-fg outline-none select-none',
+        'flex h-9 cursor-pointer items-center gap-2 rounded-sm px-2 text-body text-fg outline-none select-none',
         'data-[disabled]:cursor-not-allowed data-[disabled]:text-disabled data-[highlighted]:bg-hover',
         className,
       )}

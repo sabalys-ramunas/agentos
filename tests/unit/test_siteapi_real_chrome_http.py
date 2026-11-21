@@ -12,9 +12,9 @@ from pathlib import Path
 import pytest
 from siteapi_http_support import SURFACE, Node
 
-from agentos.node.flow_driver import PlaywrightFlowDriver
-from agentos.node.snapshot import take_snapshot
-from agentos.runner.siteapis.discover import discover, extract_step
+from openajar.node.flow_driver import PlaywrightFlowDriver
+from openajar.node.snapshot import take_snapshot
+from openajar.runner.siteapis.discover import discover, extract_step
 
 pw = pytest.importorskip("playwright.async_api")
 

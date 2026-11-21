@@ -1,4 +1,4 @@
-"""`agentos dev up` as a process: a stop by signal removes the temporary home, and never a home the
+"""`openajar dev up` as a process: a stop by signal removes the temporary home, and never a home the
 owner passed in with --home.
 
 Each node runs in its own subprocess and session. The temporary home is made under a folder the
@@ -33,7 +33,7 @@ def free_port() -> int:
 
 
 def temporary_homes(folder: Path) -> list[Path]:
-    return sorted(folder.glob("agentos-dev-*"))
+    return sorted(folder.glob("openajar-dev-*"))
 
 
 def wait_for(done: Callable[[], bool], timeout: float = WAIT) -> bool:
@@ -48,21 +48,27 @@ def wait_for(done: Callable[[], bool], timeout: float = WAIT) -> bool:
 @pytest.fixture
 def folder():
     """A temporary folder for one test: the node's TMPDIR, removed afterwards with anything left."""
-    path = Path(tempfile.mkdtemp(prefix="agentos-test-"))
+    path = Path(tempfile.mkdtemp(prefix="openajar-test-"))
     yield path
     shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture
 def start_node(folder):
-    """Start `agentos dev up` in a subprocess; every node still running is killed at the end."""
+    """Start `openajar dev up` in a subprocess; every node still running is killed at the end."""
     started: list[subprocess.Popen] = []
 
     def start(*options: str) -> tuple[subprocess.Popen, Path]:
         log = folder / f"node-{len(started)}.log"
-        env = {**os.environ, "TMPDIR": str(folder), "PYTHONUNBUFFERED": "1"}
-        argv = [sys.executable, "-c", "from agentos.cli import app; app()", "dev", "up",
-                "--port", str(free_port()), *options]
+        # A HOME of its own and --no-connect: a node in a subprocess is out of reach of conftest's guard, and
+        # with the real HOME it registered itself with the owner's Claude Code and Codex and copied the skills
+        user = folder / "user"
+        user.mkdir(exist_ok=True)
+        env = {**os.environ, "TMPDIR": str(folder), "PYTHONUNBUFFERED": "1", "HOME": str(user)}
+        for leak in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_CONFIG_HOME"):
+            env.pop(leak, None)
+        argv = [sys.executable, "-c", "from openajar.cli import app; app()", "dev", "up",
+                "--port", str(free_port()), "--no-connect", *options]
         with log.open("wb") as out:
             proc = subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=out,
                                     stderr=subprocess.STDOUT, start_new_session=True)

@@ -1,6 +1,6 @@
 """Web Bot Auth signing on a real Camoufox lane (docs/design/agent-identity.md, Phase 1 acceptance).
 
-Run on the node:  AGENTOS_TEST_SLOT=35 scripts/node-test.sh identity1 tests/node/test_identity_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=35 scripts/node-test.sh identity1 tests/node/test_identity_node.py -q
 
 Throwaway lanes under .node-home/ of this checkout, launched through `CamoufoxEngine` with the
 product's `IdentityProvider`, one browser at a time on the slot's first display. Two loopback
@@ -9,7 +9,7 @@ request they receive is checked with the strict verifier against the lane's publ
 redirect tests prove the guard: a signed host that redirects to another host never hands it a
 signature, and one test pins today's Playwright behaviour with header overrides (the reason the
 route does not use them). One interop test sends the route's signatures to Cloudflare's research
-deployment, signed with its published test key (RFC 9421 B.1.4); set AGENTOS_TEST_NO_INTERNET=1 to
+deployment, signed with its published test key (RFC 9421 B.1.4); set OPENAJAR_TEST_NO_INTERNET=1 to
 skip it. No real site, no owner account.
 """
 
@@ -33,32 +33,32 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.webbotauth import base, keys, settings
-from agentos.webbotauth.route import IdentityProvider, LaneSigner
-from agentos.webbotauth.settings import LaneIdentity
-from agentos.webbotauth.trace import IdentityTrace
-from agentos.webbotauth.verify import verify_request
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.webbotauth import base, keys, settings
+from openajar.webbotauth.route import IdentityProvider, LaneSigner
+from openajar.webbotauth.settings import LaneIdentity
+from openajar.webbotauth.trace import IdentityTrace
+from openajar.webbotauth.verify import verify_request
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "350"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5350"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6350"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "350"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5350"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6350"))
 SIGNED_PORT, OTHER_PORT = VIEWER_BASE + 9, VIEWER_BASE + 8
 SIGNED = f"http://127.0.0.1:{SIGNED_PORT}"
 OTHER = f"http://127.0.0.1:{OTHER_PORT}"
 CROSS_SITE = f"http://localhost:{OTHER_PORT}"  # another site for cookies (127.0.0.1 and its ports are one)
 AGENT = "https://agents.example"
 SITE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "site"
-EVIDENCE = os.environ.get("AGENTOS_TEST_EVIDENCE")
+EVIDENCE = os.environ.get("OPENAJAR_TEST_EVIDENCE")
 PNG_1PX = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
                         "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
 RESEARCH = "https://http-message-signatures-example.research.cloudflare.com"
@@ -184,7 +184,7 @@ async def rig():
 
 def give_identity(config: NodeConfig, lane_id: str, hosts: list[str], *, agent: str = AGENT,
                   key_d: str | None = None) -> keys.LaneKey:
-    """What `agentos identity init` and `hosts add` do, for a throwaway lane."""
+    """What `openajar identity init` and `hosts add` do, for a throwaway lane."""
     profile = config.profile_dir(lane_id)
     profile.mkdir(parents=True, exist_ok=True)
     key = keys.create_key(config.secrets_dir, lane_id)
@@ -451,7 +451,7 @@ async def test_pinned_fingerprint_is_the_same_with_the_route_on_and_off(rig, rec
     print("navigation medians (ms):", json.dumps(timings))
 
 
-@pytest.mark.skipif(bool(os.environ.get("AGENTOS_TEST_NO_INTERNET")), reason="AGENTOS_TEST_NO_INTERNET is set")
+@pytest.mark.skipif(bool(os.environ.get("OPENAJAR_TEST_NO_INTERNET")), reason="OPENAJAR_TEST_NO_INTERNET is set")
 async def test_cloudflare_research_verifier_accepts_the_route_signatures(rig):
     """One interop check: the product route, signing with Cloudflare's published test key, against
     Cloudflare's research deployment (its /v0/api/verify answers valid, invalid: <reason> or neutral)."""

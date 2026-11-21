@@ -11,6 +11,7 @@ import { ApiError } from '@/api/http';
 import type { EnvDetail, EnvUnsaved } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
+import { cn } from '@/lib/cn';
 import { plural } from '@/lib/format';
 import { euro } from './words';
 
@@ -98,8 +99,8 @@ export function UnsavedList({ unsaved }: { unsaved: EnvUnsaved }) {
   );
 }
 
-/** The Close button and the dialogs behind it. */
-export function CloseEnvironment({ org, env }: { org: string; env: EnvDetail }) {
+/** The Close button and the dialogs behind it. `glass` on the night band; `className` to size it (a phone's full width). */
+export function CloseEnvironment({ org, env, glass = false, className }: { org: string; env: EnvDetail; glass?: boolean; className?: string }) {
   const close = useCloseEnvironment(org);
   const [step, setStep] = useState<Step>(null);
   const [unsaved, setUnsaved] = useState<EnvUnsaved | null>(null);
@@ -128,14 +129,14 @@ export function CloseEnvironment({ org, env }: { org: string; env: EnvDetail }) 
 
   return (
     <>
-      <Button variant="danger" onClick={() => setStep('confirm')}>
+      <Button variant={glass ? 'glass' : 'danger'} className={cn(glass && 'text-bad', className)} onClick={() => setStep('confirm')}>
         Close
       </Button>
       <ConfirmDialog
         open={step === 'confirm'}
         onOpenChange={(open) => !open && setStep(null)}
         title="Close this environment?"
-        description="The machine and its browser are deleted, and the cost stops. agentos checks first that nothing is left unpushed."
+        description="The machine and its browser are deleted, and the cost stops. openajar checks first that nothing is left unpushed."
         confirmLabel="Close it"
         danger
         loading={close.isPending}

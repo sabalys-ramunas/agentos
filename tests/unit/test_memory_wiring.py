@@ -8,12 +8,12 @@ from types import SimpleNamespace
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.memory import SERVICE_NAME, build
-from agentos.memory.models import Caller, EntryType, MemoryScope
-from agentos.memory.ports import RuntimePolicyPort, runtime_cloud_ok, runtime_privacy_for
-from agentos.memory.scan import secret_key_kind, suspicious_reasons
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.memory import SERVICE_NAME, build
+from openajar.memory.models import Caller, EntryType, MemoryScope
+from openajar.memory.ports import RuntimePolicyPort, runtime_cloud_ok, runtime_privacy_for
+from openajar.memory.scan import secret_key_kind, suspicious_reasons
 
 OWNER = Caller.owner()
 

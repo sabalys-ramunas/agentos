@@ -5,10 +5,10 @@ import json
 import pytest
 from testkit.brains import OAUTH, FakeCtx, add, make_service, wait_status
 
-from agentos.brains import tool_specs
-from agentos.core.errors import NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.tools import TOOL_NAME_RE
+from openajar.brains import tool_specs
+from openajar.core.errors import NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.tools import TOOL_NAME_RE
 
 P = Principal(id="claude-code", thread="T-9")
 
@@ -162,7 +162,7 @@ async def test_reaching_a_tasks_lanes_shows_it_but_does_not_steer_it(svc, monkey
 
 
 async def test_bad_arguments_are_clear(svc):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
     ctx = FakeCtx(svc.runtime, P)
     with pytest.raises(InvalidRequest, match="budget"):
         await tools(svc)["brain_run"].handler(ctx, prompt="x", workspace="personal", budget={"max_turns": "lots"})
@@ -171,7 +171,7 @@ async def test_bad_arguments_are_clear(svc):
 
 
 def test_require_lanes_refuses_a_lane_the_grant_cannot_access():
-    from agentos.core.tools import require_lanes
+    from openajar.core.tools import require_lanes
 
     class Closed:  # a context with no precheck: require_lanes falls back to can_access_lane
         def can_access_lane(self, lane_id):
@@ -182,8 +182,8 @@ def test_require_lanes_refuses_a_lane_the_grant_cannot_access():
 
 
 def test_require_lanes_refuses_a_lane_that_is_not_a_string():
-    from agentos.core.errors import InvalidRequest
-    from agentos.core.tools import require_lanes
+    from openajar.core.errors import InvalidRequest
+    from openajar.core.tools import require_lanes
 
     class Open:
         def can_access_lane(self, lane_id):
@@ -194,7 +194,7 @@ def test_require_lanes_refuses_a_lane_that_is_not_a_string():
 
 
 def test_require_lanes_passes_when_the_grant_reaches_every_lane():
-    from agentos.core.tools import require_lanes
+    from openajar.core.tools import require_lanes
 
     class Open:
         def can_access_lane(self, lane_id):
@@ -209,4 +209,4 @@ async def test_brains_list_with_no_brain_says_what_the_owner_does_next(tmp_path)
     empty = make_service(tmp_path / "empty")
     out = await tools(empty)["brains_list"].handler(FakeCtx(empty.runtime, P))
     assert out["brains"] == []
-    assert "agentos brains add" in out["next"] and "--no-credential" in out["next"] and "Tell the user" in out["next"]
+    assert "openajar brains add" in out["next"] and "--no-credential" in out["next"] and "Tell the user" in out["next"]

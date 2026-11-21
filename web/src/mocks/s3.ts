@@ -52,7 +52,7 @@ export function reviewPath(org: string, id: string, now = Date.now()) {
  */
 export function deliverMockPush(payload: Record<string, unknown>) {
   const worker = typeof navigator !== 'undefined' ? navigator.serviceWorker?.controller : null;
-  worker?.postMessage({ type: 'agentos-mock-push', payload });
+  worker?.postMessage({ type: 'openajar-mock-push', payload });
 }
 
 function isPrivate(host: string) {
@@ -68,7 +68,7 @@ function checkWebhookUrl(raw: string): string | null {
   }
   if (url.protocol !== 'https:') return 'Use an https address. Webhooks are never sent over plain http.';
   if (url.port && url.port !== '443' && url.port !== '8443') return 'Use port 443 or 8443.';
-  if (isPrivate(url.hostname)) return 'That address is private, so agentos will not send to it.';
+  if (isPrivate(url.hostname)) return 'That address is private, so openajar will not send to it.';
   return null;
 }
 
@@ -379,7 +379,7 @@ export function s3Handlers({ org, failure, stepUpNeeded, stepUpValid, newId }: H
         return new HttpResponse(text, {
           headers: {
             'Content-Type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson',
-            'Content-Disposition': `attachment; filename="agentos-activity-${data.org.slug}-${stamp}.${format}"`,
+            'Content-Disposition': `attachment; filename="openajar-activity-${data.org.slug}-${stamp}.${format}"`,
           },
         });
       }),

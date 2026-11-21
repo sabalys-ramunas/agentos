@@ -1,5 +1,5 @@
-"""Restarts never close another session's lane silently (agentos.ops.restart): agentosd reports
-who is on each open lane, `agentos node restart`, `agentos upgrade` and the installer name them
+"""Restarts never close another session's lane silently (openajar.ops.restart): agentosd reports
+who is on each open lane, `openajar node restart`, `openajar upgrade` and the installer name them
 and ask first, and a restart that happens anyway leaves a lane event and tells claim holders."""
 
 from __future__ import annotations
@@ -13,12 +13,12 @@ from test_lanes_claims import LANE, A, B, act, lane
 from test_lanes_holds import again
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.errors import ClaimLost
-from agentos.core.models import LaneInfo, LaneSpec, LaneState
-from agentos.node.claims import holder_text
-from agentos.ops import control, restart
-from agentos.ops.service import HealthService
+from openajar.cli import app
+from openajar.core.errors import ClaimLost
+from openajar.core.models import LaneInfo, LaneSpec, LaneState
+from openajar.node.claims import holder_text
+from openajar.ops import control, restart
+from openajar.ops.service import HealthService
 
 OTHER = "biz-a/other"
 
@@ -137,7 +137,7 @@ def test_open_lanes_and_what_counts_as_held(tmp_path):
 
 @pytest.fixture
 def cli(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
 
     def run(host, *args, input=None):
         monkeypatch.setattr(restart, "Host", lambda: host)
@@ -169,7 +169,7 @@ def test_restart_asks_before_closing_held_lanes_and_yes_goes_ahead(cli):
 
 def test_the_installer_does_not_restart_over_held_lanes_without_yes():
     script = (REPO / "deploy" / "install-node.sh").read_text()
-    assert 'agentos" node restart --check' in script and "--yes|-y) YES=1" in script
+    assert 'openajar" node restart --check' in script and "--yes|-y) YES=1" in script
     guard = script.index("node restart --check")
     assert guard < script.index("systemctl restart agentosd.service")
     assert '[ "$RESTART_HELD" = 0 ] || exit 3' in script
@@ -177,7 +177,7 @@ def test_the_installer_does_not_restart_over_held_lanes_without_yes():
 
 def test_upgrade_names_held_lanes_in_its_confirmation(tmp_path, monkeypatch):
     (tmp_path / "node.toml").write_text('name = "n"\n')
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     monkeypatch.setattr(restart, "Host", lambda: FakeHost(HELD))
     result = CliRunner().invoke(app, ["upgrade", "--source", str(tmp_path), "--no-service"], input="n\n")
     assert "test/probe (warm): claimed by agent codex (probe)" in result.output

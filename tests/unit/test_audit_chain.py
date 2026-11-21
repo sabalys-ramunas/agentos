@@ -13,8 +13,8 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_policy_support import Clock
 
-from agentos.policy import auditlog
-from agentos.policy.auditlog import (
+from openajar.policy import auditlog
+from openajar.policy.auditlog import (
     SIG_CTX,
     canonical,
     lane_tag,
@@ -26,7 +26,7 @@ from agentos.policy.auditlog import (
     row_record,
     sig_ok,
 )
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.policy.traces import TraceEvent, TraceStore
 
 VECTORS = json.loads((Path(__file__).parents[1] / "fixtures" / "audit" / "vectors.json").read_text())
 
@@ -304,7 +304,7 @@ def test_a_key_reset_is_reported_not_hidden(tmp_path, clock):
     s.close()
 
 
-# ---------------------------------------------------------------- values agentos never stores (2026-11-04)
+# ---------------------------------------------------------------- values openajar never stores (2026-11-04)
 
 @pytest.mark.parametrize("v", VECTORS["typed"], ids=lambda v: f"{v['column']}-{v['type']}")
 def test_typed_vectors(v):

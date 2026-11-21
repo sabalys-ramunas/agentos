@@ -11,15 +11,15 @@ import pytest
 from connector_samples import LANE as SOCIAL_LANE
 from connector_samples import SITES, bind, comments_op, commit_op, connector, connector_site, live
 
-from agentos.core.driver import JsonResponse
-from agentos.core.models import RunStatus, Signal
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.outputs import outputs_from_saved
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.fakes import OWNER as SOCIAL_OWNER
-from agentos.runner.fakes import El, FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.siteapis.problems import from_run
-from agentos.runner.util import Clock
+from openajar.core.driver import JsonResponse
+from openajar.core.models import RunStatus, Signal
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.outputs import outputs_from_saved
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.fakes import OWNER as SOCIAL_OWNER
+from openajar.runner.fakes import El, FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.runner.siteapis.problems import from_run
+from openajar.runner.util import Clock
 
 MARK = "zz-private-marker-zz"
 API, EP, LANE = "harbor-supplier", "orders", "biz-a/supplier"

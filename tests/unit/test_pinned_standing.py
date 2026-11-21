@@ -1,4 +1,4 @@
-"""Pins which standing approval covers a call (agentos.policy.standing.consume_standing): fixed
+"""Pins which standing approval covers a call (openajar.policy.standing.consume_standing): fixed
 standing rows, then each call against a fresh copy of them, and a script of calls that uses them
 up (max_uses, per_day across a day boundary). Each case pins the id used, or None."""
 
@@ -10,10 +10,10 @@ import json
 import pytest
 from pinned import check, outcome
 
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.approvals import ApprovalStore
-from agentos.policy.store import DB
-from agentos.policy.trace_models import EventBus
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.approvals import ApprovalStore
+from openajar.policy.store import DB
+from openajar.policy.trace_models import EventBus
 
 NOW = 1_800_000_000.0
 LANE = "biz-a/instagram"

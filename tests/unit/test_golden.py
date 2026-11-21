@@ -1,4 +1,4 @@
-"""Golden traces (agentos.dev.golden): each recorded lane session under tests/golden/ replays
+"""Golden traces (openajar.dev.golden): each recorded lane session under tests/golden/ replays
 against the engine abstraction and must give the agent exactly what it got when it was recorded."""
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from agentos.dev import golden
+from openajar.dev import golden
 
 GOLDEN = Path(__file__).resolve().parents[1] / "golden"
 TRACES = sorted(p for p in GOLDEN.iterdir() if (p / "session.json").is_file())
@@ -33,7 +33,7 @@ async def test_replay_gives_the_recorded_results(trace_dir, tmp_path):
 
 @pytest.mark.parametrize("trace_dir", TRACES, ids=lambda p: p.name)
 async def test_the_dev_web_still_records_the_same_trace(trace_dir, tmp_path):
-    """Fails when the dev web (agentos.dev.web) or the tool layer changed what a session sees."""
+    """Fails when the dev web (openajar.dev.web) or the tool layer changed what a session sees."""
     trace = golden.comparable(await golden.record(tmp_path))
     stored = golden.comparable(golden.load(trace_dir))
     assert trace["engine"] == stored["engine"]

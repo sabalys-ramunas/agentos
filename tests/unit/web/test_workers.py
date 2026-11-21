@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from agentos.api.web.workers import thing_of
-from agentos.pilot.day import count
-from agentos.pilot.models import Result, Status
-from agentos.pilot.service import load_settings, save_settings
-from agentos.pilot.trail import trail
+from openajar.api.web.workers import thing_of
+from openajar.pilot.day import count
+from openajar.pilot.models import Result, Status
+from openajar.pilot.service import load_settings, save_settings
+from openajar.pilot.trail import trail
 
 
 def run(status: str, **fields) -> SimpleNamespace:

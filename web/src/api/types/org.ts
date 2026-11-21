@@ -165,7 +165,7 @@ export interface Status {
   nodes: { id: string; state: NodeState; degraded: boolean }[];
   /** A computer has no plan, so it sends none. The billing screen says so. */
   plan?: string;
-  /** Where an agent on this computer reaches agentos. A cloud sends none, and the cloud's address is used. */
+  /** Where an agent on this computer reaches openajar. A cloud sends none, and the cloud's address is used. */
   mcp_url?: string | null;
   /** A computer has no plan caps, so it sends none. Screens show the count without a limit. */
   limits?: PlanLimits;
@@ -177,7 +177,7 @@ export interface AuthProviders {
   magic_link: boolean;
   google: boolean;
   passkey: boolean;
-  /** A computer signs its owner in with a one-time code from `agentos panel login`. */
+  /** A computer signs its owner in with a one-time code from `openajar panel login`. */
   code?: boolean;
 }
 

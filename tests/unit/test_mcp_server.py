@@ -7,8 +7,8 @@ import pytest
 from fakes import PNG_1X1, FakeInteraction, FakeLaneManager
 from mcp import Client
 
-from agentos.core.config import NodeConfig, save_proxies
-from agentos.core.errors import (
+from openajar.core.config import NodeConfig, save_proxies
+from openajar.core.errors import (
     EngineError,
     InvalidRequest,
     LaneBusy,
@@ -16,12 +16,12 @@ from agentos.core.errors import (
     LaneQuarantined,
     RefNotFound,
 )
-from agentos.core.models import ActionKind, ControlState, LaneSpec, LaneState, ProxyConfig
-from agentos.core.runtime import Runtime
-from agentos.environments.routing import kind_of
-from agentos.mcp.registry import build_mcp
-from agentos.mcp.server import build_server
-from agentos.node.tools import INSTRUCTIONS, tool_specs
+from openajar.core.models import ActionKind, ControlState, LaneSpec, LaneState, ProxyConfig
+from openajar.core.runtime import Runtime
+from openajar.environments.routing import kind_of
+from openajar.mcp.registry import build_mcp
+from openajar.mcp.server import build_server
+from openajar.node.tools import INSTRUCTIONS, tool_specs
 
 PASSWORD = "pw-Zx81-secret"
 USERNAME = "customer-acme-zone-isp"
@@ -116,7 +116,7 @@ async def test_lanes_list(connect):
 
 
 async def test_lane_open_close_and_view(connect, manager, monkeypatch):
-    monkeypatch.setenv("AGENTOS_SSH_HOST", "mynode")
+    monkeypatch.setenv("OPENAJAR_SSH_HOST", "mynode")
     async with connect() as client:
         cold = data_of(await client.call_tool("browser_view", {"on": "personal/reddit"}))
         assert cold["viewer"] is None and "browser_open" in cold["note"]

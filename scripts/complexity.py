@@ -1,4 +1,4 @@
-"""Size guardrails for src/agentos: no new giant function, no new giant file, and listed ones only shrink.
+"""Size guardrails for src/openajar: no new giant function, no new giant file, and listed ones only shrink.
 
 Run it with `make complexity` (part of `make lint` and `make merge-check`).
 
@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src" / "agentos"
+SRC = ROOT / "src" / "openajar"
 MAX_COMPLEXITY = 24   # 25 or more fails
 MAX_LINES = 1000      # 1,001 or more fails
 FUNCTIONS = ROOT / "scripts" / "complexity-allowlist.txt"

@@ -1,4 +1,4 @@
-"""The agenda (agentos.agenda): planned one-off actions of any kind, approved through the node's
+"""The agenda (openajar.agenda): planned one-off actions of any kind, approved through the node's
 own approvals, fired once through the runner's submit path, kept inside their window by the lane's
 pace, and merged into one timeline with the projected fires of recurring schedules."""
 
@@ -10,15 +10,15 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_policy_support import make_service
 
-from agentos.agenda import tools as agenda_tools
-from agentos.agenda.models import EntryState
-from agentos.agenda.rules import AgendaStateError
-from agentos.agenda.service import build
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.meters import MeterPolicy
-from agentos.policy.routing import PolicyConfig
-from agentos.runner.fakes import FakeClock, Harness, post_flow
+from openajar.agenda import tools as agenda_tools
+from openajar.agenda.models import EntryState
+from openajar.agenda.rules import AgendaStateError
+from openajar.agenda.service import build
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.meters import MeterPolicy
+from openajar.policy.routing import PolicyConfig
+from openajar.runner.fakes import FakeClock, Harness, post_flow
 
 NY = ZoneInfo("America/New_York")
 FLOW = "biz-a.social.post"
@@ -118,7 +118,7 @@ async def test_the_drafting_agent_reads_back_its_inputs_and_others_see_only_what
     """QA 2026-11-15 P2-8: an agent's own entry showed its inputs as (hidden)."""
     import copy
 
-    from agentos.agenda.service import _secret_name
+    from openajar.agenda.service import _secret_name
 
     quiet = copy.deepcopy(post_flow(id="biz-a.social.quiet"))
     quiet["params"]["properties"]["caption"]["show"] = False
@@ -433,7 +433,7 @@ def test_the_api_drafts_approves_lists_and_cancels(env):
     from starlette.applications import Starlette
     from starlette.testclient import TestClient
 
-    from agentos.agenda.api import routes
+    from openajar.agenda.api import routes
 
     client = TestClient(Starlette(routes=routes(env.h.runtime)))
     r = client.post("/api/agenda", json={"title": "Renew the domain", "action": {"flow": FLOW, "params": PARAMS},

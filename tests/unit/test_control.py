@@ -11,12 +11,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from test_lanes import make
 
-from agentos.core.errors import AgentPaused, HumanInControl, InvalidRequest, LaneNotFound
-from agentos.core.models import ControlState, LaneControl, LaneSpec, LaneState
-from agentos.node import lanes as lanes_mod
-from agentos.node.lanes import clean_reason
-from agentos.node.lanes import control as lanes_control
-from agentos.node.store import LaneStore
+from openajar.core.errors import AgentPaused, HumanInControl, InvalidRequest, LaneNotFound
+from openajar.core.models import ControlState, LaneControl, LaneSpec, LaneState
+from openajar.node import lanes as lanes_mod
+from openajar.node.lanes import clean_reason
+from openajar.node.lanes import control as lanes_control
+from openajar.node.store import LaneStore
 
 LANE = "personal/reddit"
 
@@ -373,7 +373,7 @@ async def test_a_lane_a_human_holds_is_never_reaped_or_evicted(tmp_path):
     clock.advance(1000)
     assert await mgr.reap_idle() == []
     assert mgr.get(LANE).state == LaneState.WARM
-    from agentos.core.errors import LaneBusy
+    from openajar.core.errors import LaneBusy
     with pytest.raises(LaneBusy):
         await mgr.open("personal/other")  # the only slot is the human's
     await mgr.hand_back(LANE, by="owner")
@@ -539,7 +539,7 @@ async def test_a_store_failure_still_applies_control(tmp_path, monkeypatch, capl
 def test_a_broken_control_record_fails_safe(tmp_path):
     import sqlite3
 
-    store = LaneStore(tmp_path / "agentos.db")
+    store = LaneStore(tmp_path / "openajar.db")
     store.add(LaneSpec(id=LANE))
     with sqlite3.connect(store.path) as conn:
         conn.execute("INSERT INTO lane_control (id, control) VALUES (?, ?)", (LANE, "{not json"))
@@ -548,7 +548,7 @@ def test_a_broken_control_record_fails_safe(tmp_path):
 
 
 def test_store_delete_removes_control(tmp_path):
-    store = LaneStore(tmp_path / "agentos.db")
+    store = LaneStore(tmp_path / "openajar.db")
     store.add(LaneSpec(id=LANE))
     store.set_control(LANE, LaneControl(state=ControlState.HUMAN, by="owner"))
     assert store.get(LANE).control.state == ControlState.HUMAN

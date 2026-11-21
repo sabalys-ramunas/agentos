@@ -1,6 +1,6 @@
 """The spill file after a crash: a torn tail or line is set aside in a `.torn` file and named by the
 health monitor, every complete row is restored, and a new spill never starts on a torn line
-(agentos.policy.traces)."""
+(openajar.policy.traces)."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ from pathlib import Path
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.config import NodeConfig
-from agentos.ops.health import HealthMonitor
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.core.config import NodeConfig
+from openajar.ops.health import HealthMonitor
+from openajar.policy.traces import TraceEvent, TraceStore
 
 
 def ev(i: int = 0, **kw) -> TraceEvent:

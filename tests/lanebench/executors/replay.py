@@ -1,5 +1,5 @@
 """The replay executor: each task's hand-written `[[replay]]` steps, run through the node's own
-flow driver (agentos.node.flow_driver: structural locators, human input from human.py). It proves
+flow driver (openajar.node.flow_driver: structural locators, human input from human.py). It proves
 the fixtures and checkers right before any model runs, and is the input conformance reference.
 
 Steps (`do = ...`):
@@ -21,11 +21,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from agentos.core.driver import DriverError, ElementNotFound
-from agentos.core.locator import Locator
-from agentos.node import human
 from lanebench.executors import ExecResult, RunContext
 from lanebench.tasks import Task
+from openajar.core.driver import DriverError, ElementNotFound
+from openajar.core.locator import Locator
+from openajar.node import human
 
 DEFAULT_TIMEOUT_MS = 6000
 

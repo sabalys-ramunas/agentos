@@ -156,7 +156,7 @@ export interface RoutineOutput {
   image?: string | null;
   /** More than one went out: "3 reminders". */
   more?: string | null;
-  /** Where agentos saw it afterwards. Absent: nobody checked. */
+  /** Where openajar saw it afterwards. Absent: nobody checked. */
   proof?: { site: string; url?: string | null } | null;
 }
 

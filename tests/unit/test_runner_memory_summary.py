@@ -8,10 +8,10 @@ import json
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.core.models import RunStatus
-from agentos.memory import Caller
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.memory_summary import summary_record
+from openajar.core.models import RunStatus
+from openajar.memory import Caller
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.memory_summary import summary_record
 
 PARAMS = {"caption": "Autumn menu is here", "image": "files/a.jpg"}
 OWNER = Caller.owner()
@@ -94,7 +94,7 @@ async def test_an_approved_run_carries_the_text_the_owner_read(tmp_path):
 
 
 def test_a_run_outside_a_workspace_has_no_summary():
-    from agentos.runner.models import Run
+    from openajar.runner.models import Run
 
     assert summary_record(Run(id="run_x", status=RunStatus.FAILED)) is None
     assert summary_record(Run(id="run_y", lane="biz-a/x", status=RunStatus.RUNNING)) is None

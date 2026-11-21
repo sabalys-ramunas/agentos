@@ -1,6 +1,6 @@
 """The lane check against a real Camoufox: what the DNS and cookie rules assume, measured.
 
-Run on the node:  AGENTOS_TEST_SLOT=45 scripts/node-test.sh selfcheck tests/node/test_lanecheck_node.py
+Run on the node:  OPENAJAR_TEST_SLOT=45 scripts/node-test.sh selfcheck tests/node/test_lanecheck_node.py
 Uses slot 45's display (:450 + n) and ports (6450 to 6459). Throwaway profiles under tmp_path,
 a local proxy and local pages only: no test reaches a real website.
 """
@@ -19,13 +19,13 @@ import uuid
 
 import pytest
 
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.camoufox.engine import CamoufoxEngine
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.node.camoufox.engine import CamoufoxEngine
 
 pytestmark = pytest.mark.node
 
-DISPLAY = f":{int(os.environ.get('AGENTOS_TEST_DISPLAY_BASE', '450')) + 1}"
-PORT_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6450"))
+DISPLAY = f":{int(os.environ.get('OPENAJAR_TEST_DISPLAY_BASE', '450')) + 1}"
+PORT_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6450"))
 PROXY_PORT = PORT_BASE + 1
 SITE_PORT = PORT_BASE + 2
 # HTTPS-First would CONNECT to port 443 first; the fixture proxy only serves plain pages
@@ -138,7 +138,7 @@ async def test_proxied_lane_resolves_no_names_on_the_node(tmp_path, display):
     """What a proxied lane's browser resolves through the node's own resolver: the page's host,
     a dns-prefetch hint, a link on the page and a fetch(). All four go to the proxy by name."""
     token = uuid.uuid4().hex[:10]
-    names = {kind: f"agentos-{kind}-{token}.example.com" for kind in ("page", "hint", "link", "fetch")}
+    names = {kind: f"openajar-{kind}-{token}.example.com" for kind in ("page", "hint", "link", "fetch")}
     body = (f'<!doctype html><html><head><link rel="dns-prefetch" href="//{names["hint"]}">'
             f'<link rel="preconnect" href="http://{names["hint"]}"></head><body>'
             f'<a href="http://{names["link"]}/">a link</a></body></html>').encode()
@@ -154,7 +154,7 @@ async def test_proxied_lane_resolves_no_names_on_the_node(tmp_path, display):
         await page.evaluate("u => fetch(u, {mode: 'no-cors'}).catch(() => null)", f"http://{names['fetch']}/")
         await asyncio.sleep(3.0)
         try:  # the control: a name this process resolves on the node must show in the capture
-            socket.getaddrinfo(f"agentos-control-{token}.example.com", 80)
+            socket.getaddrinfo(f"openajar-control-{token}.example.com", 80)
         except OSError:
             pass
         await asyncio.sleep(1.0)
@@ -167,7 +167,7 @@ async def test_proxied_lane_resolves_no_names_on_the_node(tmp_path, display):
     asked = proxy_server.requests
     print("proxy saw:", asked)
     print("resolved on the node:", leaked)
-    assert watch.seen(f"agentos-control-{token}"), "the capture saw nothing; the test proves nothing"
+    assert watch.seen(f"openajar-control-{token}"), "the capture saw nothing; the test proves nothing"
     assert any(names["page"] in r for r in asked)
     assert leaked == [], f"the node's resolver was asked for {leaked}"
 
@@ -229,12 +229,12 @@ IFRAME_ICE = """async (stun) => {
   pc.close();
   return found;
 }"""
-PAGE = "http://agentos-rtc.example.com/"
+PAGE = "http://openajar-rtc.example.com/"
 SHIPPED = {"media.peerconnection.ice.proxy_only": False}  # Camoufox's own default, without the engine's pref
 
 
 # (proxied, page, script, extra prefs, does UDP reach the STUN port). The rule in
-# agentos.stealth.lanerules.judge_webrtc rests on these rows: Camoufox's shipped
+# openajar.stealth.lanerules.judge_webrtc rests on these rows: Camoufox's shipped
 # proxy_only_if_behind_proxy holds on a page loaded through the proxy, but not in an about:blank
 # document or a blank iframe a page makes, so it is a warning; proxy_only closes both, and the
 # engine sets it on every proxied lane (WEBRTC_PROXY_PREFS). If a Camoufox update stops the leak,
@@ -256,7 +256,7 @@ async def test_webrtc_and_the_proxy(tmp_path, display, proxied, where, script, p
     """Whether WebRTC sends STUN over UDP from the node itself, around the lane's proxy. The STUN
     server is a UDP port on the node's own address, so a packet that reaches it is one a site's
     STUN server would see from the node's IP. Without a proxy the same page reaches it (the control)."""
-    from agentos.stealth import lanerules
+    from openajar.stealth import lanerules
 
     sink = _StunSink(SITE_PORT)
     proxy_server = _PageProxy(b"<!doctype html><title>x</title><body></body>")
@@ -278,7 +278,7 @@ async def test_webrtc_and_the_proxy(tmp_path, display, proxied, where, script, p
     assert host_ips == [], f"a host candidate shows a real address: {host_ips}"
     assert (sink.packets > 0) is leaks, f"expected leaks={leaks}, saw {sink.packets} STUN packets"
     if proxied:  # what the lane check says about these prefs matches what happened
-        from agentos.node.camoufox.engine import WEBRTC_PROXY_PREFS
+        from openajar.node.camoufox.engine import WEBRTC_PROXY_PREFS
 
         judged = {"media.peerconnection.enabled": True,
                   "media.peerconnection.ice.proxy_only_if_behind_proxy": True,
@@ -300,9 +300,9 @@ async def test_cookie_file_reads_while_the_browser_writes(tmp_path, display):
     to the file, and the browser goes on writing (no lock of ours ever stops it)."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    from agentos.core.system import Host
-    from agentos.stealth.lanecheck import _camou_prefs
-    from agentos.stealth.lanecookies import read_cookie_db
+    from openajar.core.system import Host
+    from openajar.stealth.lanecheck import _camou_prefs
+    from openajar.stealth.lanecookies import read_cookie_db
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -353,15 +353,15 @@ async def test_cookie_file_reads_while_the_browser_writes(tmp_path, display):
     assert all(n.startswith("cookies.sqlite") for n in names_before or [])
     final = read_cookie_db(profile, ["127.0.0.1"])
     assert final is not None and any(c["name"] == "sessionid" for c in final)
-    assert not list(tmp_path.glob("**/agentos-cookies-*"))
+    assert not list(tmp_path.glob("**/openajar-cookies-*"))
 
 
 async def test_only_a_crash_reads_as_a_crash(tmp_path, display):
     """Firefox leaves its `lock` link behind on a clean exit as well, so the lane check cannot go
     by it: every lane ever closed would warn of a crash. What a kill leaves and a close does not
     is the session recovery file."""
-    from agentos.core.system import Host
-    from agentos.stealth.lanecheck import left_by_a_crash
+    from openajar.core.system import Host
+    from openajar.stealth.lanecheck import left_by_a_crash
 
     engine = CamoufoxEngine(extra_options={"geoip": False})
     engine.allow_private_network = True

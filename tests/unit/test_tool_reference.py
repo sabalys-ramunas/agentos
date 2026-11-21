@@ -1,13 +1,13 @@
-"""The generated tool reference (agentos tools, docs/TOOLS.md)."""
+"""The generated tool reference (openajar tools, docs/TOOLS.md)."""
 
 from typing import Annotated, Literal
 
 from pydantic import Field
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.models import ActionKind
-from agentos.mcp.reference import type_name
+from openajar.cli import app
+from openajar.core.models import ActionKind
+from openajar.mcp.reference import type_name
 
 
 def test_type_names_read_like_the_docs():
@@ -19,7 +19,7 @@ def test_type_names_read_like_the_docs():
     assert "click" in type_name(ActionKind) and "type" in type_name(ActionKind)
 
 
-def test_agentos_tools_lists_every_served_tool():
+def test_openajar_tools_lists_every_served_tool():
     result = CliRunner().invoke(app, ["tools", "--json"])
     assert result.exit_code == 0, result.output
     import json
@@ -33,8 +33,8 @@ def test_config_show_names_each_source_and_never_prints_the_token(tmp_path, monk
     import json
 
     home = tmp_path / "home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
-    monkeypatch.setenv("AGENTOS_SSH_HOST", "node-from-env")
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_SSH_HOST", "node-from-env")
     runner = CliRunner()
     assert runner.invoke(app, ["node", "init", "--mcp-port", "7444"]).exit_code == 0
     token = (home / "node.toml").read_text().split('mcp_token = "')[1].split('"')[0]
@@ -42,7 +42,7 @@ def test_config_show_names_each_source_and_never_prints_the_token(tmp_path, monk
     assert result.exit_code == 0, result.output
     rows = {r["name"]: r for r in json.loads(result.output)}
     assert rows["mcp_port"]["value"] == 7444 and rows["mcp_port"]["source"] == "node.toml"
-    assert rows["ssh_host"]["value"] == "node-from-env" and rows["ssh_host"]["source"] == "env AGENTOS_SSH_HOST"
+    assert rows["ssh_host"]["value"] == "node-from-env" and rows["ssh_host"]["source"] == "env OPENAJAR_SSH_HOST"
     assert rows["max_slots"]["source"] == "node.toml (same as default)"
     assert rows["mcp_token"]["value"] == "(set, hidden)"
     plain = runner.invoke(app, ["config", "show"])
@@ -52,7 +52,7 @@ def test_config_show_names_each_source_and_never_prints_the_token(tmp_path, monk
 def test_dashboard_lists_questions_once_and_reads_watch_json():
     from types import SimpleNamespace
 
-    from agentos.tui.runs import schedule_when
+    from openajar.tui.runs import schedule_when
 
     assert schedule_when(SimpleNamespace(cron=None, watch='{"url": "x", "every_minutes": 15}')) == "watch every 15m"
     assert schedule_when(SimpleNamespace(cron="0 9 * * *", watch=None)) == "0 9 * * *"

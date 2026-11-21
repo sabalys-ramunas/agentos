@@ -1,4 +1,4 @@
-"""The publish card says what it does not show (AUD-03, agentos.policy.cards.publish_card): every
+"""The publish card says what it does not show (AUD-03, openajar.policy.cards.publish_card): every
 link in full, a vault value or a secret shape marked (it is still sent), characters and fields past
 the display limit counted (still bound), each operation of a batch, media bound by id only, an
 unrecognised request by its shape, and the account the browser is signed into now (AUD-12)."""
@@ -8,11 +8,11 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from agentos.core.models import AccountRef
-from agentos.node import publish
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.node.egress import EFFECT_RULES, unknown_rule
-from agentos.policy.cards import REDACTED_SPAN, VAULT_SPAN, publish_card
+from openajar.core.models import AccountRef
+from openajar.node import publish
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.node.egress import EFFECT_RULES, unknown_rule
+from openajar.policy.cards import REDACTED_SPAN, VAULT_SPAN, publish_card
 
 RULES = {r.id: r for r in EFFECT_RULES}
 JSON = {"content-type": "application/json"}
@@ -29,7 +29,7 @@ class Runtime:
             return SimpleNamespace(scrub=lambda text: text.replace(self.secret, "[vault]"))
         if name == "lanes":
             return SimpleNamespace(get=lambda lane: SimpleNamespace(spec=SimpleNamespace(account=self.account)))
-        if name == "card_facts":  # what a node runtime always carries (agentos.node.cardfacts)
+        if name == "card_facts":  # what a node runtime always carries (openajar.node.cardfacts)
             return NodeCardFacts()
         return None
 
@@ -83,7 +83,7 @@ def test_an_unrecognised_request_is_named_by_its_shape():
     cap = publish.capture(rule, "https://www.reddit.com/submit-form", "POST", JSON,
                           json.dumps({"title": "x", "body": "y"}).encode())
     card = publish_card(cap.content("test/reddit"), Runtime())
-    assert card["headline"] == "A request agentos does not recognise, to Reddit: POST /submit-form"
+    assert card["headline"] == "A request openajar does not recognise, to Reddit: POST /submit-form"
     assert card["shape"].startswith("POST /submit-form with ") and card["kind"] == "unknown"
     # in plain words: what is known, and that denying is safe (finding 27 of 2026-11-10)
     assert "cannot tell whether it posts" in card["explain"] and "Denying it is safe" in card["explain"]
@@ -111,7 +111,7 @@ def linkedin_body(text: str = "Five lessons") -> bytes:
 
 
 def test_a_site_that_cannot_report_its_account_says_so_and_never_shows_the_lane_account_as_verified():
-    """LinkedIn has no identity cookie (agentos.node.sites): the card said "as <lane handle>" with no caveat."""
+    """LinkedIn has no identity cookie (openajar.node.sites): the card said "as <lane handle>" with no caveat."""
     pinned = AccountRef(site="linkedin", handle="Arlo Fenwick", user_id="juozas-k")
     card = card_of(linkedin_body(), rule="linkedin.post", runtime=Runtime(pinned))
     assert card["account_status"] == "unknown" and card["acts_as"] is None and card["signed_in_as"] is None

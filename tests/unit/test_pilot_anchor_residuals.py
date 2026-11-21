@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.pilot.anchor import Target, check, line_sha256
-from agentos.pilot.page import parse_page
+from openajar.pilot.anchor import Target, check, line_sha256
+from openajar.pilot.page import parse_page
 
 
 def result(page_text: str, ref: str, goal: str, target: Target | None = None) -> dict:

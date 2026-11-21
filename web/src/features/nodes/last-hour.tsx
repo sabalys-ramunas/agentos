@@ -1,5 +1,5 @@
 /**
- * The last hour: one line per machine, one bar per real run (`agentos run`) with its start and end,
+ * The last hour: one line per machine, one bar per real run (`openajar run`) with its start and end,
  * in its status colour. Each bar is a link to its run and says what it was. Drawn only from runs the
  * node keeps, so a machine with no runs has an empty line, not a made-up one.
  */
@@ -13,7 +13,8 @@ import type { BarTone, Lane } from './model';
 import { BAR_WORDS, HOUR_MS } from './model';
 
 const FILL: Record<BarTone, string> = {
-  live: 'bg-chart-bar-strong',
+  // A run going now is the agent at work: the current's violet, the one colour that means acting now.
+  live: 'bg-live-dot',
   ok: 'bg-ok-dot',
   bad: 'bg-bad-dot',
   idle: 'bg-idle-dot',
@@ -54,10 +55,10 @@ export function LastHour({ org, lanes: all, now }: { org: string; lanes: Lane[];
           </span>
         }
       />
-      <div className="grid gap-2 px-5 py-4">
+      <div className="grid gap-3 px-5 py-4">
         {lanes.map(({ row, bars }) => (
           <div key={row.id} className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
-            <span className="truncate font-mono text-code text-muted" title={row.name}>
+            <span className="truncate text-secondary text-fg" title={row.name}>
               {row.name}
             </span>
             <div
@@ -78,7 +79,7 @@ export function LastHour({ org, lanes: all, now }: { org: string; lanes: Lane[];
                   </span>
                 );
               })}
-              {bars.length === 0 ? <span className="sr-only">No runs.</span> : null}
+              {bars.length === 0 ? <span className="absolute inset-y-0 left-3 flex items-center text-caption text-faint">No runs</span> : null}
             </div>
           </div>
         ))}

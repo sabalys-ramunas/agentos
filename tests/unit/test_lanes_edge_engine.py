@@ -23,14 +23,14 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig, load_proxies, save_proxies
-from agentos.core.errors import EngineError
-from agentos.core.models import LaneSpec, ProxyConfig, parse_lane_id
-from agentos.mcp.server import Redactor
-from agentos.node import display as display_mod
-from agentos.node.camoufox.engine import CamoufoxEngine, CamoufoxSession
-from agentos.node.display import DisplayManagerImpl, pid_alive
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig, load_proxies, save_proxies
+from openajar.core.errors import EngineError
+from openajar.core.models import LaneSpec, ProxyConfig, parse_lane_id
+from openajar.mcp.server import Redactor
+from openajar.node import display as display_mod
+from openajar.node.camoufox.engine import CamoufoxEngine, CamoufoxSession
+from openajar.node.display import DisplayManagerImpl, pid_alive
+from openajar.node.store import LaneStore
 
 PROXY_ENTRY = {"host": "198.51.100.10", "port": 12323, "username": "user1", "password": "hunter2-secret"}
 
@@ -63,7 +63,7 @@ def test_lane_id_must_end_at_the_name():
 
 
 def test_store_keeps_every_write_under_concurrent_writers(tmp_path):
-    path = tmp_path / "agentos.db"
+    path = tmp_path / "openajar.db"
     LaneStore(path)
     errors: list[BaseException] = []
 
@@ -87,9 +87,9 @@ def test_store_keeps_every_write_under_concurrent_writers(tmp_path):
 
 
 def test_one_corrupt_lane_row_does_not_hide_the_other_lanes(tmp_path):
-    store = LaneStore(tmp_path / "agentos.db")
+    store = LaneStore(tmp_path / "openajar.db")
     store.add(LaneSpec(id="a/good"))
-    conn = sqlite3.connect(tmp_path / "agentos.db")
+    conn = sqlite3.connect(tmp_path / "openajar.db")
     conn.execute("INSERT INTO lanes (id, spec) VALUES (?, ?)", ("b/bad", '{"id": "b/bad", "kind": "martian"}'))
     conn.commit()
     conn.close()
@@ -229,7 +229,7 @@ time.sleep(60)
 @pytest.fixture
 def socket_dir():
     """Where the fake x11vnc puts its socket: short, since tmp_path can pass macOS's 104 byte limit."""
-    parent = Path(tempfile.mkdtemp(prefix="agentos-t-"))
+    parent = Path(tempfile.mkdtemp(prefix="openajar-t-"))
     yield parent / "vnc"
     shutil.rmtree(parent, ignore_errors=True)
 

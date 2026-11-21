@@ -1,4 +1,4 @@
-"""Pins the audit verifier's whole verdict (agentos.policy.auditlog.verify): a synthetic log signed
+"""Pins the audit verifier's whole verdict (openajar.policy.auditlog.verify): a synthetic log signed
 with a fixed key, then one kind of tampering, damage or retention per case, and the options a
 walk takes (partial, mid, to_seq, max_seq_used, scope, trust). Each case pins the report, the bad
 and unproven seqs, the exit code, and each row's status."""
@@ -9,8 +9,8 @@ import pytest
 from pinned import check, outcome
 from pinned_log import KEY2, KID, KID2, PUB, Log, row
 
-from agentos.policy import auditlog
-from agentos.policy.auditlog import SIG_CTX, Scope, sign, verify
+from openajar.policy import auditlog
+from openajar.policy.auditlog import SIG_CTX, Scope, sign, verify
 
 
 def honest() -> Log:

@@ -117,7 +117,7 @@ def test_a_token_may_ask_first_on_but_not_let_a_routine_run_on_its_own(client) -
     as_token(client)
     refused = client.put(f"/api/orgs/local/flows/{saved['id']}/ask-first", json={"ask_first": False})
     assert refused.status_code == 403
-    assert refused.json()["error"]["code"] == "presence_required"  # a token is never a person (agentos.core.presence)
+    assert refused.json()["error"]["code"] == "presence_required"  # a token is never a person (openajar.core.presence)
     still = client.get("/api/orgs/local/flows").json()
     assert [item["ask_first"] for item in still if item["id"] == saved["id"]] == [True]
 
@@ -393,7 +393,7 @@ def test_a_recorded_routines_schedule_shows_its_next_run_on_the_routine(client) 
 
 def test_a_schedule_with_no_routine_is_listed_and_a_routines_is_marked_as_one() -> None:
     """B9: the computer keeps a schedule that starts nothing a person knows, and the app still shows it, with no routine."""
-    from agentos.api.web.schedules import owned, schedule_of
+    from openajar.api.web.schedules import owned, schedule_of
 
     plain = {"id": "sch_plain", "flow": None, "cron": None, "watch": '{"url": "x"}', "enabled": True}
     assert schedule_of(plain, "") == {"id": "sch_plain", "flow": "", "cron": None, "watch": '{"url": "x"}', "params": {},
@@ -407,7 +407,7 @@ def test_a_schedule_with_no_routine_is_listed_and_a_routines_is_marked_as_one() 
 
 def test_a_routine_saved_over_one_that_is_on_says_the_old_version_still_runs() -> None:
     """A member's save over a routine that is on is kept but not live: the app is told so, so it says so."""
-    from agentos.api.web.routines import flow_of
+    from openajar.api.web.routines import flow_of
 
     row = {"id": "biz-a.routine.x", "lane": "biz-a/*", "revision": 2, "params": {}, "effect": "commit", "last_run": None,
            "recent_runs": [], "ask_first": False, "always_asks_steps": [], "name": "X", "trigger": {"kind": "manual"},

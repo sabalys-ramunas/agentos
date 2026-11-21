@@ -6,7 +6,7 @@ about to post. Keepalive gives each idle lane a short, human-paced, read-only vi
 inside its own waking hours, and tells the owner when a lane turns out to be signed out or
 challenged before a post fails on it.
 
-Code: `src/agentos/keepalive/` (planner, visit, store, service, CLI). Runtime service `keepalive`,
+Code: `src/openajar/keepalive/` (planner, visit, store, service, CLI). Runtime service `keepalive`,
 built after the health service. Status: built, tested on the dev fake lanes and site
 (tests/unit/test_keepalive.py) and in a real Camoufox against the fixture site
 (tests/node/test_keepalive_node.py); not yet run against a real account (see "Before turning it on").
@@ -15,13 +15,13 @@ built after the health service. Status: built, tested on the dev fake lanes and 
 
 `keepalive = false` in node.toml is the default, because a visit opens a real account unattended.
 
-    agentos lane keepalive --node on           # the node switch (read again every round, no restart)
-    agentos lane keepalive biz-a/instagram     # the next planned visit, the last ones, why not now
-    agentos lane keepalive biz-a/instagram --off   # this lane opts out (--on opts back in)
-    agentos lane keepalive biz-a/instagram --now   # one visit now, in the foreground
+    openajar lane keepalive --node on           # the node switch (read again every round, no restart)
+    openajar lane keepalive biz-a/instagram     # the next planned visit, the last ones, why not now
+    openajar lane keepalive biz-a/instagram --off   # this lane opts out (--on opts back in)
+    openajar lane keepalive biz-a/instagram --now   # one visit now, in the foreground
 
 A lane's opt-out is a file in the lane's own directory (`lanes/<ws>/<name>/keepalive-off`), so it
-survives losing keepalive.db. `agentos doctor` says whether it is on. `--now` works while the node switch is off and on an opted-out
+survives losing keepalive.db. `openajar doctor` says whether it is on. `--now` works while the node switch is off and on an opted-out
 lane (the owner asked in person), but never past a gate. The panel's lane window shows the next and
 last visit (`GET /api/lanes/{ws}/{name}/keepalive`).
 
@@ -40,7 +40,7 @@ last visit (`GET /api/lanes/{ws}/{name}/keepalive`).
   When the lane check saw when the session cookie expires, a day before that at the latest.
 - **When** is the first moment from due inside the lane's waking hours, in its pinned time zone (wall
   clock hours, so a DST day keeps its local window): a persona drawn from the keepalive seed
-  (agentos.keepalive.persona). Each day draws its own minute and
+  (openajar.keepalive.persona). Each day draws its own minute and
   second (never on the minute), moved at least 20 minutes from the last visit's time of day. A missed
   slot (the lane was busy, memory was short, agentosd was down) goes at once while the lane is awake,
   else 2 to 12 minutes (drawn) after its waking hours next begin, never at the next day's random slot.
@@ -76,7 +76,7 @@ Open the page, look for 4 to 12 s, scroll 3 to 8 times further down the page (th
 element further down, 2 to 8 s apart), with a 40% chance open one post (a link whose path is one item
 on that site: `/p/<id>/` on Instagram, `/r/<sub>/comments/<id>/` on Reddit, ...) by loading its
 address, look for 6 to 20 s, maybe scroll once or twice, and go back. At most 5 minutes; a visit that
-reaches it is recorded `cut`. The pacing of each input is the node's own (agentos.node.human). Then the
+reaches it is recorded `cut`. The pacing of each input is the node's own (openajar.node.human). Then the
 lane goes back to sleep if the visit woke it, nobody else is on it, a human neither has it nor holds
 it, and no live view of it is open or was opened during the visit. A visit stops early, as a success,
 when another caller starts waiting for the lane. A human who takes the lane over (or stops agents on
@@ -91,7 +91,7 @@ read): `refreshed` when the expiry moved later, `kept` when still signed in, `si
 session cookie is gone.
 
 A page that shows a challenge, a checkpoint, a block, a rate limit or a login page (the node's own
-signals, agentos.node.sites) ends the visit at once: the lane is marked, the hold policy holds it as for
+signals, openajar.node.sites) ends the visit at once: the lane is marked, the hold policy holds it as for
 any agent, and the owner gets one notification with the plain reason and the fix. A page signed in to
 another account than the lane's pinned one (the identity check, AUD-12) ends it as `wrong_account`:
 the lane is held for a human (`needs_human:wrong_account`) and the notification names the account seen

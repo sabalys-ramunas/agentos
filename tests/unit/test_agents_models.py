@@ -4,9 +4,9 @@ ladder, ids are well formed, and the port shapes validate."""
 import pytest
 from pydantic import ValidationError
 
-from agentos.agents.models import AgentLaneSpec, AgentState, Session, Turn, TurnStatus
-from agentos.agents.ports import AgentsPort, TurnGrant, TurnReceipt, TurnRequest
-from agentos.core.models import PENDING_SPECIALS, Effect, LaneKind, Preset
+from openajar.agents.models import AgentLaneSpec, AgentState, Session, Turn, TurnStatus
+from openajar.agents.ports import AgentsPort, TurnGrant, TurnReceipt, TurnRequest
+from openajar.core.models import PENDING_SPECIALS, Effect, LaneKind, Preset
 
 
 def test_core_contracts_are_additive():

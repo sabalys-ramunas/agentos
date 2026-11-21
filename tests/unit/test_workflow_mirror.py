@@ -9,13 +9,13 @@ from types import SimpleNamespace
 import pytest
 from workflow_support import MAIL, OWNER, action, make_node, read_flow, workflow
 
-from agentos.core.models import RunStatus
-from agentos.node.channel import reports
-from agentos.node.channel.node import NodeChannel
-from agentos.node.channel.workflows import WorkflowSync
-from agentos.runner.workflows.engine import StepFailed, Walk
-from agentos.runner.workflows.mail import Received
-from agentos.runner.workflows.mirror import WITHHELD_WORDS, mirror
+from openajar.core.models import RunStatus
+from openajar.node.channel import reports
+from openajar.node.channel.node import NodeChannel
+from openajar.node.channel.workflows import WorkflowSync
+from openajar.runner.workflows.engine import StepFailed, Walk
+from openajar.runner.workflows.mail import Received
+from openajar.runner.workflows.mirror import WITHHELD_WORDS, mirror
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 READ = "biz-a.social.read"

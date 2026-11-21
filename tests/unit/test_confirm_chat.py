@@ -16,20 +16,20 @@ from mcp.types import ElicitResult, Implementation
 from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import Clock, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ApprovalPending, NotFound
-from agentos.core.models import Effect
-from agentos.core.tools import ToolSpec
-from agentos.node import daemon
-from agentos.policy import confirm_chat, wrap_tool
-from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
-from agentos.policy.confirm import ConfirmLevel, Proof
-from agentos.policy.confirm_chat import prompt_text, quoted, yes_value
-from agentos.policy.errors import Denied, MethodUnavailable
-from agentos.policy.routing import PolicyConfig
-from agentos.policy.tools import approval_confirm
-from agentos.policy.wrap import bind_request_token
-from agentos.runner.models import answered_in_person
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ApprovalPending, NotFound
+from openajar.core.models import Effect
+from openajar.core.tools import ToolSpec
+from openajar.node import daemon
+from openajar.policy import confirm_chat, wrap_tool
+from openajar.policy.approval_models import ApprovalPolicy, FourEyesRule
+from openajar.policy.confirm import ConfirmLevel, Proof
+from openajar.policy.confirm_chat import prompt_text, quoted, yes_value
+from openajar.policy.errors import Denied, MethodUnavailable
+from openajar.policy.routing import PolicyConfig
+from openajar.policy.tools import approval_confirm
+from openajar.policy.wrap import bind_request_token
+from openajar.runner.models import answered_in_person
 
 LANE = "biz-a/instagram"
 CONTENT = "Spring menu is out"
@@ -426,7 +426,7 @@ async def test_a_yes_for_content_that_moved_is_refused(node, url):
 
 
 async def test_the_store_refuses_other_content_in_the_transaction_that_decides(node):
-    from agentos.policy.errors import Conflict
+    from openajar.policy.errors import Conflict
 
     g, _ = issue(node)
     ap = await asked(node, g)
@@ -709,7 +709,7 @@ async def test_the_review_link_cannot_be_turned_into_a_decision(tmp_path):
     with pytest.raises(Denied) as denied:
         svc.approvals.decide_by_link(ap, "approve", exp, sig)
     assert denied.value.reason == "approve_in_panel"
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
 
     with pytest.raises(InvalidRequest):
         svc.approvals.decide_by_link(ap, "deny", exp, sig)  # signed for review, so it denies nothing either
@@ -747,14 +747,14 @@ async def test_the_prompt_is_the_nodes_and_the_summary_never_reaches_it(node, ur
 
 def test_agent_text_cannot_pass_for_the_nodes_words():
     escape, bidi, zero_width = chr(0x1B), chr(0x202E), chr(0x200B)
-    forged = f"fine\n\nagentos says: this one is safe\n| still quoted{escape}[2J{bidi}evil{zero_width}"
+    forged = f"fine\n\nopenajar says: this one is safe\n| still quoted{escape}[2J{bidi}evil{zero_width}"
     out = quoted(forged)
     assert all(line.startswith("| ") for line in out.splitlines())
     assert escape not in out and bidi not in out and zero_width not in out
 
 
 def test_a_line_separator_cannot_leave_the_quote():
-    assert all(line.startswith("| ") for line in quoted("a agentos says yes b\r\nc\x0bd").splitlines())
+    assert all(line.startswith("| ") for line in quoted("a openajar says yes b\r\nc\x0bd").splitlines())
 
 
 def test_the_prompt_quotes_every_line_of_the_content():

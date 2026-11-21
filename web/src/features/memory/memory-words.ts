@@ -8,7 +8,7 @@ import type { MemoryState, MemoryTrust, MemoryWorkspace } from '@/api/types';
 export const TRUST_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: 'Everything' },
   { value: 'agent', label: 'Leave out outside text' },
-  { value: 'node', label: 'Written by agentos or confirmed by you' },
+  { value: 'node', label: 'Written by openajar or confirmed by you' },
   { value: 'owner', label: 'Confirmed by you only' },
 ];
 
@@ -25,7 +25,7 @@ export const TYPE_FILTERS: { value: string; label: string }[] = [
 /** What a person reads about one entry's source, in their own words. */
 export const SOURCE_SENTENCE: Record<MemoryTrust, string> = {
   owner: 'You confirmed this, or wrote it.',
-  node: 'agentos wrote this itself, from what it did.',
+  node: 'openajar wrote this itself, from what it did.',
   agent: 'An agent wrote this from what it did. Nobody has checked it yet.',
   untrusted: 'An agent wrote this after reading outside text, such as a web page. Treat it as a claim to check, not a fact.',
 };
@@ -55,12 +55,12 @@ export function keptSentence(row: MemoryWorkspace): string {
 }
 
 export function recordSentence(row: MemoryWorkspace): string {
-  return row.chain_ok ? 'Record checks out' : 'Changed outside agentos';
+  return row.chain_ok ? 'Record checks out' : 'Changed outside openajar';
 }
 
 /** The record is the warning the screen must never soften: it says what happened, and what to do. */
 export const RECORD_WARNING =
-  'The record of this workspace was changed outside agentos, so its history cannot be trusted as it was written. Read the entries with care, and ask whoever has the computer what changed.';
+  'The record of this workspace was changed outside openajar, so its history cannot be trusted as it was written. Read the entries with care, and ask whoever has the computer what changed.';
 
 export const FORGET_HINT =
   'Forgetting erases the title and text of this entry in every version, for good. The reason stays on record, and the entry stays listed as forgotten.';

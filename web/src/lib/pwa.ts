@@ -53,7 +53,7 @@ export function onOpenFromWorker(open: (path: string) => void): () => void {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return () => undefined;
   const listener = (event: MessageEvent) => {
     const data = event.data as { type?: string; path?: unknown } | null;
-    if (data?.type !== 'agentos-open') return;
+    if (data?.type !== 'openajar-open') return;
     const path = safeNext(data.path);
     if (path) open(path);
   };

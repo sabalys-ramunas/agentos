@@ -2,7 +2,7 @@
 
 Run it on the node, as the user agentosd runs as, with the node's own install:
 
-    AGENTOS_HOME=/var/lib/agentos /opt/agentos/.venv/bin/python scripts/preflight_node.py
+    OPENAJAR_HOME=/var/lib/agentos /opt/agentos/.venv/bin/python scripts/preflight_node.py
 
 It creates the lane preflight/scratch (no proxy, no account, so it leaves from the node's own
 IP and touches no account site), issues a one-hour agent grant for that lane only, and drives
@@ -31,14 +31,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from agentos.client.mcp_http import McpError, McpSession, ToolError
-from agentos.core.config import load_config
+from openajar.client.mcp_http import McpError, McpSession, ToolError
+from openajar.core.config import load_config
 
 LANE = "preflight/scratch"
 WORKSPACE = "preflight"
 PAGE = "https://example.com/"
 FORM = "https://httpbin.org/forms/post"
-AGENTOS = str(Path(sys.executable).with_name("agentos"))
+OPENAJAR = str(Path(sys.executable).with_name("openajar"))
 RESULTS: list[tuple[str, bool, str]] = []
 
 
@@ -49,11 +49,11 @@ def step(name: str, ok: bool, detail: str = "") -> bool:
 
 
 def cli(*args: str, check: bool = False) -> tuple[int, str]:
-    proc = subprocess.run([AGENTOS, *args], check=False, capture_output=True, text=True, timeout=180,
+    proc = subprocess.run([OPENAJAR, *args], check=False, capture_output=True, text=True, timeout=180,
                           env=os.environ)
     out = (proc.stdout + proc.stderr).strip()
     if check and proc.returncode != 0:
-        raise RuntimeError(f"agentos {' '.join(args)} failed ({proc.returncode}): {out[-300:]}")
+        raise RuntimeError(f"openajar {' '.join(args)} failed ({proc.returncode}): {out[-300:]}")
     return proc.returncode, out
 
 
@@ -206,7 +206,7 @@ def drive(cfg: Any, token: str, wide: str) -> None:
 
 
 def panel(cfg: Any, day: str) -> None:
-    from agentos.api.auth import create_login_code
+    from openajar.api.auth import create_login_code
 
     link = create_login_code(cfg.home, base_url=f"http://127.0.0.1:{cfg.mcp_port}")
     code = link.url.split("code=", 1)[1]

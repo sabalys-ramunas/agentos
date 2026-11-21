@@ -10,6 +10,7 @@ import type { ComponentType } from 'react';
 import { ButtonsDemo, CopyDemo, FieldsDemo, TabsDemo } from './demos/actions';
 import { CostLineDemo, FactsDemo, LiveViewDemo, ProofDemo, TerminalListDemo, TimelineDemo } from './demos/composites';
 import { PillsDemo, SliderDemo, StatsDemo, TableDemo, TableStatesDemo, TerminalDemo } from './demos/data';
+import { ChoicesDemo, ScreenPictureDemo, TilesDemo } from './demos/dawn';
 import { StatesDemo, StatusDemo } from './demos/feedback';
 import { IconsDemo, KindsDemo, TokensDemo, TypeDemo } from './demos/foundations';
 import { ChartsDemo, PicturesDemo } from './demos/instrument';
@@ -48,6 +49,7 @@ export const GROUPS: Group[] = [
       { file: 'src/styles/theme.css', names: 'Type roles: one class sets size, line height, weight and tracking', demo: TypeDemo },
       { file: ui('swatch.tsx'), names: 'Swatch, TokenChip', shownBy: 'the tokens above' },
       { file: ui('kind.tsx'), names: 'KindTile, KindEyebrow, KINDS', demo: KindsDemo },
+      { file: ui('tile.tsx'), names: "AppTile: the dock's squircle, for the app's own things", demo: TilesDemo },
       { file: 'src/components/lane-icon.tsx', names: 'Icons and marks: lucide, LaneIcon, and the marks below', demo: IconsDemo },
       { file: 'src/components/brand/identity.tsx', names: 'BusinessMark, PersonMark, AgentMark', shownBy: 'icons and marks above' },
       { file: 'src/components/brand/site-mark.tsx', names: 'SiteMark', shownBy: 'icons and marks above' },
@@ -74,6 +76,8 @@ export const GROUPS: Group[] = [
       { file: shell('crumb.ts'), names: 'usePageCrumb', shownBy: 'the top bar' },
       { file: shell('commands.ts'), names: 'What features add to the command bar', shownBy: 'Search or run (⌘ K)' },
       { file: shell('palette-store.ts'), names: 'The command bar open state', shownBy: 'Search or run (⌘ K)' },
+      { file: shell('page-band.ts'), names: 'usePageBand: the night band a page opens on', shownBy: 'Home and one environment' },
+      { file: shell('notifications.tsx'), names: 'NotificationsBell', shownBy: 'the top bar' },
     ],
   },
   {
@@ -120,6 +124,9 @@ export const GROUPS: Group[] = [
       { file: ui('tabs.tsx'), names: 'Tabs, TabList, Tab, TabPanel, SegmentedControl', demo: TabsDemo },
       { file: ui('menu.tsx'), names: 'Menu, MenuItem, Popover, Tooltip, TooltipProvider', shownBy: 'tabs above, and overlays' },
       { file: ui('misc.tsx'), names: 'CodeBlock, CopyButton, useCopy', demo: CopyDemo },
+      { file: ui('choice.tsx'), names: 'ChoiceGroup, Choice, CheckCard, RadioRow', demo: ChoicesDemo },
+      { file: ui('form.tsx'), names: 'FormNote, FormActions, SettingRow, SaveStatus, useSaved', shownBy: 'every settings form' },
+      { file: 'src/components/unsaved-changes.tsx', names: 'UnsavedChanges', shownBy: 'a settings form with changes not saved' },
     ],
   },
   {
@@ -142,20 +149,21 @@ export const GROUPS: Group[] = [
       { file: 'src/components/charts/shared.tsx', names: 'Legend, Readout, ChartTable, useWidth', shownBy: 'every chart above' },
       { file: ui('image-frame.tsx'), names: 'ImageFrame', demo: PicturesDemo },
       { file: ui('before-after.tsx'), names: 'BeforeAfter', shownBy: 'pictures above' },
+      { file: 'src/components/screen-picture.tsx', names: "ScreenPicture, PictureChip: an environment's screen", demo: ScreenPictureDemo },
     ],
   },
   {
     id: 'composites',
-    title: 'agentos composites',
-    purpose: 'The parts only agentos has, drawn from the mock: the live view, the terminal list, proofs, checkpoints, the cost line.',
+    title: 'openajar composites',
+    purpose: 'The parts only openajar has, drawn from the mock: the live view, the terminal list, proofs, checkpoints, the cost line.',
     entries: [
-      { file: 'src/features/environments/env-header.tsx', names: 'Facts (the stat strip of an environment)', demo: FactsDemo },
-      { file: 'src/features/environments/env-cards.tsx', names: 'BrowserCard: the live view frame', demo: LiveViewDemo },
+      { file: 'src/features/environments/env-panels.tsx', names: 'TimePanel, DoingPanel, CodePanel: the panels beside the screen', demo: FactsDemo },
+      { file: 'src/features/environments/env-stage.tsx', names: 'EnvStage: the live screen on the night band, its replay, the control pill', demo: LiveViewDemo },
       { file: 'src/features/lane/control.tsx', names: 'ControlFrame: take over and hand back', shownBy: 'the live view above' },
       { file: 'src/features/environments/env-cards.tsx', names: 'CommandsCard: the terminal list', demo: TerminalListDemo },
       { file: 'src/features/environments/proofs.tsx', names: 'ProofsCard: the proof card', demo: ProofDemo },
       { file: 'src/features/environments/checkpoints.tsx', names: 'CheckpointsCard: a timeline of checkpoints', demo: TimelineDemo },
-      { file: 'src/features/environments/env-cards.tsx', names: 'MachineCard: the cost line (price, while unused)', demo: CostLineDemo },
+      { file: 'src/features/environments/env-cards.tsx', names: 'MachineLine: the machine and its cost, one quiet line', demo: CostLineDemo },
     ],
   },
 ];

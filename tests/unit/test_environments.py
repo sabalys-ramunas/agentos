@@ -1,5 +1,5 @@
-"""Agent environments (agentos.environments): open, the routing of calls without `on`, no asking inside,
-close with the unsaved-work check, the reaper, and the parsers. The VM is the fake cloud of agentos.vms
+"""Agent environments (openajar.environments): open, the routing of calls without `on`, no asking inside,
+close with the unsaved-work check, the reaper, and the parsers. The VM is the fake cloud of openajar.vms
 and its commands are answered by a fake (no SSH here); tests/unit/test_environments_docker.py runs the
 same story on a real machine."""
 
@@ -13,23 +13,23 @@ from datetime import timedelta
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Effect, utcnow
-from agentos.dev.lanes import FakeLaneManager
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import bringup, machine, routing
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import Environment, EnvSettings
-from agentos.environments.probes import GIT_STATE, parse_git_state, parse_ports
-from agentos.environments.tools import tool_specs as env_tool_specs
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmSettings
-from agentos.vms.provider import FakeProvider
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Effect, utcnow
+from openajar.dev.lanes import FakeLaneManager
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import bringup, machine, routing
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import Environment, EnvSettings
+from openajar.environments.probes import GIT_STATE, parse_git_state, parse_ports
+from openajar.environments.tools import tool_specs as env_tool_specs
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmSettings
+from openajar.vms.provider import FakeProvider
 
 TITLE = "Black Friday page"
 
@@ -113,7 +113,7 @@ async def node(tmp_path, monkeypatch):
     rt.register("environments", mgr)
     grant, token = policy.issue(subject={"id": "agent-1"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                 specials={"vm": {}, "exec": {}})
-    from agentos.env import tool_specs as term_specs
+    from openajar.env import tool_specs as term_specs
 
     specs = {s.name: s for s in [*env_tool_specs(rt), *term_specs(rt)]}
     calls = {name: wrap_tool(spec, rt) for name, spec in specs.items()}
@@ -174,7 +174,7 @@ async def test_a_ref_is_checked_out_inside_the_clone(node, tmp_path):
 
 
 async def test_a_snapshot_that_never_ran_the_setup_gets_it_from_the_node(node):
-    """A `dev` snapshot from `agentos vm image build` (its own script) boots with cloud-init done and
+    """A `dev` snapshot from `openajar vm image build` (its own script) boots with cloud-init done and
     no setup marker: the node runs setup.sh over SSH instead of waiting out setup_timeout_s (a real
     Hetzner environment sat in starting for this, 2026-11-13)."""
     node["machine"].setup = "status: done"
@@ -202,7 +202,8 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     # the node's own live view, never a page of the web app (the public repository has none)
     assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
     # the agent finds its terminal without guessing: the tools it needs are named, and where the rest are
-    for words in ("calls without `on` go here", 'terminal_exec(cmd="npm test", cwd="/work/shop")',
+    assert "npm" not in out["next"]  # a Python repository's agent is not told to run npm
+    for words in ("calls without `on` go here", 'terminal_exec(cmd="git status") runs a command, in /work/shop too',
                   "file_read", "file_edit", "proof=", "environment_pull_request(title)",
                   "terminal_job_start(", "terminal_job_read", "in your list", 'tools_more("terminals")',
                   'tools_more("studio")', "links.browser"):
@@ -223,7 +224,7 @@ async def test_the_browser_starts_beside_the_clone_and_the_open_never_waits_for_
     """The first browser_navigate waited 10 to 14 s for the machine's browser (evals, 2026-11-18): it
     starts during the bring-up now, in the background. A start that fails is only logged; the first
     browser call starts it again, as before."""
-    from agentos.core.models import LaneState
+    from openajar.core.models import LaneState
 
     lanes, mgr = node["lanes"], node["mgr"]
     gate = asyncio.Event()
@@ -262,7 +263,7 @@ async def test_the_live_view_link_stays_the_same_and_says_how_long_it_and_older_
     """environment() signed a new live-view link on every call, and the agent could not tell whether the
     one the human had open still worked (2026-11-16). The same link comes back while it is valid; a new
     one only when it is close to its end, and the one before still opens until its own expiry."""
-    from agentos.node.viewer_tokens import ViewMode, ViewTokens
+    from openajar.node.viewer_tokens import ViewMode, ViewTokens
 
     node["lanes"].take_control = lambda *a, **kw: None  # a lane manager the viewer can hand over
     out = await opened(node)
@@ -334,8 +335,8 @@ async def test_open_past_the_nodes_limit_is_refused(node):
         await node["call"]("environment_open", title="Too long", session="chat-3", hours=500)
 
 
-def test_the_limits_hold_without_agentos_environments_allow():
-    s = EnvSettings()  # no environments.toml: what a node has before anyone ran `agentos environments allow`
+def test_the_limits_hold_without_openajar_environments_allow():
+    s = EnvSettings()  # no environments.toml: what a node has before anyone ran `openajar environments allow`
     assert (s.max_live, s.max_hours, s.monthly_eur) == (3, 8.0, 50.0)
 
 
@@ -350,7 +351,7 @@ async def test_a_fourth_open_is_refused_with_the_limit_and_the_command_that_rais
     with pytest.raises(ToolCallError, match="environment_full") as err:
         await node["call"]("environment_open", title="Fourth", session="chat-4")
     words = str(err.value)
-    assert "already runs 3 machines, its limit at once" in words and "agentos environments allow --max-live" in words
+    assert "already runs 3 machines, its limit at once" in words and "openajar environments allow --max-live" in words
     assert "destroy" not in words and "fewer hours" not in words
     assert len(node["mgr"].store.open()) == 3
     # too long a life: the same, naming --max-hours (8 hours by default)
@@ -364,7 +365,7 @@ async def test_a_machine_whose_setup_fails_is_deleted_and_says_why(node):
     with pytest.raises(ToolCallError, match=r"environment_failed: setup: environment e\w+ did not start: the "
                                             "machine's setup failed") as err:
         await opened(node)
-    from agentos.core.catalog import mcp_lines
+    from openajar.core.catalog import mcp_lines
     message = str(err.value).removeprefix("environment_failed: ")
     assert mcp_lines("environment_failed", message)[0].startswith("fix: The machine did not finish its setup")
     env = node["mgr"].store.recent(1)[0]
@@ -395,7 +396,7 @@ async def test_the_browser_and_the_clone_come_up_at_once_and_each_step_is_logged
 
     monkeypatch.setattr(mgr, "_make_browser", slow_browser)
     monkeypatch.setattr(mgr, "_clone", cloning)
-    with caplog.at_level(logging.INFO, logger="agentos.environments"):
+    with caplog.at_level(logging.INFO, logger="openajar.environments"):
         out = await opened(node, repo="example.test/me/shop")
     assert out["state"] == "ready"
     said = [r.getMessage() for r in caplog.records]
@@ -448,7 +449,7 @@ async def test_terminal_calls_without_on_go_to_the_environment_and_never_wait(no
     ctx.taint("untrusted", source="browser_snapshot")
     res = await call("terminal_exec", cmd="npm test", cwd="/work/shop")
     assert res["exit_code"] == 0 and res.get("status") != "approval_pending"
-    assert ("cd '/work/shop' && npm test", node["grant"].id) in node["machine"].ran
+    assert ("cd '/work/shop' 2>/dev/null || { echo openajar-no-such-folder >&2; exit 97; }\nnpm test", node["grant"].id) in node["machine"].ran
     env = node["mgr"].get(out["id"])
     assert env.last_call_at is not None and [c.tool for c in env.calls][-1] == "terminal_exec"
     assert env.calls[-1].summary == "npm test"
@@ -483,7 +484,7 @@ async def test_browser_calls_without_on_resolve_to_the_browser_lane(node):
 
 
 async def test_studio_checks_get_the_environments_proxy(node):
-    from agentos.studio.browser.pool import review_proxy
+    from openajar.studio.browser.pool import review_proxy
 
     out = await opened(node)
     with routing.studio_proxy(node["rt"], "ui_check", {"url": "http://localhost:3000"}, session="chat-1",
@@ -498,8 +499,8 @@ async def test_studio_checks_get_the_environments_proxy(node):
 async def test_a_studio_check_never_checks_the_node_while_the_environment_cannot_be_reached(node):
     """With an environment bound, ui_check goes through its tunnel or fails: while the machine starts,
     after a restart of the node or while the tunnel is down, it says so and how to go on."""
-    from agentos.core.tools import ToolSpec
-    from agentos.studio.browser.pool import review_proxy
+    from openajar.core.tools import ToolSpec
+    from openajar.studio.browser.pool import review_proxy
 
     seen: list = []
 
@@ -536,8 +537,8 @@ async def test_a_studio_check_never_checks_the_node_while_the_environment_cannot
 
 
 def test_routed_tools_take_on_as_optional_in_their_schema():
-    from agentos.core.tools import ToolSpec
-    from agentos.mcp.registry import tool_params
+    from openajar.core.tools import ToolSpec
+    from openajar.mcp.registry import tool_params
 
     async def lane_exec(ctx, *, on: str, cmd: str) -> dict:
         return {}
@@ -608,7 +609,7 @@ async def test_close_refuses_files_in_no_git_repo_and_says_how_to_keep_them(node
 
 
 def test_the_files_in_no_repo_come_after_the_repos_and_are_never_the_main_one():
-    from agentos.environments.probes import main_repo
+    from openajar.environments.probes import main_repo
     repos = parse_git_state("repo=/work/shop\nbranch=main\nahead=0\ndirty_count=0\nloose=a b.txt\nloose_count=60\n")
     assert [r["dir"] for r in repos] == ["/work/shop", "/work"] and repos[1]["loose"] and repos[1]["dirty"] == 60
     assert main_repo(repos, "/work")["dir"] == "/work/shop"
@@ -630,7 +631,7 @@ async def test_close_of_another_grants_environment_is_refused(node):
 async def test_a_freeze_stops_every_environment_tool_and_closes_nothing(node, tmp_path, scope):
     # the environment tools name no lane, so each reaches the environment's lanes itself: a freeze of its
     # terminal lane, of the `env` workspace or of the node refuses them, and its machine is left as it is
-    from agentos.freeze.service import FreezeService
+    from openajar.freeze.service import FreezeService
 
     out = await opened(node)
     fz = FreezeService(node["rt"], home=tmp_path / "fz")
@@ -667,6 +668,48 @@ async def test_the_reaper_closes_an_idle_clean_environment(node):
     assert mgr.get(out["id"]).closed_reason.startswith("idle")
 
 
+async def test_the_reapers_screen_check_is_no_use_and_an_idle_desktop_still_closes(node, monkeypatch):
+    """The node asks a desktop's screen on every pass (vmbrowser.check_screen) with a command on the terminal
+    lane, and every command notes use of that lane: the check must put the time back, or an environment with a
+    desktop would never close for idleness."""
+    import json
+
+    from openajar.environments import vmbrowser
+
+    out = await opened(node)
+    mgr, envs, fake = node["mgr"], node["envs"], node["machine"]
+
+    def to_vm(e):
+        e.browser = "vm"
+
+    env = mgr.store.update(out["id"], to_vm)
+    vm = vmbrowser.VmBrowsers(mgr)
+    mgr._vm_browsers = vm
+    vm._screens[env.id] = (1920, 1080)  # its desktop is up
+    monkeypatch.setattr(vm, "_require", lambda lane_id: (env, None))
+    asked: list[str] = []
+    healthy = json.dumps({"ok": True, "display": True, "desktop": True, "browser": False})
+
+    async def exec_(lane_id, cmd, **kw):  # as EnvManager.exec: every command notes use of its lane
+        envs.store.touch(lane_id)
+        if cmd == vmbrowser.ctl_command():
+            asked.append(json.loads(kw["stdin"])["action"])
+            return ExecResult(exit_code=0, stdout=(healthy if asked[-1] == "status" else '{"ok": true}') + "\n",
+                              stderr="", duration_s=0.01)
+        return await fake.exec(lane_id, cmd, **kw)
+
+    monkeypatch.setattr(envs, "exec", exec_)
+    idle_before = mgr._last_used(env)
+    soon = utcnow() + timedelta(minutes=1)
+    await mgr.reap_once(soon)
+    await asyncio.gather(*vm._screen_tasks.values())
+    assert asked == ["status"]  # the screen was checked, and found healthy
+    assert mgr._last_used(mgr.get(env.id)) == idle_before  # and the check was no use of the machine
+    later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
+    got = await mgr.reap_once(later)
+    assert got["closed"] == [env.id] and mgr.get(env.id).closed_reason.startswith("idle")
+
+
 async def test_a_person_working_in_the_live_view_keeps_the_environment_open(node):
     """Input from a human in the environment's browser (the live view, taken over) is activity: the
     reaper does not close a clean environment someone is using."""
@@ -698,7 +741,7 @@ async def test_the_reaper_keeps_unsaved_work_and_tells_the_owner_once(node, monk
     second = await mgr.reap_once(later + timedelta(minutes=1))
     assert first["kept_unsaved"] == [out["id"]] and second["kept_unsaved"] == []
     assert len(told) == 1 and "not pushed" in told[0] and mgr.get(out["id"]).open
-    # at its time limit it gets a rescue save first (agentos.environments.saving; test_environments_saves
+    # at its time limit it gets a rescue save first (openajar.environments.saving; test_environments_saves
     # has the real one). This fake machine cannot make one, so it is kept and the owner hears so: never a
     # silent discard
     end = await mgr.reap_once(mgr.get(out["id"]).expires_at + timedelta(seconds=1))
@@ -751,14 +794,14 @@ async def test_the_budget_counts_the_hours_open_environments_have_booked(node):
 
 
 async def test_extend_checks_the_budget_and_the_longest_life(node):
-    from agentos.environments.errors import EnvironmentLimit
+    from openajar.environments.errors import EnvironmentLimit
 
     mgr, vms = node["mgr"], node["vms"]
     out = await opened(node, hours=1)
     mgr.settings = EnvSettings(monthly_eur=0.04, default_keep="none")
     with pytest.raises(EnvironmentLimit, match="budget") as err:
         await mgr.extend(out["id"], 10 * 60)         # up to the longest life, 8 h x 0.006 = 0.048
-    assert "agentos environments allow --monthly-eur" in str(err.value)
+    assert "openajar environments allow --monthly-eur" in str(err.value)
     mgr.settings = EnvSettings(default_keep="none")
     vms.settings = vms.settings.model_copy(update={"monthly_budget_eur": 0.04})
     with pytest.raises(EnvironmentLimit, match="budget"):
@@ -769,7 +812,7 @@ async def test_extend_checks_the_budget_and_the_longest_life(node):
     assert vms.store.get(env.vm_id).expires_at == env.expires_at
     with pytest.raises(EnvironmentLimit, match="longest life of 8 hours") as err:
         await mgr.extend(out["id"], 30)
-    assert "agentos environments allow --max-hours" in str(err.value)
+    assert "openajar environments allow --max-hours" in str(err.value)
 
 
 async def test_extend_moves_the_vms_limit_too(node):
@@ -824,11 +867,11 @@ async def test_a_grant_without_the_vm_special_cannot_open_one(node):
     assert node["mgr"].store.open() == []
 
 
-async def test_the_grant_agentos_connect_gives_opens_one_and_works_only_on_env_lanes(node):
-    # the `environments` special (agentos connect, agentos dev up): vm and exec on env/* only. The open
+async def test_the_grant_openajar_connect_gives_opens_one_and_works_only_on_env_lanes(node):
+    # the `environments` special (openajar connect, openajar dev up): vm and exec on env/* only. The open
     # names no lane, so its check waits for the lane the node picks (env/<id>)
-    from agentos.api.bridge import panel_specials
-    from agentos.dev.node import AGENT_SPECIALS
+    from openajar.api.bridge import panel_specials
+    from openajar.dev.node import AGENT_SPECIALS
 
     specials = panel_specials(["environments", "memory_read"])
     assert {k: specials[k] for k in ("vm", "exec")} == {k: AGENT_SPECIALS[k] for k in ("vm", "exec")}
@@ -846,8 +889,8 @@ async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node
     # terminal_job_cancel names a job, not a lane: the check waits for the job's lane (env/<id>)
     from types import SimpleNamespace
 
-    from agentos.api.bridge import panel_specials
-    from agentos.env.models import JobInfo
+    from openajar.api.bridge import panel_specials
+    from openajar.env.models import JobInfo
 
     _g, tok = node["policy"].issue(subject={"id": "claude-code"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                    specials=panel_specials(["environments"]))
@@ -901,7 +944,7 @@ def _machine_here(root):
 async def test_unsaved_work_is_every_repo_every_branch_stashes_and_new_files(node, tmp_path, monkeypatch):
     """What close and the reaper must never delete without discard: commits on any local branch not on
     a remote, stashes, untracked files, and all of that in every repository under /work."""
-    from agentos.environments.errors import UnsavedWork
+    from openajar.environments.errors import UnsavedWork
 
     out = await opened(node, repo="example.test/me/shop")
     mgr = node["mgr"]

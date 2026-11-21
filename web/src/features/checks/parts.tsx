@@ -24,9 +24,9 @@ export function ShareBar({ share, label, wide = false, className }: { share: num
         aria-valuetext={`${pct}%`}
         className={cn('h-1 shrink-0 overflow-hidden rounded-full bg-chart-grid', wide ? 'w-full max-w-48 shrink' : 'w-16')}
       >
-        <span className="block h-full rounded-full bg-chart-bar-strong" style={{ width: `${pct}%` }} />
+        <span className="block h-full rounded-full bg-ok-dot" style={{ width: `${pct}%` }} />
       </span>
-      <span className="font-mono text-number text-fg tabular">{percent(share)}</span>
+      <span className="text-fg tabular">{percent(share)}</span>
     </span>
   );
 }
@@ -89,7 +89,7 @@ export function StudioMissingState({ missing, className }: { missing: StudioMiss
       action={
         <div className="grid w-[min(28rem,80vw)] gap-2 text-left">
           <CodeBlock code={missing.command} label="Copy the command" />
-          <CodeBlock code="agentos studio up" label="Copy the laptop command" />
+          <CodeBlock code="openajar studio up" label="Copy the laptop command" />
         </div>
       }
     />

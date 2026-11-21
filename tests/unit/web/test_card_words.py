@@ -1,14 +1,14 @@
 """An approval's preview in the app is words, never the record it binds (finding 24 of the 2026-11-10 full test).
-Cards are built the way the node builds them (agentos.policy.cards), then told by agentos.api.web.cardwords."""
+Cards are built the way the node builds them (openajar.policy.cards), then told by openajar.api.web.cardwords."""
 
 from __future__ import annotations
 
 import json
 
-from agentos.api.web import cardwords
-from agentos.core.runtime import Runtime
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.policy import cards
+from openajar.api.web import cardwords
+from openajar.core.runtime import Runtime
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.policy import cards
 
 NODE = Runtime(card_facts=NodeCardFacts())  # the facts every node runtime carries
 UNKNOWN = {"publish": "facebook.unknown", "lane": "test/facebook",
@@ -28,9 +28,9 @@ def test_an_unknown_request_is_a_short_plain_card_with_the_gates_own_words() -> 
     preview = cardwords.preview_of({"card": card, "summary": "publish on test/facebook"}, "Facebook")
     assert preview["kind"] == "form"
     data = preview["data"]
-    assert data["form"] == "A request to Facebook that agentos does not recognise"
+    assert data["form"] == "A request to Facebook that openajar does not recognise"
     assert data["ask"] == "Let this request go to Facebook?" and data["no"] == "Don't send it"
-    assert {"label": "What agentos knows", "value": card["headline"]} in data["fields"]
+    assert {"label": "What openajar knows", "value": card["headline"]} in data["fields"]
     assert not any(field["label"] in ("__a", "fb_dtsg") for field in data["fields"])
     _has_no_record(preview)
 
@@ -90,7 +90,7 @@ def test_words_stay_words() -> None:
 
 
 def test_the_approval_the_app_reads_carries_the_words_not_the_record() -> None:
-    from agentos.api.web.decisions import Ctx, approval_out
+    from openajar.api.web.decisions import Ctx, approval_out
 
     item = {"id": "ap_1", "state": "pending", "effect": "commit", "lane": "test/facebook", "summary": "publish",
             "preview": {"text": json.dumps(UNKNOWN)}, "card": cards.publish_card(UNKNOWN, NODE), "requested_by": {}}

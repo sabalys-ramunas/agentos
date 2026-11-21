@@ -1,4 +1,4 @@
-"""The memory cap every lane gets by default, and the watchdog (agentos.node.memwatch): what
+"""The memory cap every lane gets by default, and the watchdog (openajar.node.memwatch): what
 the ceiling is on a given node, how the lane manager applies it, how a lane's memory is read, and
 the order the watchdog acts in (warn and a card first, then a graceful close, never mid-call)."""
 
@@ -11,14 +11,14 @@ import pytest
 from test_lanes_claims import LANE, A, act, lane
 from test_lanes_holds import build
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ClaimLost
-from agentos.core.models import LaneState
-from agentos.core.runtime import Runtime
-from agentos.node import memwatch
-from agentos.node.claims import RUN, Holder
-from agentos.node.lanes import ScopeLimiter
-from agentos.node.memwatch import (
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ClaimLost
+from openajar.core.models import LaneState
+from openajar.core.runtime import Runtime
+from openajar.node import memwatch
+from openajar.node.claims import RUN, Holder
+from openajar.node.lanes import ScopeLimiter
+from openajar.node.memwatch import (
     RECYCLE_AFTER,
     LaneMemory,
     MemoryWatch,
@@ -47,7 +47,7 @@ def test_zero_turns_the_ceiling_off_and_small_caps_are_refused(tmp_path):
 
 
 def test_the_default_ceiling_rides_on_default_scopes_only(tmp_path, monkeypatch):
-    from agentos.node.lanes import resources as lanes_resources
+    from openajar.node.lanes import resources as lanes_resources
 
     monkeypatch.setattr(ScopeLimiter, "supported", staticmethod(lambda: True))
     monkeypatch.setattr(lanes_resources, "default_scopes_fit", lambda: True)
@@ -80,8 +80,8 @@ def test_lane_memory_reads_a_scope_or_sums_the_process_tree(tmp_path):
     _proc(proc, 100, 1, 300_000)            # a browser without a scope: itself and its content processes
     _proc(proc, 101, 100, 900_000)
     _proc(proc, 102, 101, 100_000)
-    _proc(proc, 200, 1, 10, cgroup="0::/agentos.slice/agentos-lanes.slice/agentos-lane-a--two-200.scope")
-    scope = cg / "agentos.slice/agentos-lanes.slice/agentos-lane-a--two-200.scope"
+    _proc(proc, 200, 1, 10, cgroup="0::/openajar.slice/agentos-lanes.slice/openajar-lane-a--two-200.scope")
+    scope = cg / "openajar.slice/agentos-lanes.slice/openajar-lane-a--two-200.scope"
     scope.mkdir(parents=True)
     (scope / "memory.current").write_text(str(1500 * MB))
     usage = LaneMemory(proc, cg).usage({"a/one": [100], "a/two": [200]})
@@ -218,7 +218,7 @@ async def test_the_lane_manager_owns_the_watch_and_its_reaper_runs_it(tmp_path, 
 
 
 def test_agentosd_has_no_separate_memory_watch_service():
-    from agentos.node.daemon import FEATURE_SERVICES
+    from openajar.node.daemon import FEATURE_SERVICES
 
     assert not any("memwatch" in name for name in FEATURE_SERVICES)
 

@@ -1,6 +1,6 @@
-"""Checkpoints inside an environment (agentos.environments.checkpoints), watching as use
-(agentos.environments.watching), the owner's resume of a save without a chat (agentos.environments.waking),
-a saved environment's live-view page (agentos.node.viewer_saved), and what a stale handle hears.
+"""Checkpoints inside an environment (openajar.environments.checkpoints), watching as use
+(openajar.environments.watching), the owner's resume of a save without a chat (openajar.environments.waking),
+a saved environment's live-view page (openajar.node.viewer_saved), and what a stale handle hears.
 
 The machines are test_environments_saves's: folders here, where every command the node sends runs for
 real (git and the checkpoint scripts included), so a checkpoint and a rollback are real ones."""
@@ -14,10 +14,10 @@ import httpx
 import pytest
 from test_environments_saves import TITLE, disk, git, node, opened  # noqa: F401  (node is the fixture)
 
-from agentos.core.models import utcnow
-from agentos.environments import checkpoints, routing
-from agentos.environments.errors import EnvironmentLimit, NoEnvironment
-from agentos.policy.wrap import ToolCallError
+from openajar.core.models import utcnow
+from openajar.environments import checkpoints, routing
+from openajar.environments.errors import EnvironmentLimit, NoEnvironment
+from openajar.policy.wrap import ToolCallError
 
 
 def work(node, out) -> object:
@@ -320,9 +320,9 @@ def cli(node, monkeypatch):
 
     from typer.testing import CliRunner
 
-    from agentos.api import ApiSettings, build_api
-    from agentos.core import config as config_mod
-    from agentos.environments import resume_cli
+    from openajar.api import ApiSettings, build_api
+    from openajar.core import config as config_mod
+    from openajar.environments import resume_cli
 
     home = node["mgr"].home
     api = build_api(node["rt"], ApiSettings(lane_pump_seconds=0, panel_dir=home / "no-panel"))
@@ -363,7 +363,7 @@ async def test_the_cli_resumes_a_save_as_the_owner_and_only_the_owner(node, cli)
 
 
 def _viewer(node):
-    from agentos.node.viewer_app import build_viewer_app
+    from openajar.node.viewer_app import build_viewer_app
 
     rt = node["rt"]
     app = build_viewer_app(rt.require("lanes"), rt.require("config"), environments=lambda: node["mgr"])
@@ -371,7 +371,7 @@ def _viewer(node):
 
 
 async def test_a_saved_environments_link_shows_its_page_and_the_owner_resumes_it(node):
-    from agentos.node.viewer_tokens import ViewMode
+    from openajar.node.viewer_tokens import ViewMode
 
     out, _ = await _saved(node)
     app, viewer = _viewer(node)
@@ -401,13 +401,13 @@ async def test_a_saved_environments_link_shows_its_page_and_the_owner_resumes_it
 
 async def test_a_starting_environments_link_reloads_until_it_is_up(node):
     """A resumed one whose browser is not up yet: a page that reloads itself, for any holder of its link."""
-    from agentos.node.viewer_tokens import ViewMode
+    from openajar.node.viewer_tokens import ViewMode
 
     class Starting:
         def browser_story(self, lane_id):
             return {"id": "eabcdefghjk", "title": TITLE, "state": "starting"}
 
-    from agentos.node.viewer_app import build_viewer_app
+    from openajar.node.viewer_app import build_viewer_app
 
     rt = node["rt"]
     app = build_viewer_app(rt.require("lanes"), rt.require("config"), environments=lambda: Starting())
@@ -418,7 +418,7 @@ async def test_a_starting_environments_link_reloads_until_it_is_up(node):
 
 
 async def test_an_account_lane_still_says_no_such_lane(node):
-    from agentos.node.viewer_tokens import ViewMode
+    from openajar.node.viewer_tokens import ViewMode
 
     app, viewer = _viewer(node)
     link = viewer.tokens.issue("personal/reddit", ViewMode.CONTROL)

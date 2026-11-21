@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from agentos.runner.cli import _schedule_line
-from agentos.runner.models import Run
-from agentos.runner.run_rules import bind_workflow, started_by_schedule
+from openajar.runner.cli import _schedule_line
+from openajar.runner.models import Run
+from openajar.runner.run_rules import bind_workflow, started_by_schedule
 
 
 def test_schedule_line_of_a_workflow_schedule_does_not_crash():
@@ -42,7 +42,7 @@ def test_which_runs_a_schedule_started():
 
 
 def test_a_cron_event_marks_the_workflow_run_scheduled():
-    from agentos.runner.workflows.service import WorkflowService
+    from openajar.runner.workflows.service import WorkflowService
 
     ev = SimpleNamespace(facts={"slot": "2026-11-10T08:34:00+00:00"}, content=None, kind="cron.fired", source="cron")
     data = WorkflowService.trigger_data(ev)
@@ -54,8 +54,8 @@ def test_a_cron_event_marks_the_workflow_run_scheduled():
 
 def test_the_agenda_names_a_routine_by_its_name():
     """Tester A 8: a projected fire of a workflow reads "Tester A tick routine", not rt_..."""
-    from agentos.agenda.service import AgendaService
-    from agentos.core.errors import NotFound
+    from openajar.agenda.service import AgendaService
+    from openajar.core.errors import NotFound
 
     route = SimpleNamespace(name="Tester A tick routine", target=SimpleNamespace(workflow="scratch.routine.tick"))
 
@@ -71,8 +71,8 @@ def test_the_agenda_names_a_routine_by_its_name():
 
 def test_a_trigger_card_names_its_lane_and_filters():
     """Tester A 9: the one line says every filter the trigger has."""
-    from agentos.events.models import Match
-    from agentos.events.service import match_words
+    from openajar.events.models import Match
+    from openajar.events.service import match_words
 
     m = Match(source="run", kind="run.finished", workspace="scratch", lane="scratch/auto", where={"status": "failed"})
     words = match_words(m, "scratch")
@@ -84,18 +84,18 @@ def test_an_unknown_template_names_the_ones_there_are(tmp_path):
     """Tester A 10: the error lists the templates, since no agent tool lists them."""
     import pytest
 
-    from agentos.core.errors import NotFound
-    from agentos.workspaces.service import WorkspaceService
+    from openajar.core.errors import NotFound
+    from openajar.workspaces.service import WorkspaceService
 
     me = SimpleNamespace(templates_dir=tmp_path)
     with pytest.raises(NotFound) as e:
         WorkspaceService.get_template(me, "nope")
-    assert "social-6" in e.value.message and "agentos workspace templates" in e.value.message
+    assert "social-6" in e.value.message and "openajar workspace templates" in e.value.message
 
 
 def test_an_approval_tells_the_agent_why_and_a_flow_run_need_not_be_called_again():
     """Tester A 4 and 6."""
-    from agentos.policy.approval_models import Approval
+    from openajar.policy.approval_models import Approval
 
     ap = Approval(id="ap_1", kind="action", state="pending", summary="Run flow x", created_at=0.0, expires_at=60.0,
                   reason="it follows untrusted text from a web page at example.com", tool="flow_run", requester={})

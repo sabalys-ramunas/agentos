@@ -12,14 +12,14 @@ from test_api_members import pending as pending_on_node
 from test_node_panel import Node
 from test_policy_support import OWNER, PRESENT, SPECS, Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy import bind_request_token, tokens, wrap_tool
-from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
-from agentos.policy.approvals import ApprovalStore
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.grants import ApproveCap, Grant, Specials, Subject
-from agentos.policy.routing import PolicyConfig, load_policy_config
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy import bind_request_token, tokens, wrap_tool
+from openajar.policy.approval_models import ApprovalPolicy, FourEyesRule
+from openajar.policy.approvals import ApprovalStore
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.grants import ApproveCap, Grant, Specials, Subject
+from openajar.policy.routing import PolicyConfig, load_policy_config
 
 
 @pytest.fixture
@@ -366,7 +366,7 @@ async def test_members_see_the_approvals_of_their_lanes(env):
 
 async def test_questions_are_answered_by_members_of_their_workspace(env):
     svc, rt, _ = env
-    from agentos.policy.tools import tool_specs
+    from openajar.policy.tools import tool_specs
 
     _, tok = svc.issue(subject={"id": "claude-code"}, workspaces=["biz-c"], ceiling=Effect.COMMIT)
     ask = wrap_tool(next(s for s in tool_specs(rt) if s.name == "human_ask"), rt)

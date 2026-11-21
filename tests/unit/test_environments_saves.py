@@ -1,4 +1,4 @@
-"""Keeping environments (agentos.environments.saving): keep "none", "live" and "save", the save (a disk
+"""Keeping environments (openajar.environments.saving): keep "none", "live" and "save", the save (a disk
 snapshot and a file-level part) and the resume, with the acceptance tests of the owner's brief.
 
 The cloud is a fake whose machines are folders here: a server's disk is `disks/<id>`, a snapshot copies
@@ -23,23 +23,23 @@ from pathlib import Path
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.models import Effect, utcnow
-from agentos.dev.lanes import FakeLaneManager
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult, JobInfo
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import bringup, machine, saving
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.environments.probes import GIT_STATE
-from agentos.environments.saves import SaveStore, export_save, import_save
-from agentos.environments.tools import tool_specs as env_tool_specs
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
-from agentos.vms.manager import ENV_SAVE_GRACE, VmManager
-from agentos.vms.models import VmSettings
-from agentos.vms.provider import FakeProvider, Server, ServerSpec
+from openajar.core.models import Effect, utcnow
+from openajar.dev.lanes import FakeLaneManager
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult, JobInfo
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import bringup, machine, saving
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.environments.probes import GIT_STATE
+from openajar.environments.saves import SaveStore, export_save, import_save
+from openajar.environments.tools import tool_specs as env_tool_specs
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.vms.manager import ENV_SAVE_GRACE, VmManager
+from openajar.vms.models import VmSettings
+from openajar.vms.provider import FakeProvider, Server, ServerSpec
 
 TITLE = "Black Friday page"
 REPO = "example.test/me/shop"
@@ -130,7 +130,7 @@ class LocalMachines:
                           stderr=p.stderr.decode(errors="replace"), duration_s=0.01)
 
     async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
-        from agentos.core.errors import EngineError
+        from openajar.core.errors import EngineError
 
         if lane_id in self.down:
             raise EngineError(f"{lane_id}: ssh: connect to host: Connection timed out")
@@ -156,7 +156,7 @@ class LocalMachines:
 
     async def get_archive(self, lane_id, src, dest_file, *, paths=None, gzip=True, timeout_s=600, max_bytes=None):
         if lane_id in self.down:
-            from agentos.core.errors import EngineError
+            from openajar.core.errors import EngineError
 
             raise EngineError("ssh: connection lost")
         with tarfile.open(dest_file, "w:gz" if gzip else "w") as tf:
@@ -312,7 +312,7 @@ async def test_round_trip_from_a_snapshot(node):
     m, path = node["mgr"].saves().find(saved["save_id"])
     import tempfile
 
-    from agentos.environments.saves import open_payload
+    from openajar.environments.saves import open_payload
 
     with tempfile.TemporaryDirectory() as t:
         files = open_payload(m, path, Path(t), await node["mgr"]._saves_key(create=False))
@@ -380,7 +380,7 @@ async def test_a_save_resumes_into_a_new_machine_leased_to_the_resumer(node):
     """One chat holds a live machine (the lease): a save has no machine, so any chat of the agent resumes
     it, into a new one with a handle of its own; the handle of the closed one reaches nothing live. Two
     chats resuming at once: one wins, the other is environment_in_use."""
-    from agentos.environments.picking import lease_of
+    from openajar.environments.picking import lease_of
 
     out = await opened(node, keep="save", session=None)
     work_on_it(disk(node, out["id"]) / "work" / "shop")
@@ -465,7 +465,7 @@ async def test_keep_live_is_never_closed_idle_and_needs_the_opt_in(node):
 
 
 async def test_an_open_that_names_no_keep_saves_when_idle(node):
-    """The default since 2026-11-18: agentos is a computer that stays. No environments.toml, no keep: the
+    """The default since 2026-11-18: openajar is a computer that stays. No environments.toml, no keep: the
     close saves the whole machine and deletes the VM; single use is one argument away."""
     assert EnvSettings().default_keep == "save"
     out = await opened(node)
@@ -495,9 +495,9 @@ async def test_keep_none_at_its_time_limit_gets_a_rescue_save_and_the_owner_is_t
 
 async def test_a_wake_up_past_the_limit_saves_first_and_says_so(node, tmp_path):
     """Acceptance 5: the laptop's catch-up runs the reaper, which saves before it deletes; the record and
-    `agentos local status` name the save."""
-    from agentos.core.config import NodeConfig
-    from agentos.local.wake import CatchUp, note
+    `openajar local status` name the save."""
+    from openajar.core.config import NodeConfig
+    from openajar.local.wake import CatchUp, note
 
     out = await opened(node, keep="save")
     work_on_it(disk(node, out["id"]) / "work" / "shop")
@@ -671,14 +671,14 @@ async def test_export_and_import_move_a_save(node, tmp_path):
 
 
 async def test_a_sealed_save_does_not_open_with_another_key(node, tmp_path):
-    from agentos.environments.saves import SaveCorrupt, open_payload, seal_payload
+    from openajar.environments.saves import SaveCorrupt, open_payload, seal_payload
 
     d = tmp_path / "p"
     d.mkdir()
     (d / "files.tgz").write_bytes(os.urandom(3 << 20))
     key = os.urandom(32)
     sums = seal_payload(d, "s0000000000", key)
-    from agentos.environments.saves import SaveManifest
+    from openajar.environments.saves import SaveManifest
 
     m = SaveManifest(id="s0000000000", family="f", title="t", env_id="e0000000000", saved_at=utcnow(),
                      checksums=sums)
@@ -715,12 +715,12 @@ def test_the_settings_refuse_live_by_default_without_the_opt_in():
 
 
 def test_the_cli_lists_forgets_exports_and_imports_saves(tmp_path, monkeypatch):
-    """`agentos environments saves`, `forget`, `save-export` and `save-import`, on a node with no vault
+    """`openajar environments saves`, `forget`, `save-export` and `save-import`, on a node with no vault
     (unsealed saves) and a snapshot the provider cannot be asked to delete (no token): that save stays."""
     from typer.testing import CliRunner
 
-    from agentos.environments.cli import app as env_cli
-    from agentos.environments.saves import SaveManifest, Snapshot, new_save_id, seal_payload
+    from openajar.environments.cli import app as env_cli
+    from openajar.environments.saves import SaveManifest, Snapshot, new_save_id, seal_payload
 
     home = tmp_path / "home"
     (home / "environments.toml").parent.mkdir(parents=True)

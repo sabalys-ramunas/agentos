@@ -9,7 +9,7 @@ import typer
 from test_ops_support import PASSPHRASE, PROXY_PASS, TOKEN, FakeHost, make_home
 from typer.testing import CliRunner
 
-from agentos.ops import backup, cli, cli_common, doctor
+from openajar.ops import backup, cli, cli_common, doctor
 
 runner = CliRunner()
 
@@ -17,7 +17,7 @@ runner = CliRunner()
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     cfg = make_home(tmp_path, lanes={"personal/reddit": 150, "work/site": None})
-    monkeypatch.setenv("AGENTOS_HOME", str(cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(cfg.home))
     real_create = backup.create_backup
     monkeypatch.setattr(backup, "create_backup", lambda *a, **kw: real_create(*a, **{**kw, "log_n": 10}))
     return cfg
@@ -64,7 +64,7 @@ def test_doctor_json_exit_code_and_no_secrets(home, monkeypatch):
     assert r.exit_code == (0 if data["ok"] else 1)
     assert TOKEN not in r.output and PROXY_PASS not in r.output
     ids = {c["id"] for c in data["checks"]}
-    assert {"config", "camoufox", "lanes", "proxy.lt1", "permissions"} <= ids  # per lane: agentos lane check
+    assert {"config", "camoufox", "lanes", "proxy.lt1", "permissions"} <= ids  # per lane: openajar lane check
     r = runner.invoke(cli.app, ["doctor", "--only", "disk,clock"])
     assert r.exit_code == 0 and "Clock sync" in r.output and "fix:" not in r.output
     r = runner.invoke(cli.app, ["doctor", "--only", "bogus"])
@@ -163,7 +163,7 @@ def test_migrate_status_and_run(home):
 
 
 def test_health_check_without_a_daemon(home, monkeypatch):
-    from agentos.ops import health
+    from openajar.ops import health
 
     real = health.HealthMonitor
     monkeypatch.setattr(health, "HealthMonitor", lambda cfg, **kw: real(cfg, host=FakeHost(), **kw))
@@ -176,14 +176,14 @@ def test_health_check_without_a_daemon(home, monkeypatch):
 
 
 def test_commands_need_an_initialized_home(tmp_path, monkeypatch, pwfile):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "nothing"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "nothing"))
     r = runner.invoke(cli.app, ["backup", "create", "--passphrase-file", str(pwfile)])
-    assert r.exit_code == 1 and "agentos node init" in r.output
+    assert r.exit_code == 1 and "openajar node init" in r.output
 
 
 def test_refresh_fingerprint_of_a_device_lane_lists_every_lane_and_needs_a_yes(home):
-    from agentos.core.models import DeviceSpec
-    from agentos.node.store import LaneStore
+    from openajar.core.models import DeviceSpec
+    from openajar.node.store import LaneStore
 
     store = LaneStore(home.db_path)
     store.add_device(DeviceSpec(name="me-pc", proxy_label="lt1"))

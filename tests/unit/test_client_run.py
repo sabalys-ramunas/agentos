@@ -1,4 +1,4 @@
-"""`agentos run` (agentos.client.run, agentos.client.run_cli) against an in-process node: the real env
+"""`openajar run` (openajar.client.run, openajar.client.run_cli) against an in-process node: the real env
 tools and EnvManager on the fake host (commands run on this machine), called the way McpSession calls
 them, with approvals the test decides. test_client_run_e2e.py does the same over HTTP with real grants."""
 
@@ -13,20 +13,20 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.client import run as runs
-from agentos.client import run_cli
-from agentos.client.mcp_http import ToolError
-from agentos.client.ops import Client
-from agentos.client.state import Connection
-from agentos.core.errors import AgentosError, ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.env import tool_specs
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
+from openajar.cli import app
+from openajar.client import run as runs
+from openajar.client import run_cli
+from openajar.client.mcp_http import ToolError
+from openajar.client.ops import Client
+from openajar.client.state import Connection
+from openajar.core.errors import ApprovalPending, OpenajarError
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.env import tool_specs
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
 
 EM_DASH = "—"
 
@@ -86,7 +86,7 @@ class FakeNode:
         except ApprovalPending as e:
             return {"status": "approval_pending", "approval_id": e.approval_id,
                     "summary": e.message.removeprefix("waiting for the owner to approve: ")}
-        except AgentosError as e:
+        except OpenajarError as e:
             raise ToolError(f"{e.code}: {e.message}") from None
         return json.loads(json.dumps(out, default=str))
 
@@ -139,7 +139,7 @@ def repo(tmp_path, monkeypatch):
 
 @pytest.fixture
 def cli(node, monkeypatch, tmp_path):
-    """`agentos run` wired to the fake node, as connection `mynode` with an exec grant."""
+    """`openajar run` wired to the fake node, as connection `mynode` with an exec grant."""
     conn = Connection(name="mynode", ssh_host="mynode", remote_port=7400, local_port=7401, token_store="file",
                       service="launchd", credential="agent_grant", agent_specials=["exec", "memory_read"])
     monkeypatch.setattr(Client, "pick", lambda self, name: conn)
@@ -195,7 +195,7 @@ def test_exit_codes_follow_how_the_job_ended():
     assert runs.command_line(["make check && make lint"]) == "make check && make lint"
 
 
-# ---------------------------------------------------------------- agentos run
+# ---------------------------------------------------------------- openajar run
 
 
 def test_run_syncs_streams_and_passes_the_exit_code(cli, node, repo):
@@ -203,10 +203,10 @@ def test_run_syncs_streams_and_passes_the_exit_code(cli, node, repo):
     assert r.exit_code == 3, r.output
     assert r.stdout == "checked\n"
     err = r.stderr
-    assert "agentos run on mynode, lane dev/run-my-repo" in err
+    assert "openajar run on mynode, lane dev/run-my-repo" in err
     assert "creating lane dev/run-my-repo (sandbox, files kept between runs, network off)" in err
     assert "tree: 4 files (" in err and "synced into src/My-Repo: 4 changed, 0 deleted" in err
-    assert "to-stderr" in err and "agentos run: exit 3 in" in err
+    assert "to-stderr" in err and "openajar run: exit 3 in" in err
     dest = lane_dest(node)
     assert sorted(p.name for p in dest.iterdir()) == [".gitignore", "Makefile", "notes.txt", "tests"]
     created = next(a for t, a in node.calls if t == "terminal_create")
@@ -245,7 +245,7 @@ def test_ctrl_c_cancels_the_job(cli, node, repo):
     r = invoke("--", "sh", "-c", "echo started; sleep 30")
     assert r.exit_code == 130, r.output
     assert r.stdout == "started\n"  # written once, before and after the cancel
-    assert "cancelling job" in r.stderr and "agentos run: cancelled" in r.stderr
+    assert "cancelling job" in r.stderr and "openajar run: cancelled" in r.stderr
     job = node.mgr.job_list()[0]
     assert job.state == "cancelled"
     assert ("terminal_job_cancel", {"job": job.id}) in node.calls
@@ -255,7 +255,7 @@ def test_detach_follow_logs_list_and_cancel(cli, node, repo):
     r = invoke("--detach", "--", "sh", "-c", "echo out; sleep 0.5; echo done; exit 4")
     assert r.exit_code == 0
     jid = next(line.split()[2] for line in r.stderr.splitlines() if line.startswith("started job"))
-    assert f"agentos run --follow {jid}" in r.stderr and "--node" not in r.stderr
+    assert f"openajar run --follow {jid}" in r.stderr and "--node" not in r.stderr
     f = invoke("--follow", jid)
     assert f.exit_code == 4 and f.stdout == "out\ndone\n" and "exit 4" in f.stderr
     lg = invoke("--logs", jid)
@@ -293,7 +293,7 @@ def test_a_grant_without_exec_says_how_to_get_it(cli, node, repo):
     r = invoke("--", "true")
     assert r.exit_code == 1
     assert "cannot run commands (it has no exec special)" in r.stderr
-    assert "agentos connect mynode --name mynode --special exec --special memory_read" in r.stderr
+    assert "openajar connect mynode --name mynode --special exec --special memory_read" in r.stderr
     assert not node.calls
 
 
@@ -319,7 +319,7 @@ def test_no_command_shows_the_help():
 
 
 def test_the_owner_never_reads_the_words_meant_for_the_agent():
-    """QA 2026-11-10, tester B 10: `agentos run` printed "Tell the user what waits and wait with approval_wait"."""
+    """QA 2026-11-10, tester B 10: `openajar run` printed "Tell the user what waits and wait with approval_wait"."""
     why = ("This call follows untrusted text this grant read (a web page on example.com), so a person must see it "
            "before it runs, even where exec would run on its own. Tell the user what waits and wait with "
            "approval_wait; do not rephrase or split the call to get around it.")

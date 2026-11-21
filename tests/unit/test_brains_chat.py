@@ -24,13 +24,13 @@ from testkit.brains import (
 )
 from typer.testing import CliRunner
 
-from agentos.brains import adapters, chatcli, cliprobe
-from agentos.brains import cli as brains_cli
-from agentos.brains.models import BrainKind, BrainSpec, Budget, Locality, Outcome, Requirements, Runner
-from agentos.brains.parsers import make_parser
-from agentos.brains.settings import BrainsSettings
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
+from openajar.brains import adapters, chatcli, cliprobe
+from openajar.brains import cli as brains_cli
+from openajar.brains.models import BrainKind, BrainSpec, Budget, Locality, Outcome, Requirements, Runner
+from openajar.brains.parsers import make_parser
+from openajar.brains.settings import BrainsSettings
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
 
 P = Principal(id="claude-code", thread="T-1")
 KEY = "sk-chat-" + "k" * 24
@@ -116,7 +116,7 @@ def test_the_key_goes_only_through_the_secret_path_and_the_grant_token_nowhere(t
 
 
 def test_the_environment_is_the_allowlist_not_the_daemons(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_MCP_TOKEN", "owner-token")
+    monkeypatch.setenv("OPENAJAR_MCP_TOKEN", "owner-token")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-from-the-daemon")
     p = attempt(tmp_path)
     assert set(p.env) == set(adapters.base_env(bin_path="/usr/bin/python3", settings=BrainsSettings(bin_dirs=[]),

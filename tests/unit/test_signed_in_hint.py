@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from agentos.api.routes_core import signed_in_hint
+from openajar.api.routes_core import signed_in_hint
 
 
 class _Runtime:
@@ -43,8 +43,8 @@ def test_nothing_set_and_nothing_checked_stays_unknown() -> None:
 # ---- the act's read-back on the record, so History can count a checked act (finding 23) ----
 
 def test_an_acts_read_back_is_traced_as_a_flag_only() -> None:
-    from agentos.core.models import ActionKind, ActionResult
-    from agentos.node.tools import trace_read_back
+    from openajar.core.models import ActionKind, ActionResult
+    from openajar.node.tools import trace_read_back
 
     rows: list[tuple[str, dict]] = []
     ctx = SimpleNamespace(trace=lambda kind, **fields: rows.append((kind, fields)))

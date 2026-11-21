@@ -1,6 +1,6 @@
 import pytest
 
-from agentos.vault.domains import (
+from openajar.vault.domains import (
     display_host,
     host_of,
     is_loopback,

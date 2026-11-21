@@ -1,4 +1,4 @@
-"""The node's forms for a secret (agentos.node.forms, agentos.node.login_form, agentos.workspaces.form).
+"""The node's forms for a secret (openajar.node.forms, openajar.node.login_form, openajar.workspaces.form).
 
 The web app starts a trip and reads how far it got. The page on this computer takes what only the owner may
 type. These tests hold the lines that matter: who may start a trip, which plain fields a trip takes, that a
@@ -14,9 +14,9 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.node import forms as node_forms
-from agentos.node import login_form
-from agentos.runner.mail import form as mail_form
+from openajar.node import forms as node_forms
+from openajar.node import login_form
+from openajar.runner.mail import form as mail_form
 
 SECRET = "hunter2-correct-horse"
 LANE = "biz-a/shop"
@@ -177,7 +177,7 @@ def test_an_import_takes_a_new_name_into_its_own_box(client: TestClient, direct:
 
 def test_an_import_refuses_a_file_it_cannot_open(client: TestClient, direct: None) -> None:
     trip = start(client, "workspace_import").json()
-    upload = {"file": ("biz-a.agentos", io.BytesIO(b"not an export at all"), "application/octet-stream")}
+    upload = {"file": ("biz-a.openajar", io.BytesIO(b"not an export at all"), "application/octet-stream")}
     refused = client.post(trip["form_url"], data={"passphrase": SECRET}, files=upload)
     assert refused.status_code == 400
     assert "did not open this file" in refused.text
@@ -192,7 +192,7 @@ def test_a_form_page_names_the_site_and_never_dresses_as_it(client: TestClient, 
     body = login.json()
     assert body["stage"] == "waiting" and body["kind"] == "login"
     page = page_of(client, body)
-    assert "This page is agentos on this computer" in page
+    assert "This page is openajar on this computer" in page
     assert 'type="password"' in page and 'name="password"' in page
 
 

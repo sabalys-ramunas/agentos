@@ -17,7 +17,7 @@ useDefault = true
 description = "the type name Ed25519PrivateKey in Python signatures"
 targetRules = ["generic-api-key"]
 condition = "AND"
-paths = ['''^src/agentos/.+\.py$''']
+paths = ['''^src/openajar/.+\.py$''']
 regexes = ['''^Ed25519PrivateKey$''']
 
 # A published test vector: the Ed25519 private key "test-key-ed25519" from RFC 9421, appendix B.1.4.

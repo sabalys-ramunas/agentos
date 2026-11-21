@@ -3,9 +3,9 @@
 Design, 2026-11-04. Branch based on `m1-node-lanes-mcp` at `cf2cfe0`. No code. Inputs:
 docs/ANDROID.md (Android lanes research), docs/PASSKEYS.md, docs/VISION.md,
 docs/ARCHITECTURE.md (sections 5 and 6), docs/PRINCIPLES.md, docs/PROTOCOL.md,
-`src/agentos/vault/` (`catcher.py`, `login.py`,
-`service.py`, `policy.py`, `totp.py`, `typist.py`), `src/agentos/policy/` (`approvals.py`,
-`notifier.py`, `ROUTING.md`) and `src/agentos/node/interfaces.py`.
+`src/openajar/vault/` (`catcher.py`, `login.py`,
+`service.py`, `policy.py`, `totp.py`, `typist.py`), `src/openajar/policy/` (`approvals.py`,
+`notifier.py`, `ROUTING.md`) and `src/openajar/node/interfaces.py`.
 
 Items marked **(secondary)** come from news or community sources and need a primary
 check before anyone relies on them. Items marked **(spike)** are open until a spike on a
@@ -82,7 +82,7 @@ be said plainly:
   [Bank Muamalat](https://www.muamalat.com.my/services/business/app-restricted/)).
   Their screens also set `FLAG_SECURE`, which scrcpy shows as black
   ([scrcpy FAQ commit](https://github.com/Genymobile/scrcpy/commit/1fdde490fd2a0b89680a2b5da5e5274192398023)).
-  For those, agentos parks the run and asks the owner to do the step on their own phone.
+  For those, openajar parks the run and asks the owner to do the step on their own phone.
   We do not patch apps or hide debugging.
 - **A phone lane belongs to one workspace and uses its own network.** Its mobile or home
   IP is a strong, real identity. That is wanted for the owner's own accounts that already
@@ -114,9 +114,9 @@ from the phone code source too.
 - **Other people's phones or numbers.** Only phones and numbers the owner owns, or a
   teammate's own phone that the teammate pairs and consents with (principle 2).
 - **SIM farms, virtual numbers for sign-ups, number rental, or SMS receiving services.**
-  agentos never creates accounts and never holds numbers it does not own (principle 2,
+  openajar never creates accounts and never holds numbers it does not own (principle 2,
   "mass or fake account creation: no").
-- **Bypassing a site's 2FA.** agentos completes the site's own 2FA with the owner's real
+- **Bypassing a site's 2FA.** openajar completes the site's own 2FA with the owner's real
   factor. It does not intercept codes meant for anyone else, downgrade a factor, or
   approve a login prompt by itself.
 - **Faking device integrity.** No spoofed Play Integrity verdicts, no hidden root, no
@@ -149,7 +149,7 @@ Lane `biz-a/instagram`, entry `biz-a instagram` with a password and a code sourc
    signed by the node key, and sends it to `owner-pixel`. The phone shows: "biz-a /
    instagram on node home-1 wants an Instagram login code. Allow / Deny." The owner taps
    Allow, which starts SMS User Consent for sender `32665`.
-4. The node presses Enter. Instagram sends the SMS. Android shows its own "allow agentos
+4. The node presses Enter. Instagram sends the SMS. Android shows its own "allow openajar
    to read this message" sheet; the owner taps Allow.
 5. The app extracts the code with the request's pattern, checks the marker, seals the
    code to the node's key with the request id as associated data, sends it, and drops it
@@ -177,16 +177,16 @@ current UI per **(secondary)** guides).
    detect it deterministically (a new signal, `awaiting_device_approval`, from the sites
    and signals package), and `login` returns `{ok: false, needs: "device_approval"}`.
 2. The node sends one push: "Facebook asks you to approve a login for biz-a / facebook on
-   node home-1. If that was agentos, approve it in the Facebook app on your phone." The
+   node home-1. If that was openajar, approve it in the Facebook app on your phone." The
    push never carries an approve link (SEC-8 still holds; this approves nothing in
-   agentos).
+   openajar).
 3. The lane holds, waiting for the page to move on, for up to 5 minutes, with no reload
    and no retry.
 4. The owner approves in the Facebook app. The page advances; the next signal check
    reads `ok` and the flow continues. Timeout: `needs: "human"`, the lane is held
    (AUD-07).
 
-**Never automated**, even if the "other device" is a phone lane agentos drives.
+**Never automated**, even if the "other device" is a phone lane openajar drives.
 Approving a login is the site's own consent step, and an agent that can approve its own
 login removes the factor. Where Facebook offers "try another way", a flow may choose the
 authenticator code instead, which the vault resolves from TOTP.
@@ -200,7 +200,7 @@ a statement).
   honest answer is a **human step**: the run parks with a card "Open the bank app on your
   phone and approve the payment of 240 EUR to X. Tap Done when finished." The run
   resumes on Done and checks the real effect where it can (a statement download in the
-  browser lane, a balance read). The phone is the owner's own; agentos does not drive it.
+  browser lane, a balance read). The phone is the owner's own; openajar does not drive it.
 - If the app tolerates a phone lane (many business and social apps do), a dedicated
   phone on the home node runs it as an Android lane (section 4b), under the same effect
   classes: `pay` and `irreversible` always need a co-sign.
@@ -244,7 +244,7 @@ The VA holds a human-lane grant with control of
 
 - **Phone broker** (new, on the node): the phone registry, open code requests, standing
   rules, the phone channel endpoint, and audit. It is a node service like `vault` and
-  `approvals`, and it lives in a new package, `agentos.phones`.
+  `approvals`, and it lives in a new package, `openajar.phones`.
 - **CodeSource** (vault): a generalization of `CodeCatcher` with three kinds: `imap`
   (exists), `phone` (new), `relay` (the code card, new).
 - **Companion app** (Android, new, Kotlin): pairing, request cards, SMS User Consent,
@@ -260,7 +260,7 @@ phone can never be mistaken for a node.
 1. The owner opens Panel, Phones, Pair. The panel shows a QR with a single-use **phone
    join token** (10 minutes), the endpoint URL (`wss://<node tailnet name>/v1/phone/connect`
    in phase 1, the controller in phase 2), and the fingerprint of the node's signing key
-   and its **sealing key** (a new X25519 key, `AGENTOS_HOME/secrets/seal.key`, 600).
+   and its **sealing key** (a new X25519 key, `OPENAJAR_HOME/secrets/seal.key`, 600).
 2. The app generates a P-256 signing key in the Android Keystore (StrongBox when
    present), non-exportable, with user authentication required for signing consents
    (biometric or device credential). P-256 because it is what StrongBox and the iOS
@@ -325,7 +325,7 @@ Rules for requests:
   broker queues the second request until the first closes.
 - **Bounded rate.** At most 3 requests per entry per hour and 10 per phone per hour by
   default, so a looping agent cannot spam the owner or the site.
-- **No resend.** agentos never presses "resend code" by itself. A resend is a human step
+- **No resend.** openajar never presses "resend code" by itself. A resend is a human step
   or a second explicit tool call that makes a new request.
 
 #### Delivery: the code reaches the vault and the typist, never a model
@@ -401,7 +401,7 @@ permissions **(secondary)**
 |---|---|---|
 | An app reading SMS | No | iOS has no SMS read API for third-party apps. |
 | Shortcuts personal automation, Message trigger | Yes | Filters on sender (contacts) and "message contains"; all criteria must match. "Run Immediately" since iOS 17, with a notification every time it runs ([Apple](https://support.apple.com/guide/shortcuts/apdd711f9dff/ios), **(secondary)** [Cassinelli](https://matthewcassinelli.com/automations-run-immediately-shortcuts-notifications)). The sender filter takes contacts, so a short code may need saving as a contact, or use "message contains" with the marker (spike). The Shortcut matches the code with a regex action and posts it to the node over HTTPS on the tailnet (Tailscale on the phone). |
-| Text Message Forwarding to a Mac | Yes | SMS from the iPhone also appear on a Mac signed into the same Apple ID ([Apple](https://support.apple.com/102545)). A home Mac running the agentos node could read new codes locally. This belongs to the "macOS as a node" bet; reading the Messages store needs Full Disk Access and is not verified here. |
+| Text Message Forwarding to a Mac | Yes | SMS from the iPhone also appear on a Mac signed into the same Apple ID ([Apple](https://support.apple.com/102545)). A home Mac running the openajar node could read new codes locally. This belongs to the "macOS as a node" bet; reading the Messages store needs Full Disk Access and is not verified here. |
 | Message Filter extension | Not used | It only sees messages from unknown senders and is meant for spam filtering; using it to forward codes is outside its purpose and App Review would decide. |
 | The code card | Yes | Works today, no setup beyond phone access to the panel (AUD-05). |
 
@@ -434,7 +434,7 @@ events are chained like every other.
 | Compromised node | Ask for codes for its own entries | Consent on the phone shows every request; standing rules are per lane and capped per day. This is the reason per-request is the default. The node already holds passwords and TOTP seeds, so a node compromise is already serious (PASSKEYS.md, custody). |
 | Leaked iOS post token | Offer codes to open requests on the tailnet | Needs tailnet access, can only fill an open request, revocable, never reads anything. |
 | A VA or viewer reads the code off the screen | See the code | Live view frozen for non-owner viewers during secret typing; screenshots refused during the freeze; snapshot values hidden. |
-| SIM swap | Take over the number | Out of scope for agentos; it is why TOTP is preferred and SMS is the fallback. |
+| SIM swap | Take over the number | Out of scope for openajar; it is why TOTP is preferred and SMS is the fallback. |
 
 #### Failure modes
 
@@ -510,11 +510,11 @@ does most of the other.
 
 | Package | Change |
 |---|---|
-| `agentos.vault` | `catcher.py`: `CodeCatcher` becomes `CodeSource` with `arm()` and `wait()` (sketch below). `validate_catcher_config` accepts `kind` in `imap`, `phone`, `relay`, with `phone`, `senders`, `marker`, `pattern`, `window_seconds`, `timeout_seconds`, `fallback` (`relay` or none). `service.py`: `one_time_code` dispatches by kind; `source` in the trace becomes `totp`, `email`, `phone_sms`, `shortcut`, `manual`. `login.py`: arm the code source before pressing Enter on the password (and before the username step for username-only first pages), wait after `settle()`. No new sink: codes still resolve into `FORM_OTP`. |
-| `agentos.phones` (new) | Phone registry (SQLite, next to the vault store), pairing and join tokens, the `/v1/phone/connect` endpoint, the request broker (open requests, per-sender queue, rate limits), standing rules, offer verification and unsealing, wake pushes through the notifier, audit events. The node's sealing key. |
-| `agentos.policy` | `notifier.py`: event types `code.requested` (urgent: ignores quiet hours, TTL equals the request), `device_approval.waiting`; never a code. Traces: the `vault.code_*` events above. No change to grants or effects. The code card is **not** an approval row: the approvals table stores answers in plaintext, so the code must never go there. |
-| `agentos.node` | The viewer relay gets `freeze(lane, reason)` for non-owner viewers, called by the typist adapter around every `type_secret`; `browser_screenshot` refuses during a freeze. Phase 3: `adb-device` engine and `AndroidInteraction` (shared with redroid); `interfaces.py` generalizes `LaneManager.using()` to a handle (lead's sign-off, as ANDROID.md says). Sites and signals: `awaiting_device_approval`. |
-| `agentos.core` | `Signal.AWAITING_DEVICE_APPROVAL` (or a `needs` value only; decide with the signals owner). `needs: "code"` and `needs: "device_approval"` in login results. |
+| `openajar.vault` | `catcher.py`: `CodeCatcher` becomes `CodeSource` with `arm()` and `wait()` (sketch below). `validate_catcher_config` accepts `kind` in `imap`, `phone`, `relay`, with `phone`, `senders`, `marker`, `pattern`, `window_seconds`, `timeout_seconds`, `fallback` (`relay` or none). `service.py`: `one_time_code` dispatches by kind; `source` in the trace becomes `totp`, `email`, `phone_sms`, `shortcut`, `manual`. `login.py`: arm the code source before pressing Enter on the password (and before the username step for username-only first pages), wait after `settle()`. No new sink: codes still resolve into `FORM_OTP`. |
+| `openajar.phones` (new) | Phone registry (SQLite, next to the vault store), pairing and join tokens, the `/v1/phone/connect` endpoint, the request broker (open requests, per-sender queue, rate limits), standing rules, offer verification and unsealing, wake pushes through the notifier, audit events. The node's sealing key. |
+| `openajar.policy` | `notifier.py`: event types `code.requested` (urgent: ignores quiet hours, TTL equals the request), `device_approval.waiting`; never a code. Traces: the `vault.code_*` events above. No change to grants or effects. The code card is **not** an approval row: the approvals table stores answers in plaintext, so the code must never go there. |
+| `openajar.node` | The viewer relay gets `freeze(lane, reason)` for non-owner viewers, called by the typist adapter around every `type_secret`; `browser_screenshot` refuses during a freeze. Phase 3: `adb-device` engine and `AndroidInteraction` (shared with redroid); `interfaces.py` generalizes `LaneManager.using()` to a handle (lead's sign-off, as ANDROID.md says). Sites and signals: `awaiting_device_approval`. |
+| `openajar.core` | `Signal.AWAITING_DEVICE_APPROVAL` (or a `needs` value only; decide with the signals owner). `needs: "code"` and `needs: "device_approval"` in login results. |
 | Node protocol | Additive v1 messages for phase 2: node to controller `code_request { request }` and `code_cancel { request_id }`; controller to node `code_offer { offer }` and `code_declined { request_id, reason }`. Capabilities gain nothing (phones are not nodes). The controller never sees a code: offers are sealed to the node. |
 | Panel | Phones page (pair by QR, list with last seen and capabilities, revoke), standing rules per lane (create, then confirm on phone), the code card (sealed input, one use, auto-closes), code activity per lane and phone, the frozen-view notice in the viewer, the human-step card for app-only actions (3.3). |
 | Controller (phase 2) | Phone enrollment per org, the phone endpoint, routing of requests and sealed offers between a node and the phones its owner paired, wake push relay (FCM for hosted), revocation fan-out. |
@@ -568,7 +568,7 @@ Sizes as in ANDROID.md: S under 3 days, M 3 to 7 days, L over 7. Estimates.
 ### Phase 1 builder briefs
 
 **Brief 1a: the code card.**
-> Add a `relay` code source to the vault. Read `src/agentos/vault/catcher.py`,
+> Add a `relay` code source to the vault. Read `src/openajar/vault/catcher.py`,
 > `service.py` (`one_time_code`, `_catch`), `login.py` (`login_flow`, `_fill_code`) and
 > this doc, sections 4a and 5. Generalize `CodeCatcher` into `CodeSource` with
 > `arm()`/`wait()`; keep IMAP behavior identical (its tests must pass unchanged). A
@@ -585,7 +585,7 @@ Sizes as in ANDROID.md: S under 3 days, M 3 to 7 days, L over 7. Estimates.
 > if any tool text changes. `make check` passes. No em dash in any UI string.
 
 **Brief 1b: the phone channel on the node.**
-> Create `agentos.phones`: a registry (SQLite under AGENTOS_HOME), a sealing key
+> Create `openajar.phones`: a registry (SQLite under OPENAJAR_HOME), a sealing key
 > (`secrets/seal.key`, X25519, 600), single-use phone join tokens, and a WebSocket
 > endpoint `/v1/phone/connect` on the node's tailnet listener, with enrollment and
 > challenge-hello as in this doc, section 4a, mirroring docs/PROTOCOL.md (P-256
@@ -646,7 +646,7 @@ Sizes as in ANDROID.md: S under 3 days, M 3 to 7 days, L over 7. Estimates.
 | Wake channel? | UnifiedPush through the owner's own ntfy; FCM only for the hosted edition. Payload: request id only. |
 | Fallback when the phone is silent? | The code card after 30 s, if the entry allows it (default yes). |
 | Who may type into a code card? | The owner and workspace approvers (AUD-11). Never a principal in the requester's grant family, so a VA cannot type a code for themselves after reading it elsewhere. |
-| Should agentos ever approve a "log in on another device" prompt? | No, not even on a phone lane it drives. |
+| Should openajar ever approve a "log in on another device" prompt? | No, not even on a phone lane it drives. |
 | A phone lane's network? | Its own connection (SIM or home Wi-Fi). A workspace proxy only by owner opt-in per phone. Never an exit for browser lanes. |
 | Which phone for a phone lane? | A spare phone with the owner's second SIM or none, never the daily phone. |
 | Freeze the view for all secrets or only codes? | All secret fields, for non-owner viewers. The owner's own view is not frozen. |

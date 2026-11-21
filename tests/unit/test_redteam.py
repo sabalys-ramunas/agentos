@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.stealth.redteam import detectors as d
-from agentos.stealth.redteam import engine, runner, scenario, stats
-from agentos.stealth.redteam.server import DetectorServer
+from openajar.stealth.redteam import detectors as d
+from openajar.stealth.redteam import engine, runner, scenario, stats
+from openajar.stealth.redteam.server import DetectorServer
 
 FIREFOX_DOC = ["Host", "User-Agent", "Accept", "Accept-Language", "Accept-Encoding", "Connection", "Referer",
                "Cookie", "Upgrade-Insecure-Requests", "Sec-Fetch-Dest", "Sec-Fetch-Mode", "Sec-Fetch-Site",
@@ -463,7 +463,7 @@ def test_unmerged_pointer_moves_and_keys_without_a_physical_key():
 # ---- the public gauntlet's verdicts ---------------------------------------------------------------
 
 def test_gauntlet_judges_the_page_that_settled_not_the_first_response():
-    from agentos.stealth.redteam import gauntlet as g
+    from openajar.stealth.redteam import gauntlet as g
     site = "Python is an interpreted language. " * 60  # a real page's worth of text
     # Cloudflare's managed challenge answered 403, Camoufox solved it, Stack Overflow loaded
     assert g.judge(403, "Newest 'python' Questions", "<html>", site)[0] == g.CHALLENGED
@@ -479,7 +479,7 @@ def test_gauntlet_judges_the_page_that_settled_not_the_first_response():
 
 
 def test_gauntlet_reads_the_panels():
-    from agentos.stealth.redteam import gauntlet as g
+    from openajar.stealth.redteam import gauntlet as g
     assert g.PARSERS["pixelscan-fp"]("Your Browser Fingerprint is inconsistent\nMasking detected\nNo proxy detected\n"
                                      "No automated behavior detected") == {
         "bot": "human", "fingerprint": "inconsistent", "masking": "detected", "proxy": "not detected"}

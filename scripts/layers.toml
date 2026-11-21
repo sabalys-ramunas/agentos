@@ -1,4 +1,4 @@
-# The layer order of src/agentos, top to bottom (docs/ARCHITECTURE.md, "Layers"). A module may import
+# The layer order of src/openajar, top to bottom (docs/ARCHITECTURE.md, "Layers"). A module may import
 # its own layer and the layers below it, never one above, and packages on one layer must not import
 # each other in a circle. Checked by scripts/layers.py (`make layers`, part of `make lint`).
 #
@@ -12,7 +12,7 @@ members = ["cli", "commands", "cli_groups", "lanebench_cli", "qr", "tui", "clien
   "setup",
   "*.cli", "*_cli", "*.__main__", "node.daemon", "runner.flowcli", "runner.flowsync"]
 
-# node.channel is the controller's API into the node: the surface a controller (agentos.controller, or the
+# node.channel is the controller's API into the node: the surface a controller (openajar.controller, or the
 # hosted cloud) calls over its websocket, as the panel calls api/ and agents call mcp/. Like them it relays
 # what features do (workflow runs, logs, the doctor's checks, approvals) and sits above them; nothing below
 # it imports it (the anchors service sends through the channel object the runtime holds).
@@ -35,12 +35,12 @@ members = ["policy"]
 
 [[layer]]
 name = "core"
-members = ["core", "agentos"]
+members = ["core", "openajar"]
 
 # Imports that still break the order, each with why it is still here. This list may only shrink:
 # fix one (move the code to its layer, put a shared type or Protocol lower, pass a callback in) and
 # delete its line. Never add one. A line nothing matches any more fails the check.
 [exceptions]
-"agentos.node.devices -> agentos.stealth.stealth" = "a device move warns with stealth's location check (location_check, _exit_geo, which use stealth.lanerules); move that check into node or below it"
-"agentos.node.viewer_app -> agentos.api.auth" = "the viewer checks the panel session (SESSION_COOKIE, PanelStore, presence_of); move the panel's session store (api/auth.py, 118 importers) below the API"
-"agentos.policy.wrap -> agentos.environments.routing" = "the policy wrapper routes calls to the chat's environment; move the rules into policy and have the environments service route, which also moves NoEnvironment below environments"
+"openajar.node.devices -> openajar.stealth.stealth" = "a device move warns with stealth's location check (location_check, _exit_geo, which use stealth.lanerules); move that check into node or below it"
+"openajar.node.viewer_app -> openajar.api.auth" = "the viewer checks the panel session (SESSION_COOKIE, PanelStore, presence_of); move the panel's session store (api/auth.py, 118 importers) below the API"
+"openajar.policy.wrap -> openajar.environments.routing" = "the policy wrapper routes calls to the chat's environment; move the rules into policy and have the environments service route, which also moves NoEnvironment below environments"

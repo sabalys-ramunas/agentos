@@ -14,11 +14,11 @@ from types import SimpleNamespace
 
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.node.channel import approvals, bridge, calls, connection, outbox, signed, wire
-from agentos.node.channel import node as node_module
-from agentos.policy import tokens
-from agentos.policy.grants import GrantBlock, Specials
-from agentos.policy.util import new_id
+from openajar.node.channel import approvals, bridge, calls, connection, outbox, signed, wire
+from openajar.node.channel import node as node_module
+from openajar.policy import tokens
+from openajar.policy.grants import GrantBlock, Specials
+from openajar.policy.util import new_id
 
 
 def mint_grant(fake, *, exp: int) -> str:

@@ -10,8 +10,8 @@ import pytest
 from test_egress import FakeContext, FakeRequest
 from test_egress_effect_rules import meta_form
 
-from agentos.node.egress import LaneGuard
-from agentos.policy.ledger import ActionLedger, build, ledger_path
+from openajar.node.egress import LaneGuard
+from openajar.policy.ledger import ActionLedger, build, ledger_path
 
 T0 = datetime(2026, 11, 2, 10, 0, tzinfo=UTC).timestamp()
 IG_GQL = "https://www.instagram.com/graphql/query"
@@ -182,7 +182,7 @@ def test_actions_in_a_meta_batch_endpoint_are_counted():
     import json
     from urllib.parse import urlencode
 
-    from agentos.node.egress import effects_of
+    from openajar.node.egress import effects_of
 
     queries = json.dumps({"q0": {"fb_api_req_friendly_name": "CometUFIFeedbackReactMutation"},
                           "q1": {"fb_api_req_friendly_name": "CometNewsFeedPaginationQuery"},
@@ -249,7 +249,7 @@ def test_a_body_no_parser_reads_still_counts_the_actions_it_names(ctype):
 def test_a_body_too_large_to_parse_still_counts():
     import json
 
-    from agentos.node.egress import SHAPE_PARSE_MAX
+    from openajar.node.egress import SHAPE_PARSE_MAX
 
     _, ctx, seen = _guard()
     body = json.dumps({"operationName": "usePolarisFollowMutation", "variables": {"pad": "a" * SHAPE_PARSE_MAX}})

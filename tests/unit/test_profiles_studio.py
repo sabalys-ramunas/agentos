@@ -14,19 +14,19 @@ from dataclasses import replace
 import pytest
 from test_profiles import AGENT, OWNER, Ctx, call, data
 
-from agentos.core import migrate
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.profiles import mapping, tools
-from agentos.profiles.context import TOKENS_INLINE_CHARS, profile_diff
-from agentos.profiles.errors import OwnerOnly, ProfileInvalid, ProfileSecret
-from agentos.profiles.migrations import MIGRATIONS
-from agentos.profiles.models import Attachment, Profile, ProfileKind
-from agentos.profiles.service import ProfilesService, build, merge, parse_profile
-from agentos.profiles.store import ProfileStore
-from agentos.studio.contracts import ComponentRule, ThemeSwitch
-from agentos.studio.tool_inputs import brand_theme_switch, component_rules
+from openajar.core import migrate
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.profiles import mapping, tools
+from openajar.profiles.context import TOKENS_INLINE_CHARS, profile_diff
+from openajar.profiles.errors import OwnerOnly, ProfileInvalid, ProfileSecret
+from openajar.profiles.migrations import MIGRATIONS
+from openajar.profiles.models import Attachment, Profile, ProfileKind
+from openajar.profiles.service import ProfilesService, build, merge, parse_profile
+from openajar.profiles.store import ProfileStore
+from openajar.studio.contracts import ComponentRule, ThemeSwitch
+from openajar.studio.tool_inputs import brand_theme_switch, component_rules
 
 # A fake Stripe live key, put together at run time so the source holds nothing a secret scanner
 # (GitHub push protection) takes for a real one.
@@ -442,9 +442,9 @@ def test_the_diff_reads_plainly():
 def test_the_owner_reads_a_proposal_with_its_reason_and_changes_in_the_cli(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.profiles.cli import app
+    from openajar.profiles.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     svc = approved(tmp_path, PRODUCT)
     svc.propose("biz-a/shop", {"references": {"remove": ["Linear"]}}, "Linear is not our density after all",
                 by=AGENT)

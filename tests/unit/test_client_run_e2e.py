@@ -1,7 +1,7 @@
-"""`agentos run` end to end: the CLI, McpSession over HTTP, a real agentosd with the real policy
+"""`openajar run` end to end: the CLI, McpSession over HTTP, a real agentosd with the real policy
 service (grants, first-use approvals) and the env manager on the fake host (commands run here).
 
-The connection is a local one (no tunnel), holding an agent grant as `agentos connect` would make it."""
+The connection is a local one (no tunnel), holding an agent grant as `openajar connect` would make it."""
 
 from __future__ import annotations
 
@@ -13,14 +13,14 @@ import pytest
 from test_client_fakes import NodeServer
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.client.state import Connection, ConnectionStore, Paths
-from agentos.client.tokens import FileStore
-from agentos.core.models import Effect
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
+from openajar.cli import app
+from openajar.client.state import Connection, ConnectionStore, Paths
+from openajar.client.tokens import FileStore
+from openajar.core.models import Effect
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
 
 TOKEN = "node-token-for-the-run-test"
 
@@ -93,7 +93,7 @@ def test_run_over_the_tunnel_with_a_grant(node, repo, tmp_path, monkeypatch):
         stop.set()
     assert r.exit_code == 5, r.output
     assert r.stdout == "line 1\nline 2\nline 3\n"
-    assert "warn" in r.stderr and "agentos run: exit 5" in r.stderr
+    assert "warn" in r.stderr and "openajar run: exit 5" in r.stderr
     # creating the lane is the first exec in it, so a person approved it; the run after was routine
     assert "waiting for approval: Create sandbox terminal dev/run-proj" in r.stderr
     assert len(seen) == 1 and "dev/run-proj" in seen[0]

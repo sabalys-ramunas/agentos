@@ -20,7 +20,7 @@ web_fingerprint() {
 web_is_stale() {
   local dir="$1"
   [ -f "$dir/dist/index.html" ] || return 0
-  [ "$(cat "$dir/dist/.agentos-build" 2>/dev/null)" != "$(web_fingerprint "$dir")" ]
+  [ "$(cat "$dir/dist/.openajar-build" 2>/dev/null)" != "$(web_fingerprint "$dir")" ]
 }
 
 web_rebuild() {
@@ -32,7 +32,7 @@ web_rebuild() {
   rm -rf "$old"
   if [ -d "$dir/dist" ]; then mv "$dir/dist" "$old"; fi
   if (cd "$dir" && "$@") && [ -f "$dir/dist/index.html" ]; then
-    printf '%s\n' "$fingerprint" > "$dir/dist/.agentos-build"
+    printf '%s\n' "$fingerprint" > "$dir/dist/.openajar-build"
     rm -rf "$old"
     return 0
   fi

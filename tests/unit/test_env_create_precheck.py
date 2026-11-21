@@ -8,14 +8,14 @@ import sys
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import AgentosError, ApprovalPending
-from agentos.core.models import Effect
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.env.tools import env_create
-from agentos.policy.grants import LaneCap, Specials
+from openajar.core.errors import ApprovalPending, OpenajarError
+from openajar.core.models import Effect
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.env.tools import env_create
+from openajar.policy.grants import LaneCap, Specials
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ async def test_env_create_refuses_an_existing_lane_before_it_asks(policy, tmp_pa
     rt.register("envs", mgr)
     mgr.create("biz-a/box")
     try:
-        with pytest.raises(AgentosError) as e:
+        with pytest.raises(OpenajarError) as e:
             await env_create(agent_ctx(svc), on="biz-a/box")
         assert not isinstance(e.value, ApprovalPending), "terminal_create asked a person about a lane that exists"
         assert e.value.code == "lane_exists"
@@ -55,7 +55,7 @@ async def test_env_create_refuses_a_sandbox_this_machine_cannot_run_before_it_as
     mgr = EnvManager(tmp_path / "env", runtime=rt, settings=EnvSettings(proxy_port=0))
     rt.register("envs", mgr)
     try:
-        with pytest.raises(AgentosError) as e:
+        with pytest.raises(OpenajarError) as e:
             await env_create(agent_ctx(svc), on="biz-a/box", preset="sandbox")
         assert not isinstance(e.value, ApprovalPending), "terminal_create asked a person for a sandbox this machine cannot run"
         assert e.value.code == "no_sandbox"
@@ -73,7 +73,7 @@ async def test_the_check_never_names_a_lane_outside_the_grant(policy, tmp_path):
     rt.register("envs", mgr)
     mgr.create("biz-b/box")
     try:
-        with pytest.raises(AgentosError) as e:
+        with pytest.raises(OpenajarError) as e:
             await env_create(agent_ctx(svc), on="biz-b/box")
         assert e.value.code != "lane_exists", e.value
     finally:
@@ -82,14 +82,14 @@ async def test_the_check_never_names_a_lane_outside_the_grant(policy, tmp_path):
 
 def hardened(mgr):
     """The node lost root after the lane was made (migrate-service-user): no sandbox any more."""
-    from agentos.env.host import NullHost
-    from agentos.env.manager import NOT_ROOT
-    mgr.host = NullHost(NOT_ROOT.format(user="agentos"))
+    from openajar.env.host import NullHost
+    from openajar.env.manager import NOT_ROOT
+    mgr.host = NullHost(NOT_ROOT.format(user="openajar"))
 
 
 async def test_lane_exec_on_a_sandbox_this_node_cannot_run_fails_before_it_asks(policy, tmp_path):
     """QA 2026-11-10, tester B 11: the owner was asked to approve a command that could never run."""
-    from agentos.env.tools import lane_exec, service_start
+    from openajar.env.tools import lane_exec, service_start
     svc, rt = policy
     mgr = EnvManager(tmp_path / "env", runtime=rt, host=FakeHost(), launcher=DirectLauncher(),
                      settings=EnvSettings(proxy_port=0))
@@ -98,23 +98,23 @@ async def test_lane_exec_on_a_sandbox_this_node_cannot_run_fails_before_it_asks(
     mgr.create("biz-a/svc", kind="service", preset="service", service={"command": ["/bin/sh", "-c", "sleep 30"]})
     hardened(mgr)
     try:
-        with pytest.raises(AgentosError) as e:
+        with pytest.raises(OpenajarError) as e:
             await lane_exec(agent_ctx(svc), on="biz-a/box", cmd="id")
         assert e.value.code == "no_sandbox" and "Nothing ran" in e.value.message
-        assert "runs it as agentos" in e.value.message and "workbench" in e.value.message
-        with pytest.raises(AgentosError) as e:
+        assert "runs it as openajar" in e.value.message and "workbench" in e.value.message
+        with pytest.raises(OpenajarError) as e:
             await service_start(agent_ctx(svc), on="biz-a/svc")
         assert e.value.code == "no_sandbox"
         assert svc.approvals.list(state="pending") == []
         status = mgr.service_status("biz-a/svc")  # finding 31: the reason, not detail: null
         assert status.state == "stopped" and "cannot start on this node" in status.detail
-        assert "runs it as agentos" in status.detail
+        assert "runs it as openajar" in status.detail
     finally:
         await mgr.shutdown()
 
 
 def test_doctor_warns_while_a_lane_with_no_sandbox_exists(tmp_path):
-    from agentos.env import exposure
+    from openajar.env import exposure
     home = tmp_path / "env"
     assert exposure.doctor_rows(home) == []
     mgr = EnvManager(home, host=FakeHost(), launcher=DirectLauncher(), settings=EnvSettings(proxy_port=0))
@@ -124,12 +124,12 @@ def test_doctor_warns_while_a_lane_with_no_sandbox_exists(tmp_path):
     rows = {r["id"]: r for r in exposure.doctor_rows(home)}
     wb = rows["env.workbench"]
     assert wb["status"] == "warn" and "biz-a/wb" in wb["detail"] and "node token" in wb["detail"]
-    assert "agentos env remove biz-a/wb" in wb["fix"]
+    assert "openajar env remove biz-a/wb" in wb["fix"]
     assert "—" not in wb["detail"] + wb["fix"]
 
 
 def test_a_workbench_lane_is_never_made_without_the_owners_yes(tmp_path):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
     mgr = EnvManager(tmp_path / "env", host=FakeHost(), launcher=DirectLauncher(), settings=EnvSettings(proxy_port=0))
     with pytest.raises(InvalidRequest, match="can-read-node-secrets"):
         mgr.create("biz-a/wb", preset="workbench")

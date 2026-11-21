@@ -1,4 +1,4 @@
-"""Passkeys (agentos.api.passkeys): a software authenticator registers and signs in, and every
+"""Passkeys (openajar.api.passkeys): a software authenticator registers and signs in, and every
 check that matters refuses a forged, replayed or misdirected answer. The built-in verifier runs
 here; with the `webauthn` package installed the last test runs the same ceremonies through it."""
 
@@ -9,8 +9,8 @@ import json
 import pytest
 from soft_authenticator import SoftAuthenticator, b64, cbor, unb64
 
-from agentos.api import passkeys as pk
-from agentos.api.passkeys import PasskeyError, RelyingParty
+from openajar.api import passkeys as pk
+from openajar.api.passkeys import PasskeyError, RelyingParty
 
 RP = RelyingParty.for_urls(None, port=7400)
 
@@ -47,7 +47,7 @@ def test_register_then_sign_in(alg):
 def test_options_ask_for_a_passkey_with_user_verification():
     opts = pk.registration_options(RP, user_id=b"m_1", user_name="va", display_name="", challenge=b"x" * 32,
                                    exclude=[b"old"])
-    assert opts["rp"] == {"id": "localhost", "name": "agentos"} and opts["attestation"] == "none"
+    assert opts["rp"] == {"id": "localhost", "name": "openajar"} and opts["attestation"] == "none"
     assert opts["authenticatorSelection"]["userVerification"] == "required"
     assert opts["authenticatorSelection"]["residentKey"] == "required"
     assert [p["alg"] for p in opts["pubKeyCredParams"]] == [-7, -8, -257]
@@ -57,10 +57,10 @@ def test_options_ask_for_a_passkey_with_user_verification():
 
 
 def test_rp_from_the_public_url():
-    rp = RelyingParty.for_urls("https://agentos.example.com/", port=7400,
-                               extra_origins=("https://agentos.example.com:5173", "https://evil.example"))
-    assert rp.id == "agentos.example.com"
-    assert rp.origins == ("https://agentos.example.com", "https://agentos.example.com:5173")
+    rp = RelyingParty.for_urls("https://openajar.example.com/", port=7400,
+                               extra_origins=("https://openajar.example.com:5173", "https://evil.example"))
+    assert rp.id == "openajar.example.com"
+    assert rp.origins == ("https://openajar.example.com", "https://openajar.example.com:5173")
     assert RelyingParty.for_urls(None, port=7400).origins == ("http://localhost:7400",)
 
 

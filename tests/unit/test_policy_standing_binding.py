@@ -9,10 +9,10 @@ import pytest
 from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.grants import LaneCap, Specials
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.grants import LaneCap, Specials
 
 LANE = "biz-a/instagram"
 FLOW = "biz-a.instagram.story"

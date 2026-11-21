@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from testkit.brains import CHILD_TOKEN, OAUTH
 
-from agentos.brains import adapters, cliprobe
-from agentos.brains.models import BrainSpec
-from agentos.brains.settings import BrainsSettings
-from agentos.dev import fakecli
+from openajar.brains import adapters, cliprobe
+from openajar.brains.models import BrainSpec
+from openajar.brains.settings import BrainsSettings
+from openajar.dev import fakecli
 
 FLAG_RE = re.compile(r"^--?[A-Za-z]")
 
@@ -68,9 +68,9 @@ def test_claude_plan_keeps_secrets_out_of_argv_and_files(tmp_path):
     p = plan(spec, tmp_path)
     blob = json.dumps(p.argv) + json.dumps(p.env) + json.dumps(p.files)
     assert OAUTH not in blob and CHILD_TOKEN not in blob
-    assert p.secret_env == {"CLAUDE_CODE_OAUTH_TOKEN": OAUTH, "AGENTOS_CHILD_TOKEN": CHILD_TOKEN}
+    assert p.secret_env == {"CLAUDE_CODE_OAUTH_TOKEN": OAUTH, "OPENAJAR_CHILD_TOKEN": CHILD_TOKEN}
     _mcp_file, (content, mode) = next(iter(p.files.items()))
-    assert mode == 0o600 and "${AGENTOS_CHILD_TOKEN}" in content
+    assert mode == 0o600 and "${OPENAJAR_CHILD_TOKEN}" in content
     assert "--strict-mcp-config" in p.argv and "--max-turns" in p.argv
     assert p.argv[p.argv.index("--max-turns") + 1] == "7"
     assert "--max-budget-usd" not in p.argv  # subscription: no real money
@@ -97,11 +97,11 @@ def test_claude_metered_uses_api_key_and_budget(tmp_path):
     assert p.argv[p.argv.index("--max-budget-usd") + 1] == "1.50"
 
 
-def test_claude_without_mcp_drops_agentos_tools(tmp_path):
+def test_claude_without_mcp_drops_openajar_tools(tmp_path):
     spec = BrainSpec.template("claude-max", "subscription", "anthropic")
     p = plan(spec, tmp_path, child_token=None)
     tools = p.argv[p.argv.index("--allowedTools") + 1]
-    assert "mcp__agentos" not in tools and "--mcp-config" not in p.argv and not p.files
+    assert "mcp__openajar" not in tools and "--mcp-config" not in p.argv and not p.files
 
 
 def test_codex_plans(tmp_path):
@@ -110,15 +110,15 @@ def test_codex_plans(tmp_path):
     files = {Path(k).name: v for k, v in p.files.items()}
     assert files["auth.json"][1] == 0o600
     cfg = files["config.toml"][0]
-    assert 'bearer_token_env_var = "AGENTOS_CHILD_TOKEN"' in cfg and CHILD_TOKEN not in cfg
+    assert 'bearer_token_env_var = "OPENAJAR_CHILD_TOKEN"' in cfg and CHILD_TOKEN not in cfg
     assert 'inherit = "core"' in cfg
-    assert 'set = { AGENTOS_BRAIN_TASK = "' in cfg  # excluded by AGENTOS_*, so it has to be set again
+    assert 'set = { OPENAJAR_BRAIN_TASK = "' in cfg  # excluded by OPENAJAR_*, so it has to be set again
     assert p.argv[-1] == "-"  # prompt on stdin
     metered = BrainSpec.template("oa", "metered", "openai")
     assert "CODEX_API_KEY" in plan(metered, tmp_path).secret_env
     local = BrainSpec.template("lan", "local", "openai-compatible", base_url="http://10.0.0.2:8000/v1")
     cfg = {Path(k).name: v for k, v in plan(local, tmp_path, credential=None).files.items()}["config.toml"][0]
-    assert cfg.startswith('model_provider = "agentos_local"') and 'wire_api = "responses"' in cfg
+    assert cfg.startswith('model_provider = "openajar_local"') and 'wire_api = "responses"' in cfg
     resume = plan(sub, tmp_path, resume_session="t-1").argv
     assert resume[1:3] == ["exec", "resume"] and "t-1" in resume and "--cd" not in resume
 

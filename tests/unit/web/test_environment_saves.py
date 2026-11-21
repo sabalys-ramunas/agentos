@@ -1,4 +1,4 @@
-"""Saved environments as the app reads them (agentos.api.web.environments): `saved` in the listing, each
+"""Saved environments as the app reads them (openajar.api.web.environments): `saved` in the listing, each
 environment's `keep`, and the owner forgetting a save in person. The saves are real save folders of the
 node's environments service; the provider's snapshot delete is stubbed."""
 
@@ -10,9 +10,9 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.core.models import utcnow
-from agentos.environments.models import Environment
-from agentos.environments.saves import SaveManifest, Snapshot, new_save_id, seal_payload
+from openajar.core.models import utcnow
+from openajar.environments.models import Environment
+from openajar.environments.saves import SaveManifest, Snapshot, new_save_id, seal_payload
 
 from .test_environments import ENVS, MEMBER, add_operator, as_member, as_token
 
@@ -67,8 +67,8 @@ def test_the_listing_has_saved_and_keep(client: TestClient, mgr: Any) -> None:
 
 
 def test_a_saves_row_names_its_machine_and_services(client: TestClient, mgr: Any) -> None:
-    from agentos.environments.models import Machine
-    from agentos.environments.saves import Paused, Service
+    from openajar.environments.models import Machine
+    from openajar.environments.saves import Paused, Service
 
     now = utcnow()
     mgr.store.put(Environment(id="e7k2old0000", title="Black Friday page", grant_id="gr_agent", binding="session:x",
@@ -109,7 +109,7 @@ def test_a_member_sees_only_their_own_agents_saves(client: TestClient, mgr: Any)
 
 def test_the_owner_resumes_a_save_in_person_and_nobody_else_can(client: TestClient, mgr: Any,
                                                                  monkeypatch: pytest.MonkeyPatch) -> None:
-    """POST .../saves/{id}/resume (agentos.environments.waking): the owner in person; the rest is the
+    """POST .../saves/{id}/resume (openajar.environments.waking): the owner in person; the rest is the
     service's own (tests/unit/test_environments_checkpoints.py resumes real saves)."""
     saved = put_save(mgr)
     now = utcnow()

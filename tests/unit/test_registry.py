@@ -12,8 +12,8 @@ from fakes import PNG_1X1, FakeInteraction, FakeLaneManager, LegacyLaneManager
 from mcp import Client
 from pydantic import BaseModel, Field
 
-from agentos.core.config import NodeConfig, save_proxies
-from agentos.core.errors import (
+from openajar.core.config import NodeConfig, save_proxies
+from openajar.core.errors import (
     AgentPaused,
     ApprovalPending,
     HumanInControl,
@@ -23,10 +23,10 @@ from agentos.core.errors import (
     PolicyDenied,
     ServiceUnavailable,
 )
-from agentos.core.models import ActionKind, Effect, LaneSpec, Principal, ProxyConfig
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolImage, ToolSpec, bind_request_token, current_request_token
-from agentos.mcp.registry import (
+from openajar.core.models import ActionKind, Effect, LaneSpec, Principal, ProxyConfig
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolImage, ToolSpec, bind_request_token, current_request_token
+from openajar.mcp.registry import (
     LANE_ARG_DESCRIPTION,
     OwnerContext,
     allow_all_wrap,
@@ -35,9 +35,9 @@ from agentos.mcp.registry import (
     split_docstring,
     tool_params,
 )
-from agentos.node.tools import tool_specs as node_tool_specs
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.tools import tool_specs as runner_tool_specs
+from openajar.node.tools import tool_specs as node_tool_specs
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.tools import tool_specs as runner_tool_specs
 
 PASSWORD = "pw-Zx81-secret"
 USERNAME = "customer-acme-zone-isp"
@@ -418,7 +418,7 @@ async def test_every_node_tool_goes_through_the_wrapper_and_authorizes(monkeypat
     async def wheel_down(page):  # the fake page has no window to wheel
         return None
 
-    monkeypatch.setattr("agentos.node.human.wheel_down", wheel_down)
+    monkeypatch.setattr("openajar.node.human.wheel_down", wheel_down)
     manager = FakeLaneManager()
     await manager.create(LaneSpec(id="personal/reddit"))
     wrap = RecordingWrap()
@@ -456,7 +456,7 @@ async def test_allow_all_wrap_runs_as_an_owner_agent(caplog):
     ctx = OwnerContext(runtime=runtime_with(), tool="x")
     assert ctx.principal.kind == "agent" and ctx.principal.owner == "owner"
     await ctx.authorize(Effect.PAY, lane_id="a/b", summary="pay")
-    with caplog.at_level(logging.DEBUG, logger="agentos.mcp.registry"):
+    with caplog.at_level(logging.DEBUG, logger="openajar.mcp.registry"):
         ctx.trace("call", password="hunter2", api_key="k-123", token="t", text="x" * 500, on="a/b")
     logged = caplog.text
     assert "hunter2" not in logged and "k-123" not in logged and "'token': 't'" not in logged
@@ -466,7 +466,7 @@ async def test_allow_all_wrap_runs_as_an_owner_agent(caplog):
 # ---- errors and results ----
 
 class CodedError(Exception):
-    """Like agentos.policy's ToolCallError: not an AgentosError, but it carries code and message."""
+    """Like openajar.policy's ToolCallError: not an OpenajarError, but it carries code and message."""
 
     def __init__(self, code, message):
         super().__init__(f"{code}: {message}")
@@ -618,8 +618,8 @@ async def test_a_failing_filter_shows_nothing():
 
 def test_a_calls_log_lines_never_carry_an_environments_handle():
     """An environment's `on` is a secret its chat holds: the log context names its lane instead."""
-    from agentos.environments.picking import new_handle
-    from agentos.mcp.registry import log_lane
+    from openajar.environments.picking import new_handle
+    from openajar.mcp.registry import log_lane
 
     handle = new_handle("e7k2abc")
     assert log_lane(handle) == "env/e7k2abc"

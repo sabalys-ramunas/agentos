@@ -7,10 +7,10 @@ import re
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, RefNotFound
-from agentos.core.models import ActionKind, Signal
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.snapshot import find_refs
+from openajar.core.errors import InvalidRequest, RefNotFound
+from openajar.core.models import ActionKind, Signal
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.snapshot import find_refs
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
@@ -19,9 +19,9 @@ POST = "Post by Ada Lovelace"
 # Runs in Camoufox's isolated world: the observer and its log live there, invisible to the page.
 WATCH_MUTATIONS_JS = """
 () => {
-  window.__agentosTestMutations = [];
+  window.__openajarTestMutations = [];
   new MutationObserver((records) => {
-    for (const r of records) window.__agentosTestMutations.push(r.type + ':' + (r.attributeName || ''));
+    for (const r of records) window.__openajarTestMutations.push(r.type + ':' + (r.attributeName || ''));
   }).observe(document, {subtree: true, childList: true, attributes: true, characterData: true});
 }
 """
@@ -64,7 +64,7 @@ async def test_snapshot_has_refs_and_leaves_the_page_untouched(page, site_url, i
 
     await page.wait_for_timeout(400)  # give the page's own leak detector a few ticks
     assert await page.evaluate("document.documentElement.outerHTML") == html_before
-    assert await page.evaluate("window.__agentosTestMutations") == []
+    assert await page.evaluate("window.__openajarTestMutations") == []
     assert await page.evaluate("document.body.dataset.leak || ''") == ""
 
     assert snap.title == "Fixture feed" and snap.url.endswith("/feed.html")

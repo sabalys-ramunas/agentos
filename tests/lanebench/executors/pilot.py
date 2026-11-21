@@ -1,4 +1,4 @@
-"""The pilot executor: agentos.pilot's loop on the bench, through the node's own tools.
+"""The pilot executor: openajar.pilot's loop on the bench, through the node's own tools.
 
 A thin shell over the package: it builds a Request from the task and maps the pilot's honest status
 onto the bench's four. The loop is the product's own, so a score here is a score of what ships.
@@ -26,15 +26,15 @@ import time
 from collections.abc import Sequence
 from typing import Any
 
-from agentos.brains.decisions import DecisionRejected, pick_prompt, read_pick
-from agentos.core.errors import AgentosError
-from agentos.pilot import Limits, Pilot, Request, Result, Status, Value
-from agentos.pilot.deciders import BLOCKED, UNAVAILABLE, DeciderFailed, Pick, Reply, holds_secret
-from agentos.pilot.hands import ToolFailed
 from lanebench.executors import ExecResult, RunContext
 from lanebench.executors.jev import API_URL, MODEL, Hands, JevClient, JevRefused, Metrics, planner_values
 from lanebench.executors.mcp_agent import agent_specs, bench_wrap
 from lanebench.tasks import Task
+from openajar.brains.decisions import DecisionRejected, pick_prompt, read_pick
+from openajar.core.errors import OpenajarError
+from openajar.pilot import Limits, Pilot, Request, Result, Status, Value
+from openajar.pilot.deciders import BLOCKED, UNAVAILABLE, DeciderFailed, Pick, Reply, holds_secret
+from openajar.pilot.hands import ToolFailed
 
 WANTED = ("browser_snapshot", "browser_act", "browser_scroll", "browser_wait", "browser_upload", "browser_files",
           "vault_fill")
@@ -55,7 +55,7 @@ class BenchTools:
     async def call(self, name: str, **arguments: Any) -> Any:
         try:
             return await self.calls[name](**arguments)
-        except AgentosError as e:
+        except OpenajarError as e:
             raise ToolFailed(e.code, e.message) from None
 
     async def look(self) -> None:

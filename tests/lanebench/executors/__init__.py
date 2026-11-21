@@ -6,7 +6,7 @@ for answers and holds, which the checks compare with the site's own state).
 - replay: hand-written structural steps per task through the node's flow driver (replay.py).
 - mcp-agent: an agent over the node's MCP tools, as an external command (mcp_agent.py).
 - jev: TypeSafe's Jev picks each step, the node's tools act (jev.py).
-- pilot: agentos.pilot's own loop, the product version of jev (pilot.py).
+- pilot: openajar.pilot's own loop, the product version of jev (pilot.py).
 - planted: deliberately bad runs that the gates must fail (planted.py; tests only).
 """
 
@@ -54,7 +54,7 @@ class ToolTrace:
                 safe[k] = s[:200] if isinstance(s, str) else s
         row = {"tool": tool, "args": safe, "ok": ok, "error": error, "ms": round(ms, 1)}
         if code:
-            row["code"] = code  # an AgentosError's code: what an MCP agent reads first
+            row["code"] = code  # an OpenajarError's code: what an MCP agent reads first
         self.rows.append(row)
 
     async def call(self, tool: str, args: dict[str, Any], fn: Callable[[], Awaitable[Any]]) -> Any:

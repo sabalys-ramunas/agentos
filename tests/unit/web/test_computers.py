@@ -6,8 +6,8 @@ sees it: the status and the envelope it reads.
 
 from __future__ import annotations
 
-from agentos import __version__
-from agentos.api.web.computers import FLEET_NODE
+from openajar import __version__
+from openajar.api.web.computers import FLEET_NODE
 
 NODE = "dev"
 
@@ -61,13 +61,13 @@ def test_system_is_what_the_node_reads_and_never_enrolled(client) -> None:
     assert system["reported_at"].endswith("Z")
 
 
-def test_programs_name_agentos_itself(client) -> None:
+def test_programs_name_openajar_itself(client) -> None:
     programs = client.get(f"/api/orgs/local/nodes/{NODE}/programs").json()
     assert isinstance(programs, list)
-    [agentos] = [item for item in programs if item["name"] == "agentos"]
-    assert agentos["scope"] == "node"
-    assert agentos["version"] == __version__
-    assert agentos["pinned_hash"] is None
+    [openajar] = [item for item in programs if item["name"] == "openajar"]
+    assert openajar["scope"] == "node"
+    assert openajar["version"] == __version__
+    assert openajar["pinned_hash"] is None
 
 
 def test_services_show_agentosd_running(client) -> None:
@@ -222,7 +222,7 @@ def test_a_schedule_shows_its_next_slots_and_what_it_ran(client) -> None:
 
 
 def test_next_fires_are_planned_slots_in_utc(client) -> None:
-    from agentos.api.routes_computers import next_fires
+    from openajar.api.routes_computers import next_fires
 
     slots = next_fires("30 8 * * *", "Europe/Vilnius")
     assert len(slots) == 3 and all(slot.endswith("Z") for slot in slots)
@@ -231,7 +231,7 @@ def test_next_fires_are_planned_slots_in_utc(client) -> None:
 
 
 def test_a_call_on_this_computer_is_on_the_map_and_in_activity(client, node) -> None:
-    from agentos.policy.traces import Cost, TraceEvent
+    from openajar.policy.traces import Cost, TraceEvent
 
     traces = node.get("traces")
     start = TraceEvent(

@@ -1,4 +1,4 @@
-"""How long a request for an agenda entry waits in Needs you (agentos.agenda.service.request_expiry):
+"""How long a request for an agenda entry waits in Needs you (openajar.agenda.service.request_expiry):
 until the entry's start plus its grace, never sooner than an ordinary request, never later than
 agenda_approval_max_days after proposing. Other approvals keep the node's approval time."""
 
@@ -9,12 +9,12 @@ from datetime import timedelta
 import pytest
 from test_agenda import FLOW, LANE, PARAMS, Env, _proposed, ny
 
-from agentos.agenda import tools as agenda_tools
-from agentos.agenda.models import EntryState
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.runner.fakes import FakeClock
+from openajar.agenda import tools as agenda_tools
+from openajar.agenda.models import EntryState
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.runner.fakes import FakeClock
 
 DAY = timedelta(days=1)
 
@@ -123,7 +123,7 @@ async def test_other_approvals_keep_the_default_time(env):
 
 
 async def test_an_explicit_expiry_is_bounded(env):
-    from agentos.policy.approvals import MAX_REQUEST_S
+    from openajar.policy.approvals import MAX_REQUEST_S
 
     ctx = env.agent(tool="flow_run")
     content = env.h.runner.flows.approval_content(env.h.runner.flows.get(FLOW), LANE, PARAMS)

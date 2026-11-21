@@ -1,7 +1,7 @@
 """Files, uploads, downloads, popups, tabs and dialogs on real Camoufox (run on the node).
 
 Uses the session browser and Xvfb display from conftest.py, plus this module's own fixture
-server (the static fixture site and a few dynamic download routes) on AGENTOS_TEST_IO_PORT. Each
+server (the static fixture site and a few dynamic download routes) on OPENAJAR_TEST_IO_PORT. Each
 test gets a fresh context with a PageTracker, a DialogGuard and a lane-like files directory, and
 every request to anything but the fixture server is aborted. One test launches a real lane
 session through CamoufoxEngine to prove the wiring.
@@ -21,17 +21,17 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import ActionKind, LaneSpec
-from agentos.node.camoufox.engine import CamoufoxEngine, PageTracker
-from agentos.node.files import MB, FilesConfig, FileStatus, LaneFiles
-from agentos.node.interaction import DialogPending, PlaywrightInteraction
-from agentos.node.snapshot import find_refs
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import ActionKind, LaneSpec
+from openajar.node.camoufox.engine import CamoufoxEngine, PageTracker
+from openajar.node.files import MB, FilesConfig, FileStatus, LaneFiles
+from openajar.node.interaction import DialogPending, PlaywrightInteraction
+from openajar.node.snapshot import find_refs
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
 SITE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "site"
-IO_PORT = int(os.environ.get("AGENTOS_TEST_IO_PORT", "6201"))
+IO_PORT = int(os.environ.get("OPENAJAR_TEST_IO_PORT", "6201"))
 DIALOG_TIMEOUT = 2.0
 
 PNG = bytes.fromhex(

@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import LaneKind, Preset
-from agentos.env import presets
-from agentos.env.models import EnvLane
-from agentos.env.paths import EnvPaths, EnvSettings
-from agentos.env.sandbox import (
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import LaneKind, Preset
+from openajar.env import presets
+from openajar.env.models import EnvLane
+from openajar.env.paths import EnvPaths, EnvSettings
+from openajar.env.sandbox import (
     BASE_CAPS,
     POINTS,
     BwrapLauncher,

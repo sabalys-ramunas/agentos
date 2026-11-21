@@ -1,4 +1,4 @@
-"""agentos.core.proc: the process helpers, and the old import paths that still reach them."""
+"""openajar.core.proc: the process helpers, and the old import paths that still reach them."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 import subprocess
 import sys
 
-from agentos.core import proc
+from openajar.core import proc
 
 
 def test_pid_alive_and_kill():
@@ -27,7 +27,7 @@ def test_kill_processes_never_kills_itself():
 
 
 def test_the_display_module_still_exports_them():
-    from agentos.node import display
+    from openajar.node import display
 
     for name in ("iter_processes", "pid_alive", "process_group", "kill_processes"):
         assert getattr(display, name) is getattr(proc, name)

@@ -22,7 +22,7 @@ jobs:
     name: lint and unit tests (${{ matrix.os }}, ${{ matrix.shard }}/4)
     runs-on: ${{ matrix.os }}
     # About 13,400 tests take some 31 minutes in one process on ubuntu-24.04 and twice that on
-    # macos-15, so they run in 4 shards of whole files (AGENTOS_TEST_SHARD, tests/conftest.py).
+    # macos-15, so they run in 4 shards of whole files (OPENAJAR_TEST_SHARD, tests/conftest.py).
     # Change the 4 in the name, the list and the Unit tests step together.
     timeout-minutes: 30
     strategy:
@@ -57,7 +57,7 @@ jobs:
       - name: Unit tests
         # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
         env:
-          AGENTOS_TEST_SHARD: ${{ matrix.shard }}/4
+          OPENAJAR_TEST_SHARD: ${{ matrix.shard }}/4
         # A shard runs ~3,350 tests in one process, and some leave stores and sockets for the garbage
         # collector to close: raise the open-file limit as far as the runner allows, never lower it
         # (macOS starts at 256). A real leak fails the shard by name first (tests/conftest.py,
@@ -71,10 +71,10 @@ jobs:
           uv run pytest -q --durations=15
       - name: Tool reference is current (make tools-doc)
         if: matrix.shard == 1
-        run: uv run agentos tools --markdown | diff -u docs/TOOLS.md -
+        run: uv run openajar tools --markdown | diff -u docs/TOOLS.md -
       - name: Error catalog is current (make errors-doc)
         if: matrix.shard == 1
-        run: uv run agentos errors --markdown | diff -u docs/ERRORS.md -
+        run: uv run openajar errors --markdown | diff -u docs/ERRORS.md -
       - name: Protocol examples are current (make protocol-doc)
         if: matrix.shard == 1
         run: uv run python scripts/protocol_doc.py --check
@@ -170,20 +170,20 @@ jobs:
     timeout-minutes: 20
     env:
       # scripts/node-test.sh's slot 14, as on the node
-      AGENTOS_TEST_NAME: ci
-      AGENTOS_TEST_DISPLAY_BASE: "140"
-      AGENTOS_TEST_VIEWER_BASE: "6140"
-      AGENTOS_TEST_VNC_BASE: "5140"
-      AGENTOS_TEST_MCP_PORT_BASE: "7440"
+      OPENAJAR_TEST_NAME: ci
+      OPENAJAR_TEST_DISPLAY_BASE: "140"
+      OPENAJAR_TEST_VIEWER_BASE: "6140"
+      OPENAJAR_TEST_VNC_BASE: "5140"
+      OPENAJAR_TEST_MCP_PORT_BASE: "7440"
       # The shared browser's display and fixture site (tests/node/conftest.py) default to the slot's
       # first display and viewer port, which the lane tests also take as their slot 0 (one sweeps the
       # other's Xvfb away). They run here in one pytest session, so the shared ones sit just past it.
-      AGENTOS_TEST_DISPLAY: ":150"
-      AGENTOS_TEST_SITE_PORT: "6150"
+      OPENAJAR_TEST_DISPLAY: ":150"
+      OPENAJAR_TEST_SITE_PORT: "6150"
       # tests/node/conftest.py: run the listed tests, and answer Camoufox's exit-IP lookup locally
-      AGENTOS_TEST_SMOKE: tests/node/ci-smoke.txt
-      AGENTOS_TEST_OFFLINE: "1"
-      AGENTOS_TEST_NO_INTERNET: "1"
+      OPENAJAR_TEST_SMOKE: tests/node/ci-smoke.txt
+      OPENAJAR_TEST_OFFLINE: "1"
+      OPENAJAR_TEST_NO_INTERNET: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
@@ -199,7 +199,7 @@ jobs:
       - name: Firefox's system libraries
         run: sudo env "PATH=$PATH" "$(command -v uv)" run --no-sync python -P -m playwright install-deps firefox
       - name: The Camoufox version uv.lock pins
-        # the cache follows Camoufox itself, not the whole lock file: a version bump of agentos (which
+        # the cache follows Camoufox itself, not the whole lock file: a version bump of openajar (which
         # changes uv.lock) must not throw away a 1.2 GB browser and fetch it again
         id: camoufox_version
         run: echo "version=$(awk '/^name = "camoufox"/{getline; gsub(/"/, "", $3); print $3}' uv.lock)" >> "$GITHUB_OUTPUT"
@@ -221,15 +221,15 @@ jobs:
         # ~/.cache/camoufox, so a cache hit does not bring it): do it while the network is still open.
         run: uv run --no-sync python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
       - name: Cut the tests off from everything but loopback
-        # The tests run with the group agentos-offline; packets of that group may leave only
+        # The tests run with the group openajar-offline; packets of that group may leave only
         # through lo, and not to the local DNS stub either, so no browser, lookup or helper can
         # reach a real site. The counters are printed at the end.
         run: |
-          sudo groupadd --system agentos-offline
+          sudo groupadd --system openajar-offline
           for t in iptables ip6tables; do
-            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline ! -o lo -j REJECT
-            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline -p udp --dport 53 -j REJECT
-            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline -p tcp --dport 53 -j REJECT
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner openajar-offline ! -o lo -j REJECT
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner openajar-offline -p udp --dport 53 -j REJECT
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner openajar-offline -p tcp --dport 53 -j REJECT
           done
           sudo mkdir -p /tmp/.X11-unix && sudo chmod 1777 /tmp/.X11-unix
       - name: Prove the group cannot get out
@@ -240,13 +240,13 @@ jobs:
         run: |
           ip=$(getent ahostsv4 api.github.com | awk 'NR==1{print $1}')
           curl -sS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen
-          if sudo setpriv --nnp --reuid="$(id -u)" --regid=agentos-offline --clear-groups -- \
+          if sudo setpriv --nnp --reuid="$(id -u)" --regid=openajar-offline --clear-groups -- \
               curl -sS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen; then
-            echo "::error::the agentos-offline group reached api.github.com"; exit 1
+            echo "::error::the openajar-offline group reached api.github.com"; exit 1
           fi
       - name: Node tests (tests/node/ci-smoke.txt)
         run: |
-          sudo --preserve-env setpriv --nnp --reuid="$(id -u)" --regid=agentos-offline --clear-groups -- \
+          sudo --preserve-env setpriv --nnp --reuid="$(id -u)" --regid=openajar-offline --clear-groups -- \
             env "PATH=$PATH" HOME="$HOME" timeout --signal=INT --kill-after=60s 16m \
             uv run --no-sync pytest -m node tests/node -p no:cacheprovider -rs --durations=25 -q
       - name: Packets the tests tried to send out (refused)

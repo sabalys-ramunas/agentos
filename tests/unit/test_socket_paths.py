@@ -1,5 +1,5 @@
-"""QA 2026-11-07 #20: a long AGENTOS_HOME (a deep --home, a test's temp dir) keeps working sockets.
-The vault and ops sockets move to a short private directory when AGENTOS_HOME/run/NAME would pass
+"""QA 2026-11-07 #20: a long OPENAJAR_HOME (a deep --home, a test's temp dir) keeps working sockets.
+The vault and ops sockets move to a short private directory when OPENAJAR_HOME/run/NAME would pass
 the unix socket limit, the daemon and the CLI agree on where, and a directory that is not this
 user's own is refused with words that say what to do."""
 
@@ -10,9 +10,9 @@ import shutil
 
 import pytest
 
-from agentos.core import layout
-from agentos.ops.control import start_server
-from agentos.vault.service import VaultService
+from openajar.core import layout
+from openajar.ops.control import start_server
+from openajar.vault.service import VaultService
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_a_symlinked_short_dir_is_refused_with_a_fix(long_home, tmp_path):
     target.mkdir()
     short = layout.short_run_dir(long_home)
     short.symlink_to(target)
-    with pytest.raises(layout.SocketDirUnsafe, match="shorter AGENTOS_HOME"):
+    with pytest.raises(layout.SocketDirUnsafe, match="shorter OPENAJAR_HOME"):
         layout.prepare_socket(layout.ops_socket(long_home))
     with pytest.raises(layout.SocketDirUnsafe):
         layout.trusted_socket(layout.vault_socket(long_home))
@@ -67,5 +67,5 @@ def test_a_symlinked_short_dir_is_refused_with_a_fix(long_home, tmp_path):
 
 
 def test_a_path_still_too_long_says_so(tmp_path):
-    with pytest.raises(OSError, match="shorter AGENTOS_HOME"):
+    with pytest.raises(OSError, match="shorter OPENAJAR_HOME"):
         layout.prepare_socket(tmp_path / ("y" * 200) / "ops.sock")

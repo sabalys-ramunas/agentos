@@ -37,38 +37,6 @@ export function tileOf(approval: Approval): AnyKind {
   }
 }
 
-/** The kind's word for the request's eyebrow: "Push", "Disposable VM", "Post". */
-export function kindLabel(approval: Approval): string {
-  switch (kindOf(approval)) {
-    case 'push':
-      return 'Push';
-    case 'vm':
-      return 'Disposable VM';
-    case 'lane':
-      return approval.preview.data?.lane_preset ? 'New lane' : 'Command in a lane';
-    case 'command':
-      return 'Command';
-    case 'payment':
-      return 'Payment';
-    case 'order':
-      return 'Refund';
-    case 'email':
-      return 'Email';
-    case 'message':
-      return 'Reply';
-    case 'form':
-      return 'Form';
-    case 'delete':
-      return 'Delete';
-    case 'files':
-      return 'Files';
-    case 'setup':
-      return 'Setup';
-    default:
-      return approval.effect === 'pay' ? 'Payment' : approval.effect === 'commit' ? 'Post' : 'Request';
-  }
-}
-
 const cut = (text: string, max = 80) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
 
 /** The line as plain words: the title of a cut line, and what tests read. */

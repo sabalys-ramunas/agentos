@@ -8,8 +8,8 @@ import statistics
 
 import pytest
 
-from agentos.node import human, xkeyboard
-from agentos.node.xkeyboard import KEYSYMS, XKeyboard
+from openajar.node import human, xkeyboard
+from openajar.node.xkeyboard import KEYSYMS, XKeyboard
 
 
 class Keyboard:
@@ -108,7 +108,7 @@ def test_the_keyboard_holds_no_reference_to_a_page():
 
 
 def test_forget_context_drops_the_keyboard():
-    from agentos.node.camoufox.engine import forget_context
+    from openajar.node.camoufox.engine import forget_context
 
     context = Context()
     human.X_KEYBOARDS[context] = XKeyboard(":1")

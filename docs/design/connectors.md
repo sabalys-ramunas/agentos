@@ -1,8 +1,8 @@
 # Design: sites as typed connectors
 
 Status: design, 2026-11-04. A big bet. Builds on the runner
-(`src/agentos/runner/`), the flow driver (`src/agentos/node/flow_driver.py`) and the site
-signals table (`src/agentos/node/sites.py`). Related audit items: AUD-01 (surfaces), AUD-03
+(`src/openajar/runner/`), the flow driver (`src/openajar/node/flow_driver.py`) and the site
+signals table (`src/openajar/node/sites.py`). Related audit items: AUD-01 (surfaces), AUD-03
 (commit gate), AUD-04 (first-party post flows), AUD-12 (expected account), AUD-13 (pace),
 AUD-22 (public visibility), AUD-39 (account languages), AUD-46 (partial runs).
 
@@ -72,7 +72,7 @@ owner's bet, kept inside principle 8: first-party, reviewed, signed, no open sto
 - **Not someone else's accounts.** No operation logs into, creates or acts on an account the
   owner does not control. No account creation operations at all.
 - **Not an open marketplace.** No third-party connectors in the catalog. The owner's local
-  overrides are their own and never published by agentos.
+  overrides are their own and never published by openajar.
 - **Not a replacement for an API that exists.** Where an official API is usable by a single
   owner (Shopify Admin API, Graph API for Pages, Reddit API), the catalog recommends it and
   the browser backend is the fallback.
@@ -149,7 +149,7 @@ page through `personal/linkedin`).
 
 ```
 connectors/<site>/connector.json   catalog source in the repo (data only), with fixtures/
-      |  agentos connector compile (lint strict, contract hash, implementation hash)
+      |  openajar connector compile (lint strict, contract hash, implementation hash)
       v
 signed bundle  ->  node: ConnectorService (verify, install, bindings, health)
       |                 |  compiles each operation to a FlowVersion "connector.<site>.<op>"
@@ -168,9 +168,9 @@ pydantic model the way `FlowDefinition` is, and hashed canonically.
 ```yaml
 connector: instagram
 version: 1.4.0            # semver of the implementation
-site: instagram           # agentos.node.sites key: hosts, session and identity cookies, URL rules
+site: instagram           # openajar.node.sites key: hosts, session and identity cookies, URL rules
 domain: instagram.com
-requires: {agentos: ">=0.9", engines: [camoufox]}
+requires: {openajar: ">=0.9", engines: [camoufox]}
 backends: [browser]       # later: graph_api
 account_languages: [en, lt]   # languages the fixtures and canaries cover (AUD-39)
 operations:
@@ -212,7 +212,7 @@ operations:
 
 The parts, and the rule each one carries:
 
-- **Site and version.** `site` must be a key in `agentos.node.sites.SITES`, so identity and
+- **Site and version.** `site` must be a key in `openajar.node.sites.SITES`, so identity and
   signals come from the one table. `version` is semver for the implementation; the compiler
   computes two hashes: the **contract hash** over operation name, input and output schemas,
   effect, acting-as kind, commit request shape and readback kinds, and the **implementation
@@ -251,7 +251,7 @@ The parts, and the rule each one carries:
   fingerprint and its proxy, and the object's text must show there (else `succeeded_unverified`,
   `visible_only_to_author`, re-checked). `public_check: {url, text}` names the saved permalink and
   the text (`param:<name>` or a saved value); by default the live readback's saved `url` and `text`
-  (agentos/runner/signed_out.py, agentos/node/signed_out.py).
+  (openajar/runner/signed_out.py, openajar/node/signed_out.py).
 - **Signals expected.** `benign` names interstitials the operation knows (Instagram's "save
   login info", a cookie banner) with a reviewed structural dismiss recipe; `hold` names
   signals that stop the run and hold the lane (AUD-07). Anything not listed is treated as
@@ -292,14 +292,14 @@ AUD-01.
 
 **On the commit gate too** (built 2026-11-05, docs/design/egress-guard.md 8.10). An agent that
 drives the raw lane with `browser_act` instead of a connector tool goes through the commit gate,
-which reads who each publish acts as from the request (`agentos.node.acting`: Facebook's
+which reads who each publish acts as from the request (`openajar.node.acting`: Facebook's
 `actor_id`, a LinkedIn author or organization urn, an Instagram business account id, a Medium
 publication) and resolves it against the surfaces: a Page whose surface posts through this lane
 is authorized on that surface (its workspace must be in the grant, its Ask me first switch and
 its lane's pace apply, and the card says "Posts as biz-a (Page)"); the lane's own account is the
 lane's, as before; anything else (an id no surface names, a Page of another lane, an identity the
 gate cannot read on Facebook) always asks a person, and a schedule, a flow grant or a flow running
-on its own is refused it. So the surfaces are the list of identities agentos knows: a Page a
+on its own is refused it. So the surfaces are the list of identities openajar knows: a Page a
 login manages that has no surface is asked about every time, and listed in the lane's gate log.
 
 ### 4.4 Compilation from flows
@@ -312,7 +312,7 @@ The authoring path reuses what exists:
 2. They turn the draft into an operation: replace names with structural locators where
    possible, label the commit step, add the preflight and discard steps, map readback
    `save_as` values to outputs, write the input and output schemas.
-3. `agentos connector compile connectors/instagram` validates the document, runs the strict
+3. `openajar connector compile connectors/instagram` validates the document, runs the strict
    lint, computes both hashes and emits one `FlowDefinition` per operation:
    `id = connector.instagram.post_photo`, `lane = */*` (the binding resolves the real lane),
    `domain` from the connector, params = the input schema plus hidden binding params
@@ -324,14 +324,14 @@ The authoring path reuses what exists:
    covers every saved value it exports; fixtures exist for every operation and account
    language listed.
 5. On the node, `ConnectorService` installs a verified bundle by saving each compiled
-   definition with `saved_by = {kind: "catalog", id: "agentos", signer: <key id>,
+   definition with `saved_by = {kind: "catalog", id: "openajar", signer: <key id>,
    installed_by: "owner"}`. The runner treats this as owner-saved for `publishes: false`
    marks, because the owner chose to install a signed, reviewed bundle. An agent's
    `flow_save` can never write a `connector.*` id (it would land as a proposed override,
    section 4.6).
 
 An owner's existing flow can be promoted into a local connector operation the same way
-(`agentos connector adopt <flow id>`), so nothing recorded so far is wasted.
+(`openajar connector adopt <flow id>`), so nothing recorded so far is wasted.
 
 ### 4.5 New runner and driver capabilities
 
@@ -376,13 +376,13 @@ then its `discard` steps. It is how canaries test commit operations without post
   operation change.
 - **Signed.** A release builds `connectors-<date>.bundle`: the compiled documents plus an
   index of `{site, version, contract hash, implementation hash}`, signed with an ed25519
-  catalog key whose public half ships in agentos. The node verifies before install and
+  catalog key whose public half ships in openajar. The node verifies before install and
   refuses unsigned or downgraded bundles (a lower version of the same contract, unless the
   owner forces a rollback).
 - **Versioned.** Nodes keep every installed version (flow versions are immutable already), so
   a schedule can pin one and a rollback is a pointer move. Each operation shows its version,
   contract hash and health.
-- **Local overrides.** The owner can override an operation locally (`agentos connector
+- **Local overrides.** The owner can override an operation locally (`openajar connector
   override instagram.post_photo --from-flow ...` or in the panel). An override is
   `saved_by` the owner, shows `local` next to the tool, is never replaced by a catalog
   update (the panel shows "catalog has 1.5.0; your override is based on 1.4.0" with a diff),
@@ -401,7 +401,7 @@ then its `discard` steps. It is how canaries test commit operations without post
   for the owner.
 - **Telemetry-free self-host.** By default a node sends nothing anywhere. Update checks are
   off until the owner turns them on (they reveal the node's IP to the release host; the
-  panel says so); `agentos connectors update --from <file>` works fully offline.
+  panel says so); `openajar connectors update --from <file>` works fully offline.
 - **Opt-in repair sharing.** A repair report contains: connector, operation, version,
   failing step and locator, the signal, engine and Camoufox versions, account language, and a
   text-free structural skeleton of the region around the failing locator (tags, roles,
@@ -556,7 +556,7 @@ An operation's contract does not name a backend. The binding does:
   the request acts as, resolved against the surfaces).
 - **Supply chain.** Data-only bundles, signed, version-pinned, verified on install;
   downgrade refused; the catalog key is held offline by the maintainer, and a key rotation
-  ships in an agentos release. An agent cannot write `connector.*` ids; local overrides need
+  ships in an openajar release. An agent cannot write `connector.*` ids; local overrides need
   the owner (panel or CLI).
 - **Pace and holds** are enforced by policy and the lane gate, below approvals: a hijacked
   agent with a standing approval still cannot post more often than the pace allows, or on a
@@ -643,12 +643,12 @@ LinkedIn sets no cookie that names the member, so its operations read who they a
 URL: each starts at `/in/me/`, which LinkedIn sends to the member's own profile, and the profile
 name in that URL must equal the surface's id. The runner waits for that redirect: `me` is never
 read as an id (it is unknown until it resolves, never a wrong account). Bind a LinkedIn surface
-with the public profile name: `agentos connector bind test/linkedin --site linkedin --lane
+with the public profile name: `openajar connector bind test/linkedin --site linkedin --lane
 test/linkedin --acts-as account --id arlo-fenwick-demo`.
 
 **The verified mark.** A canary on a throwaway account that ran an operation end to end and
 read the effect back is recorded as a mark in the node's own ledger
-(`$AGENTOS_HOME/connector-marks.json`, agentos.runner.connectors.marks), keyed by `site.op` and
+(`$OPENAJAR_HOME/connector-marks.json`, openajar.runner.connectors.marks), keyed by `site.op` and
 the operation's **proof hash**: the compiled operation (steps, locators, readbacks, preflights,
 commit request, pace, outputs) without its title, description, version and mark. A mark is
 honoured only while the installed operation has that proof hash: any later edit makes it stale,
@@ -660,22 +660,22 @@ author check came later, so its old mark is stale and it needs a canary again.
 Provenance: only the ledger counts. A connector file or a signed bundle may carry `verified` and
 `verified_hash` (`2026-11-04 reddit.com canary: ...`), as information for a reader; a mark that
 arrives in a manifest never makes an operation run, and one whose hash differs compiles as stale
-(`agentos connector compile` says so). Only the owner writes the ledger, from a shell on the node:
+(`openajar connector compile` says so). Only the owner writes the ledger, from a shell on the node:
 no MCP tool, API route or agent can.
 
 ```
-agentos connector verify reddit.comment --note "test/reddit: comment 19s4... on 1demo02, read back on its permalink"
-agentos connector verify reddit.comment --revoke      # a later canary failed
-agentos connector verify reddit.comment --dir connectors/reddit --note "..."   # also record it in the repo
+openajar connector verify reddit.comment --note "test/reddit: comment 19s4... on 1demo02, read back on its permalink"
+openajar connector verify reddit.comment --revoke      # a later canary failed
+openajar connector verify reddit.comment --dir connectors/reddit --note "..."   # also record it in the repo
 ```
 
 Without `--dir` it marks the copy installed on this node (it must be installed); with `--dir`
 it also writes the canary's words and the proof hash into that directory's connector.json with a
 new patch version and installs it (`--no-install` to only write it). It never picks up a
 `connectors/` directory from the shell's working directory. The contract hash does not change.
-`agentos connector list` shows each installed operation as verified, verified_stale or not verified.
+`openajar connector list` shows each installed operation as verified, verified_stale or not verified.
 
-**Canary checklist** (on a throwaway account, through the operation's own MCP tool or `agentos
+**Canary checklist** (on a throwaway account, through the operation's own MCP tool or `openajar
 connector run`, with observe mode on for the lane so the request shape lands in the trace). An
 operation is marked verified only when every point holds; when a locator misses, fix the
 connector (and its fixture, from the captured page with the text replaced), then run it again.
@@ -713,7 +713,7 @@ request).
 | `panel` | a Connectors view under Flows (the rail stays six): per workspace, each surface with its connectors, health glyph, last probe, last run, version, and override diff; Needs you gets "operation broken" and "proposed repair" items; approval cards render the post per surface. |
 | `workspaces` | templates create bindings with lanes (`social-6`: which surfaces are logins and which act through another lane). Note the name clash: `workspaces.models.Surface` is a template lane today; AUD-01's surface is the thing posts target (open question 9). |
 | `controller` | merges connector tools across nodes (one `instagram_post_photo` whose `on` lists surfaces on every node, routed to the node holding the lane); mirrors health; flags version skew between nodes. It never holds bundles' secrets because there are none, and never holds API tokens. |
-| `cli` | `agentos connector` with `compile`, `install`, `list`, `probe`, `override`, `adopt` and `report`. |
+| `cli` | `openajar connector` with `compile`, `install`, `list`, `probe`, `override`, `adopt` and `report`. |
 | docs | `docs/CONNECTORS.md` generated from the manifests (operations, schemas, effects, health meaning), like `docs/TOOLS.md`. |
 
 ## 6. Phased plan
@@ -736,17 +736,17 @@ and the strict lint turns the missing `request` block into an error once it does
 
 ### Phase 1 builder briefs
 
-Each brief is self-contained. Builders read this document and `src/agentos/runner/README.md`
+Each brief is self-contained. Builders read this document and `src/openajar/runner/README.md`
 first. Nothing in phase 1 touches a real account except brief D, and brief D only
 with the owner present.
 
 **Brief A: connector format and compiler (M).**
 - Goal: `connectors/<site>/connector.json` validates, lints strictly and compiles into
   `FlowDefinition`s that the existing runner accepts.
-- Build: `src/agentos/runner/connectors/models.py` (Connector, Operation, Commit, Readback
+- Build: `src/openajar/runner/connectors/models.py` (Connector, Operation, Commit, Readback
   contract, Pace, Signals, Binding schema), `compile.py` (operation to FlowDefinition with
   id `connector.<site>.<op>`, lane `*/*`, hidden binding params), `lint.py` (the strict
-  rules in section 4.4), contract and implementation hashes, `agentos connector compile`.
+  rules in section 4.4), contract and implementation hashes, `openajar connector compile`.
   Install from the repo directory (no signing yet) with `saved_by = {kind: "catalog", ...}`
   and make `is_owner` count it when installed by the owner. Reserve `connector.*` ids in
   `flow_save` (MCP saves are refused with a clear message in phase 1; proposed overrides come
@@ -776,7 +776,7 @@ with the owner present.
   identity, approval and pace apply.
 - Build: bindings on the AUD-01 Surface model (if AUD-01 has not landed, build `Surface`
   per its proposal in `core/models` and coordinate with the workspaces owner on the name
-  clash); binding store and `agentos connector bind`; MCP registration of `<site>_<op>` with
+  clash); binding store and `openajar connector bind`; MCP registration of `<site>_<op>` with
   the grant-projected `on` enum; `connectors_list`; approval content `{operation, contract,
   surface, acts_as, params}` with file sha256; node-written summary ("Post to Facebook as
   biz-a (Page): caption '...', 1 image"); policy target `connector:<site>.<op>@<contract>`;
@@ -880,7 +880,7 @@ with the owner present.
 11. **Messaging and DMs.** Default: out of the catalog until the trifecta rules and the
     commit gate have run in production for a month.
 12. **Where the catalog lives.** Default: in this repo under `connectors/` now; a separate
-    signed bundle channel in phase 4 so a repair can ship faster than an agentos release.
+    signed bundle channel in phase 4 so a repair can ship faster than an openajar release.
 13. **Instagram business accounts posted through Meta Business Suite.** Default: phase 1 uses
     the Instagram web composer on the account's own login; a Business Suite binding (acting
     as an `ig_business` asset through the Facebook login) comes with the Graph API backend in

@@ -14,8 +14,8 @@ from typing import Any
 from soft_authenticator import SoftAuthenticator
 from starlette.testclient import TestClient
 
-from agentos.api import create_login_code
-from agentos.api.members import OWNER_ID, Role
+from openajar.api import create_login_code
+from openajar.api.members import OWNER_ID, Role
 
 ANA = "m_ana0001"
 ORIGIN = "http://localhost:7999"  # the node fixture's port: a passkey's origin

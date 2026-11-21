@@ -10,12 +10,12 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_policy_support import make_service
 
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.meters import MeterPolicy
-from agentos.policy.pace import LanePaced
-from agentos.policy.routing import PolicyConfig, RoutingTable, Rule
-from agentos.runner.fakes import FakeClock, Harness, post_flow
-from agentos.runner.tools import flow_run
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.meters import MeterPolicy
+from openajar.policy.pace import LanePaced
+from openajar.policy.routing import PolicyConfig, RoutingTable, Rule
+from openajar.runner.fakes import FakeClock, Harness, post_flow
+from openajar.runner.tools import flow_run
 
 NY = ZoneInfo("America/New_York")
 PARAMS = {"caption": "hi", "image": "x.png"}
@@ -116,7 +116,7 @@ async def test_a_run_the_owner_starts_is_paced_and_recorded_when_it_goes(env):
     clock.set(ny(5, 9))
     await h.run(FLOW, PARAMS, authorized=False)  # 09:00 on the ledger
     clock.set(ny(5, 9, 10))
-    run = h.submit(FLOW, {"caption": "two", "image": "x.png"}, authorized=True)  # `agentos flows run`: no row
+    run = h.submit(FLOW, {"caption": "two", "image": "x.png"}, authorized=True)  # `openajar flows run`: no row
     await h.runner.run_until_idle()
     run = h.runner.get(run.id)
     assert run.error["paced"]["rule"] == "min_gap" and run.not_before > ny(5, 9, 45)
@@ -209,7 +209,7 @@ async def test_a_run_queued_for_a_slot_holds_off_a_publish_just_before_it(env):
 async def test_the_owners_own_run_at_night_waits_for_the_lanes_morning(env):
     _svc, h, clock = env
     clock.set(ny(5, 23))
-    run = h.submit(FLOW, PARAMS, authorized=True)  # `agentos flows run` or Run in the panel: a run, so paced
+    run = h.submit(FLOW, PARAMS, authorized=True)  # `openajar flows run` or Run in the panel: a run, so paced
     await h.runner.run_until_idle()
     run = h.runner.get(run.id)
     assert h.site.state["posts"] == [] and run.error["paced"]["rule"] == "active_hours"

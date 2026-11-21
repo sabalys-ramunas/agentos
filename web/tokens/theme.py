@@ -40,10 +40,14 @@ COLORS = {
     "muted": "text-secondary",
     "faint": "text-tertiary",
     "disabled": "text-disabled",
-    # the primary is ink
-    "primary": "accent-fill",
-    "primary-hover": "neutral-11",
-    "on-primary": "text-inverse",
+    # Dawn: the primary is the violet pill, white words on it (ink fills with inverse words say bg-fg
+    # text-on-inverse). Violet is also what is selected, and the agent's own colour.
+    "primary": "action-primary",
+    "primary-hover": "action-primary-hover",
+    "on-primary": "action-on-primary",
+    "agent": "violet-600",
+    "accent": "accent-fill",
+    "accent-text": "accent-text",
     "accent-soft": "accent-soft",
     "accent-line": "accent-line",
     "brand": "brand-mark",
@@ -53,6 +57,31 @@ COLORS = {
     "live-dot": "status-live-dot",
     "live-line": "status-live-line",
     "status-ink": "status-ink",
+    # Dawn: the dark stage under a live screen and its pictures, and glass on the Dawn picture
+    "stage": "surface-stage",
+    "glass": "glass-fill",
+    "glass-dark": "glass-dark-fill",
+    "glass-dark-line": "glass-dark-line",
+    "glass-dark-hover": "glass-dark-hover",
+    "night-pill-hover": "night-pill-hover",
+    "night-pill-pressed": "night-pill-pressed",
+    "night-ring": "night-ring",
+    "pill-edge-on-primary": "pill-edge-on-primary",
+    "pill-edge-on-light": "pill-edge-on-light",
+    "window-edge": "window-edge",
+    "halo-focus": "halo-focus",
+    "halo-bad": "halo-bad",
+    "halo-accent": "halo-accent",
+    "accent-half": "accent-half",
+    # Dawn: the night sidebar's own words, lines and fills (white on the night sky, in both themes)
+    "side": "sidebar-text",
+    "side-muted": "sidebar-text-secondary",
+    "side-faint": "sidebar-text-tertiary",
+    "side-line": "sidebar-line",
+    "side-hover": "sidebar-fill-hover",
+    "side-selected": "sidebar-fill-selected",
+    "side-foot": "sidebar-foot",
+    **{f"violet-{n}": f"violet-{n}" for n in (50, 100, 200, 300, 400, 500, 600, 700)},
     # the board
     "board": "board",
     "board-raised": "board-raised",
@@ -102,7 +131,7 @@ LEGACY_COLORS = {
     "amber": ("status-warn-text", "warn"),
     "red": ("status-bad-text", "bad"),
     # A link: ink with an underline. `text-blue` on an <a> still gets the underline (app.css).
-    "blue": ("accent-text", "fg with the link class"),
+    "blue": ("link-text", "fg with the link class"),
 }
 
 # Type roles (the `text-<role>` classes). The mono roles also take Geist Mono in app.css.
@@ -122,8 +151,9 @@ LEGACY_TEXT = {
 
 # Spacing steps that are tokens (others keep Tailwind's 4 px multiplier, so the grid is unchanged).
 SPACING = ["0", "px", "1", "2", "3", "4", "5", "6", "8", "10", "12", "16"]
-RADII = ["sm", "md", "lg", "xl"]
-SHADOWS = {"popover": "shadow-popover", "dialog": "shadow-dialog", "lift": "lift", "card": "shadow-card", "hover": "shadow-hover"}
+RADII = ["sm", "md", "lg", "xl", "2xl"]
+SHADOWS = {"popover": "shadow-popover", "dialog": "shadow-dialog", "lift": "lift", "card": "shadow-card", "hover": "shadow-hover",
+           "glass": "glass-lift"}  # Dawn: glass on the Dawn picture (its edge, its top light, a soft drop)
 EASES = ["standard", "enter", "exit", "settle"]
 ANIMATIONS = {
     "fade-in": "fade-in var(--duration-base) var(--ease)",
@@ -135,7 +165,8 @@ ANIMATIONS = {
     "sheet-in": "sheet-in var(--duration-slow) var(--ease)",
     "sheet-out": "sheet-out var(--duration-base) var(--ease)",
     "shimmer": "shimmer 1.6s linear infinite",
-    "pulse-dot": "pulse-dot 1.8s var(--ease) infinite",
+    # Dawn: a dot for work in progress stays still (nothing on a page moves all the time); the name stays
+    "pulse-dot": "none",
     "spin": "spin 0.7s linear infinite",
     "selection-rise": "selection-rise var(--duration-base) var(--ease-enter)",
 }

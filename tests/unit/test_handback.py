@@ -1,6 +1,6 @@
-"""The hand-back note (agentos.node.handback): what changed while a human had a lane.
+"""The hand-back note (openajar.node.handback): what changed while a human had a lane.
 
-Fake pages answer the field read the way the page script does (agentos.node.fields); the real page
+Fake pages answer the field read the way the page script does (openajar.node.fields); the real page
 script runs on Camoufox in tests/node/test_handback_node.py.
 """
 
@@ -12,13 +12,13 @@ import json
 import pytest
 from test_lanes import make
 
-from agentos.core.models import Principal, SnapshotResult
-from agentos.core.runtime import Runtime
-from agentos.node import fields as fields_mod
-from agentos.node.control_tools import tool_specs as control_specs
-from agentos.node.handback import STALE_REFS, attach_note
-from agentos.node.lanes import LaneSpec
-from agentos.node.tools import with_handback
+from openajar.core.models import Principal, SnapshotResult
+from openajar.core.runtime import Runtime
+from openajar.node import fields as fields_mod
+from openajar.node.control_tools import tool_specs as control_specs
+from openajar.node.handback import STALE_REFS, attach_note
+from openajar.node.lanes import LaneSpec
+from openajar.node.tools import with_handback
 
 LANE = "personal/shop"
 OUTLINE = """- textbox "Display name" [ref=e3]
@@ -214,8 +214,8 @@ def test_the_field_reader_keeps_secret_values_out():
 
 
 async def test_browser_act_binds_the_form_a_submit_sends(env):
-    from agentos.core.models import ActionKind
-    from agentos.node.tools import form_before_submit
+    from openajar.core.models import ActionKind
+    from openajar.node.tools import form_before_submit
 
     mgr, page, runtime = env
     asked = {"form": {"action": "shop.test/account", "method": "post", "fields": [

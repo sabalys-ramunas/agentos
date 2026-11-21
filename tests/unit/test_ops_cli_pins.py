@@ -1,8 +1,8 @@
-"""Pins: what `agentos lane check|audit|redteam`, `workspace export|import` and `backup create|verify`
+"""Pins: what `openajar lane check|audit|redteam`, `workspace export|import` and `backup create|verify`
 print on a small home, with times, sizes and paths masked.
 
 The outputs live in tests/golden/ops-cli/. A change that is meant to change them rewrites them with
-AGENTOS_UPDATE_GOLDEN=1; read the diff before committing it.
+OPENAJAR_UPDATE_GOLDEN=1; read the diff before committing it.
 """
 
 from __future__ import annotations
@@ -15,11 +15,11 @@ import pytest
 from test_ops_support import PASSPHRASE, make_home
 from typer.testing import CliRunner
 
-from agentos import cli as root_cli
-from agentos.core.system import Host
+from openajar import cli as root_cli
+from openajar.core.system import Host
 
 GOLDEN = Path(__file__).resolve().parents[1] / "golden" / "ops-cli"
-UPDATE = os.environ.get("AGENTOS_UPDATE_GOLDEN") == "1"
+UPDATE = os.environ.get("OPENAJAR_UPDATE_GOLDEN") == "1"
 
 MASKS = [
     (r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?", "<TS>"),
@@ -31,7 +31,7 @@ MASKS = [
     (r"\b\d+(\.\d+)?\s?(B|KiB|MiB|GiB|KB|MB|bytes)\b", "<SIZE>"),
     (r'"(hostname)": "[^"]*"', r'"\1": "<HOST>"'),
     (r"\(host [^)]*\)", "(host <HOST>)"),
-    (r"by agentos [0-9][^ ,\n\"]*", "by agentos <VER>"),
+    (r"by openajar [0-9][^ ,\n\"]*", "by openajar <VER>"),
     (r'"agentos_version": "[^"]*"', '"agentos_version": "<VER>"'),
 ]
 
@@ -48,7 +48,7 @@ def mask(text: str, tmp: Path) -> str:
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     cfg = make_home(tmp_path, lanes={"personal/reddit": 150, "work/site": None})
-    monkeypatch.setenv("AGENTOS_HOME", str(cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(cfg.home))
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.setattr(Host, "camoufox", lambda self, cache=None: {"verstr": "150.0.1"})
     pw = tmp_path / "pw"
@@ -59,7 +59,7 @@ def home(tmp_path, monkeypatch):
 
 def run(tmp: Path, *args: str) -> str:
     r = runner.invoke(root_cli.app, list(args))
-    return mask(f"$ agentos {' '.join(args)}\nexit {r.exit_code}\n{r.output}", tmp)
+    return mask(f"$ openajar {' '.join(args)}\nexit {r.exit_code}\n{r.output}", tmp)
 
 
 def pin(name: str, text: str) -> None:
@@ -67,7 +67,7 @@ def pin(name: str, text: str) -> None:
     if UPDATE:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
-    assert path.exists(), f"no golden output {path.name}: run with AGENTOS_UPDATE_GOLDEN=1"
+    assert path.exists(), f"no golden output {path.name}: run with OPENAJAR_UPDATE_GOLDEN=1"
     assert text == path.read_text(), f"{name} differs from {path}"
 
 
@@ -83,7 +83,7 @@ def test_lane_check_audit_and_redteam(home, tmp_path):
 
 def test_workspace_export_and_import_plan(home, tmp_path):
     _, pw = home
-    out = tmp_path / "personal.agentos"
+    out = tmp_path / "personal.openajar"
     pin("workspace-export", run(tmp_path, "workspace", "export", "personal", "--to", str(out),
                                 "--passphrase-file", str(pw), "--json"))
     pin("workspace-import-dry-run", run(tmp_path, "workspace", "import", str(out), "--as", "copy", "--dry-run",

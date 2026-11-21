@@ -1,3 +1,3 @@
-$ agentos lane check
+$ openajar lane check
 exit 1
-error: name one lane (agentos lane check biz-a/instagram) or pass --all
+error: name one lane (openajar lane check biz-a/instagram) or pass --all

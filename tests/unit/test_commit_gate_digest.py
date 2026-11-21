@@ -1,4 +1,4 @@
-"""What the commit gate's digest binds (AUD-03, agentos.node.publish): the whole content, never a
+"""What the commit gate's digest binds (AUD-03, openajar.node.publish): the whole content, never a
 prefix; what cannot be bound whole is refused; every value of a repeated key; media by the file
 the guard saw uploaded last under its id, and never by id alone. The review's probes 1, 2 and 6."""
 
@@ -8,10 +8,10 @@ import json
 
 import pytest
 
-from agentos.core.errors import ApprovalPending, PublishUnbound
-from agentos.node import commitgate, publish
-from agentos.node.egress import EFFECT_RULES, Refusal
-from agentos.policy.approval_binding import content_digest
+from openajar.core.errors import ApprovalPending, PublishUnbound
+from openajar.node import commitgate, publish
+from openajar.node.egress import EFFECT_RULES, Refusal
+from openajar.policy.approval_binding import content_digest
 
 RULES = {r.id: r for r in EFFECT_RULES}
 JSON = {"content-type": "application/json"}

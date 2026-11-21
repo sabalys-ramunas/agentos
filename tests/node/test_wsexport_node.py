@@ -1,10 +1,10 @@
 """A workspace export and import with real Camoufox lanes: cookies, local storage and the pinned
 fingerprint survive the round trip, and a warm lane is paused for the copy and warmed again.
 
-Run on the node:  AGENTOS_TEST_SLOT=30 scripts/node-test.sh wsexport tests/node/test_wsexport_node.py
+Run on the node:  OPENAJAR_TEST_SLOT=30 scripts/node-test.sh wsexport tests/node/test_wsexport_node.py
 Slot 30: node A uses displays :300 to :304 (VNC 5300+, viewer 6300+), node B :305 to :309, and the
 fixture site listens on 127.0.0.1:7700. Homes live under .node-home/ in this checkout (override
-with AGENTOS_TEST_ROOT). No proxy, no real site: the only page is the local fixture.
+with OPENAJAR_TEST_ROOT). No proxy, no real site: the only page is the local fixture.
 """
 
 from __future__ import annotations
@@ -22,27 +22,27 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec, LaneState
-from agentos.core.system import Host
-from agentos.node.camoufox.engine import browser_pids_under, read_browser_config
-from agentos.node.display import kill_processes
-from agentos.node.lanes import build_lane_manager
-from agentos.workspaces.transfer.export import export_workspace
-from agentos.workspaces.transfer.import_ import apply_import, plan_import
-from agentos.workspaces.transfer.read import read_export, staging_dir
-from agentos.workspaces.transfer.sources import ManagerCoordinator, Sources
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec, LaneState
+from openajar.core.system import Host
+from openajar.node.camoufox.engine import browser_pids_under, read_browser_config
+from openajar.node.display import kill_processes
+from openajar.node.lanes import build_lane_manager
+from openajar.workspaces.transfer.export import export_workspace
+from openajar.workspaces.transfer.import_ import apply_import, plan_import
+from openajar.workspaces.transfer.read import read_export, staging_dir
+from openajar.workspaces.transfer.sources import ManagerCoordinator, Sources
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "300"))
-VNC = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5300"))
-VIEWER = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6300"))
-SITE_PORT = int(os.environ.get("AGENTOS_TEST_WSX_SITE_PORT", "7700"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "300"))
+VNC = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5300"))
+VIEWER = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6300"))
+SITE_PORT = int(os.environ.get("OPENAJAR_TEST_WSX_SITE_PORT", "7700"))
 PASSPHRASE = "node test export passphrase"
 LANE = "wsx/site"
 PAGE = b"""<!doctype html><html><head><title>wsexport</title></head><body><h1>wsexport</h1></body></html>"""
@@ -116,7 +116,7 @@ async def test_cookies_and_the_device_survive_the_round_trip(root, site):
         pinned = json.loads(a.config.fingerprint_path(LANE).read_text())
 
         # export while the lane is warm: it is paused for the copy and warmed again
-        out = root / "wsx.agentos"
+        out = root / "wsx.openajar"
         src = Sources(config=a.config, lanes=a, coordinator=ManagerCoordinator(a, asyncio.get_running_loop()),
                       host=Host())
         result = await export_workspace(src, "wsx", out, passphrase=PASSPHRASE, log_n=12)

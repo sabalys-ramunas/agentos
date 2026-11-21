@@ -21,7 +21,7 @@ export interface FleetNode {
   version: string;
   degraded: boolean;
   timezone?: string;
-  /** Runs (`agentos run` jobs) running on it now. Absent when the computer runs no terminal lanes. */
+  /** Runs (`openajar run` jobs) running on it now. Absent when the computer runs no terminal lanes. */
   jobs_running?: number;
   /** Its lanes by kind: browsers, terminals, services. */
   lanes_by_kind?: Partial<Record<LaneKind, number>>;

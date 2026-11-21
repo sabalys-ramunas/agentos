@@ -36,10 +36,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Effect, Principal
 from lanebench.executors import ExecResult, RunContext, ToolTrace
 from lanebench.tasks import Task
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Effect, Principal
 
 DEFAULT_CMD = ("claude -p {prompt} --mcp-config {config} --strict-mcp-config "
                "--allowedTools mcp__lanebench --output-format stream-json --verbose")
@@ -52,18 +52,18 @@ PATCH_EXAMPLE = {"role": "button", "names": {"en": "Save", "lt": "Išsaugoti"},
 
 
 def agent_providers() -> list[Any]:
-    """What an agent gets for a browser lane on a node (agentos.mcp.providers.FEATURE_TOOLS, the parts
+    """What an agent gets for a browser lane on a node (openajar.mcp.providers.FEATURE_TOOLS, the parts
     that act on a browser lane): the node's lane and browser tools, files, uploads, tabs and dialogs,
     lane control, and the vault's login, vault_fill and vault_list."""
-    from agentos.node import control_tools, io_tools, vault_tools
-    from agentos.node import tools as node_tools
+    from openajar.node import control_tools, io_tools, vault_tools
+    from openajar.node import tools as node_tools
 
     return [node_tools.tool_specs, io_tools.tool_specs, control_tools.tool_specs, vault_tools.tool_specs]
 
 
 def agent_specs(runtime: Any) -> list[Any]:
     """The tool specs of agent_providers (they also give MCP prompts, which are left out)."""
-    from agentos.core.tools import ToolSpec
+    from openajar.core.tools import ToolSpec
 
     return [s for provide in agent_providers() for s in provide(runtime) if isinstance(s, ToolSpec)]
 
@@ -149,7 +149,7 @@ def _schema_type(prop: dict[str, Any]) -> str:
 def locator_schema() -> str:
     """The repair patch's format, from the runner's Locator model: so the prompt cannot drift from
     what the patch gate validates."""
-    from agentos.core.locator import Locator
+    from openajar.core.locator import Locator
 
     schema = Locator.model_json_schema()
     props = schema["$defs"]["Locator"]["properties"]
@@ -307,9 +307,9 @@ class McpAgentExecutor:
     async def serve(self, task: Task, ctx: RunContext):
         import uvicorn
 
-        from agentos.mcp.http import build_app
-        from agentos.mcp.registry import build_mcp
-        from agentos.node.tools import INSTRUCTIONS
+        from openajar.mcp.http import build_app
+        from openajar.mcp.registry import build_mcp
+        from openajar.node.tools import INSTRUCTIONS
 
         runtime = ctx.runtime
         config = runtime.require("config")

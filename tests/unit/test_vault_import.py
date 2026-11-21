@@ -5,9 +5,9 @@ import os
 
 import pytest
 
-from agentos.vault import importers
-from agentos.vault.errors import EntryInvalid
-from agentos.vault.importers import (
+from openajar.vault import importers
+from openajar.vault.errors import EntryInvalid
+from openajar.vault.importers import (
     detect_format,
     parse_bindings,
     parse_bitwarden_json,
@@ -15,7 +15,7 @@ from agentos.vault.importers import (
     parse_file,
     shred,
 )
-from agentos.vault.models import EntryKind
+from openajar.vault.models import EntryKind
 
 SEED = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
 SECRETS = ("ig-pass-1", "reddit-pass-2", "bank-pass-3", "me@example.org", SEED, "my secret note")

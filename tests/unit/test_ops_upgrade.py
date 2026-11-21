@@ -1,11 +1,11 @@
-"""agentos upgrade: the order of steps, and the rollback path when the new version is unhealthy."""
+"""openajar upgrade: the order of steps, and the rollback path when the new version is unhealthy."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from agentos.ops import upgrade
-from agentos.ops.upgrade import UpgradeError, UpgradePlan, run_upgrade
+from openajar.ops import upgrade
+from openajar.ops.upgrade import UpgradeError, UpgradePlan, run_upgrade
 
 
 class Steps:
@@ -39,7 +39,7 @@ class Steps:
         return ok, "fine" if ok else "MCP does not answer"
 
     def restore_code(self, plan, snapshot): return self._do("restore_code")
-    def restore_databases(self, plan, backup_dir): return self._do("restore_databases", ["agentos.db"])
+    def restore_databases(self, plan, backup_dir): return self._do("restore_databases", ["openajar.db"])
     def restore_lanes(self, plan, backup_dir): return self._do("restore_lanes", ["personal/reddit"])
 
 
@@ -146,7 +146,7 @@ def test_installer_arguments(monkeypatch):
     steps.install(plan(user="agentos", hardened=True))
     assert seen["argv"][1].endswith("deploy/install-node.sh")
     assert seen["argv"][2:] == ["--no-restart", "--systemd", "--user", "agentos", "--hardened"]
-    assert seen["env"] == {"INSTALL_PREFIX": "/opt/agentos", "AGENTOS_HOME": "/var/lib/agentos"}
+    assert seen["env"] == {"INSTALL_PREFIX": "/opt/agentos", "OPENAJAR_HOME": "/var/lib/agentos"}
 
 
 def test_rsync_excludes_keep_managed_runtimes_and_an_inner_home():

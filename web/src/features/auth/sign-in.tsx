@@ -12,13 +12,15 @@ import { Field, Input } from '@/components/ui/field';
 import { describeError } from '@/lib/errors';
 import { getPasskey, passkeysAvailable } from '@/lib/webauthn';
 import { CodeForm } from './code-login';
-import { AuthLayout, Notice, PromisePicture } from './layout';
+import { AuthLayout, authButton, Notice, Or, PromisePicture } from './layout';
+
+const CAPTION = 'Agents work on computers of their own. A post set to ask, a payment or a push to main asks you first.';
 import { InlineError } from '@/components/ui/states';
 
 /** The reasons the API puts on `/sign-in?error=`, in words that say what to do next. */
 const GOOGLE_ERRORS: Record<string, string> = {
   google_failed: 'Google sign-in did not finish. Try again, or use your email.',
-  email_unverified: 'Google has not verified that email address, so agentos cannot use it to sign in.',
+  email_unverified: 'Google has not verified that email address, so openajar cannot use it to sign in.',
   // Google never joins an existing account by email alone (security review 33).
   google_link_required: 'This email already has an account. Sign in with an email link, then link Google in Settings.',
   google_unavailable: 'Google sign-in is not set up on this computer. Sign in with a passkey, or with a code from this computer.',
@@ -59,9 +61,10 @@ export function SignIn() {
 
   return (
     <AuthLayout
-      title={onComputer ? 'Sign in to this computer' : 'Sign in to agentos'}
+      title={onComputer ? 'Sign in to this computer' : 'Sign in to openajar'}
       description={onComputer ? 'Your accounts and passwords stay here.' : 'We email you a link. No password to remember.'}
       aside={<PromisePicture />}
+      caption={CAPTION}
       footer={
         onComputer ? undefined : (
           <>
@@ -89,22 +92,32 @@ export function SignIn() {
       {providers?.magic_link !== false ? (
       <form onSubmit={submit} className="grid gap-4">
         <Field label="Email" error={send.isError ? describeError(send.error) : null}>
-          <Input autoFocus type="email" autoComplete="email webauthn" required className="h-10" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <Input
+            autoFocus
+            type="email"
+            inputMode="email"
+            autoComplete="email webauthn"
+            required
+            placeholder="you@company.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
         </Field>
-        <Button type="submit" variant="primary" size="lg" loading={send.isPending}>
+        <Button type="submit" variant="primary" size="lg" className={authButton} loading={send.isPending}>
           Continue with email
         </Button>
       </form>
       ) : null}
       {providers?.google || (providers?.passkey && passkeysAvailable()) ? (
-        <div className="mt-4 grid gap-2 border-t border-line pt-4">
+        <div className="mt-3 grid gap-3">
+          {providers?.magic_link !== false ? <Or /> : null}
           {providers.passkey && passkeysAvailable() ? (
-            <Button size="lg" loading={passkey.isPending} icon={<Fingerprint className="size-4" />} onClick={() => passkey.mutate()}>
+            <Button size="lg" className={authButton} loading={passkey.isPending} icon={<Fingerprint className="size-4" />} onClick={() => passkey.mutate()}>
               Use a passkey
             </Button>
           ) : null}
           {providers.google ? (
-            <Button size="lg" asChild>
+            <Button size="lg" className={authButton} asChild>
               <a href={auth.googleStartUrl({ next })}>
                 <SiteMark site="google" size={16} label={false} />
                 Continue with Google
@@ -114,7 +127,7 @@ export function SignIn() {
         </div>
       ) : null}
       {passkey.isError ? (
-        <InlineError className="mt-2">
+        <InlineError className="mt-3">
           {onComputer ? 'That passkey did not work. Try again, or use a sign-in code.' : 'That passkey did not work. Try again, or use your email.'}
         </InlineError>
       ) : null}

@@ -1,5 +1,5 @@
 /**
- * agentos's own composites, from the mock: one environment as its page draws it. They live in their
+ * openajar's own composites, from the mock: one environment as its page draws it. They live in their
  * feature (features/environments, features/lane) because each reads its own data; a new screen about an
  * environment or an account reuses them instead of drawing its own.
  */
@@ -9,8 +9,9 @@ import type { EnvDetail } from '@/api/types';
 import { Card } from '@/components/ui/card';
 import { ErrorState, Skeleton } from '@/components/ui/states';
 import { CheckpointsCard } from '@/features/environments/checkpoints';
-import { BrowserCard, CommandsCard, MachineCard } from '@/features/environments/env-cards';
-import { Facts } from '@/features/environments/env-header';
+import { CommandsCard, MachineLine } from '@/features/environments/env-cards';
+import { TimePanel } from '@/features/environments/env-panels';
+import { EnvStage } from '@/features/environments/env-stage';
 import { ProofsCard } from '@/features/environments/proofs';
 import { useNow } from '@/lib/use-now';
 
@@ -38,11 +39,11 @@ function Loading({ children }: { children: (org: string, env: EnvDetail, now: nu
 }
 
 export function FactsDemo() {
-  return <Loading>{(_org, env, now) => <Facts env={env} now={now} />}</Loading>;
+  return <Loading>{(_org, env, now) => <TimePanel env={env} now={now} glass={false} />}</Loading>;
 }
 
 export function LiveViewDemo() {
-  return <Loading>{(org, env) => <BrowserCard org={org} env={env} />}</Loading>;
+  return <Loading>{(org, env) => <div className="rounded-xl bg-stage p-4"><EnvStage org={org} env={env} /></div>}</Loading>;
 }
 
 export function TerminalListDemo() {
@@ -58,5 +59,5 @@ export function TimelineDemo() {
 }
 
 export function CostLineDemo() {
-  return <Loading>{(_org, env) => <MachineCard env={env} />}</Loading>;
+  return <Loading>{(_org, env) => <MachineLine env={env} />}</Loading>;
 }

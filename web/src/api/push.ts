@@ -15,7 +15,7 @@ export type PushBlock = 'unsupported' | 'needs_install' | 'denied' | null;
 
 export function pushBlock(): PushBlock {
   const capable = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-  // Safari on iPhone and iPad has no PushManager until agentos is on the Home Screen.
+  // Safari on iPhone and iPad has no PushManager until openajar is on the Home Screen.
   if (!capable) return isIos() && !isStandalone() ? 'needs_install' : 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
   return null;

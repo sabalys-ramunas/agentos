@@ -1,4 +1,4 @@
-"""The owner can issue a memory grant: `agentos grants issue --special memory` and the panel's
+"""The owner can issue a memory grant: `openajar grants issue --special memory` and the panel's
 POST /api/grants with specials ["memory"]."""
 
 from __future__ import annotations
@@ -7,20 +7,20 @@ import pytest
 from test_policy_support import OWNER, Clock, make_service
 from typer.testing import CliRunner
 
-from agentos.api.bridge import PolicyAdapter
-from agentos.api.routes_settings import SPECIALS, GrantCreate
-from agentos.core.config import NodeConfig, save_config
-from agentos.core.models import Principal
-from agentos.policy.cli import app
-from agentos.policy.memory_rules import memory_scope
-from agentos.policy.service import PolicyService
+from openajar.api.bridge import PolicyAdapter
+from openajar.api.routes_settings import SPECIALS, GrantCreate
+from openajar.core.config import NodeConfig, save_config
+from openajar.core.models import Principal
+from openajar.policy.cli import app
+from openajar.policy.memory_rules import memory_scope
+from openajar.policy.service import PolicyService
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, mcp_token=OWNER))
     return tmp_path
 

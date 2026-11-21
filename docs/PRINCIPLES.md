@@ -1,11 +1,11 @@
 # Principles
 
-These are the lines agentos is built on. They decide what goes in the core, what is a
+These are the lines openajar is built on. They decide what goes in the core, what is a
 paid-cloud concern, and what never ships. They come before features.
 
 ## 1. Offload, not impersonation
 
-agentos exists to move work you already do onto machines that do not overload your
+openajar exists to move work you already do onto machines that do not overload your
 laptop. The browser engines, proxies and persistent profiles are there to reach parity
 with normal use on your own accounts: log in and act the way you would from your own
 home computer, just somewhere else. They are not there to defeat detection at scale or
@@ -24,7 +24,7 @@ In practice:
 - Acting for someone else: only through a route they consent to, and can revoke.
   Prefer the platform's own delegation (a Facebook Page role, an OAuth grant, a seller
   user invite) over anything that moves a password.
-- Mass or fake account creation: no. When agentos reaches a hosted product, it will add
+- Mass or fake account creation: no. When openajar reaches a hosted product, it will add
   controls specifically to stop it from being used that way.
 
 ## 3. The model never sees a secret
@@ -69,20 +69,20 @@ their own, revoking one revokes everything under it, and the node checks every c
 ## 7. Say when it is an agent
 
 Where a platform or the law asks for it (the EU AI Act's disclosure rule, a site's
-agent policy), agentos labels its actions as automated rather than hiding them. Being
+agent policy), openajar labels its actions as automated rather than hiding them. Being
 able to identify as an agent is treated as a feature.
 
 ## 8. Curated flows, not an open marketplace
 
 Shared automations are a supply-chain risk (see the malicious-skill incidents in
-RESEARCH.md). agentos starts with first-party, reviewed flows. If third-party sharing
+RESEARCH.md). openajar starts with first-party, reviewed flows. If third-party sharing
 ever opens, a flow must declare what it needs, run sandboxed in a lane with no raw
 shell, come from a signed publisher, be scanned in full, and need an explicit approval
 to install.
 
 ## 9. No phishing-shaped login pages
 
-agentos will not serve a page that imitates a platform's login on a shared domain to
+openajar will not serve a page that imitates a platform's login on a shared domain to
 capture a credential. That is indistinguishable from a browser-in-the-middle phishing
 kit, it gets domains blocklisted, and it breaks principle 2. Collaboration happens by
 sharing a node or lane with a trusted person's own agent, or through official

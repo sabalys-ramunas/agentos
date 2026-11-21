@@ -30,7 +30,7 @@ export const LEVEL_SENTENCE: Record<EnvNetworkLevel, string> = {
 const BLOCKED_SHOWN = 4;
 
 /** The exact command that allows one host. The web app shows it; the owner runs it on the node. */
-export const allowCommand = (host: string) => `agentos environments allow --host ${host}`;
+export const allowCommand = (host: string) => `openajar environments allow --host ${host}`;
 
 export function NetworkCard({ network, now }: { network: EnvNetwork; now: number }) {
   const [all, setAll] = useState(false);

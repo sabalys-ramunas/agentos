@@ -1,7 +1,7 @@
 """Characterization of the stealth findings: the two real probe dumps and the test pin, each changed in
 one way per branch of dump_findings and pin_findings, and every finding that comes out (check,
 level, detail, data), pinned in tests/fixtures/stealth/findings_golden.json. Regenerate the file
-only when a change to the findings is meant: AGENTOS_REGEN_GOLDEN=1.
+only when a change to the findings is meant: OPENAJAR_REGEN_GOLDEN=1.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 from test_stealth import LINUX_UA, dump, pin
 
-from agentos.stealth import stealth
+from openajar.stealth import stealth
 
 GOLDEN = Path(__file__).resolve().parents[1] / "fixtures" / "stealth" / "findings_golden.json"
 MAC_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0"
@@ -135,7 +135,7 @@ def _actual() -> dict:
 
 def test_the_stealth_findings_are_what_they_were():
     actual = _actual()
-    if os.environ.get("AGENTOS_REGEN_GOLDEN"):
+    if os.environ.get("OPENAJAR_REGEN_GOLDEN"):
         GOLDEN.write_text(json.dumps(actual, indent=1, sort_keys=True) + "\n")
     golden = json.loads(GOLDEN.read_text())
     assert actual.keys() == golden.keys()

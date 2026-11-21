@@ -14,10 +14,10 @@ import asyncio
 import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.core import catalog
-from agentos.environments.errors import EnvironmentFull
-from agentos.mcp.registry import failure_result
-from agentos.policy.wrap import ToolCallError
+from openajar.core import catalog
+from openajar.environments.errors import EnvironmentFull
+from openajar.mcp.registry import failure_result
+from openajar.policy.wrap import ToolCallError
 
 NONE = None  # a client that sends no MCP session id
 
@@ -62,7 +62,7 @@ async def test_a_machine_still_being_deleted_counts_and_frees_in_a_minute(node):
 def test_the_error_carries_its_own_retry_after():
     from types import SimpleNamespace
 
-    from agentos.policy.redactor import Redactor
+    from openajar.policy.redactor import Redactor
 
     spec = SimpleNamespace(name="environment_open")
     res = failure_result(spec, EnvironmentFull("this node already runs 2 machines", retry_after=240), Redactor(None))
@@ -132,7 +132,7 @@ async def test_environment_on_answers_after_its_wait_with_what_it_does(node):  #
 def later(node, minutes: float) -> None:  # noqa: F811
     from datetime import timedelta
 
-    from agentos.core.models import utcnow
+    from openajar.core.models import utcnow
 
     at = utcnow() + timedelta(minutes=minutes)
     node["mgr"]._clock = lambda: at

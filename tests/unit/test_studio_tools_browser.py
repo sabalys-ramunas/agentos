@@ -18,11 +18,11 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from agentos.core.runtime import Runtime
-from agentos.studio import shaping, tools
-from agentos.studio.browser import HttpErrorPage, ReviewPool, devices, engines, studio_status
-from agentos.studio.contracts import EngineName, Screen, Target, Theme
-from agentos.studio.review import DevErrorOverlay, resettle
+from openajar.core.runtime import Runtime
+from openajar.studio import shaping, tools
+from openajar.studio.browser import HttpErrorPage, ReviewPool, devices, engines, studio_status
+from openajar.studio.contracts import EngineName, Screen, Target, Theme
+from openajar.studio.review import DevErrorOverlay, resettle
 
 pw = pytest.importorskip("playwright.async_api")
 pytestmark = pytest.mark.asyncio(loop_scope="module")

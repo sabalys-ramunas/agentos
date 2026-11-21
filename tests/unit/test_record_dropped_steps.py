@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from test_runner_tools import FakeCtx, spec
 
-from agentos.runner.fakes import BASE, Harness
-from agentos.runner.tools import tool_specs
+from openajar.runner.fakes import BASE, Harness
+from openajar.runner.tools import tool_specs
 
 LANE = "biz-a/social"
 CAPTION = {"role": "textbox", "name": "Write a caption..."}

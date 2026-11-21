@@ -150,7 +150,7 @@ function Row({ row, first, last, sideTop, now, onOpen }: RowProps) {
             <span className={cn('font-mono text-code-caption tabular', side ? 'text-faint' : 'text-muted')}>{number}</span>
             <span className={cn('min-w-0 text-label [overflow-wrap:anywhere]', side ? 'text-muted' : 'font-medium text-fg', !checkpoint.note && 'text-faint')}>{noteOf(checkpoint)}</span>
             {row.forks ? <Badge tone="accent">Went back here</Badge> : null}
-            {checkpoint.auto ? <Badge>Made by agentos</Badge> : null}
+            {checkpoint.auto ? <Badge>Made by openajar</Badge> : null}
           </span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {checkpoint.at ? (

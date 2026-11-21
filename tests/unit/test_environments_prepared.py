@@ -1,5 +1,5 @@
-"""Prepared machines, the app started at open, and the warm pool (agentos.environments.repoconfig,
-prepared, preparing, prepbuild and warmpool). The cloud is agentos.vms's FakeProvider and every command
+"""Prepared machines, the app started at open, and the warm pool (openajar.environments.repoconfig,
+prepared, preparing, prepbuild and warmpool). The cloud is openajar.vms's FakeProvider and every command
 on a machine is answered by a fake, as in test_environments.py; test_environments_docker.py and the
 docker dev node run the real thing."""
 
@@ -13,23 +13,23 @@ from types import SimpleNamespace
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.models import Effect, utcnow
-from agentos.dev.lanes import FakeLaneManager
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import bringup, machine, prepbuild, repoconfig
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.environments.prepared import Prepared, PreparedStore
-from agentos.environments.repoconfig import ConfigError, ConfigRead, blob_id, parse, prepared_key
-from agentos.environments.tools import tool_specs as env_tool_specs
-from agentos.policy.wrap import bind_request_token, wrap_tool
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmSettings
-from agentos.vms.provider import FakeProvider
+from openajar.core.models import Effect, utcnow
+from openajar.dev.lanes import FakeLaneManager
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import bringup, machine, prepbuild, repoconfig
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.environments.prepared import Prepared, PreparedStore
+from openajar.environments.repoconfig import ConfigError, ConfigRead, blob_id, parse, prepared_key
+from openajar.environments.tools import tool_specs as env_tool_specs
+from openajar.policy.wrap import bind_request_token, wrap_tool
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmSettings
+from openajar.vms.provider import FakeProvider
 
 REPO = "example.test/me/shop"
 CONFIG = """
@@ -63,7 +63,7 @@ def test_a_bad_file_names_the_key_and_the_fix(text, words):
     with pytest.raises(ConfigError) as e:
         parse(text)
     assert words in str(e.value)
-    assert ".agentos/environment.toml" in str(e.value)
+    assert ".openajar/environment.toml" in str(e.value)
 
 
 def test_an_unknown_key_lists_the_keys_there_are():
@@ -107,7 +107,7 @@ async def test_a_public_repository_is_read_from_githubs_raw_files(tmp_path):
 
     async def fetch(url):
         asked.append(url)
-        if url.endswith(".agentos/environment.toml"):
+        if url.endswith(".openajar/environment.toml"):
             return 200, CONFIG.encode()
         if url.endswith("/pnpm-lock.yaml"):
             return 200, lock
@@ -118,7 +118,7 @@ async def test_a_public_repository_is_read_from_githubs_raw_files(tmp_path):
     read = await mgr._read_github("me/shop", "feature/x")
     assert read.state == "found" and read.config.setup.startswith("pnpm install")
     assert read.inputs == {"pnpm-lock.yaml": blob_id(lock)}
-    assert asked[0] == "https://raw.githubusercontent.com/me/shop/feature/x/.agentos/environment.toml"
+    assert asked[0] == "https://raw.githubusercontent.com/me/shop/feature/x/.openajar/environment.toml"
     mgr.raw_fetch = lambda url: _answer(404)
     assert (await mgr._read_github("me/shop", None)).state == "absent"
     mgr.raw_fetch = lambda url: _answer(0)
@@ -136,14 +136,14 @@ async def test_a_declared_repository_is_read_from_the_nodes_mirror(tmp_path):
                                              cwd=cwd, check=True, capture_output=True)
     src.mkdir()
     run("init", "-q", "-b", "main")
-    (src / ".agentos").mkdir()
-    (src / ".agentos" / "environment.toml").write_text(CONFIG)
+    (src / ".openajar").mkdir()
+    (src / ".openajar" / "environment.toml").write_text(CONFIG)
     (src / "pnpm-lock.yaml").write_text("lockfileVersion: 9\n")
     run("add", "-A")
     run("commit", "-q", "-m", "one")
     mirror_path = tmp_path / "mirror.git"
     run("clone", "-q", "--mirror", str(src), str(mirror_path), cwd=tmp_path)
-    from agentos.git.upstream import Mirror
+    from openajar.git.upstream import Mirror
 
     mirror = Mirror(mirror_path, hooks_dir=tmp_path / "hooks")
 
@@ -167,6 +167,57 @@ async def test_a_declared_repository_is_read_from_the_nodes_mirror(tmp_path):
     read = await asyncio.wait_for(mgr._read_mirror(cold, "env/eabc", "owner", REPO, None), 2)
     assert read.state == "unreadable" and "checkout" in read.why
     slow.set()
+
+
+def _sh(cmd, cwd):
+    return subprocess.run(["sh", "-c", cmd], cwd=cwd, capture_output=True, text=True, check=True).stdout
+
+
+# legacy-name: begin (a repository that has the file where 0.4.0 read it, .agentos/environment.toml)
+async def test_a_repository_with_the_file_under_its_old_name_is_read_too(tmp_path):
+    """0.4.0 read .agentos/environment.toml: a repository that has it there still gets its prepared machine,
+    from GitHub, from the node's mirror and from the checkout, and the new name wins when both are there."""
+    async def fetch(url):
+        if url.endswith("/.agentos/environment.toml"):
+            return 200, CONFIG.encode()
+        return 404, b""
+
+    mgr = EnvironmentManager(tmp_path, settings=EnvSettings())
+    mgr.raw_fetch = fetch
+    assert (await mgr._read_github("me/shop", None)).state == "found"
+
+    src = tmp_path / "src"
+    run = lambda *a, cwd=src: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.test", *a],
+                                             cwd=cwd, check=True, capture_output=True, text=True)
+    src.mkdir()
+    run("init", "-q", "-b", "main")
+    (src / ".agentos").mkdir()
+    (src / ".agentos" / "environment.toml").write_text(CONFIG)
+    run("add", "-A")
+    run("commit", "-q", "-m", "one")
+    mirror_path = tmp_path / "mirror.git"
+    run("clone", "-q", "--mirror", str(src), str(mirror_path), cwd=tmp_path)
+    from openajar.git.upstream import Mirror
+
+    async def warm(lane, *, grant_id, repo):
+        return True
+
+    git = SimpleNamespace(warm=warm, gateway=SimpleNamespace(mirror=lambda remote: Mirror(mirror_path,
+                                                                                         hooks_dir=tmp_path / "hooks")))
+    read = await mgr._read_mirror(git, "env/eabc", "owner", REPO, None)
+    assert read.state == "found" and read.config.setup.startswith("pnpm install")
+
+    from openajar.environments.repoconfig import CHECKOUT_READ
+
+    out = _sh(CHECKOUT_READ, src)
+    assert out.startswith("config=") and not out.startswith("config=-")
+    (src / ".openajar").mkdir()
+    (src / ".openajar" / "environment.toml").write_text("setup = \"make\"\n")
+    out = _sh(CHECKOUT_READ, src)
+    import base64
+
+    assert base64.b64decode(out.split("\n")[0][len("config="):]).decode() == "setup = \"make\"\n"
+# legacy-name: end
 
 
 # ------------------------------------------------------------------ the store
@@ -391,7 +442,7 @@ async def test_second_open_boots_the_prepared_machine_skips_setup_and_refreshes(
     assert not node.mgr._builds()  # nothing to build: it is ready
 
 
-async def test_an_image_deleted_outside_agentos_is_forgotten_and_built_again(node):
+async def test_an_image_deleted_outside_openajar_is_forgotten_and_built_again(node):
     await node.call("environment_open", title="Shop", repo=REPO)
     await builds_done(node.mgr)
     [rec] = node.mgr.prepared_store().all()
@@ -443,7 +494,7 @@ async def test_no_file_changes_nothing_and_says_how_to_add_one(node):
     node.reads["text"] = None
     out = await node.call("environment_open", title="Shop", repo=REPO)
     assert out["state"] == "ready" and "app" not in out
-    assert out["prepared"]["used"] is False and ".agentos/environment.toml" in out["prepared"]["why"]
+    assert out["prepared"]["used"] is False and ".openajar/environment.toml" in out["prepared"]["why"]
     assert not any("bash -c" in c for c in node.machine.cmds("env/"))
     assert not node.mgr._builds()
 
@@ -741,8 +792,8 @@ async def test_a_crash_after_the_claim_still_deletes_the_machine(node):
 
 
 async def test_a_new_mcp_session_gives_the_hint(node):
-    """agentos.mcp.http: a POST with no session id is a new session; the hint gets its token."""
-    from agentos.mcp.http import BearerAuth
+    """openajar.mcp.http: a POST with no session id is a new session; the hint gets its token."""
+    from openajar.mcp.http import BearerAuth
 
     seen: list[str] = []
 
@@ -759,8 +810,8 @@ async def test_a_new_mcp_session_gives_the_hint(node):
 
 
 async def test_allow_warm_takes_effect_on_a_running_node(node):
-    """`agentos environments allow --warm 1` writes environments.toml; the pool reads it when it changes."""
-    from agentos.environments.cli import _write_settings
+    """`openajar environments allow --warm 1` writes environments.toml; the pool reads it when it changes."""
+    from openajar.environments.cli import _write_settings
 
     assert node.mgr.pool_view()["target"] == 0
     _write_settings({"warm": 1, "warm_minutes": 30}, home=node.mgr.home)
@@ -777,9 +828,9 @@ def cli(node, monkeypatch):
     from test_environments_downloads import _bridge
     from typer.testing import CliRunner
 
-    from agentos.api import ApiSettings, build_api
-    from agentos.core import config as config_mod
-    from agentos.environments import prepared_cli
+    from openajar.api import ApiSettings, build_api
+    from openajar.core import config as config_mod
+    from openajar.environments import prepared_cli
 
     home = node.mgr.home
     api = build_api(node.rt, ApiSettings(lane_pump_seconds=0, panel_dir=home / "no-panel"))
@@ -816,7 +867,7 @@ async def test_the_cli_builds_lists_and_forgets_a_prepared_machine(node, cli):
 async def test_the_cli_says_when_there_is_nothing_to_prepare(node, cli):
     node.reads["text"] = None
     res = await cli.run("prepare", REPO)
-    assert res.exit_code == 1 and "nothing to prepare" in res.output and ".agentos/environment.toml" in res.output
+    assert res.exit_code == 1 and "nothing to prepare" in res.output and ".openajar/environment.toml" in res.output
 
 
 async def test_the_prepare_route_is_the_owners_only(node, cli):
@@ -829,7 +880,7 @@ async def test_the_prepare_route_is_the_owners_only(node, cli):
         owner = node.rt.get("config").mcp_token
         r = await c.post("/api/environments/prepare", json={"repo": REPO}, headers={"Authorization": f"Bearer {owner}"})
         assert r.status_code == 403 and "presence_required" in r.text  # the bare node token is no person
-        from agentos.commands.base import operator_presence
+        from openajar.commands.base import operator_presence
 
         person = operator_presence(node.rt.get("config"))
         r = await c.post("/api/environments/prepare", json={"repo": REPO},

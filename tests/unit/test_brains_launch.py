@@ -14,11 +14,11 @@ from pathlib import Path
 import pytest
 from test_runas import FakeSystem
 
-from agentos import runas
-from agentos.brains import launch
-from agentos.brains.shim import Shim
-from agentos.dev import fakecli
-from agentos.runas import Identity, Server
+from openajar import runas
+from openajar.brains import launch
+from openajar.brains.shim import Shim
+from openajar.dev import fakecli
+from openajar.runas import Identity, Server
 
 
 @pytest.fixture
@@ -57,9 +57,9 @@ def test_brain_files_are_private_to_the_brain(launcher, tmp_path):
     base = tmp_path / "brain" / "tasks" / "t1"
     files.mkdirs(base / "work", base / "home")
     assert stat.S_IMODE((base / "home").stat().st_mode) == 0o700
-    files.write(base / "home" / "agentos-mcp.json", '{"token": "x"}', 0o600)
-    assert stat.S_IMODE((base / "home" / "agentos-mcp.json").stat().st_mode) == 0o600
-    assert files.read(base / "home" / "agentos-mcp.json") == b'{"token": "x"}'
+    files.write(base / "home" / "openajar-mcp.json", '{"token": "x"}', 0o600)
+    assert stat.S_IMODE((base / "home" / "openajar-mcp.json").stat().st_mode) == 0o600
+    assert files.read(base / "home" / "openajar-mcp.json") == b'{"token": "x"}'
     assert files.read(base / "home" / "missing") is None
     src = tmp_path / "stage"
     (src / "pkg").mkdir(parents=True)
@@ -67,8 +67,8 @@ def test_brain_files_are_private_to_the_brain(launcher, tmp_path):
     (src / "README").write_text("R")
     files.unpack(src, base / "work")
     assert (base / "work" / "pkg" / "a.txt").read_text() == "A" and (base / "work" / "README").read_text() == "R"
-    files.remove(base / "home" / "agentos-mcp.json")
-    assert not (base / "home" / "agentos-mcp.json").exists()
+    files.remove(base / "home" / "openajar-mcp.json")
+    assert not (base / "home" / "openajar-mcp.json").exists()
 
 
 def test_a_fifo_the_brain_planted_is_replaced_not_written_into(launcher, tmp_path):

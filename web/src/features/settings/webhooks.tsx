@@ -1,3 +1,4 @@
+import { InlineError } from '@/components/ui/states';
 import { useParams } from '@tanstack/react-router';
 import { MoreHorizontal, Plus, Webhook as WebhookIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -21,8 +22,9 @@ import { Field, Input } from '@/components/ui/field';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu';
 import { CodeBlock } from '@/components/ui/misc';
 import { Status } from '@/components/ui/status';
-import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
-import { Checkbox, Switch } from '@/components/ui/toggle';
+import { CheckCard } from '@/components/ui/choice';
+import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { Switch } from '@/components/ui/toggle';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/errors';
@@ -40,24 +42,17 @@ function eventsLine(events: WebhookEvent[]) {
 function EventPicker({ value, onChange }: { value: WebhookEvent[]; onChange: (next: WebhookEvent[]) => void }) {
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-2 text-secondary font-medium">Send these events</legend>
-      {EVENTS.map((event) => {
-        const id = `event-${event}`;
-        return (
-          <div key={event} className="flex items-start gap-3 rounded-lg border border-line px-3 py-2">
-            <Checkbox
-              id={id}
-              className="mt-[2px]"
-              checked={value.includes(event)}
-              onCheckedChange={(checked) => onChange(checked === true ? [...value, event] : value.filter((item) => item !== event))}
-            />
-            <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
-              <span className="block text-body">{webhookEvent[event].label}</span>
-              <span className="block text-secondary text-faint">{webhookEvent[event].hint}</span>
-            </label>
-          </div>
-        );
-      })}
+      <legend className="mb-2 text-label text-fg">Send these events</legend>
+      {EVENTS.map((event) => (
+        <CheckCard
+          key={event}
+          className="p-3"
+          checked={value.includes(event)}
+          onCheckedChange={(checked) => onChange(checked ? [...value, event] : value.filter((item) => item !== event))}
+          title={webhookEvent[event].label}
+          description={webhookEvent[event].hint}
+        />
+      ))}
     </fieldset>
   );
 }
@@ -69,7 +64,7 @@ function SecretDialog({ secret, rotated, onClose }: { secret: string | null; rot
       open={secret !== null}
       onOpenChange={(open) => !open && onClose()}
       title={rotated ? 'Copy the new signing secret' : 'Copy the signing secret'}
-      description="You will not see this again. agentos keeps it sealed and never shows it back, so store it where your receiver can read it."
+      description="You will not see this again. openajar keeps it sealed and never shows it back, so store it where your receiver can read it."
       footer={
         <Button variant="primary" onClick={onClose}>
           Done
@@ -114,7 +109,7 @@ function AddDialog({ org, open, onOpenChange, onCreated }: { org: string; open: 
       open={open}
       onOpenChange={close}
       title="Add a webhook"
-      description="agentos sends a signed POST to this address. Only https on port 443 or 8443, and never to a private address."
+      description="openajar sends a signed POST to this address. Only https on port 443 or 8443, and never to a private address."
       footer={
         <>
           <Button onClick={() => close(false)}>Cancel</Button>
@@ -133,7 +128,7 @@ function AddDialog({ org, open, onOpenChange, onCreated }: { org: string; open: 
             inputMode="url"
             autoComplete="off"
             spellCheck={false}
-            placeholder="https://hooks.example.com/agentos"
+            placeholder="https://hooks.example.com/openajar"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
           />
@@ -299,13 +294,13 @@ export function WebhooksSettings() {
         description="Signed messages to a server you run when something needs you or a run fails. Yours alone: nobody else in the org sees them."
         action={
           canManage && !isNotServed(hooks.error) && hooks.data?.length ? (
-            <Button icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
               Add webhook
             </Button>
           ) : undefined
         }
       />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <Card className="overflow-hidden">
           <QueryView
             query={hooks}
@@ -323,8 +318,8 @@ export function WebhooksSettings() {
                   <thead className="hidden md:table-header-group">
                     <tr>
                       <Th>Address</Th>
-                      <Th>Last delivery</Th>
-                      <Th>On</Th>
+                      <Th className="w-36">Last delivery</Th>
+                      <Th className="w-16">On</Th>
                       <Th className="w-12">
                         <span className="sr-only">Actions</span>
                       </Th>
@@ -336,7 +331,9 @@ export function WebhooksSettings() {
                       return (
                         <Tr key={hook.id}>
                           <Td className={mainCell}>
-                            <p className="mono truncate text-secondary">{hook.origin}</p>
+                            <p className="mono truncate text-code text-fg" title={hook.origin}>
+                              {hook.origin}
+                            </p>
                             <p className="truncate text-secondary text-faint">{eventsLine(hook.events)}</p>
                             <p className="truncate text-secondary text-faint md:hidden">
                               {last ? `${deliveryState[last.state].label} ${timeAgo(last.created_at).toLowerCase()}` : 'Nothing sent yet'}
@@ -346,12 +343,12 @@ export function WebhooksSettings() {
                             {last ? (
                               <button
                                 type="button"
-                                className="flex items-center gap-2 rounded-sm text-left"
+                                className="-mx-2 grid gap-1 rounded-md px-2 py-1 text-left hover:bg-hover"
                                 onClick={() => setLogOf(hook)}
                                 aria-label={`Deliveries to ${hook.origin}`}
                               >
                                 <Status status={deliveryState[last.state]} />
-                                <span className="text-secondary text-faint">{timeAgo(last.created_at)}</span>
+                                <span className="text-caption text-faint">{timeAgo(last.created_at)}</span>
                               </button>
                             ) : (
                               <span className="text-secondary text-faint">Nothing sent yet</span>
@@ -395,7 +392,7 @@ export function WebhooksSettings() {
                   title="No webhooks yet"
                   description={
                     canManage
-                      ? 'Send approvals and failed runs to a server you run, signed so it can tell they came from agentos.'
+                      ? 'Send approvals and failed runs to a server you run, signed so it can tell they came from openajar.'
                       : 'Webhooks are for members who operate lanes. An admin can change your role.'
                   }
                   action={
@@ -411,9 +408,7 @@ export function WebhooksSettings() {
           </QueryView>
         </Card>
         {update.isError && !isCancelled(update.error) ? (
-          <InlineError>
-            {describeError(update.error)} It is back as it was.
-          </InlineError>
+          <InlineError>{describeError(update.error)} It is back as it was.</InlineError>
         ) : null}
         <Signature />
       </div>

@@ -13,15 +13,15 @@ import pytest
 from testkit.brains import API_KEY, FakeCtx, FakeNotifier, FakePolicy, add, make_service
 from typer.testing import CliRunner
 
-from agentos.brains import adapters, cliprobe, decisions
-from agentos.brains import cli as brains_cli
-from agentos.brains.decisions import (
+from openajar.brains import adapters, cliprobe, decisions
+from openajar.brains import cli as brains_cli
+from openajar.brains.decisions import (
     DecisionBlocked,
     DecisionOverBudget,
     DecisionRejected,
     DecisionUnavailable,
 )
-from agentos.brains.models import (
+from openajar.brains.models import (
     BrainKind,
     BrainSpec,
     BrainState,
@@ -32,11 +32,11 @@ from agentos.brains.models import (
     Requirements,
     Runner,
 )
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
-from agentos.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
+from openajar.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
 
 P = Principal(id="pilot", thread="T-1", grant_id="g_pilot")
 KEY = "ts-key-" + "k" * 32
@@ -496,7 +496,7 @@ async def test_backoff_doubles_with_a_little_spread(tmp_path, monkeypatch):
     async def sleep(seconds):
         waits.append(seconds)
 
-    monkeypatch.setattr("agentos.brains.service.asyncio.sleep", sleep)
+    monkeypatch.setattr("openajar.brains.service.asyncio.sleep", sleep)
     ep = Endpoint(httpx.Response(503), httpx.Response(503), reply())
     svc = service(tmp_path, ep, decide_backoff_seconds=0.25)
     await jev(svc)
@@ -515,7 +515,7 @@ async def test_a_rejected_key_means_needs_auth_and_one_notification(tmp_path, st
     state, _ = await svc.effective_state(svc.get_spec("jev"))
     assert state == BrainState.NEEDS_AUTH
     sent = svc.runtime.get("notifier").sent
-    assert len(sent) == 1 and sent[0]["kind"] == "brain.needs_auth" and "agentos brains auth jev" in sent[0]["body"]
+    assert len(sent) == 1 and sent[0]["kind"] == "brain.needs_auth" and "openajar brains auth jev" in sent[0]["body"]
     with pytest.raises(DecisionUnavailable) as err:  # the router now keeps calls away from it
         await ask(svc)
     assert err.value.state == "needs_auth" and ep.calls == 1 and len(sent) == 1
@@ -589,7 +589,7 @@ async def test_a_short_retry_after_is_waited_for_and_never_cools_the_brain(tmp_p
     async def sleep(seconds):
         waits.append(seconds)
 
-    monkeypatch.setattr("agentos.brains.service.asyncio.sleep", sleep)
+    monkeypatch.setattr("openajar.brains.service.asyncio.sleep", sleep)
     ep = Endpoint(httpx.Response(429, headers={"Retry-After": "1"}), reply())
     svc = service(tmp_path, ep)
     await jev(svc)
@@ -1048,7 +1048,7 @@ def test_brains_test_live_asks_one_harmless_noul_and_prints_latency_and_tokens(c
 
 def test_brains_test_live_needs_no_grant_for_its_own_cent_but_keeps_the_privacy_floor(cli):
     add_jev()
-    cli.set_privacy("agentos-test", Privacy.LOCAL_ONLY)
+    cli.set_privacy("openajar-test", Privacy.LOCAL_ONLY)
     code, out = invoke("test", "jev", "--live")
     assert code == 1 and "decision_unavailable" in out and "local-only" in out and cli.endpoint.calls == 0
 
@@ -1057,7 +1057,7 @@ def test_a_failed_live_test_exits_one_with_the_fix(cli):
     add_jev()
     cli.endpoint.script = [httpx.Response(401)]
     code, out = invoke("test", "jev", "--live")
-    assert code == 1 and "rejected its API key" in out and "agentos brains list" in out and KEY not in out
+    assert code == 1 and "rejected its API key" in out and "openajar brains list" in out and KEY not in out
 
 
 def test_doctor_lists_the_runner_without_a_binary(cli):

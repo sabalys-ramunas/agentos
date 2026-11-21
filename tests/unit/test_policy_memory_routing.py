@@ -6,12 +6,12 @@ from __future__ import annotations
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied
-from agentos.policy.grants import Specials
-from agentos.policy.memory_rules import MemoryCap
-from agentos.policy.routing import FACTS, PolicyConfig, RoutingTable, Rule
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied
+from openajar.policy.grants import Specials
+from openajar.policy.memory_rules import MemoryCap
+from openajar.policy.routing import FACTS, PolicyConfig, RoutingTable, Rule
 
 LANE = "biz-a/instagram"
 DECISION = {"type": "decision", "title": "No discounts in posts", "body": "biz-a never offers discounts."}

@@ -1,4 +1,4 @@
-"""Pins publish_card's whole card for a table of publishes (agentos.policy.cards): the account
+"""Pins publish_card's whole card for a table of publishes (openajar.policy.cards): the account
 check (pinned by id, by handle, unpinned, unreadable), who it acts as (self, surface, unknown),
 invisible characters, lookalike names, an unrecognised request, fields past the limit, media."""
 
@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 from pinned import check, outcome
 
-from agentos.core.models import AccountRef
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.policy.cards import publish_card
+from openajar.core.models import AccountRef
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.policy.cards import publish_card
 
 LANE = "test/reddit"
 
@@ -28,13 +28,13 @@ class Runtime:
                     raise KeyError(lane)
                 return SimpleNamespace(spec=SimpleNamespace(account=self.account))
             return SimpleNamespace(get=get)
-        if name == "card_facts":  # what a node runtime always carries (agentos.node.cardfacts)
+        if name == "card_facts":  # what a node runtime always carries (openajar.node.cardfacts)
             return NodeCardFacts()
         return None
 
 
 class NoServices:
-    """No lanes and no vault: only the facts every node runtime carries (agentos.node.cardfacts)."""
+    """No lanes and no vault: only the facts every node runtime carries (openajar.node.cardfacts)."""
 
     def get(self, name):
         return NodeCardFacts() if name == "card_facts" else None

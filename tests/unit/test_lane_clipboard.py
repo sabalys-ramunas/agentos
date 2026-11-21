@@ -1,4 +1,4 @@
-"""Reading a lane's clipboard with xclip (agentos.node.lane_clipboard), with the subprocess faked."""
+"""Reading a lane's clipboard with xclip (openajar.node.lane_clipboard), with the subprocess faked."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import asyncio
 
 import pytest
 
-from agentos.core import catalog
-from agentos.node import lane_clipboard
-from agentos.node.lane_clipboard import ClipboardTooLarge, ClipboardUnreadable, XclipMissing, read_clipboard
+from openajar.core import catalog
+from openajar.node import lane_clipboard
+from openajar.node.lane_clipboard import ClipboardTooLarge, ClipboardUnreadable, XclipMissing, read_clipboard
 
 COPIED = "Kopija ąčęėįšųūž € 42"
 
@@ -99,7 +99,7 @@ async def test_text_that_is_not_utf8_is_refused():
 async def test_another_xclip_failure_says_what_xclip_said_and_what_to_do():
     with pytest.raises(ClipboardUnreadable) as e:
         await read_clipboard(":100", None, spawn=Spawn(Proc(b"", b"Error: Can't open display: :100\n", 1)))
-    assert "Can't open display" in e.value.message and "agentos doctor" in e.value.message
+    assert "Can't open display" in e.value.message and "openajar doctor" in e.value.message
 
 
 def test_the_words_a_person_reads_have_no_em_dash():

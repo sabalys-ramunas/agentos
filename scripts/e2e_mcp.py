@@ -2,7 +2,7 @@
 """End-to-end check of a running node through MCP only, exactly as an agent sees it.
 
     ssh -N -L 17400:localhost:7400 mynode &
-    AGENTOS_URL=http://localhost:17400/mcp AGENTOS_TOKEN=... \\
+    OPENAJAR_URL=http://localhost:17400/mcp OPENAJAR_TOKEN=... \\
       uv run python scripts/e2e_mcp.py --lane personal/reddit --url https://www.reddit.com/r/popular/
 
 Add --upvote to click the first post's upvote button by its snapshot ref and check that the
@@ -55,10 +55,10 @@ async def main() -> int:
     ap.add_argument("--shot", default="e2e-shot.png")
     a = ap.parse_args()
 
-    url = os.environ.get("AGENTOS_URL", "http://localhost:17400/mcp")
-    token = os.environ.get("AGENTOS_TOKEN")
+    url = os.environ.get("OPENAJAR_URL", "http://localhost:17400/mcp")
+    token = os.environ.get("OPENAJAR_TOKEN")
     if not token:
-        print("set AGENTOS_TOKEN", file=sys.stderr)
+        print("set OPENAJAR_TOKEN", file=sys.stderr)
         return 2
 
     async with (

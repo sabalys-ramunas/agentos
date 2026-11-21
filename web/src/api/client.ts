@@ -755,7 +755,7 @@ export const memory = {
 };
 
 /**
- * Runs: commands started with `agentos run`, across the lanes the caller sees. Reading needs `see`, a
+ * Runs: commands started with `openajar run`, across the lanes the caller sees. Reading needs `see`, a
  * cancel needs `operate`, and the node checks the lane against the caller's grant.
  */
 export const jobs = {
@@ -822,7 +822,9 @@ export const vms = {
  * unless it says `discard`.
  */
 export const environments = {
-  list: (org: string, state: 'open' | 'all' = 'all') => served(http<EnvList>(path`/api/orgs/${org}/environments` + query({ state }))),
+  /** `screens`: the caller shows each one's picture, so the node keeps a recent still of each screen (at most once a minute). */
+  list: (org: string, state: 'open' | 'all' = 'all', screens = false) =>
+    served(http<EnvList>(path`/api/orgs/${org}/environments` + query({ state, screens: screens ? 1 : undefined }))),
   get: (org: string, id: string) => served(http<EnvDetail>(path`/api/orgs/${org}/environments/${id}`)),
   close: (org: string, id: string, discard = false) =>
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/close`, { method: 'POST', body: { discard } }),
@@ -830,7 +832,7 @@ export const environments = {
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/extend`, { method: 'POST', body: { minutes } }),
   /** Forget a kept environment's save: its snapshot and files are deleted. The owner in person. */
   forget: (org: string, saveId: string) => http<{ forgot?: boolean; snapshots_deleted?: number }>(path`/api/orgs/${org}/environments/saves/${saveId}`, { method: 'DELETE' }),
-  /** The replay of its browser: frames and calls by time (agentos.environments.replay). The owner only. */
+  /** The replay of its browser: frames and calls by time (openajar.environments.replay). The owner only. */
   replay: (org: string, id: string) => served(http<EnvReplayTimeline>(path`/api/orgs/${org}/environments/${id}/replay` + query({ limit: '2000' }))),
   /** One checkpoint against the work tree now: per repository its files and patch (capped). The owner only. */
   checkpointDiff: (org: string, id: string, checkpoint: number) =>

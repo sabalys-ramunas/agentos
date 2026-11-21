@@ -1,4 +1,4 @@
-"""Every tool call on a lane has an overall deadline (agentos.node.deadlines), and a browser that
+"""Every tool call on a lane has an overall deadline (openajar.node.deadlines), and a browser that
 stopped answering is closed for real (the 2026-11-10 re-test: a LinkedIn tab near its memory ceiling
 hung a browser_navigate, which then held the lane for every caller until a person killed it)."""
 
@@ -10,13 +10,13 @@ from types import SimpleNamespace
 import pytest
 from test_lanes import make
 
-from agentos.core.errors import EngineError, LaneBusy
-from agentos.core.models import LaneSpec, LaneState
-from agentos.mcp import registry
-from agentos.node import deadlines, interrupts
-from agentos.node import tools as node_tools
-from agentos.node.claims import Holder
-from agentos.node.lanes import access as access_mod
+from openajar.core.errors import EngineError, LaneBusy
+from openajar.core.models import LaneSpec, LaneState
+from openajar.mcp import registry
+from openajar.node import deadlines, interrupts
+from openajar.node import tools as node_tools
+from openajar.node.claims import Holder
+from openajar.node.lanes import access as access_mod
 
 LANE = "biz/linkedin"
 

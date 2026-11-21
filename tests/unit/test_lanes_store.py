@@ -10,16 +10,16 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import LaneExists, LaneNotFound
-from agentos.core.models import LaneSpec, ProxyConfig, utcnow
-from agentos.node.camoufox.engine import CamoufoxEngine, os_of, parse_camou_config, write_private_json
-from agentos.node.display import DisplayManagerImpl
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.errors import LaneExists, LaneNotFound
+from openajar.core.models import LaneSpec, ProxyConfig, utcnow
+from openajar.node.camoufox.engine import CamoufoxEngine, os_of, parse_camou_config, write_private_json
+from openajar.node.display import DisplayManagerImpl
+from openajar.node.store import LaneStore
 
 
 def test_store_roundtrip_and_wal(tmp_path):
-    store = LaneStore(tmp_path / "agentos.db")
+    store = LaneStore(tmp_path / "openajar.db")
     spec = LaneSpec(id="personal/reddit", proxy_label="lt1")
     store.add(spec)
     with pytest.raises(LaneExists):
@@ -34,14 +34,14 @@ def test_store_roundtrip_and_wal(tmp_path):
     assert store.get("nope/nope") is None
     with pytest.raises(LaneNotFound):
         store.require("nope/nope")
-    with sqlite3.connect(tmp_path / "agentos.db") as conn:
+    with sqlite3.connect(tmp_path / "openajar.db") as conn:
         assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-    assert stat.S_IMODE((tmp_path / "agentos.db").stat().st_mode) == 0o600
+    assert stat.S_IMODE((tmp_path / "openajar.db").stat().st_mode) == 0o600
 
 
 def test_store_sees_writes_from_another_connection(tmp_path):
-    daemon = LaneStore(tmp_path / "agentos.db")
-    cli = LaneStore(tmp_path / "agentos.db")
+    daemon = LaneStore(tmp_path / "openajar.db")
+    cli = LaneStore(tmp_path / "openajar.db")
     assert daemon.list() == []
     cli.add(LaneSpec(id="b/two"))
     cli.add(LaneSpec(id="a/one"))
@@ -60,7 +60,7 @@ def test_parse_camou_config_joins_chunks_in_order():
 
 
 def test_parse_camou_config_without_chunks_fails():
-    from agentos.core.errors import EngineError
+    from openajar.core.errors import EngineError
     with pytest.raises(EngineError):
         parse_camou_config(b"HOME=/root\0")
 
@@ -133,14 +133,14 @@ def test_display_process_matching_stays_in_our_range(tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="reads /proc")
 def test_browser_pid_helpers_ignore_unrelated_processes(tmp_path):
-    from agentos.node.camoufox.engine import browser_pids, browser_pids_under
+    from openajar.node.camoufox.engine import browser_pids, browser_pids_under
     assert browser_pids(tmp_path / "profile") == []
     assert browser_pids_under(Path(tmp_path)) == []
 
 
 def test_engine_options_reject_corrupt_pin(tmp_path):
     pytest.importorskip("camoufox.fingerprints")
-    from agentos.core.errors import EngineError
+    from openajar.core.errors import EngineError
     fp = tmp_path / "fingerprint.json"
     fp.write_text("{truncated")
     with pytest.raises(EngineError, match="not valid JSON"):
@@ -149,7 +149,7 @@ def test_engine_options_reject_corrupt_pin(tmp_path):
 
 
 def test_store_adds_the_new_columns_to_an_old_database(tmp_path):
-    path = tmp_path / "agentos.db"
+    path = tmp_path / "openajar.db"
     with sqlite3.connect(path) as conn:  # the schema before quarantine and signals were stored
         conn.execute("CREATE TABLE lanes (id TEXT PRIMARY KEY, spec TEXT NOT NULL, last_used TEXT, exit_ip TEXT)")
         conn.execute("INSERT INTO lanes (id, spec) VALUES (?, ?)", ("a/one", LaneSpec(id="a/one").model_dump_json()))
@@ -157,8 +157,8 @@ def test_store_adds_the_new_columns_to_an_old_database(tmp_path):
     LaneStore(path)  # a second process opening it is fine too
     rec = store.require("a/one")
     assert rec.quarantine is None and rec.signal is None
-    from agentos.core.models import Signal
-    from agentos.node.store import QuarantineRecord, SignalRecord
+    from openajar.core.models import Signal
+    from openajar.node.store import QuarantineRecord, SignalRecord
 
     store.set_quarantine("a/one", QuarantineRecord(reason="r", at=utcnow(), kind="exit_ip_changed",
                                                    proxy_label="gw", exit_ip="203.0.113.9"))

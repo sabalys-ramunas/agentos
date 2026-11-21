@@ -22,13 +22,19 @@ from test_vault_support import (
     runtime_with,
 )
 
-from agentos.core.errors import ApprovalPending, InvalidRequest, LaneNotFound, RefNotFound, ServiceUnavailable
-from agentos.core.models import Effect, LaneKind, Signal
-from agentos.core.runtime import Runtime
-from agentos.node import vault_tools as tools
-from agentos.vault.errors import EntryNotFound, ResolutionDenied, SecretTooLong, VaultSealed
-from agentos.vault.login import _result, fill_flow, login_flow
-from agentos.vault.secret import Secret
+from openajar.core.errors import (
+    ApprovalPending,
+    InvalidRequest,
+    LaneNotFound,
+    RefNotFound,
+    ServiceUnavailable,
+)
+from openajar.core.models import Effect, LaneKind, Signal
+from openajar.core.runtime import Runtime
+from openajar.node import vault_tools as tools
+from openajar.vault.errors import EntryNotFound, ResolutionDenied, SecretTooLong, VaultSealed
+from openajar.vault.login import _result, fill_flow, login_flow
+from openajar.vault.secret import Secret
 
 IG = "https://www.instagram.com"
 LOGIN = IG + "/accounts/login/"

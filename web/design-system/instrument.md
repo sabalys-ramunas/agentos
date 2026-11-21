@@ -12,6 +12,7 @@ under full-bleed instruments (`styles/instrument.css`). In the catalog: `/$org/d
 | A page screenshot with numbered findings | `ImageFrame` | `components/ui/image-frame.tsx` |
 | Before and after | `BeforeAfter` (a wipe, or side by side) | `components/ui/before-after.tsx` |
 | A full-bleed instrument | `board-surface`, `silk` labels, one `registered` panel per screen | `styles/instrument.css` |
+| A picture of an environment's screen, a chip on it | `ScreenPicture`, `PictureChip` | `components/screen-picture.tsx` |
 
 Data reads in text colour; a bar that is the point is ink (`chart-bar-strong`). Every chart has a table
 behind it for screen readers. A real gap is drawn as a gap, never joined over.

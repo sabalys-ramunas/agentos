@@ -11,9 +11,9 @@ import pytest
 from starlette.testclient import TestClient
 from test_node_panel import Node
 
-from agentos.controller.app import Controller, build_app
-from agentos.controller.config import ControllerConfig
-from agentos.node import viewer_app
+from openajar.controller.app import Controller, build_app
+from openajar.controller.config import ControllerConfig
+from openajar.node import viewer_app
 
 
 @pytest.fixture

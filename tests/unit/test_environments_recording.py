@@ -1,4 +1,4 @@
-"""Video proofs (agentos.environments.recording, recorder_ctl, media, proofs): browser_record's start,
+"""Video proofs (openajar.environments.recording, recorder_ctl, media, proofs): browser_record's start,
 stop, limits and refusals, the ffmpeg command lines, the proof records, their links and range serving,
 and retention with videos counted."""
 
@@ -19,14 +19,14 @@ import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_isolation import _record, panel  # noqa: F401  (panel is a fixture)
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import utcnow
-from agentos.env.models import ExecResult
-from agentos.environments import media, recorder_ctl, recording
-from agentos.environments import proofs as proofs_mod
-from agentos.environments.errors import RecordingFailed
-from agentos.node.viewer_tokens import ViewTokens
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import utcnow
+from openajar.env.models import ExecResult
+from openajar.environments import media, recorder_ctl, recording
+from openajar.environments import proofs as proofs_mod
+from openajar.environments.errors import RecordingFailed
+from openajar.node.viewer_tokens import ViewTokens
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 FFMPEG = shutil.which("ffmpeg") or ("/opt/homebrew/bin/ffmpeg" if Path("/opt/homebrew/bin/ffmpeg").exists() else None)
 FFPROBE = shutil.which("ffprobe") or ("/opt/homebrew/bin/ffprobe" if Path("/opt/homebrew/bin/ffprobe").exists()
@@ -424,7 +424,7 @@ async def test_the_viewer_serves_a_video_proof_for_its_link_only(tmp_path):
     from test_lanes import make
     from test_viewer_app import FakeTraces
 
-    from agentos.node.viewer_app import build_viewer_app
+    from openajar.node.viewer_app import build_viewer_app
 
     video = tmp_path / "p.mp4"
     video.write_bytes(mp4())

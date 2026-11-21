@@ -2,7 +2,7 @@
 (docs/design/egress-guard.md): the suggested identity and captcha hosts, a blocked frame's
 notice on the viewer's event stream, and a site-list change that reaches the warm lane at once.
 
-Run on the node:  AGENTOS_TEST_SLOT=41 scripts/node-test.sh egressux tests/node/test_egressux_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=41 scripts/node-test.sh egressux tests/node/test_egressux_node.py -q
 
 Nothing leaves the node. The lane's proxy is a loopback stand-in that answers every host itself
 (www.reddit.com, www.google.com, accounts.google.lt and the rest are its own pages, over HTTP and
@@ -33,27 +33,27 @@ import uvicorn
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import EgressRefused
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node import egress
-from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.egress import IDENTITY_SITES, SUGGESTED_SITES, Driver
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
-from agentos.node.viewer_app import ViewerApp
-from agentos.node.viewer_routes import control_api_routes
+from openajar.core.config import NodeConfig
+from openajar.core.errors import EgressRefused
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.node import egress
+from openajar.node.camoufox.engine import CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.node.egress import IDENTITY_SITES, SUGGESTED_SITES, Driver
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
+from openajar.node.viewer_app import ViewerApp
+from openajar.node.viewer_routes import control_api_routes
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "410"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5410"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6410"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "410"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5410"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6410"))
 PROXY_PORT = VIEWER_BASE + 7
 API_PORT = VIEWER_BASE + 8
 OFFLINE_PROXY = "http://127.0.0.1:9"  # nothing listens here
@@ -173,7 +173,7 @@ def home():
 def proxy(home):
     key, cert = home / "proxy.key", home / "proxy.crt"
     subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(key), "-out",
-                    str(cert), "-days", "1", "-subj", "/CN=agentos-node-test"], check=True, capture_output=True)
+                    str(cert), "-days", "1", "-subj", "/CN=openajar-node-test"], check=True, capture_output=True)
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     tls.load_cert_chain(cert, key)
     seen = Seen()
@@ -298,7 +298,7 @@ async def test_signing_in_with_the_suggested_list_a_notice_and_a_live_change(lan
         recaptcha = await notices.wait("www.google.com")
         assert recaptcha["kind"] == "subframe" and recaptcha["rule"] == "lane_sites"
         assert recaptcha["path"] == "/recaptcha/api2/anchor" and recaptcha["allow"] == "frame:www.google.com"
-        assert recaptcha["command"] == f"agentos lane sites {LANE} add frame:www.google.com"
+        assert recaptcha["command"] == f"openajar lane sites {LANE} add frame:www.google.com"
         assert "SECRET" not in repr(notices.events) and "SITEKEY" not in repr(notices.events)
 
         # 2. the suggested list, through the daemon's route: the warm lane has it at once

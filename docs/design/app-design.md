@@ -165,7 +165,7 @@ foundations.html, the only change there). All 88 contrast pairs still pass.
 |---|---|---|---|
 | `font-family.sans`, `.mono` | Geist, Geist Mono | IBM Plex Sans, IBM Plex Mono, then Geist | Workbench's typeface, the character the owner picked. Geist stays next in the list, so foundations.html (which ships only Geist) renders as before. |
 | `color.accent.*`, `focus.ring`, `chart.bar-strong` | Blue `#0a66d6` / `#2b7de6` | Ultramarine `#3442e0` / `#8790ff`, text `#2a36c2` / `#a3aaff` | Workbench's one accent. |
-| `color.status.live.*` | Pink `#db1f78` | The accent's ultramarine | Workbench uses one colour for "live and selected". Pink stays the agentos mark's. The shape (a ringed dot) still tells live from selected. |
+| `color.status.live.*` | Pink `#db1f78` | The accent's ultramarine | Workbench uses one colour for "live and selected". Pink stays the openajar mark's. The shape (a ringed dot) still tells live from selected. |
 | `color.neutral.0` to `12` | Pure grey | Warm paper in light (`#f4f4f1` page), graphite in dark (`#0d0e10`) | Workbench's surfaces; text stays a cool ink. |
 | `color.terminal.bg`, `.text` (dark) | `#0c0c0c`, `#e4e4e4` | `#0b0c0e`, `#dcdde2` | Matches the graphite. |
 | `type.body` | 14/20 | 13/20 | Workbench's density; a phone raises body to 14. |
@@ -230,7 +230,7 @@ buttons on every approval; they are ordinary buttons now, with a green check, an
 most one solid ink primary); labels that needed explaining (Workbench's "Design checks" in the rail
 and "Checks" in the tab bar are one word now, "Checks"; "Lanes" as a column group gave way to
 "Browsers" and "Terminals"); two words for one thing (a "job" is anything running: a run, a check, a
-dev server; "Runs" are what `agentos run` starts, and the Runs page lists only those); dead ends (the
+dev server; "Runs" are what `openajar run` starts, and the Runs page lists only those); dead ends (the
 finding you could not copy; the machine detail that pushed the add panel off screen); and every
 state: loading skeletons with the real layout, the error banner that says nothing was lost, empty
 screens that give the one command to start, 20 jobs, 12 machines and 12 approvals, and long names
@@ -251,7 +251,7 @@ screens that give the one command to start, 20 jobs, 12 machines and 12 approval
 
 ## 7. Studio, from a scratch HOME
 
-`agentos studio up --port 7481 --no-skill` with `HOME` set to a scratch folder, the prototype served
+`openajar studio up --port 7481 --no-skill` with `HOME` set to a scratch folder, the prototype served
 over http, the tools called over MCP. `ui_check` on every screen at 360, 768 and 1280 in light and
 dark, again with `since` after each round of fixes; `system_check` with `tokens=<tokens.json>` at
 375 and 1440; `ui_image` on findings.

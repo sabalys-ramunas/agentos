@@ -11,15 +11,15 @@ import pytest
 from test_wsexport_cli import on, secret_file
 from test_wsexport_support import LOG_N, PASSPHRASE, Node
 
-from agentos.agenda.models import Action, ActionKind, Entry, EntryState, When
-from agentos.agenda.service import AgendaService
-from agentos.agenda.store import DB_NAME, AgendaStore
-from agentos.core.runtime import Runtime
-from agentos.workspaces import cli
-from agentos.workspaces.transfer import export as wsexport
-from agentos.workspaces.transfer import import_ as wsimport
-from agentos.workspaces.transfer import read as wsread
-from agentos.workspaces.transfer.import_ import ImportOptions
+from openajar.agenda.models import Action, ActionKind, Entry, EntryState, When
+from openajar.agenda.service import AgendaService
+from openajar.agenda.store import DB_NAME, AgendaStore
+from openajar.core.runtime import Runtime
+from openajar.workspaces import cli
+from openajar.workspaces.transfer import export as wsexport
+from openajar.workspaces.transfer import import_ as wsimport
+from openajar.workspaces.transfer import read as wsread
+from openajar.workspaces.transfer.import_ import ImportOptions
 
 SOON = datetime.now(UTC).replace(microsecond=0) + timedelta(days=3)
 
@@ -94,7 +94,7 @@ def do_import(node, path: Path, **options):
 def test_open_entries_travel_without_approvals_and_come_in_as_drafts(nodes, tmp_path):
     a, b = nodes
     assert a.entries["scheduled"].state == EntryState.SCHEDULED and a.entries["scheduled"].approval
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     result = export(a, out)
     assert result.counts["agenda_entries"] == 4  # the done entry and the closed window stay home
     assert any("Old window" in n and "window has closed" in n for n in result.notes)
@@ -119,7 +119,7 @@ def test_open_entries_travel_without_approvals_and_come_in_as_drafts(nodes, tmp_
 
 def test_under_a_new_id_the_entries_follow_the_workspace(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     _plan, done = do_import(b, out, rename_to="acme2")
     moved = b.store.list(workspace="acme2")
@@ -132,7 +132,7 @@ def test_under_a_new_id_the_entries_follow_the_workspace(nodes, tmp_path):
 
 def test_a_failed_import_takes_its_entries_back_out(nodes, tmp_path, monkeypatch):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     real = wsimport._apply_agenda_entry
     calls = []
@@ -157,7 +157,7 @@ def test_a_failed_import_takes_its_entries_back_out(nodes, tmp_path, monkeypatch
 def test_a_format_2_export_imports_with_no_agenda(nodes, tmp_path, monkeypatch):
     a, b = nodes
     monkeypatch.setattr(wsexport, "FORMAT_VERSION", 2)
-    out = tmp_path / "v2.agentos"
+    out = tmp_path / "v2.openajar"
     assert "agenda_entries" not in export(a, out).counts
     monkeypatch.undo()
     plan, done = do_import(b, out)
@@ -177,7 +177,7 @@ def test_the_import_output_says_entries_come_in_as_drafts(nodes, tmp_path, monke
     a.store.close()
     b.store.close()
     pw = secret_file(tmp_path, "pw", PASSPHRASE)
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     done = on(a, monkeypatch, "export", "acme", "--to", str(out), "--passphrase-file", str(pw))
     assert done.exit_code == 0, done.output
     assert "4 agenda entries" in done.output

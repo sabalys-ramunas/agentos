@@ -25,7 +25,7 @@ function bridgeWorkerFetch() {
   navigator.serviceWorker?.addEventListener('message', (event: MessageEvent) => {
     const data = event.data as { type?: string; input?: string; init?: RequestInit } | null;
     const port = event.ports[0];
-    if (data?.type !== 'agentos-mock-fetch' || !port || !data.input) return;
+    if (data?.type !== 'openajar-mock-fetch' || !port || !data.input) return;
     void fetch(data.input, data.init)
       .then(async (response) => port.postMessage({ status: response.status, body: await response.text() }))
       .catch(() => port.postMessage({ status: 503, body: '' }));
@@ -33,7 +33,7 @@ function bridgeWorkerFetch() {
 }
 
 /** The same words as `MOCK_MARKER` in build/guard.ts, which fails any build that holds them. */
-const MARKER = 'agentos-mock-backend';
+const MARKER = 'openajar-mock-backend';
 
 export async function startMockApi() {
   document.documentElement.dataset.backend = MARKER;

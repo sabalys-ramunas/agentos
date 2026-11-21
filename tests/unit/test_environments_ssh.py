@@ -1,5 +1,5 @@
-"""The agent's own ssh in local mode (agentos.environments.sshaccess): the host entry in
-AGENTOS_HOME/ssh/config is written when an environment is ready and goes when it closes or fails, the
+"""The agent's own ssh in local mode (openajar.environments.sshaccess): the host entry in
+OPENAJAR_HOME/ssh/config is written when an environment is ready and goes when it closes or fails, the
 Include at the top of ~/.ssh/config, no `ssh` on a server node, and the agent's ssh sessions counting as
 use for the idle rule. HOME is a temporary folder in every test: nothing reaches this computer's ~/.ssh.
 The fake machine answers the node's commands (no SSH here)."""
@@ -12,9 +12,9 @@ from datetime import timedelta
 import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.core.models import utcnow
-from agentos.env.models import ExecResult
-from agentos.environments import sshaccess
+from openajar.core.models import utcnow
+from openajar.env.models import ExecResult
+from openajar.environments import sshaccess
 
 
 @pytest.fixture(autouse=True)
@@ -73,26 +73,26 @@ async def test_ready_writes_the_entry_and_the_result_says_how_to_use_it(local, u
     rec = local["vms"].store.get(local["mgr"].get(eid).vm_id)
     key = home / "ssh" / eid / "id_ed25519"
     kh = home / "ssh" / eid / "known_hosts"
-    for line in (f"Host agentos-{eid}", f"HostName {rec.host}", "User root", f"IdentityFile {key}",
-                 "IdentitiesOnly yes", "ForwardAgent no", f"HostKeyAlias agentos-{eid}",
+    for line in (f"Host openajar-{eid}", f"HostName {rec.host}", "User root", f"IdentityFile {key}",
+                 "IdentitiesOnly yes", "ForwardAgent no", f"HostKeyAlias openajar-{eid}",
                  f"UserKnownHostsFile {kh}", "StrictHostKeyChecking yes", "ServerAliveInterval 15"):
         assert f"\n  {line}\n" in text or text.startswith(line) or f"\n{line}\n" in text, line
     # the agent's own key, not the node's VM key; the host key the node pinned, under the entry's alias
     assert key.exists() and stat.S_IMODE(key.stat().st_mode) == 0o600
     pinned = (home / "vms" / rec.id / "known_hosts").read_text().split()[1:3]
-    assert kh.read_text().split() == [f"agentos-{eid}", *pinned]
+    assert kh.read_text().split() == [f"openajar-{eid}", *pinned]
     assert stat.S_IMODE(sshaccess.config_path(home).stat().st_mode) == 0o600
     # on the machine: that key, restricted, through the forced command that notes each session
     [script] = local["ssh"].authorized
     pub = (home / "ssh" / eid / "id_ed25519.pub").read_text().split()[1]
     assert f'restrict,pty,command="{sshaccess.WRAPPER}" ssh-ed25519 {pub} {sshaccess.KEY_COMMENT}' in script
-    # no Include in ~/.ssh/config yet: the command names the agentos config
+    # no Include in ~/.ssh/config yet: the command names the openajar config
     cfg = str(sshaccess.config_path(home))  # this node's home is not under HOME: the full path
-    assert out["ssh"] == {"host": f"agentos-{eid}", "command": f"ssh -F {cfg} agentos-{eid}",
-                          "examples": [f"ssh -F {cfg} agentos-{eid} 'cd /work/shop && pnpm test'",
+    assert out["ssh"] == {"host": f"openajar-{eid}", "command": f"ssh -F {cfg} openajar-{eid}",
+                          "examples": [f"ssh -F {cfg} openajar-{eid} 'cd /work/shop && git status'",
                                        (f"rsync -az -e 'ssh -F {cfg}' --exclude node_modules --exclude .git ./ "
-                                       f"agentos-{eid}:/work/shop/"),
-                                       f"scp -F {cfg} agentos-{eid}:/work/shop/dist.tgz ."],
+                                       f"openajar-{eid}:/work/shop/"),
+                                       f"scp -F {cfg} openajar-{eid}:/work/shop/dist.tgz ."],
                           "port_forwards": sshaccess.FORWARDS_WORDS}
     # round 3 (T3): ssh -L did nothing and nothing said so; the block and the entry name environment_port
     assert "ssh -L" in out["ssh"]["port_forwards"] and "environment_port" in out["ssh"]["port_forwards"]
@@ -100,13 +100,13 @@ async def test_ready_writes_the_entry_and_the_result_says_how_to_use_it(local, u
     assert sshaccess.FORWARDS_COMMENT in entry and entry.index(sshaccess.FORWARDS_COMMENT) < entry.index(
         "ClearAllForwardings yes")
     assert "\u2014" not in out["ssh"]["port_forwards"] + sshaccess.FORWARDS_COMMENT
-    assert "You may also use your own shell: ssh -F" in out["next"] and "not in agentos's call log" in out["next"]
+    assert "You may also use your own shell: ssh -F" in out["next"] and "not in openajar's call log" in out["next"]
     assert "—" not in out["next"]
     # with the Include: plain ssh, and environment() says the same
     assert sshaccess.add_include(home)
     got = await local["call"]("environment")
-    assert got["ssh"]["command"] == f"ssh agentos-{eid}"
-    assert got["ssh"]["examples"][0] == f"ssh agentos-{eid} 'cd /work/shop && pnpm test'"
+    assert got["ssh"]["command"] == f"ssh openajar-{eid}"
+    assert got["ssh"]["examples"][0] == f"ssh openajar-{eid} 'cd /work/shop && git status'"
     assert got["ssh"]["examples"][1].startswith("rsync -az --exclude node_modules")
     # never in the rows that list environments
     assert all("ssh" not in row for row in got["open"])
@@ -116,10 +116,10 @@ async def test_close_removes_the_entry_and_its_key_and_keeps_the_others(local):
     one = await opened(local, title="One")
     two = await opened(local, title="Two", session="chat-2")
     home = local["mgr"].home
-    assert f"Host agentos-{one['id']}" in config(local) and f"Host agentos-{two['id']}" in config(local)
+    assert f"Host openajar-{one['id']}" in config(local) and f"Host openajar-{two['id']}" in config(local)
     await local["call"]("environment_close", on=one["on"])  # the lease: its handle, never the title
     text = config(local)
-    assert f"agentos-{one['id']}" not in text and f"Host agentos-{two['id']}" in text
+    assert f"openajar-{one['id']}" not in text and f"Host openajar-{two['id']}" in text
     assert not (home / "ssh" / one["id"]).exists() and (home / "ssh" / two["id"] / "id_ed25519").exists()
 
 
@@ -128,7 +128,7 @@ async def test_a_failed_open_leaves_no_entry(local):
     with pytest.raises(Exception, match="environment_failed"):
         await opened(local)
     env = local["mgr"].store.recent(1)[0]
-    assert "agentos-" not in config(local) and not (local["mgr"].home / "ssh" / env.id).exists()
+    assert "openajar-" not in config(local) and not (local["mgr"].home / "ssh" / env.id).exists()
 
 
 async def test_the_entry_goes_when_the_reaper_closes_it_and_comes_back_after_a_restart(local):
@@ -136,16 +136,16 @@ async def test_the_entry_goes_when_the_reaper_closes_it_and_comes_back_after_a_r
     mgr = local["mgr"]
     sshaccess.remove_entry(mgr.home, out["id"])  # as after a node restart that lost it
     await mgr.reap_once()
-    assert f"Host agentos-{out['id']}" in config(local) and len(local["ssh"].authorized) == 2
+    assert f"Host openajar-{out['id']}" in config(local) and len(local["ssh"].authorized) == 2
     later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
     got = await mgr.reap_once(later)
-    assert got["closed"] == [out["id"]] and "agentos-" not in config(local)
+    assert got["closed"] == [out["id"]] and "openajar-" not in config(local)
 
 
 async def test_a_machine_that_refuses_the_key_still_comes_up_without_ssh(local):
     local["ssh"].refuse = True
     out = await opened(local)
-    assert out["state"] == "ready" and "ssh" not in out and "agentos-" not in config(local)
+    assert out["state"] == "ready" and "ssh" not in out and "openajar-" not in config(local)
     await local["mgr"].reap_once()  # tried once: the reaper does not try again every minute
     assert sum(1 for c, _ in local["machine"].ran if c == "sh -s") == 1  # tried at ready, not again
 
@@ -164,11 +164,11 @@ async def test_a_server_node_gives_no_ssh(node, user_home):  # noqa: F811
 
 
 async def test_a_running_ssh_command_keeps_the_machine(local):
-    """An agent that works only over ssh makes no agentos call: its running session is use."""
+    """An agent that works only over ssh makes no openajar call: its running session is use."""
     out = await opened(local)
     mgr = local["mgr"]
     later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
-    local["ssh"].age_s, local["ssh"].live = 0, 1  # `ssh agentos-<id> 'pnpm test'` runs now
+    local["ssh"].age_s, local["ssh"].live = 0, 1  # `ssh openajar-<id> 'pnpm test'` runs now
     got = await mgr.reap_once(later)
     assert got["closed"] == [] and mgr.get(out["id"]).state == "ready"
     # it ended 10 minutes before the next pass: still in use within the idle window
@@ -204,7 +204,7 @@ def test_the_activity_line_is_read_by_the_machines_clock():
 
 
 def test_the_include_goes_at_the_top_once_and_keeps_the_rest(tmp_path, user_home):
-    home = user_home / ".agentos"
+    home = user_home / ".openajar"
     cfg = user_home / ".ssh" / "config"
     cfg.parent.mkdir(mode=0o700)
     mine = "Host *\n  ForwardAgent yes\n\nHost box\n  HostName 192.0.2.4\n  User me\n"
@@ -214,7 +214,7 @@ def test_the_include_goes_at_the_top_once_and_keeps_the_rest(tmp_path, user_home
     assert sshaccess.add_include(home) is True
     text = cfg.read_text()
     first = next(line for line in text.splitlines() if line and not line.startswith("#"))
-    assert first == "Include ~/.agentos/ssh/config" and text.endswith(mine)
+    assert first == "Include ~/.openajar/ssh/config" and text.endswith(mine)
     assert stat.S_IMODE(cfg.stat().st_mode) == 0o644  # the person's own mode stays
     assert sshaccess.included(home) and sshaccess.config_path(home).exists()
     assert sshaccess.add_include(home) is False and cfg.read_text() == text  # idempotent
@@ -222,7 +222,7 @@ def test_the_include_goes_at_the_top_once_and_keeps_the_rest(tmp_path, user_home
 
 def test_a_linked_ssh_config_stays_a_link(user_home):
     """A dotfiles setup links ~/.ssh/config to its repository: the Include goes into that file."""
-    home = user_home / ".agentos"
+    home = user_home / ".openajar"
     real = user_home / "dotfiles" / "ssh_config"
     real.parent.mkdir()
     real.write_text("Host box\n  User me\n")
@@ -230,20 +230,20 @@ def test_a_linked_ssh_config_stays_a_link(user_home):
     cfg.parent.mkdir(mode=0o700)
     cfg.symlink_to(real)
     assert sshaccess.add_include(home) is True
-    assert cfg.is_symlink() and "Include ~/.agentos/ssh/config" in real.read_text()
+    assert cfg.is_symlink() and "Include ~/.openajar/ssh/config" in real.read_text()
     assert real.read_text().endswith("Host box\n  User me\n")
 
 
 def test_a_missing_ssh_config_is_made_private(user_home):
-    home = user_home / ".agentos"
+    home = user_home / ".openajar"
     assert sshaccess.add_include(home) is True
     cfg = user_home / ".ssh" / "config"
     assert stat.S_IMODE(cfg.stat().st_mode) == 0o600 and stat.S_IMODE(cfg.parent.stat().st_mode) == 0o700
-    assert "Include ~/.agentos/ssh/config" in cfg.read_text()
+    assert "Include ~/.openajar/ssh/config" in cfg.read_text()
 
 
 def test_an_include_the_person_wrote_another_way_counts(user_home):
-    home = user_home / ".agentos"
+    home = user_home / ".openajar"
     cfg = user_home / ".ssh" / "config"
     cfg.parent.mkdir()
     cfg.write_text(f"Host box\n  User me\n\ninclude {home}/ssh/config\n")
@@ -261,7 +261,7 @@ def test_entries_are_replaced_and_removed_alone(tmp_path):
 
     home = tmp_path / "h"
     kh = tmp_path / "kh"
-    kh.write_text("agentos-vm_1 ssh-ed25519 AAAAhost\n")
+    kh.write_text("openajar-vm_1 ssh-ed25519 AAAAhost\n")
     remote = SimpleNamespace(host="192.0.2.9", port=22, user="root", known_hosts=str(kh), vm_id="vm_1")
     for eid in ("eaaaa", "ebbbb"):
         key, _pub = sshaccess.make_key(home, eid)
@@ -269,7 +269,7 @@ def test_entries_are_replaced_and_removed_alone(tmp_path):
     remote.host = "192.0.2.10"
     sshaccess.write_entry(home, "eaaaa", remote, home / "ssh" / "eaaaa" / "id_ed25519")  # a resume: new address
     text = sshaccess.config_path(home).read_text()
-    assert text.count("Host agentos-eaaaa") == 1 and "HostName 192.0.2.10" in text and "HostName 192.0.2.9" in text
+    assert text.count("Host openajar-eaaaa") == 1 and "HostName 192.0.2.10" in text and "HostName 192.0.2.9" in text
     assert sshaccess.remove_entry(home, "ebbbb") is True and sshaccess.remove_entry(home, "ebbbb") is False
     assert "ebbbb" not in sshaccess.config_path(home).read_text()
     with pytest.raises(ValueError):

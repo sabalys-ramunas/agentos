@@ -8,10 +8,10 @@ from __future__ import annotations
 import pytest
 from test_policy_support import make_service
 
-from agentos.core import globs
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied
+from openajar.core import globs
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied
 
 
 @pytest.mark.parametrize("raw", [
@@ -90,14 +90,14 @@ def test_hosts_are_what_a_browser_contacts(raw, host):
     "https://@instagram.com/",
 ])
 def test_the_node_refuses_the_same_urls(url):
-    from agentos.node.tools import normalize_url
+    from openajar.node.tools import normalize_url
 
     with pytest.raises(InvalidRequest):
         normalize_url(url)
 
 
 def test_the_node_authorizes_the_host_the_policy_reads():
-    from agentos.node.tools import normalize_url, url_host
+    from openajar.node.tools import normalize_url, url_host
 
     for raw in ("https://x.straße.de/a?b=1", "HTTPS://Instagram.com:443/p", "reddit.com/r/x"):
         assert globs.normalize_domain(url_host(normalize_url(raw))) == globs.normalize_domain(raw)
@@ -128,8 +128,8 @@ def test_a_narrowed_grant_may_name_a_sub_agent(tmp_path, subject):
     {"id": "claude-codex"},                    # a prefix is not a sub-agent
 ])
 def test_offline_children_cannot_take_another_identity(tmp_path, sub):
-    from agentos.policy import tokens
-    from agentos.policy.errors import TokenInvalid
+    from openajar.policy import tokens
+    from openajar.policy.errors import TokenInvalid
 
     svc, _ = make_service(tmp_path)
     try:

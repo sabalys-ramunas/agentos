@@ -1,8 +1,8 @@
 /**
  * The Mono table (web/DESIGN.md, Tables). No grey band: the head is the table-header role in the
  * tertiary ink over one hairline, sticky in its scroll box. Rows are 52 px (40 compact, 60 relaxed).
- * Numbers sit right in Geist Mono with tabular figures. Hover is a fill; selection a tint with a
- * 2 px ink edge. Under 768 px a table with `stack` becomes a list. The rules live in primitives.css.
+ * Figures sit right in Geist's tabular figures at the body size; money sits right in Geist Mono. Hover is a fill; selection a tint with a
+ * 2 px violet edge. Under 768 px a table with `stack` becomes a list. The rules live in primitives.css.
  */
 import { ArrowDown, ArrowUpDown } from 'lucide-react';
 import type { HTMLAttributes, KeyboardEvent, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react';
@@ -87,8 +87,10 @@ export function Th({ className, sort, onSort, align = 'start', unit, phone, chil
 }
 
 export interface TdProps extends TdHTMLAttributes<HTMLTableCellElement> {
-  /** Digits: right aligned, Geist Mono, tabular figures. */
+  /** Figures (counts, durations, percentages): right aligned, Geist at the body size, tabular figures. */
   numeric?: boolean;
+  /** Money: right aligned, Geist Mono at 13, tabular, so the cents line up down the column. */
+  money?: boolean;
   /** In the phone list form: `hide` folds the cell away. */
   phone?: 'hide';
   /** In the phone list form, a short label shown before the value ("Memory"). */
@@ -97,16 +99,17 @@ export interface TdProps extends TdHTMLAttributes<HTMLTableCellElement> {
   main?: boolean;
 }
 
-export function Td({ className, numeric, phone, label, main, ...props }: TdProps) {
+export function Td({ className, numeric, money, phone, label, main, ...props }: TdProps) {
   return (
     <td
-      data-numeric={numeric ? '' : undefined}
+      data-numeric={numeric || money ? '' : undefined}
       data-phone={phone}
       data-label={label}
       data-main={main ? '' : undefined}
       className={cn(
         'whitespace-nowrap',
-        numeric && 'text-right font-mono text-number text-fg tabular',
+        numeric && 'text-right text-fg tabular',
+        money && 'text-right font-mono text-number text-fg tabular',
         main && mainCell,
         className,
       )}

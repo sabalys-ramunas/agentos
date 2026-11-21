@@ -16,12 +16,12 @@ from protocol_capture import _start_node
 from test_channel_node import invoke_body, wire_key
 from test_channel_standing import hosted
 
-from agentos.core import signing
-from agentos.core.errors import AgentosError
-from agentos.core.runtime import Runtime
-from agentos.node.channel import reports, wire
-from agentos.runner.fakes import post_flow
-from agentos.runner.models import FlowDefinition
+from openajar.core import signing
+from openajar.core.errors import OpenajarError
+from openajar.core.runtime import Runtime
+from openajar.node.channel import reports, wire
+from openajar.runner.fakes import post_flow
+from openajar.runner.models import FlowDefinition
 
 LANE = "personal/reddit"
 
@@ -170,7 +170,7 @@ async def test_a_real_controller_sets_a_switch_and_an_older_node_answers_unsuppo
         assert node.runtime.get("ask_first").is_on("lane", LANE)
         handlers = node.channel._handlers  # a node from before this message: the type is unknown to it
         node.channel._handlers = lambda: {k: v for k, v in handlers().items() if k != "ask_first"}
-        with pytest.raises(AgentosError) as refused:
+        with pytest.raises(OpenajarError) as refused:
             await hub.push_ask_first(ctl.org, node_id, [{"scope": "lane", "id": LANE, "ask_first": False}])
         assert refused.value.code == "unsupported"
         assert node.runtime.get("ask_first").is_on("lane", LANE)

@@ -1,4 +1,4 @@
-"""QA for the controller's owner API (agentos.controller.web) through the real ASGI app: the cookie
+"""QA for the controller's owner API (openajar.controller.web) through the real ASGI app: the cookie
 session's CSRF rule, bearer scripts, and that routes which act on an id only reach their own org.
 
 Bugs are strict xfails pinned to their reason; remove the marker once fixed.
@@ -9,8 +9,8 @@ from __future__ import annotations
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.controller.app import Controller, build_app
-from agentos.controller.config import ControllerConfig
+from openajar.controller.app import Controller, build_app
+from openajar.controller.config import ControllerConfig
 
 OWNER = "owner-token-for-qa-web-tests"
 BEARER = {"Authorization": f"Bearer {OWNER}"}
@@ -46,7 +46,7 @@ def test_a_cookie_session_cannot_skip_csrf_by_sending_another_authorization_head
 def test_a_bearer_owner_script_posts_without_the_csrf_header(api):
     _, client = api
     response = client.post("/api/join-tokens", json={"name": "box-qa"}, headers=BEARER)
-    assert response.status_code == 201 and response.json()["join_command"].startswith("agentos node join --self-hosted ")
+    assert response.status_code == 201 and response.json()["join_command"].startswith("openajar node join --self-hosted ")
 
 
 def test_a_cookie_session_still_needs_the_csrf_header_for_changes(api):

@@ -12,8 +12,8 @@ import pytest
 from test_commit_gate_background import BACKGROUND, JSON, LI, META, TEXT, TYPED, envelope, route_one
 from test_egress import COMMITTER, make_guard
 
-from agentos.node.egress import TypedStream, normalise_text, typed_in
-from agentos.node.egress.helpers import printable_key
+from openajar.node.egress import TypedStream, normalise_text, typed_in
+from openajar.node.egress.helpers import printable_key
 
 PAGINATION = f"{LI}/flagship-web/rsc-action/actions/pagination"
 

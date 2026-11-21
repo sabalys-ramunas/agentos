@@ -117,7 +117,7 @@ export const markOf = (site: { name: string }) => `${site.name.replace(/[^a-z0-9
 export const speed = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(2).replace(/0$/, '')} s` : `${ms} ms`);
 
 /** Where a developer calls this, whichever computer it runs on. */
-export const BASE = 'https://relay.agentos.example/v1/sites';
+export const BASE = 'https://relay.openajar.example/v1/sites';
 
 export function callUrl(api: string, endpoint: string, params: Record<string, string>): string {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== '')).toString();
@@ -134,11 +134,11 @@ export type SnippetKind = 'curl' | 'javascript' | 'python' | 'n8n';
 export function snippet(kind: SnippetKind, url: string): string {
   switch (kind) {
     case 'curl':
-      return `curl "${url}" \\\n  -H "Authorization: Bearer $AGENTOS_KEY"`;
+      return `curl "${url}" \\\n  -H "Authorization: Bearer $OPENAJAR_KEY"`;
     case 'javascript':
-      return `const response = await fetch("${url}", {\n  headers: { Authorization: \`Bearer \${process.env.AGENTOS_KEY}\` },\n});\n\nif (response.status === 503) {\n  // A person is needed, or the site asked for a rest. Do not retry in a loop.\n  throw new Error((await response.json()).detail);\n}\n\nconst { data, cache, source } = await response.json();`;
+      return `const response = await fetch("${url}", {\n  headers: { Authorization: \`Bearer \${process.env.OPENAJAR_KEY}\` },\n});\n\nif (response.status === 503) {\n  // A person is needed, or the site asked for a rest. Do not retry in a loop.\n  throw new Error((await response.json()).detail);\n}\n\nconst { data, cache, source } = await response.json();`;
     case 'python':
-      return `import os\nimport requests\n\nresponse = requests.get(\n    "${url}",\n    headers={"Authorization": f"Bearer {os.environ['AGENTOS_KEY']}"},\n    timeout=70,\n)\nresponse.raise_for_status()\nanswer = response.json()\nprint(answer["data"], answer["cache"])`;
+      return `import os\nimport requests\n\nresponse = requests.get(\n    "${url}",\n    headers={"Authorization": f"Bearer {os.environ['OPENAJAR_KEY']}"},\n    timeout=70,\n)\nresponse.raise_for_status()\nanswer = response.json()\nprint(answer["data"], answer["cache"])`;
     case 'n8n':
       return JSON.stringify(
         {

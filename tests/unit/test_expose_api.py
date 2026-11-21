@@ -1,8 +1,8 @@
-"""/api/exposes (agentos.node.expose.api, mounted by agentos.api.mounts): the owner's computer (the
+"""/api/exposes (openajar.node.expose.api, mounted by openajar.api.mounts): the owner's computer (the
 device credential) and a person may open an expose or a forward; an agent's grant, an admin grant and
 the node token may not, and no MCP tool can. Starting it is in the action log; a lease renewal is not.
 
-And `agentos expose` and `agentos forward` on the owner's computer (agentos.client.expose), with a
+And `openajar expose` and `openajar forward` on the owner's computer (openajar.client.expose), with a
 fake node panel and a fake ssh."""
 
 from __future__ import annotations
@@ -17,11 +17,11 @@ import pytest
 from test_node_panel import TOKEN, Node
 from test_presence import Device, Token
 
-from agentos.client.errors import ClientError
-from agentos.client.expose import READY_LINE, LinkRunner, hold_script, local_args, parse_for, reverse_args
-from agentos.client.owner import PanelError
-from agentos.core.ratelimit import RateLimiter
-from agentos.node.expose.service import ExposeService
+from openajar.client.errors import ClientError
+from openajar.client.expose import READY_LINE, LinkRunner, hold_script, local_args, parse_for, reverse_args
+from openajar.client.owner import PanelError
+from openajar.core.ratelimit import RateLimiter
+from openajar.node.expose.service import ExposeService
 
 LANE = "biz-a/instagram"
 EM_DASH = "—"
@@ -63,7 +63,7 @@ def test_the_owners_computer_opens_one_and_it_is_in_the_action_log(node):
     r = device.req("POST", "/api/exposes", body(ttl_s=600))
     assert r.status_code == 200, r.text
     link = r.json()
-    assert link["host"] == "myapp.expose.agentos.invalid" and link["state"] == "waiting"
+    assert link["host"] == "myapp.expose.openajar.invalid" and link["state"] == "waiting"
     assert link["by"].endswith("on macbook") and link["socket"].endswith(".sock")
     assert device.req("GET", "/api/exposes").json()["links"][0]["id"] == link["id"]
     hb = device.req("POST", f"/api/exposes/{link['id']}/heartbeat")
@@ -92,12 +92,12 @@ def test_bad_requests_say_what_to_send(node):
 
 
 def test_no_mcp_tool_opens_one(tmp_path):
-    """Every tool this build serves (as `agentos tools` lists them): none exposes or forwards."""
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
-    from agentos.core.tools import ToolSpec
-    from agentos.mcp.providers import feature_providers, tool_providers
-    from agentos.plugins.entries import PLUGINS
+    """Every tool this build serves (as `openajar tools` lists them): none exposes or forwards."""
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
+    from openajar.core.tools import ToolSpec
+    from openajar.mcp.providers import feature_providers, tool_providers
+    from openajar.plugins.entries import PLUGINS
 
     runtime = Runtime(config=NodeConfig(home=tmp_path))
     providers = [*tool_providers(), *feature_providers(tuple(m for plugin in PLUGINS for m in plugin.tools))]
@@ -115,7 +115,7 @@ class FakePanel:
     def expose_create(self, device, body):
         self.calls.append(("create", body))
         return {"id": "l1", "socket": "/var/lib/agentos/run/expose/l1.sock", "owner_uid": 998,
-                "url": "https://myapp.expose.agentos.invalid/", "expires_at": "2026-11-08T12:00:00Z",
+                "url": "https://myapp.expose.openajar.invalid/", "expires_at": "2026-11-08T12:00:00Z",
                 "heartbeat_s": 1, "lease_s": 30}
 
     def expose_ready(self, device, link_id):
@@ -189,7 +189,7 @@ def test_expose_runs_ssh_r_says_ready_and_ends_when_its_time_is_up():
     args = started[0]
     assert "-R" in args and args[args.index("-R") + 1] == "/var/lib/agentos/run/expose/l1.sock:localhost:5173"
     assert "BatchMode=yes" in args and "ExitOnForwardFailure=yes" in args and "ControlPath=none" in args
-    assert any("https://myapp.expose.agentos.invalid/ now opens your localhost:5173" in line for line in out)
+    assert any("https://myapp.expose.openajar.invalid/ now opens your localhost:5173" in line for line in out)
 
 
 def test_a_dropped_ssh_session_ends_it_on_the_node():
@@ -247,7 +247,7 @@ def test_for_takes_a_short_duration():
 
 
 def test_forward_listens_on_localhost_only(monkeypatch):
-    import agentos.client.expose as mod
+    import openajar.client.expose as mod
 
     monkeypatch.setattr(mod, "pick_port", lambda preferred, reserved, explicit: preferred)
     monkeypatch.setattr(mod, "port_in_use", lambda port: True)

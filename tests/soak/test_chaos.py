@@ -1,6 +1,6 @@
 """Chaos on a real node: things break while an agent's call is in flight (docs/BENCH.md).
 
-    AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_chaos.py -q
+    OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_chaos.py -q
 
 Each case asserts what must hold afterwards: no lane is left wedged (the next calls work, or fail
 with the documented error and work once the cause is gone), holds and quarantines are what they
@@ -30,7 +30,7 @@ from soak_support import (
     until,
 )
 
-from agentos.dev.slotnode import (
+from openajar.dev.slotnode import (
     SITE,
     browsers_under,
     json_of,

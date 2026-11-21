@@ -1,5 +1,5 @@
 
- Usage: agentos node [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar node [OPTIONS] COMMAND [ARGS]...
 
  Set up and run this node.
 
@@ -7,7 +7,7 @@
 │ --help          Show this message and exit.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ init                  Create AGENTOS_HOME, write node.toml with an MCP       │
+│ init                  Create OPENAJAR_HOME, write node.toml with an MCP      │
 │                       token, and print how to connect.                       │
 │ rotate-token          Replace the node's own token (node.toml mcp_token), so │
 │                       copies of the old one stop working.                    │
@@ -27,7 +27,7 @@
 │ doctor                Check this node and say how to fix what is wrong.      │
 │ health                Node health: exit IPs, proxies, disk, RAM, browser     │
 │                       drift.                                                 │
-│ backup                Encrypted backups of AGENTOS_HOME (profiles, vault,    │
+│ backup                Encrypted backups of OPENAJAR_HOME (profiles, vault,   │
 │                       databases).                                            │
 │ migrate               Versioned migrations of the databases and the lane     │
 │                       directories.                                           │

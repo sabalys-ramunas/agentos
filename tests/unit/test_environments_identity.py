@@ -1,4 +1,4 @@
-"""Who an environment's commits are by (agentos.environments.identity): the owner's GitHub account when
+"""Who an environment's commits are by (openajar.environments.identity): the owner's GitHub account when
 a login is saved (its name and noreply address, the owner's choice of 2026-11-16), else the agent."""
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from types import SimpleNamespace
 
 import httpx
 
-from agentos.environments import identity
-from agentos.git import login
+from openajar.environments import identity
+from openajar.git import login
 
 TOKEN = "ghp_" + "x" * 36
 

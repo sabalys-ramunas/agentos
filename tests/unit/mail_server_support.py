@@ -1,6 +1,6 @@
 """A real IMAP and SMTP server in Docker for the tests that need one (tests/mail_server).
 
-Container `agentos-mailtest`, on ports Docker picks, removed when the session ends. Nothing else is
+Container `openajar-mailtest`, on ports Docker picks, removed when the session ends. Nothing else is
 touched. Without a working Docker the tests skip.
 """
 
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-NAME = "agentos-mailtest"
-IMAGE = "agentos-mailtest:latest"
+NAME = "openajar-mailtest"
+IMAGE = "openajar-mailtest:latest"
 CONTEXT = Path(__file__).parent.parent / "mail_server"
 HOST = "127.0.0.1"
 OWNER, PASSWORD = "owner@example.test", "right-password-1"

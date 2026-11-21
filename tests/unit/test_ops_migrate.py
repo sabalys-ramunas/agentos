@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core import layout, migrate
-from agentos.core.migrate import Migration, MigrationError, MigrationSet, NewerSchema
+from openajar.core import layout, migrate
+from openajar.core.migrate import Migration, MigrationError, MigrationSet, NewerSchema
 
 
 def calls_set(log: list[str], *, fail_at: int | None = None, db: str = "thing.db", create: bool = True):
@@ -60,7 +60,7 @@ def test_versions_must_be_contiguous_and_names_unique():
         MigrationSet("p", "p.db", (Migration(2, "b", noop), Migration(1, "a", noop)))
     with pytest.raises(ValueError, match="unique"):
         MigrationSet("p", "p.db", (Migration(1, "a", noop), Migration(2, "a", noop)))
-    with pytest.raises(ValueError, match="inside AGENTOS_HOME"):
+    with pytest.raises(ValueError, match="inside OPENAJAR_HOME"):
         MigrationSet("p", "../p.db", (Migration(1, "a", noop),))
 
 
@@ -138,7 +138,7 @@ def test_missing_database_without_create_is_left_alone(tmp_path):
 
 
 def test_node_baseline_stamps_an_m1_database_without_change(tmp_path):
-    with sqlite3.connect(tmp_path / "agentos.db") as db:
+    with sqlite3.connect(tmp_path / "openajar.db") as db:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("CREATE TABLE lanes (id TEXT PRIMARY KEY, spec TEXT NOT NULL, last_used TEXT, exit_ip TEXT)")
         db.execute("INSERT INTO lanes (id, spec) VALUES ('a/b', '{}')")
@@ -146,7 +146,7 @@ def test_node_baseline_stamps_an_m1_database_without_change(tmp_path):
     assert (st.current, st.pending) == (0, ["lanes table"])
     result = migrate.migrate(tmp_path, [migrate.NODE])
     assert result.backup_dir is not None
-    with sqlite3.connect(tmp_path / "agentos.db") as db:
+    with sqlite3.connect(tmp_path / "openajar.db") as db:
         assert db.execute("SELECT COUNT(*) FROM lanes").fetchone()[0] == 1
     assert migrate.status(tmp_path, [migrate.NODE])[0].pending == []
 
@@ -166,7 +166,7 @@ def test_dry_run_changes_nothing(tmp_path):
 
 
 def test_discover_finds_package_migrations(monkeypatch):
-    fake = types.ModuleType("agentos.fakepkg.migrations")
+    fake = types.ModuleType("openajar.fakepkg.migrations")
     fake.MIGRATIONS = MigrationSet("fakepkg", "fake.db", (Migration(1, "init", lambda c: None),))
 
     class Info:

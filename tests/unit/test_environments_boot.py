@@ -1,4 +1,4 @@
-"""How fast an environment comes up after its VM answers (agentos.environments.bringup, machine, setup.sh).
+"""How fast an environment comes up after its VM answers (openajar.environments.bringup, machine, setup.sh).
 
 A live open from the `dev` snapshot spent 43 s in the setup check and 17 s in the tools top-up
 (2026-11-16). The snapshot never ran setup.sh, so it had no ready marker: the node waited for cloud-init
@@ -21,7 +21,7 @@ from pathlib import Path
 
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.environments import bringup, machine
+from openajar.environments import bringup, machine
 
 
 def stub(bin_dir: Path, name: str, body: str) -> None:
@@ -68,7 +68,7 @@ def test_the_check_says_whether_pnpm_is_there(tmp_path):
 
 async def test_no_top_up_where_the_machine_has_pnpm(node, caplog):  # noqa: F811
     node["machine"].setup = "ready\ntools: pnpm"
-    with caplog.at_level(logging.INFO, logger="agentos.environments"):
+    with caplog.at_level(logging.INFO, logger="openajar.environments"):
         out = await opened(node, repo="example.test/me/shop")
     assert out["state"] == "ready"
     ran = [c for c, _ in node["machine"].ran]

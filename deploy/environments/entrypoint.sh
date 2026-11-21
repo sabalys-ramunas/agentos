@@ -2,7 +2,7 @@
 # The docker provider's "VM": install the host key and the login key the node made for this
 # machine (copied in before the container starts, under /etc/agentos-env), then run sshd.
 #
-# With AGENTOS_ENV_WALL=1 (agentos.vms.docker sets it, and gives the container NET_ADMIN for it) it
+# With AGENTOS_ENV_WALL=1 (openajar.vms.docker sets it, and gives the container NET_ADMIN for it) it
 # first walls the machine off: new connections to private, shared and link-local addresses are
 # refused, so it reaches neither this computer (host.docker.internal, the docker gateway, the
 # node's loopback listeners) nor your network, while the internet still works. DNS (port 53) is the
@@ -11,14 +11,14 @@
 # included, can take the wall down.
 #
 # With AGENTOS_ENV_NETWORK=closed as well (an environment's network "limited" or "none",
-# agentos.vms.netwall) the wall is tighter: every new outbound connection is refused but loopback,
+# openajar.vms.netwall) the wall is tighter: every new outbound connection is refused but loopback,
 # DNS included. The machine then reaches only what the node forwards into it over its SSH connection
 # (the git gateway, the node's allowlist proxy); it resolves no name itself (the proxy does). The docker provider copies this file in and runs it
 # for such a machine, so an image with an older entrypoint still gets this wall.
 set -eu
 SEED=/etc/agentos-env
 if [ ! -f "$SEED/ssh_host_ed25519_key" ] || [ ! -f "$SEED/authorized_keys" ]; then
-  echo "agentos-env: no keys in $SEED; this container is made by the agentos docker provider" >&2
+  echo "agentos-env: no keys in $SEED; this container is made by the openajar docker provider" >&2
   exit 1
 fi
 rm -f /etc/ssh/ssh_host_*

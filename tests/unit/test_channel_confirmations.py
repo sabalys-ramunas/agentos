@@ -14,12 +14,12 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_confirm_methods import FakeWatch
 
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.core.models import Principal
-from agentos.policy import confirm
-from agentos.policy.confirm import ConfirmLevel, MethodRegistry, Proof, controller_proof, default_registry
-from agentos.policy.errors import MethodUnavailable
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.core.models import Principal
+from openajar.policy import confirm
+from openajar.policy.confirm import ConfirmLevel, MethodRegistry, Proof, controller_proof, default_registry
+from openajar.policy.errors import MethodUnavailable
 
 FULL = {"controller_max_effect": "irreversible"}
 
@@ -297,8 +297,8 @@ async def test_a_controllers_layer_raises_and_its_null_drops_the_layer(hosted):
 
 
 def test_leaving_a_controller_drops_its_layer(tmp_path):
-    from agentos.node.channel import standing
-    from agentos.policy.issuers import TrustedIssuers
+    from openajar.node.channel import standing
+    from openajar.policy.issuers import TrustedIssuers
 
     store = store_for(tmp_path)
     store.apply_controller({"commit": {"when": "ask"}}, by="controller:org:old")
@@ -309,8 +309,8 @@ def test_leaving_a_controller_drops_its_layer(tmp_path):
 
 
 def test_leaving_another_controller_keeps_this_ones_layer(tmp_path):
-    from agentos.node.channel import standing
-    from agentos.policy.issuers import TrustedIssuers
+    from openajar.node.channel import standing
+    from openajar.policy.issuers import TrustedIssuers
 
     store = store_for(tmp_path)
     store.apply_controller({"commit": {"when": "ask"}}, by="controller:org:new")
@@ -404,8 +404,8 @@ WIRE = json.loads((Path(__file__).parent.parent / "fixtures" / "protocol" / "con
 
 
 def store_for(tmp_path):
-    from agentos.policy.confirmation import ConfirmationConfig, ConfirmationStore
-    from agentos.policy.store import DB
+    from openajar.policy.confirmation import ConfirmationConfig, ConfirmationStore
+    from openajar.policy.store import DB
 
     return ConfirmationStore(DB(tmp_path / "policy.db", ""), base=ConfirmationConfig(), clock=lambda: 1.0)
 
@@ -460,8 +460,8 @@ def test_a_lower_workspace_row_has_no_effect_and_is_not_refused(tmp_path):
 
 
 def test_policy_toml_workspaces_survive_a_layer(tmp_path):
-    from agentos.policy.confirmation import ConfirmationConfig, ConfirmationStore
-    from agentos.policy.store import DB
+    from openajar.policy.confirmation import ConfirmationConfig, ConfirmationStore
+    from openajar.policy.store import DB
 
     base = ConfirmationConfig(workspaces={"harbor": {"commit": {"when": "ask", "level": "present"}}})
     store = ConfirmationStore(DB(tmp_path / "policy.db", ""), base=base, clock=lambda: 1.0)
@@ -474,7 +474,7 @@ def test_policy_toml_workspaces_survive_a_layer(tmp_path):
 
 
 def test_an_account_nobody_switched_follows_its_workspace(tmp_path):
-    from agentos.policy.ask_first import AskFirst
+    from openajar.policy.ask_first import AskFirst
 
     store = store_for(tmp_path)
     store.apply_controller({"workspaces": {"harbor": {"commit": {"when": "ask"}}}}, by="c")

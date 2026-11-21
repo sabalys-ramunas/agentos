@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record a golden trace: a lane session on the dev web (agentos.dev.web), never a real site.
+"""Record a golden trace: a lane session on the dev web (openajar.dev.web), never a real site.
 
   scripts/record_golden.py                 write tests/golden/dev-social/
   scripts/record_golden.py --out DIR       write somewhere else
@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from agentos.dev import golden
+from openajar.dev import golden
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT = ROOT / "tests" / "golden" / "dev-social"
@@ -30,7 +30,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT, help="the trace directory")
     parser.add_argument("--check", action="store_true", help="compare with the trace on disk instead")
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix="agentos-golden-") as home:
+    with tempfile.TemporaryDirectory(prefix="openajar-golden-") as home:
         trace = asyncio.run(golden.record(Path(home)))
     if args.check:
         new, stored = golden.comparable(trace), golden.comparable(golden.load(args.out))

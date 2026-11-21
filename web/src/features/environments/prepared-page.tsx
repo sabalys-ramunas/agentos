@@ -33,7 +33,7 @@ const STATE = {
   failed: { label: 'Build failed', tone: 'bad' },
 } as const;
 
-export const prepareCommand = (repo: string) => `agentos environments prepare ${repoName(repo)}`;
+export const prepareCommand = (repo: string) => `openajar environments prepare ${repoName(repo)}`;
 
 export function PreparedPage() {
   const { org } = useParams({ from: '/$org/environments/prepared' });
@@ -203,7 +203,7 @@ function MachinesCard({ machines }: { machines: PreparedMachine[] }) {
           <tbody>
             {machines.length ? null : (
               <TableEmpty colSpan={7}>
-                <EmptyState icon={<Layers />} title="No prepared machines yet" description="A repository with a setup in its .agentos/environment.toml gets one after its first open, so the opens after it skip the install." />
+                <EmptyState icon={<Layers />} title="No prepared machines yet" description="A repository with a setup in its .openajar/environment.toml gets one after its first open, so the opens after it skip the install." />
               </TableEmpty>
             )}
             {machines.map((machine) => (
@@ -213,8 +213,8 @@ function MachinesCard({ machines }: { machines: PreparedMachine[] }) {
         </Table>
       </TableScroll>
       <div className="grid gap-2 border-t border-line px-5 py-4">
-        <p className="text-secondary text-muted">A repository gets one when its .agentos/environment.toml has a setup. To build one now, or again, run on the node:</p>
-        <CodeBlock code="agentos environments prepare <repository> --force" label="Copy the command" />
+        <p className="text-secondary text-muted">A repository gets one when its .openajar/environment.toml has a setup. To build one now, or again, run on the node:</p>
+        <CodeBlock code="openajar environments prepare <repository> --force" label="Copy the command" />
       </div>
     </Card>
   );
@@ -331,7 +331,7 @@ function PoolCard({ pool }: { pool: WarmPool }) {
             ? `A warm machine bills from its boot until an open claims it, or for ${pool.minutes} min at most, then it is deleted before its first billed hour ends and another takes its place. It counts against the machines you allow at once, and yields to any open.`
             : 'Off. Nothing bills until an agent opens a machine. With one warm machine, an open skips the rent and the boot.'}
         </p>
-        <CodeBlock code={pool.target ? 'agentos environments allow --warm 0' : 'agentos environments allow --warm 1'} label="Copy the command" />
+        <CodeBlock code={pool.target ? 'openajar environments allow --warm 0' : 'openajar environments allow --warm 1'} label="Copy the command" />
       </div>
     </Card>
   );

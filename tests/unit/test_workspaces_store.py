@@ -6,8 +6,8 @@ import sqlite3
 
 import pytest
 
-from agentos.core.errors import ServiceUnavailable
-from agentos.workspaces.store import SCHEMA_VERSION, WorkspaceStore
+from openajar.core.errors import ServiceUnavailable
+from openajar.workspaces.store import SCHEMA_VERSION, WorkspaceStore
 
 NOW = "2026-11-04T10:00:00+00:00"
 
@@ -118,12 +118,12 @@ def test_a_damaged_file_gives_a_clean_error_that_says_lanes_are_fine(tmp_path):
     assert info.value.code == "unavailable"
 
 
-def test_a_file_from_a_newer_agentos_is_refused_not_downgraded(tmp_path):
+def test_a_file_from_a_newer_openajar_is_refused_not_downgraded(tmp_path):
     path = tmp_path / "workspaces.db"
     db = sqlite3.connect(path)
     db.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)")
     db.execute("INSERT INTO schema_version VALUES (?)", (SCHEMA_VERSION + 5,))
     db.commit()
     db.close()
-    with pytest.raises(ServiceUnavailable, match="written by a newer agentos"):
+    with pytest.raises(ServiceUnavailable, match="written by a newer openajar"):
         WorkspaceStore(path)

@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from test_policy_support import Clock
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.errors import Denied
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE, Harness, post_flow
-from agentos.runner.tools import tool_specs
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.errors import Denied
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE, Harness, post_flow
+from openajar.runner.tools import tool_specs
 
 PARAMS = {"caption": "posted without a co-sign", "image": "a.jpg"}
 

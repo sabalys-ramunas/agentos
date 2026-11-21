@@ -13,7 +13,7 @@ describe('the build guard (security review 16)', () => {
   });
 
   it('finds mock code that reached a bundle, and passes a clean one', () => {
-    const dist = mkdtempSync(join(tmpdir(), 'agentos-guard-'));
+    const dist = mkdtempSync(join(tmpdir(), 'openajar-guard-'));
     mkdirSync(join(dist, 'assets'));
     writeFileSync(join(dist, 'index.html'), '<script src="/assets/app.js"></script>');
     writeFileSync(join(dist, 'assets', 'app.js'), 'console.log("panel")');
@@ -27,7 +27,7 @@ describe('the build guard (security review 16)', () => {
   });
 
   it('finds a concept drawing of a computer form (fake key or password box) in a build', () => {
-    const dist = mkdtempSync(join(tmpdir(), 'agentos-concept-'));
+    const dist = mkdtempSync(join(tmpdir(), 'openajar-concept-'));
     writeFileSync(join(dist, 'app.js'), 'console.log("panel")');
     expect(findMockCode(dist)).toEqual([]);
     writeFileSync(join(dist, 'key.js'), `const label = "${CONCEPT_TEXT[0]}"`);
@@ -35,7 +35,7 @@ describe('the build guard (security review 16)', () => {
   });
 
   it('checks the folder a build writes to, whatever it is called, and removes the mock workers from it', () => {
-    const out = mkdtempSync(join(tmpdir(), 'agentos-outdir-'));
+    const out = mkdtempSync(join(tmpdir(), 'openajar-outdir-'));
     writeFileSync(join(out, 'app.js'), 'console.log("panel")');
     writeFileSync(join(out, 'mockServiceWorker.js'), '');
     expect(() => assertCleanBuild(out)).not.toThrow();
@@ -44,7 +44,7 @@ describe('the build guard (security review 16)', () => {
   });
 
   it('the plugin checks the output folder it was configured with, not only dist', () => {
-    const root = mkdtempSync(join(tmpdir(), 'agentos-root-'));
+    const root = mkdtempSync(join(tmpdir(), 'openajar-root-'));
     const out = join(root, 'custom-build');
     mkdirSync(out);
     writeFileSync(join(out, 'app.js'), `const page = "${CONCEPT_TEXT[0]}"`);

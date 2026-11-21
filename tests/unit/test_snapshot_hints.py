@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from agentos.node.snapshot import (
+from openajar.node.snapshot import (
     HINT_LIMIT,
     build_outline,
     collect_facts,

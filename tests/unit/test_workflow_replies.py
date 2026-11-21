@@ -22,14 +22,14 @@ from workflow_support import (
     workflow,
 )
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.fakes import BASE
-from agentos.runner.mail.message import message_ids
-from agentos.runner.workflows.check import TRIGGER_FIELDS
-from agentos.runner.workflows.mail import Received, parse_message
-from agentos.runner.workflows.models import Trigger, WorkflowDefinition
-from agentos.runner.workflows.replies import MAX_IDS, sender_of
-from agentos.runner.workflows.service import WorkflowInvalid
+from openajar.core.errors import InvalidRequest
+from openajar.runner.fakes import BASE
+from openajar.runner.mail.message import message_ids
+from openajar.runner.workflows.check import TRIGGER_FIELDS
+from openajar.runner.workflows.mail import Received, parse_message
+from openajar.runner.workflows.models import Trigger, WorkflowDefinition
+from openajar.runner.workflows.replies import MAX_IDS, sender_of
+from openajar.runner.workflows.service import WorkflowInvalid
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 SEND = f"mail.send@{MAIL}"
@@ -241,7 +241,7 @@ def row_chase(node):
 async def test_a_row_that_replied_stops_and_the_record_says_so(node, monkeypatch):
     rows = [{"email": a} for a in PEOPLE]
     wid = row_chase(node)
-    monkeypatch.setattr("agentos.runner.workflows.engine.Walk._output", lambda self, child, op: ({"rows": rows}, set()))
+    monkeypatch.setattr("openajar.runner.workflows.engine.Walk._output", lambda self, child, op: ({"rows": rows}, set()))
     run = await started(node, wid)  # the first row went, and waits
     node.h.clock.advance(THREE_DAYS)
     await node.settle()  # its follow-up went, and the second row's first message
@@ -265,7 +265,7 @@ async def test_rows_of_a_loop_in_a_loop_each_keep_their_item(node):
     """Two rows with the same inner number are two rows."""
     from types import SimpleNamespace
 
-    from agentos.runner.workflows.service import WorkflowService
+    from openajar.runner.workflows.service import WorkflowService
 
     records = {p: SimpleNamespace(path=p, result={}) for p in ("a/0/b/1/c", "a/1/b/1/c")}
     views = [("succeeded_unverified", None, None)] * 2

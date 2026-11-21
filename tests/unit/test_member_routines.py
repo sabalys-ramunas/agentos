@@ -9,7 +9,7 @@ import pytest
 from test_api_members import join, owner, role
 from test_node_panel import Node
 
-from agentos.core.ratelimit import RateLimiter
+from openajar.core.ratelimit import RateLimiter
 
 LANE = "biz-a/instagram"
 FLOW = "biz-a.instagram.check"

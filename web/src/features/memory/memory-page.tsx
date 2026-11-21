@@ -15,7 +15,7 @@ import { Meter } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
 import { EmptyState, ErrorState, InlineError, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
 import { StatusDot } from '@/components/ui/status';
-import { Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
+import { Table, Td, Th, Tr, mainCell, TableScroll } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
 import { timeAgo } from '@/lib/format';
@@ -172,6 +172,7 @@ function RoomsTable({ rows, nameOf, scope, onScope }: { rows: MemoryWorkspace[];
   }
   return (
     <Card className="overflow-hidden">
+      <TableScroll>
       <Table>
         <thead>
           <Tr>
@@ -188,6 +189,7 @@ function RoomsTable({ rows, nameOf, scope, onScope }: { rows: MemoryWorkspace[];
           ))}
         </tbody>
       </Table>
+      </TableScroll>
     </Card>
   );
 }
@@ -203,11 +205,11 @@ function RoomRow({ row, name, selected, onSelect }: { row: MemoryWorkspace; name
           {keptSentence(row)} · {recordSentence(row)}
         </span>
       </Td>
-      <Td className="hidden w-44 md:table-cell">
+      <Td className="hidden w-36 md:table-cell">
         <span className="tabular block text-secondary text-muted">{keptSentence(row)}</span>
         <Meter className="mt-2 shrink-0" value={row.live_entries} max={row.live_entries_cap} label={`Entries kept in ${name}`} />
       </Td>
-      <Td className="hidden w-44 md:table-cell">
+      <Td className="hidden w-36 md:table-cell">
         <span className="tabular block text-secondary text-muted">
           {bytesText(row.content_bytes)} of {bytesText(row.content_bytes_cap)}
         </span>

@@ -1,4 +1,4 @@
-"""agentos doctor: every check against a fake host, the report formats, and no secrets anywhere."""
+"""openajar doctor: every check against a fake host, the report formats, and no secrets anywhere."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 from test_ops_support import PROXY_PASS, PROXY_USER, TOKEN, FakeHost, GiB, fingerprint, make_home
 
-from agentos.ops import doctor
-from agentos.ops.doctor import FAIL, PASS, SKIP, WARN, DoctorContext
+from openajar.ops import doctor
+from openajar.ops.doctor import FAIL, PASS, SKIP, WARN, DoctorContext
 
 
 def ctx_for(tmp_path: Path, host: FakeHost | None = None, **kw) -> DoctorContext:
@@ -27,7 +27,7 @@ def test_config_missing_and_ok(tmp_path):
     home = tmp_path / "empty"
     home.mkdir()
     r = doctor.check_config(DoctorContext(home=home, host=FakeHost()))[0]
-    assert r.status == FAIL and "agentos node init" in r.fix
+    assert r.status == FAIL and "openajar node init" in r.fix
     assert doctor.check_config(ctx_for(tmp_path))[0].status == PASS
 
 
@@ -64,7 +64,7 @@ def test_packages_missing_required_and_optional(tmp_path):
 
 
 def test_xclip_missing_is_a_warning_with_the_install_command(tmp_path):
-    """Only copying out of a lane's live view needs xclip, and `agentos upgrade` runs no apt: doctor is
+    """Only copying out of a lane's live view needs xclip, and `openajar upgrade` runs no apt: doctor is
     how the owner of an older node learns of it, so it warns and names the command, and never fails."""
     ctx = ctx_for(tmp_path)
     ctx.host.packages = {"xclip": False}
@@ -96,7 +96,7 @@ def test_camoufox_links_to_the_lane_check_instead_of_checking_lanes(tmp_path):
     assert results[0].status == PASS and "158.0.1-beta.41" in results[0].detail
     assert [r.id for r in results] == ["camoufox", "camoufox.model", "lanes"]  # no per-lane fingerprint rows
     lanes = by_id(results, "lanes")
-    assert lanes.status == PASS and "agentos lane check --all" in lanes.detail and "4 lane(s)" in lanes.detail
+    assert lanes.status == PASS and "openajar lane check --all" in lanes.detail and "4 lane(s)" in lanes.detail
 
 
 def test_a_missing_or_unreadable_fingerprint_model_fails_with_the_fix(tmp_path):
@@ -164,7 +164,7 @@ def test_displays_fail_while_an_x11vnc_of_ours_listens_on_tcp(tmp_path):
                       (13, ["x11vnc", "-display", ":99", "-rfbport", "5900"])]  # not one of our displays
     r = doctor.check_displays(ctx)[0]
     assert r.status == FAIL and ":211 (pid 11)" in r.detail
-    assert ":212" not in r.detail and ":99" not in r.detail and "agentos node restart" in r.fix
+    assert ":212" not in r.detail and ":99" not in r.detail and "openajar node restart" in r.fix
     ctx.host.procs = ctx.host.procs[1:]
     assert doctor.check_displays(ctx)[0].status == PASS
     # -rfbport 0 alone still listens on IPv6 [::]:5900
@@ -183,7 +183,7 @@ def test_service_states(tmp_path):
     assert by_id(results, "service").status == FAIL
     assert "journalctl -u agentosd" in by_id(results, "service").fix
     assert by_id(results, "service.enabled").status == WARN
-    assert by_id(results, "service.user").fix.startswith("sudo agentos migrate-service-user")
+    assert by_id(results, "service.user").fix.startswith("sudo openajar migrate-service-user")
     ctx.host.commands["systemctl show"] = (0, "LoadState=not-found\nActiveState=inactive\n")
     assert doctor.check_service(ctx)[0].status == WARN
     ctx.host.binaries.discard("systemctl")
@@ -266,13 +266,13 @@ def make_vault_db(home: Path, mode: str = "keyfile") -> None:
 def test_vault_states(tmp_path):
     ctx = ctx_for(tmp_path)
     r = doctor.check_vault(ctx)[0]
-    assert r.status == WARN and r.fix == "agentos vault init"
+    assert r.status == WARN and r.fix == "openajar vault init"
     make_vault_db(ctx.home)
     results = doctor.check_vault(ctx)
     assert by_id(results, "vault.key").status == FAIL  # keyfile mode without secrets/vault.key
     assert "seal state is unknown" in by_id(results, "vault").detail
     ctx.host.sockets["vault.sock"] = {"ok": True, "status": {"state": "sealed"}}
-    assert by_id(doctor.check_vault(ctx), "vault").fix == "agentos vault unseal"
+    assert by_id(doctor.check_vault(ctx), "vault").fix == "openajar vault unseal"
     ctx.host.sockets["vault.sock"] = {"ok": True, "status": {"state": "unsealed"}}
     (ctx.home / "secrets" / "vault.key").write_text("k")
     results = doctor.check_vault(ctx)
@@ -298,7 +298,7 @@ def test_disk_levels(tmp_path):
     assert doctor.check_disk(ctx)[0].status == WARN
     ctx.host.default_disk = (40 * GiB, 39.5 * GiB, int(0.5 * GiB))
     r = doctor.check_disk(ctx)[0]
-    assert r.status == FAIL and "agentos backup prune" in r.fix
+    assert r.status == FAIL and "openajar backup prune" in r.fix
     ctx.host.same_fs = False
     assert {r.id for r in doctor.check_disk(ctx)} == {"disk.home", "disk.tmp"}
 
@@ -343,8 +343,8 @@ def test_lane_caps_systemd_refuses_are_reported(tmp_path):
     ctx.host.cgroups = {51: "/system.slice/agentosd.service", 53: "/system.slice/agentosd.service"}
     r = doctor.check_lane_limits(ctx)[0]
     assert r.status == WARN and "2 of 2 warm lanes run without them" in r.detail
-    ctx.host.cgroups = {51: "/agentos.slice/agentos-lanes.slice/agentos-lane-personal--reddit-51.scope",
-                        53: "/agentos.slice/agentos-lanes.slice/agentos-lane-work--site-53.scope"}
+    ctx.host.cgroups = {51: "/openajar.slice/agentos-lanes.slice/openajar-lane-personal--reddit-51.scope",
+                        53: "/openajar.slice/agentos-lanes.slice/openajar-lane-work--site-53.scope"}
     r = doctor.check_lane_limits(ctx)[0]
     assert r.status == PASS and "2 warm lanes" in r.detail
 
@@ -399,13 +399,13 @@ def test_proxy_host_name_resolving_to_exit(tmp_path):
 
 
 def test_migrations_pending_current_and_newer(tmp_path):
-    from agentos.core import migrate
+    from openajar.core import migrate
 
     ctx = ctx_for(tmp_path)
     assert doctor.check_migrations(ctx)[0].status == WARN
     migrate.migrate(ctx.home, backup=False)
     assert doctor.check_migrations(ctx)[0].status == PASS
-    with sqlite3.connect(ctx.home / "agentos.db") as db:
+    with sqlite3.connect(ctx.home / "openajar.db") as db:
         db.execute("INSERT INTO schema_version VALUES ('node', 9, 'future', 'now')")
     assert doctor.check_migrations(ctx)[0].status == FAIL
 
@@ -415,7 +415,7 @@ def test_backups_none_old_and_fresh(tmp_path):
     assert doctor.check_backups(ctx)[0].status == WARN
     d = ctx.home / "backups"
     d.mkdir(mode=0o700)
-    (d / "agentos-test-node-20261101T000000Z.tar.gz.age").write_bytes(b"x")
+    (d / "openajar-test-node-20261101T000000Z.tar.gz.age").write_bytes(b"x")
     ctx.host.now_value = 1_793_000_000.0  # 2026-10-26 + 30 days or so; older than a week
     from datetime import UTC, datetime
     ctx.host.now_value = datetime(2026, 11, 20, tzinfo=UTC).timestamp()
@@ -428,21 +428,21 @@ def test_backups_made_with_to_elsewhere_are_found(tmp_path):
     """QA 2026-11-15 F13: backups made with --to /root/agentos-backups were not seen."""
     from datetime import UTC, datetime
 
-    from agentos.ops.backup import record_made
+    from openajar.ops.backup import record_made
 
     ctx = ctx_for(tmp_path)
     elsewhere = tmp_path / "agentos-backups"
     elsewhere.mkdir()
-    old, new = (elsewhere / f"agentos-test-node-2026111{d}T000000Z.tar.gz.age" for d in (0, 4))
+    old, new = (elsewhere / f"openajar-test-node-2026111{d}T000000Z.tar.gz.age" for d in (0, 4))
     for path in (old, new):
         path.write_bytes(b"x")
         record_made(ctx.home, str(path), datetime(2026, 11, 14, tzinfo=UTC), 1)
-    record_made(ctx.home, "s3://bucket/agentos/agentos-test-node-20261101T000000Z.tar.gz.age",
+    record_made(ctx.home, "s3://bucket/openajar/openajar-test-node-20261101T000000Z.tar.gz.age",
                 datetime(2026, 11, 1, tzinfo=UTC), 1)
     ctx.host.now_value = datetime(2026, 11, 15, tzinfo=UTC).timestamp()
     r = doctor.check_backups(ctx)[0]
     assert r.status == PASS, r.detail
-    assert str(elsewhere) in r.detail and "s3://bucket/agentos" in r.detail
+    assert str(elsewhere) in r.detail and "s3://bucket/openajar" in r.detail
     assert "3 in" in r.detail and new.name in r.detail and "(1.0 days old)" in r.detail
     assert "off this disk" not in r.detail
     new.unlink()  # a noted archive that is gone does not count
@@ -492,7 +492,7 @@ def test_fingerprint_drift_is_left_to_the_lane_check(tmp_path):
     path = ctx.home / "lanes" / "a" / "b" / "fingerprint.json"
     path.write_text(json.dumps(fingerprint(150)))
     report = doctor.run(ctx, ["camoufox"])
-    assert report.ok and report.counts[WARN] == 0  # agentos lane check reports the drift per lane
+    assert report.ok and report.counts[WARN] == 0  # openajar lane check reports the drift per lane
 
 
 # ---- workspace memory files -------------------------------------------------------------------
@@ -500,8 +500,8 @@ def test_fingerprint_drift_is_left_to_the_lane_check(tmp_path):
 def test_workspace_memory_files_are_checked(tmp_path):
     from testkit.memory import fake_memory
 
-    from agentos.memory import Caller
-    from agentos.ops.doctor import DoctorContext, check_workspace_memory
+    from openajar.memory import Caller
+    from openajar.ops.doctor import DoctorContext, check_workspace_memory
 
     ctx = DoctorContext(home=tmp_path)
     assert check_workspace_memory(ctx)[0].status == "skip"

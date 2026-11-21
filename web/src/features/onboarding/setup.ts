@@ -106,7 +106,7 @@ export function useSaved(org: string): Saved {
 }
 
 const ITEM: Record<SetupItemKey, { title: string; hint: string; minutes: number }> = {
-  goal: { title: 'Choose a first job', hint: 'Tell agentos what your AI should do first.', minutes: 1 },
+  goal: { title: 'Choose a first job', hint: 'Tell openajar what your AI should do first.', minutes: 1 },
   computer: { title: 'Add a computer', hint: 'Your AI works on a computer of its own.', minutes: 5 },
   account: { title: 'Sign in to an account', hint: 'Sign in once to the site your AI will use.', minutes: 2 },
   ai: { title: 'Connect your AI', hint: 'Connect Claude or ChatGPT so it can use the computer.', minutes: 3 },

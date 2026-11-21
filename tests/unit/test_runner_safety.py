@@ -11,13 +11,13 @@ import json
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import ControlState, Effect, LaneControl, RunKind, RunStatus
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE, OWNER, El, FakeCtx, FakeLanes, FakePolicy, Harness, post_flow
-from agentos.runner.models import FlowDefinition, steps_effect
-from agentos.runner.schedules import sign_webhook
-from agentos.runner.tools import flow_run, flow_save, flows_list, tool_specs
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import ControlState, Effect, LaneControl, RunKind, RunStatus
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE, OWNER, El, FakeCtx, FakeLanes, FakePolicy, Harness, post_flow
+from openajar.runner.models import FlowDefinition, steps_effect
+from openajar.runner.schedules import sign_webhook
+from openajar.runner.tools import flow_run, flow_save, flows_list, tool_specs
 
 PARAMS = {"caption": "Autumn", "image": "a.jpg"}
 LOOK = {"id": "biz-a.social.look", "lane": "biz-a/social", "effect": "draft",
@@ -70,7 +70,7 @@ async def test_a_queued_run_of_an_expired_grant_fails_as_grant_expired(tmp_path)
     assert run.status == RunStatus.FAILED and run.error["code"] == "grant_expired", run.error
     assert h.driver.log == []
     # the run's error carries the catalog's next step, as an MCP error result does
-    from agentos.core import catalog
+    from openajar.core import catalog
     shown = h.runner.describe(run)["error"]
     assert shown["fix"] == catalog.entry("grant_expired").agent and "fix" not in run.error
 
@@ -364,14 +364,14 @@ async def test_holds_never_count_toward_giving_up_and_hand_back_makes_the_run_du
     assert h.runner.get(run.id).status == RunStatus.SUCCEEDED_UNVERIFIED
 
 
-async def test_a_run_on_a_lane_agentos_held_says_agentos_held_it_and_why(tmp_path):
+async def test_a_run_on_a_lane_openajar_held_says_openajar_held_it_and_why(tmp_path):
     lanes = FakeLanes(["biz-a/social"])
     lanes.control = lambda lane_id: LaneControl(state=ControlState.PAUSED, by="node", reason="needs_human:captcha")
     h = Harness(tmp_path, services={"lanes": lanes})
     run = h.submit(h.save(LOOK).id)
     await h.runner.run_until_idle()
     message = h.runner.get(run.id).error["message"]
-    assert message.startswith("agentos paused biz-a/social itself (no person stopped you): a robot check (CAPTCHA)")
+    assert message.startswith("openajar paused biz-a/social itself (no person stopped you): a robot check (CAPTCHA)")
     assert "live view" in message and message.endswith("The run continues after that.")
 
 
@@ -453,9 +453,9 @@ def test_sensitive_events_keep_no_typed_text_or_values_while_recording(tmp_path)
 
 
 def test_a_security_check_stops_a_flow_and_asks_the_human():
-    from agentos.core.models import Signal
-    from agentos.runner.execution import NEEDS_YOU
-    from agentos.runner.proof import BAD_SIGNALS
+    from openajar.core.models import Signal
+    from openajar.runner.execution import NEEDS_YOU
+    from openajar.runner.proof import BAD_SIGNALS
 
     assert Signal.CHECKPOINT in BAD_SIGNALS
     assert "browser_view" in NEEDS_YOU[Signal.CHECKPOINT] and "—" not in NEEDS_YOU[Signal.CHECKPOINT]

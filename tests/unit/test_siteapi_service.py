@@ -13,22 +13,22 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
-from agentos.core import migrate
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal, RunStatus, Signal
-from agentos.runner import tools as runner_tools
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
-from agentos.runner.connectors.pace import counts, pace_problem
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.surfaces import ConnectorBroken, PaceLimited
-from agentos.runner.connectors.tools import operation_specs
-from agentos.runner.fakes import OWNER as RUNNER_OWNER
-from agentos.runner.fakes import El, FakeCtx, FakeDriver, FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.models import TRY_SOURCE, Run
-from agentos.runner.siteapis import cli as site_cli
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.models import SAMPLE, web_surface
-from agentos.runner.siteapis.service import ACTIVATE, LEAVE, REVIEW, ApiPaused, digest_of
+from openajar.core import migrate
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal, RunStatus, Signal
+from openajar.runner import tools as runner_tools
+from openajar.runner.connectors.compile import ConnectorInvalid, compile_connector
+from openajar.runner.connectors.pace import counts, pace_problem
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.surfaces import ConnectorBroken, PaceLimited
+from openajar.runner.connectors.tools import operation_specs
+from openajar.runner.fakes import OWNER as RUNNER_OWNER
+from openajar.runner.fakes import El, FakeCtx, FakeDriver, FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.runner.models import TRY_SOURCE, Run
+from openajar.runner.siteapis import cli as site_cli
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.models import SAMPLE, web_surface
+from openajar.runner.siteapis.service import ACTIVATE, LEAVE, REVIEW, ApiPaused, digest_of
 
 API, EP, LANE = "harbor-supplier", "open_orders", "harbor/supplier"
 FLOW = f"connector.{API}.{EP}"
@@ -57,7 +57,7 @@ def portal() -> FakeSite:
 
 
 class Approvals:
-    """The question path of agentos.policy.approvals."""
+    """The question path of openajar.policy.approvals."""
 
     def __init__(self):
         self.items = {}
@@ -675,7 +675,7 @@ async def test_a_web_try_on_a_known_sites_surface_is_refused(tmp_path):
 
 
 async def test_a_try_the_grant_refuses_saves_no_draft_and_stages_no_version(h):
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.siteapis import tools as site_tools
 
     class Refusing(FakeCtx):
         async def authorize(self, effect, **kw):
@@ -831,7 +831,7 @@ def test_propose_needs_a_surface_and_a_definition_that_compiles(h):
 
 
 async def test_a_proposal_for_a_surface_the_grant_does_not_reach_saves_nothing(h):
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.siteapis import tools as site_tools
 
     class NoLanes(FakeCtx):
         def can_access_lane(self, lane_id):
@@ -844,7 +844,7 @@ async def test_a_proposal_for_a_surface_the_grant_does_not_reach_saves_nothing(h
 
 
 async def test_a_proposal_with_no_surface_is_refused_before_anything_is_saved(h):
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.siteapis import tools as site_tools
 
     ctx = FakeCtx(h.runtime)
     with pytest.raises(InvalidRequest, match="no surface"):
@@ -854,7 +854,7 @@ async def test_a_proposal_with_no_surface_is_refused_before_anything_is_saved(h)
 
 async def test_a_try_is_authorized_on_the_surface_not_the_lane_behind_it(h, monkeypatch):
     """A surface's grant is its own id: a grant for the login lane behind it does not reach it."""
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.siteapis import tools as site_tools
 
     class Refusing(FakeCtx):
         async def authorize(self, effect, **kw):
@@ -895,7 +895,7 @@ def test_an_agents_try_of_a_paused_api_answers_paused(h):
 
 
 async def test_a_token_on_the_tool_is_an_agent_and_answers_paused(h):
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.siteapis import tools as site_tools
 
     live(h)
     h.svc.pause(API, by=OWNER)

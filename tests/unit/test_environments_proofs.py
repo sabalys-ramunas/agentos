@@ -1,4 +1,4 @@
-"""Proof screenshots of an environment (agentos.environments.proofs), browser_screenshot's proof, width and
+"""Proof screenshots of an environment (openajar.environments.proofs), browser_screenshot's proof, width and
 full_page, the app's proof routes, and the compare link for a pushed branch."""
 
 from __future__ import annotations
@@ -13,16 +13,16 @@ from mcp import Client
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_isolation import _record, panel  # noqa: F401  (panel is a fixture)
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import LaneSpec, utcnow
-from agentos.core.runtime import Runtime
-from agentos.environments import proofs as proofs_mod
-from agentos.environments.models import Push
-from agentos.environments.tools import compare_link
-from agentos.mcp.registry import build_mcp
-from agentos.node.tools import INSTRUCTIONS, tool_specs
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import LaneSpec, utcnow
+from openajar.core.runtime import Runtime
+from openajar.environments import proofs as proofs_mod
+from openajar.environments.models import Push
+from openajar.environments.tools import compare_link
+from openajar.mcp.registry import build_mcp
+from openajar.node.tools import INSTRUCTIONS, tool_specs
+from openajar.node.viewer_tokens import ViewTokens
 
 
 class Clock:
@@ -167,7 +167,7 @@ ENV_BROWSER = "env/eabcdefghjk-browser"
 
 @pytest.fixture
 async def shots(monkeypatch):
-    from agentos.dev.lanes import FakePage
+    from openajar.dev.lanes import FakePage
 
     sizes: list[dict] = []
 
@@ -179,7 +179,7 @@ async def shots(monkeypatch):
 
     monkeypatch.setattr(FakePage, "evaluate", evaluate, raising=False)
     monkeypatch.setattr(FakePage, "set_viewport_size", set_viewport_size, raising=False)
-    monkeypatch.setattr("agentos.node.tools.shots.REFLOW_S", 0)
+    monkeypatch.setattr("openajar.node.tools.shots.REFLOW_S", 0)
     lanes = FakeLaneManager(NodeConfig(name="test-node"))
     for lane in (ENV_BROWSER, "personal/reddit"):
         await lanes.create(LaneSpec(id=lane))

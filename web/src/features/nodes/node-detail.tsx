@@ -234,7 +234,7 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
         open={confirming}
         onOpenChange={setConfirming}
         title={`Remove ${id}?`}
-        description={`Accounts on this machine stop and show as read-only here. agentos forgets ${id}, so adding it again needs a new install command. Profiles and logins stay on the machine.`}
+        description={`Accounts on this machine stop and show as read-only here. openajar forgets ${id}, so adding it again needs a new install command. Profiles and logins stay on the machine.`}
         confirmLabel="Remove machine"
         danger
         typeToConfirm={id}

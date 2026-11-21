@@ -292,7 +292,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
           ) : null}
           {sends ? (
             <>
-              <Field label="Who it goes to" hint="Only lists you gave agentos. It can't find or buy addresses.">
+              <Field label="Who it goes to" hint="Only lists you gave openajar. It can't find or buy addresses.">
                 <Select
                   placeholder="Choose a list"
                   value={step.send?.list ?? ''}

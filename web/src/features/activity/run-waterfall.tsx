@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { Run, RunStatus, RunStep } from '@/api/types';
 import { StatusDot } from '@/components/ui/status';
-import { cn } from '@/lib/cn';
 import { clock, elapsed } from '@/lib/format';
 import type { Tone } from '@/lib/labels';
 import { useNow } from '@/lib/use-now';
@@ -90,7 +89,7 @@ function Row({ span, from, total, slowest, open, onToggle }: { span: Span; from:
         </span>
         <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-hover">
           <span
-            className={cn('absolute inset-y-0 rounded-full', span.live && 'animate-pulse')}
+            className="absolute inset-y-0 rounded-full"
             style={{ left: `${left}%`, width: `max(${width}%, 3px)`, backgroundColor: color }}
           />
         </span>

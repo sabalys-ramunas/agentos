@@ -2,8 +2,8 @@
 
 Runs only on a Linux node (tests here are marked `node`). The display and the site port are the
 first of the slot's ranges that scripts/node-test.sh exports (the interaction
-agent's slot 12 without them) and can be overridden with AGENTOS_TEST_DISPLAY and
-AGENTOS_TEST_SITE_PORT. One browser for the whole session (RAM on the node is shared); every
+agent's slot 12 without them) and can be overridden with OPENAJAR_TEST_DISPLAY and
+OPENAJAR_TEST_SITE_PORT. One browser for the whole session (RAM on the node is shared); every
 test gets a fresh context whose requests to anything but the fixture site are aborted, so no
 test can ever reach a real website.
 
@@ -11,10 +11,10 @@ Camoufox and Playwright are imported inside the fixtures: on the Mac this file i
 (and its tests deselected) without a browser.
 
 Two switches for CI (.github/workflows/ci.yml, job "node"):
-- AGENTOS_TEST_SMOKE=<file> runs only the tests the file lists (tests/node/ci-smoke.txt) and those
+- OPENAJAR_TEST_SMOKE=<file> runs only the tests the file lists (tests/node/ci-smoke.txt) and those
   marked `ci_smoke`. A listed id that matches no test fails the run, so a rename cannot drop one.
-- AGENTOS_TEST_OFFLINE=1 is for a machine with no way out: Camoufox's geoip asks public services
-  for this host's IP before every launch, so the lookup answers AGENTOS_TEST_EXIT_IP (default
+- OPENAJAR_TEST_OFFLINE=1 is for a machine with no way out: Camoufox's geoip asks public services
+  for this host's IP before every launch, so the lookup answers OPENAJAR_TEST_EXIT_IP (default
   8.8.8.8, located from the local GeoIP database) and this host has no IPv6. No request is made.
 """
 
@@ -35,12 +35,12 @@ import pytest_asyncio
 
 SITE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "site"
 # scripts/node-test.sh exports the slot's ranges; without them this is the interaction slot (12).
-DISPLAY = os.environ.get("AGENTOS_TEST_DISPLAY") or f":{os.environ.get('AGENTOS_TEST_DISPLAY_BASE', '120')}"
-SITE_PORT = int(os.environ.get("AGENTOS_TEST_SITE_PORT") or os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6120"))
+DISPLAY = os.environ.get("OPENAJAR_TEST_DISPLAY") or f":{os.environ.get('OPENAJAR_TEST_DISPLAY_BASE', '120')}"
+SITE_PORT = int(os.environ.get("OPENAJAR_TEST_SITE_PORT") or os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6120"))
 SCREEN = "1280x900x24"
-SMOKE_LIST = os.environ.get("AGENTOS_TEST_SMOKE")
-OFFLINE = os.environ.get("AGENTOS_TEST_OFFLINE") == "1"
-OFFLINE_EXIT_IP = os.environ.get("AGENTOS_TEST_EXIT_IP", "8.8.8.8")
+SMOKE_LIST = os.environ.get("OPENAJAR_TEST_SMOKE")
+OFFLINE = os.environ.get("OPENAJAR_TEST_OFFLINE") == "1"
+OFFLINE_EXIT_IP = os.environ.get("OPENAJAR_TEST_EXIT_IP", "8.8.8.8")
 
 
 def _smoke_ids(path: str) -> set[str]:
@@ -155,7 +155,7 @@ def xvfb_display() -> Iterator[str]:
     number = DISPLAY.lstrip(":")
     socket = Path(f"/tmp/.X11-unix/X{number}")
     if socket.exists():
-        pytest.fail(f"display {DISPLAY} is already in use; stop it or set AGENTOS_TEST_DISPLAY")
+        pytest.fail(f"display {DISPLAY} is already in use; stop it or set OPENAJAR_TEST_DISPLAY")
     proc = subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", SCREEN, "-nolisten", "tcp"],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

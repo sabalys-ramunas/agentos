@@ -3,7 +3,6 @@
  * it: the node types it into the site, and the code goes nowhere else. It is read from a plain field
  * once, at submit, and the field is cleared then. It is never state, a query, a toast or a log.
  */
-import { KeyRound } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
@@ -31,9 +30,6 @@ export function CodeRow({ card, business, focused, onFocus }: { card: CodeReques
       aria-current={focused || undefined}
       className={queueRow(focused)}
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-line bg-card text-muted shadow-lift">
-        <KeyRound aria-hidden="true" className="size-3.5" />
-      </span>
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="truncate text-label">Login code for {codeSite(card)}</span>
         <span className="flex min-w-0 items-center gap-2 text-caption text-faint">
@@ -76,7 +72,7 @@ export function CodeDetail({ org, card, business, onLeave }: CodeDetailProps) {
     setError(null);
     try {
       await enter(card.id, code);
-      toast(`Code sent. agentos is typing it into ${site}.`);
+      toast(`Code sent. openajar is typing it into ${site}.`);
       onLeave();
     } catch (cause) {
       // Said here, on the card, because the card is the place the person is looking.
@@ -109,7 +105,7 @@ export function CodeDetail({ org, card, business, onLeave }: CodeDetailProps) {
         <h2 className="mt-3 text-page-title-compact break-words">Type the code {site} sent you</h2>
       </div>
       <p className="text-body text-muted">
-        {site} sent a code to your phone or app. Type it here once. agentos types it into the site, and the code is never stored or shown to the agent.
+        {site} sent a code to your phone or app. Type it here once. openajar types it into the site, and the code is never stored or shown to the agent.
       </p>
       <form className="grid gap-4" autoComplete="off" onSubmit={(event) => void send(event)}>
         <Field label="Code" hint="4 to 12 letters or digits. Spaces and dashes are fine." error={error}>

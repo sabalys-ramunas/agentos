@@ -1,7 +1,7 @@
 /**
  * Concept: how a yes looks in a chat. A stand-alone mock with its own words, in a generic chat window
  * that imitates no product. The point of the page is the line between two voices: the agent can say
- * what it likes, and only agentos writes the question. "Who wrote what" draws that line on the page.
+ * what it likes, and only openajar writes the question. "Who wrote what" draws that line on the page.
  */
 import { Link, useParams } from '@tanstack/react-router';
 import { ArrowUpRight, Check, Fingerprint, Lock, Paperclip, X } from 'lucide-react';
@@ -14,14 +14,14 @@ import { Switch } from '@/components/ui/toggle';
 import { cn } from '@/lib/cn';
 import './confirmations.css';
 
-type Voice = 'you' | 'agent' | 'agentos';
+type Voice = 'you' | 'agent' | 'openajar';
 
 const WROTE: Record<Exclude<Voice, 'you'>, string> = {
   agent: 'The agent wrote this',
-  agentos: 'agentos wrote this',
+  openajar: 'openajar wrote this',
 };
 
-const ADDRESS = 'https://app.agentos.example/northwind-group/review/ap_pay';
+const ADDRESS = 'https://app.openajar.example/northwind-group/review/ap_pay';
 
 /** A part of the chat with its author. With the outlines on, the author is named on its edge. */
 function Spoken({ voice, shown, name, children, className }: { voice: Voice; shown: boolean; name?: string; children: ReactNode; className?: string }) {
@@ -29,7 +29,7 @@ function Spoken({ voice, shown, name, children, className }: { voice: Voice; sho
   return (
     <div className={cn('yes-voice', className)} data-outline={named ? voice : undefined}>
       {children}
-      {named ? <span className={cn('yes-voice-name', voice === 'agentos' ? 'font-medium text-fg' : 'text-faint')}>{name ?? WROTE[voice]}</span> : null}
+      {named ? <span className={cn('yes-voice-name', voice === 'openajar' ? 'font-medium text-fg' : 'text-faint')}>{name ?? WROTE[voice]}</span> : null}
     </div>
   );
 }
@@ -68,10 +68,10 @@ function Prompt({ shown, answer, onAnswer }: { shown: boolean; answer: 'yes' | '
     );
   }
   return (
-    <Spoken voice="agentos" shown={shown}>
-      <section aria-label="A question from agentos" className="rounded-lg border border-line-strong bg-raised shadow-popover">
+    <Spoken voice="openajar" shown={shown}>
+      <section aria-label="A question from openajar" className="rounded-lg border border-line-strong bg-raised shadow-popover">
         <header className="flex items-center gap-2 border-b border-line px-3 py-2">
-          <span className="text-secondary font-medium">agentos asks</span>
+          <span className="text-secondary font-medium">openajar asks</span>
           <span className="ml-auto flex items-center gap-1 text-caption text-faint">
             <Lock aria-hidden="true" className="size-3" />
             Not from the agent
@@ -101,7 +101,7 @@ function PromptForm({ shown }: { shown: boolean }) {
         <Bubble from="you">Post the autumn blend photo on Aster&apos;s Instagram.</Bubble>
       </Spoken>
       <Spoken voice="agent" shown={shown}>
-        <Bubble from="agent">It&apos;s ready. agentos wants a person to say yes first, so it is asking you now.</Bubble>
+        <Bubble from="agent">It&apos;s ready. openajar wants a person to say yes first, so it is asking you now.</Bubble>
       </Spoken>
       {answer === 'yes' ? (
         <Spoken voice="agent" shown={shown} className="animate-fade-in">
@@ -127,7 +127,7 @@ function ReviewForm({ shown, href }: { shown: boolean; href: string | null }) {
         <Spoken voice="agent" shown={shown}>
           <Bubble from="agent">It&apos;s ready. Money needs you to prove it&apos;s you, and a chat can&apos;t do that. Open this to review it:</Bubble>
         </Spoken>
-        <Spoken voice="agentos" shown={shown} name="agentos made this link" className="px-3 py-2">
+        <Spoken voice="openajar" shown={shown} name="openajar made this link" className="px-3 py-2">
           <a href={href ?? undefined} className="link mono block truncate text-secondary">
             {ADDRESS}
           </a>
@@ -163,8 +163,8 @@ function ReviewForm({ shown, href }: { shown: boolean; href: string | null }) {
 
 const RULES: [string, string][] = [
   ['The agent never holds the pen.', 'The question is written from the request itself, the same way a card in Needs you is. Nothing the agent writes reaches it.'],
-  ['The agent has no button.', 'The answer goes from your chat app to agentos. The agent only hears how it came out.'],
-  ['A link never says yes.', 'It only opens the page. You decide there, signed in, with as much proof as it needs. Check that it is your own agentos address.'],
+  ['The agent has no button.', 'The answer goes from your chat app to openajar. The agent only hears how it came out.'],
+  ['A link never says yes.', 'It only opens the page. You decide there, signed in, with as much proof as it needs. Check that it is your own openajar address.'],
   ['No is always welcome.', 'You can say no from any chat, whatever the setting says.'],
 ];
 
@@ -182,7 +182,7 @@ export function YesInChat() {
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <div className="min-w-0">
             <h1 className="text-headline">A yes in chat</h1>
-            <p className="mt-2 max-w-[60ch] text-body text-pretty text-muted">For anyone with no Mac or iPhone, and anyone already talking to an agent. The agent asks agentos, and agentos asks you.</p>
+            <p className="mt-2 max-w-[60ch] text-body text-pretty text-muted">For anyone with no Mac or iPhone, and anyone already talking to an agent. The agent asks openajar, and openajar asks you.</p>
           </div>
           <span className="flex shrink-0 items-center gap-2 text-secondary text-muted">
             <span aria-hidden="true">Show who wrote what</span>
@@ -194,14 +194,14 @@ export function YesInChat() {
         <section aria-label="When the chat app can show a prompt" className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
           <div>
             <h2 className="text-section-title">When the chat app can ask you</h2>
-            <p className="mt-1 text-secondary text-muted">A post, on a day it asks. How it looks is up to each chat app. The words are always agentos&apos;s own, outside the conversation.</p>
+            <p className="mt-1 text-secondary text-muted">A post, on a day it asks. How it looks is up to each chat app. The words are always openajar&apos;s own, outside the conversation.</p>
           </div>
           <PromptForm shown={shown} />
         </section>
         <section aria-label="When it needs more than a chat" className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
           <div>
             <h2 className="text-section-title">When it needs more than a chat</h2>
-            <p className="mt-1 text-secondary text-muted">A payment. The same goes for a chat app that can&apos;t show a prompt: agentos hands over a link instead.</p>
+            <p className="mt-1 text-secondary text-muted">A payment. The same goes for a chat app that can&apos;t show a prompt: openajar hands over a link instead.</p>
           </div>
           <ReviewForm shown={shown} href={href} />
         </section>

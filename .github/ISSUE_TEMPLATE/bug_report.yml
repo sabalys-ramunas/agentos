@@ -18,20 +18,20 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: The commands or tool calls, in order. `agentos dev up --seed` is a good place to reproduce.
+      description: The commands or tool calls, in order. `openajar dev up --seed` is a good place to reproduce.
     validations:
       required: true
   - type: textarea
     id: output
     attributes:
       label: Output
-      description: Error messages, the error code, or `agentos doctor` output (scrub anything private).
+      description: Error messages, the error code, or `openajar doctor` output (scrub anything private).
       render: text
   - type: input
     id: version
     attributes:
       label: Version
-      description: "`agentos version`, and the commit if you run from a checkout."
+      description: "`openajar version`, and the commit if you run from a checkout."
     validations:
       required: true
   - type: dropdown
@@ -43,8 +43,8 @@ body:
         - Environment (Hetzner Cloud)
         - Linux node (systemd install)
         - Linux node (dev install)
-        - Mac (agentos connect)
-        - Laptop (agentos dev up)
+        - Mac (openajar connect)
+        - Laptop (openajar dev up)
         - Controller
         - Other
     validations:

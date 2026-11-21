@@ -1,103 +1,151 @@
-# agentos design system: Mono
+# openajar design system: Dawn
 
-The app follows **Mono**, the style the owner approved on 2026-11-13: precise and monochrome, in
-the spirit of vercel.com and resend.com, with a colour for each kind of work. The prototype was
-`panel/prototypes/dashboard/style-mono/` (removed with the classic panel; it is in git history at
-59634500), its reasons are in [`docs/design/style-style-mono.md`](../docs/design/style-style-mono.md), the UX in
-[`docs/design/app-design.md`](../docs/design/app-design.md) and the tables, type roles and statuses in
-[`docs/design/foundations.md`](../docs/design/foundations.md). Where those and this file disagree about
-the app, this file is the rule. If you change a rule, change it here in the same commit.
+The app follows **Dawn**, the design system the owner chose on 2026-11-20: the desktop's light brought to
+the web app. Dawn keeps Mono's bones (one token source, hairlines, a 4 px grid, shape and word for every
+status, tables without a grey band) and adds what the agent's own computer looks like: a night navy, one
+violet (the agent's colour), the sunrise picture, glass over it, the "Window a" mark. The app is drawn in
+Dawn's **Full** strength (the larger type, pill buttons, the night sidebar, Home's window), with the owner's
+two changes: cards less round than the mockup (10, not 14) and the organisation switch at the foot of the
+sidebar.
 
-The product is agentos's own: do not copy Vercel's or Resend's logo, wording or layouts.
+The designer's sheet is [`docs/design/dawn/system.jpg`](../docs/design/dawn/system.jpg): every colour for
+light and dark, the violet scale and its rules, type, radii, glass, icons, the wrapper tile, buttons, inputs,
+the control pill, the mark, and where the Dawn picture may and may not appear. The UX is in
+[`docs/design/app-design.md`](../docs/design/app-design.md), and the table, type and status foundations Mono
+set are in [`docs/design/foundations.md`](../docs/design/foundations.md). Where those and this file disagree
+about the app, this file is the rule. If you change a rule, change it here in the same commit.
 
-## What changed with Mono
+The product is openajar's own: do not copy another product's logo, wording or layouts.
 
-Said plainly, for anyone who knew the app before:
+## What changed with Dawn
 
-- **One token source.** [`tokens/build-tokens.py`](tokens/build-tokens.py) writes
-  [`tokens/tokens.json`](tokens/tokens.json) (DTCG) and [`src/styles/tokens.css`](src/styles/tokens.css).
-  Both are generated: edit the script and run it. `light-dark()` is gone from the token set; each theme
-  is a block of plain values, so studio can read every token.
-- **Page and card differ.** The page is `#fafafa` (black in dark), a card white (`#0a0a0a`). It was one
-  colour.
-- **Cards lift by 1 px.** A 1 px shadow in light, a 1 px light on the top edge in dark (`--lift`,
-  `shadow-lift`). It was "nothing in the page casts a shadow".
-- **No hue accent.** The primary, what is selected and what is running are ink. Links are ink with an
-  underline. Focus is the one blue. `text-blue` and `--blue` now give ink.
-- **Running is ink, not pink.** `live`, `--current` and the Working now glyph were pink. They are ink
-  with a ringed, pulsing dot, so no status shares a hue with a kind of work (the owner kept this on
-  2026-11-19: pink is only the design kind of work). Changed in one place
-  (`src/styles/aliases.css`); every screen that says `bg-live` or `var(--current)` follows.
-- **A colour per kind of work.** Tests violet, design checks pink, build and CI teal, dev servers blue:
-  always a tile with the kind's icon and its word in mono caps (`KindTile`, `KindEyebrow`).
-- **Type roles.** `text-page-title` (28/36), `text-display` (40/44), `text-table-header`, `text-code`
-  and the rest. The old `text-11` to `text-32` are gone (2026-11-19, `scripts/codemod-legacy-tokens.mjs`);
-  `text-heading` (20/28) and `text-headline` (32/40) took the two sizes no role had.
-- **Tables** have no grey band, rows 52 px (40 compact), sortable heads with `aria-sort`, a list form
-  under 768 px, and a selection bar.
-- **Terminals are dark in both themes.** **Radius xl is 10** (was 12). Durations 100 / 150 / 200 ms.
-- **One caps style:** the mono eyebrow, for a kind's word and "IF YES". Sentence case everywhere else.
-- **The shell.** The rail runs full height on the left with the menu in five groups; the top bar sits
-  over the page only, and Computers is called Machines everywhere a person reads it. See "The shell".
+Said plainly, for anyone who knew Mono:
+
+- **Ink with a trace of blue.** The neutrals carry the night sky's ink blue (`#15172b` text, `#f6f6fa` page,
+  `#e7e7ee` hairline). Dark is Dawn's night navy (`#090b16` page, `#0f1222` card), not black.
+- **One violet.** `#6d4aff` (violet 600) is the agent's colour on the desktop. In the app it is what is
+  selected, the keyboard's focus, the primary button, an agent at work, and the mark. It is never a status, a
+  large background or decoration. Links stay ink with an underline.
+- **An agent at work is a violet ring that never pulses.** Mono's ink ring pulsed. Dawn's is still; Starting
+  is the same ring dashed and empty. Nothing on a page moves all the time.
+- **Tests moved from violet to plum**, so no kind of work shares the agent's hue.
+- **Every button is a pill.** The primary is the violet pill with white words, once per screen.
+- **Full's type, one step larger** for reading: body 15/22, a row's second line 14/20, the lede 17/26,
+  sections 18/26, the page title 34/40, Home's sentence 44/50. The old `text-11` to `text-32` are gone
+  (2026-11-19, `scripts/codemod-legacy-tokens.mjs`): each is the role of its size.
+- **Radius:** cards stay 10, dialogs 12; fields 6, pictures, the live screen and menus 8, Home's window 14,
+  buttons full.
+- **The night sidebar.** The rail is the night sky in both themes, with a few still stars and the sunrise at
+  its foot. The org switch moved to the foot, on glass.
+- **Glass and the Dawn picture** are new, and only where the sheet allows them (below).
+- **Icons** are drawn at 1.75 (was 1.5), the desktop dock's fine line.
 
 ## Tokens
 
 [`tokens/build-tokens.py`](tokens/build-tokens.py) is the one place the values live. It writes
 `tokens/tokens.json` and `src/styles/tokens.css`, and from [`tokens/theme.py`](tokens/theme.py) the Tailwind
 theme (`src/styles/theme.css`) and its keys as data (`tokens/theme-keys.json`, which the design rules read).
-It checks 112 text and mark pairs against WCAG AA in both
-themes, and checks that the kind colours stay apart from each other and from status for protanopia,
-deuteranopia and tritanopia (OKLab distance 0.04 or more). `src/styles/tokens.test.ts` fails when the
-two files drift from each other or from the script, or a check fails:
+It checks 176 text and mark pairs against WCAG AA in both
+themes, plus layered surfaces (white words on each stop of the night sidebar and on the foot's glass over the
+glow; text on glass over the Dawn picture's darkest and lightest skies; the lede on the picture under its
+scrim). It also checks that the kinds of work stay apart from each other and from status (the violet ring
+included) for protanopia, deuteranopia and tritanopia (OKLab distance 0.04 or more).
+`src/styles/tokens.test.ts` fails when the two files drift from each other or from the script, or a check fails:
 
 ```bash
 python3 tokens/build-tokens.py            # write both files and check
 python3 tokens/build-tokens.py --check    # what the test runs: write nothing, fail on drift
 ```
 
-Light is the default. Dark comes from the system (`prefers-color-scheme`) unless `data-theme` on
-`<html>` pins one, so "system" still needs no JavaScript.
+Light is the default. Dark comes from the system (`prefers-color-scheme`) unless `data-theme` on `<html>`
+pins one, so "system" still needs no JavaScript. Each theme is a block of plain values (no `light-dark()`),
+so studio can read every token.
 
 Three files, in this order, from `src/styles/app.css`:
 
 0. `theme.css`: the Tailwind theme, every class name onto a token (generated from `tokens/theme.py`).
-1. `tokens.css`: the Mono set (generated). Roles, never steps: `--surface-*`, `--line-*`, `--text-*`,
-   `--status-*`, `--kind-*`, `--terminal-*`, `--ansi-*`, `--diff-*`, `--chart-*`, `--type-*`.
+1. `tokens.css`: the Dawn set (generated). Roles, never steps: `--surface-*`, `--line-*`, `--text-*`,
+   `--accent-*`, `--action-*`, `--status-*`, `--kind-*`, `--glass-*`, `--dawn-*`, `--sidebar-*`,
+   `--terminal-*`, `--ansi-*`, `--diff-*`, `--chart-*`, `--type-*`; and the fixed sets `--violet-50` to
+   `--violet-950`, `--tile-*`, `--mark-*`, `--identity-*`.
 2. `aliases.css`: the names the screens used before Mono (`--background`, `--foreground-muted`,
    `--border`, `--ok-dot`, `--current` ...), each a reference to a token. It writes no colour of its own
    (a test holds it): the board's wires, Site API fields, the night band and the layout sizes are tokens
-   now. New code uses Mono names; an alias goes when nothing uses it.
-3. `primitives.css`: the rules the primitives need real selectors for (table, status shapes, kinds,
-   terminal, image frame, slider). Screens never write these classes.
+   now. New code uses role names; an alias goes when nothing uses it.
+3. `primitives.css`: the rules the primitives need real selectors for (table, status shapes, kinds, the
+   wrapper tile, terminal, image frame, slider). Screens never write these classes.
 
 `theme.css` (generated) maps tokens to Tailwind and **clears Tailwind's default palette, sizes, radii and
 shadows**. A class like `bg-red-500` or `text-sm` does not exist, and the design rules fail on one. Both sets
 of names work, and the rules let the old ones only shrink:
 
-| Use | Mono class | Old class (still works) | Token |
+| Use | Class | Old class (still works) | Token |
 |---|---|---|---|
 | The page | `bg-page` | (body) | `--surface-page` |
 | Cards, tables, panels | `bg-card` | `bg-bg` | `--surface-card` |
-| Wells: code, card footers, pictures loading. Never a table head | `bg-inset` | `bg-subtle` | `--surface-inset` |
+| Wells: code, card footers, segmented tracks, pictures loading. Never a table head | `bg-inset` | `bg-subtle` | `--surface-inset` |
 | Menus, popovers, dialogs | `bg-raised` | `bg-raised` | `--surface-raised` |
-| Tooltips, toasts, the selection bar | `bg-inverse`, `text-on-inverse` | | `--surface-inverse` |
+| Tooltips and the selection bar (toasts are the raised surface) | `bg-inverse`, `text-on-inverse` | | `--surface-inverse` |
+| Behind a live screen and its pictures (dark in both themes) | `bg-stage` | | `--surface-stage` |
 | Hover, pressed | `bg-hover`, `bg-pressed` | `bg-fill-1`, `bg-fill-2` | `--fill-hover`, `--fill-pressed` |
 | Hairline; firm edge; control edge (3:1) | `border-line`, `border-line-strong`, `border-control` | same | `--line-*` |
 | Text: primary, secondary, tertiary, disabled | `text-fg`, `text-muted`, `text-faint`, `text-disabled` | same | `--text-*` |
-| The primary, selected, checked: ink | `bg-primary`, `text-on-primary`, `bg-accent-soft` | same | `--accent-*` |
-| Focus: the one blue | (the ring) | | `--focus-ring` |
+| The primary button: violet, white words | `bg-primary`, `text-on-primary`, `hover:bg-primary-hover` | same | `--action-*` |
+| Selected, checked, on: violet | `text-accent-text`, `bg-accent`, `bg-accent-soft`, `border-accent-line` | | `--accent-*` |
+| An ink fill with inverse words (a `main` branch, an ink count) | `bg-fg text-on-inverse` | | `--text-primary`, `--text-inverse` |
+| Links: ink, underlined | `.link`, `text-blue` on a link | same | `--link-text` |
+| Focus: violet | (the ring) | | `--focus-ring` |
 | Status words | `text-ok`, `text-warn`, `text-bad`, `text-idle` | `text-green`, `text-amber`, `text-red` | `--status-*-text` |
 | Status marks, tints, edges | `bg-ok-dot`, `bg-ok-fill`, `border-ok-line` (and warn, bad, live, idle) | `--ok-dot`, `--ok-soft` ... | `--status-*` |
-| Running | `text-live`, `bg-live-dot`, `bg-live-soft` | `bg-live`, `--current` | `--status-live-*` (ink) |
+| An agent at work: violet | `text-live`, `bg-live-dot`, `bg-live-soft` | `bg-live`, `--current` | `--status-live-*` |
 | A kind's word, mark, tile, edge | `text-kind-test`, `bg-kind-test-mark`, `bg-kind-test-soft`, `border-kind-test-line` (and design, build, server) | | `--kind-*` |
+| Glass on the Dawn picture; dark glass on a picture | `bg-glass`, `bg-glass-dark`, `shadow-glass` | | `--glass-*` |
+| The night sidebar's words, lines, fills | `text-side`, `text-side-muted`, `text-side-faint`, `border-side-line`, `bg-side-hover`, `bg-side-selected`, `bg-side-foot` | | `--sidebar-*` |
+| The violet scale (marks and tiles only) | `bg-violet-50` ... `bg-violet-700` | | `--violet-*` |
 | Terminal | `bg-terminal`, `text-terminal-text`, `text-ansi-red` ... | | `--terminal-*`, `--ansi-*` |
 | Diff lines | `bg-diff-add`, `text-diff-add-mark` ... | | `--diff-*` |
 | Charts | `bg-chart-bar`, `bg-chart-bar-strong`, `bg-chart-grid` | | `--chart-*` |
 | People and business marks (fill only) | `bg-identity-1` to `-8` | `--ws-1` to `--ws-8` | `--identity-*` |
 
-Every text colour passes AA on the page, the card, the well and the raised surface; the pairs are in
-the script's output. `text-disabled` is exempt, as disabled controls are, so never use it for something
+Every text colour passes AA on the page, the card, the well, the raised surface and the violet tint; the pairs
+are in the script's output. `text-disabled` is exempt, as disabled controls are, so never use it for something
 meant to be read. On a selected row's tint, `text-faint` steps up to `text-muted` (the table does it).
+
+### Violet
+
+One hue, from the agent's pointer on the desktop. A scale (`--violet-50` to `--violet-950`) the roles pick from.
+
+- **For:** the agent (its pointer and name tag on a live screen, an agent at work as a ringed dot, the
+  `agent` colour), what is selected (a tab's word and edge, a checked box, a switch on, a pressed chip, a
+  selected table row's edge), the keyboard focus ring, the primary button, the count of what waits for you,
+  and the mark. One violet thing per row, at most.
+- **Never:** a status (done stays green, needs a look amber, failed red), a large background or body text
+  (600 and 700 carry words on white at 5.2:1 and 6.4:1; 300 is for words on night), decoration, a gradient on
+  a screen (the wrapper tile and the avatar are marks, not screens), a link (ink, underlined), or a kind of work
+  (tests are plum).
+
+### Glass and the Dawn picture
+
+The Dawn picture is the desktop's wallpaper (`src/assets/dawn/`, 18 KB and 6 KB WebP made from
+`src/openajar/environments/desktop/wallpaper-1920x1080.jpg`). It is one picture, used in a few places, so it
+stays special.
+
+- **Yes:** the live screen and pictures of it in lists (`ScreenPicture`); Home's window, with white words on
+  its dark side; behind sign-in and first run (`features/auth/layout.tsx`): beside the sign-in form with the
+  day's demo in glass on it, as the page under one card (Check your email, a dead link), and as the band an
+  invited person's welcome opens on; an empty state, as a small crop with one line under it. The setup wizard's
+  step list is the night sidebar's sky (`.rail-night`), not the picture.
+- **No:** behind tables, lists or forms; behind body text without a scrim; behind dialogs, menus or settings.
+  At night it is dimmed by about a third (`--dawn-dim`), and it never animates.
+- **Glass** (`--glass-fill`, a 22 px blur, `shadow-glass`) sits only on the Dawn picture or the stage: Home's
+  cards on its window, chips on a screen's picture (`--glass-dark-fill`), the sidebar's foot. Never on a plain
+  page, where it would only look grey. Under 768 px Home's cards leave the picture and are plain cards. A person
+  who asks for less transparency (`prefers-reduced-transparency`) gets plain cards everywhere.
+- **Words on the picture** sit in `.on-dawn`: white, and the roles inside it (a link's underline, the quiet
+  words, a skeleton) are redefined for the night. A scrim from the left (`--dawn-scrim`) keeps them AA; the
+  token script checks the lede over the picture's skies.
+- **Cost.** The blur is checked on a CPU slowed six times: scrolling Home stays at 9 ms a frame at the 90th
+  percentile with or without it, and nothing paints while the page rests.
 
 ### Type
 
@@ -107,24 +155,24 @@ tracking in one class; never pick a raw size for new work.
 
 | Role | Size / line, weight, tracking | Use |
 |---|---|---|
-| `text-display` | 40/44, 600, -0.045em | Home's sentence. One per app |
-| `text-page-title` | 28/36, 600, -0.035em | The h1 (`PageHeader` does it) |
-| `text-page-title-compact` | 24/32, 600 | The h1 on a phone |
+| `text-display` | 44/50, 600, -0.04em | Home's sentence. One per app |
+| `text-page-title` | 34/40, 600, -0.032em | The h1 (`PageHeader` does it) |
+| `text-page-title-compact` | 26/32, 600 | The h1, and Home's sentence, on a phone |
 | `text-headline` | 32/40, 600, -0.035em | The sentence that opens a focused page: sign-in, a list's summary, an amount to pay |
 | `text-heading` | 20/28, 600, -0.02em | A heading inside a wide page, a step's question, a figure on a card |
-| `text-section-title` | 16/24, 600 | A section, a dialog title, a job card's title |
-| `text-lede` | 16/24 | The sentence under a page title, in `text-muted` |
-| `text-card-title` | 14/20, 600 | A card's head |
+| `text-section-title` | 18/26, 600 | A section, a dialog title |
+| `text-lede` | 17/26 | The sentence under a page title, in `text-muted` |
+| `text-card-title` | 15/22, 600 | A card's head |
 | `text-table-header` | 13/20, 500 | Column heads, in `text-faint` (the table does it) |
 | `text-label` | 14/20, 500 | Buttons, tabs, form labels |
-| `text-body` | 14/20 | Everything read |
-| `text-secondary` | 13/20 | A row's second line, descriptions |
-| `text-caption` | 12/16 | Timestamps, help under a field |
+| `text-body` | 15/22 | Everything read |
+| `text-secondary` | 14/20 | A row's second line, descriptions |
+| `text-caption` | 12/16 | Timestamps, a status's word, help that is a footnote |
 | `text-number` | mono 13/20 | Numbers in tables and lists |
 | `text-stat` | 28/32, 600 | A stat tile's number |
 | `text-code` | mono 13/20 | Ids, commands, terminal output |
 | `text-code-caption` | mono 12/16 | A command or branch on a second line |
-| `text-eyebrow` | mono 11/16, 500, +0.04em, caps | A kind's word and "IF YES". The one caps style |
+| `text-eyebrow` | mono 11/16, 500, +0.04em, caps | A kind's word and "IF YES". The one caps style on a page (a board's `silk` is the other, below) |
 | `text-micro` | 11/16, 500 | Avatar initials and keys only |
 
 The old scale (`text-11` to `text-32`) is gone: each became the role of the same size and line height,
@@ -133,53 +181,65 @@ and the design rules refuse it. Weights: 400, 500, 600. Nothing heavier.
 ### Space, radius, depth, motion
 
 - **Spacing:** a strict 4 px grid. Half steps such as `gap-1.5` are banned and a test fails on them.
-- **Radius, one per job:** 4 (`rounded-sm`) marks and checkboxes, 6 (`rounded-md`) buttons and inputs,
-  8 (`rounded-lg`) pictures and previews, 10 (`rounded-xl`) cards and dialogs, full for status pills,
-  counts and branches.
-- **Depth:** hairlines, plus the card lift (`shadow-lift`: a 1 px shadow in light, a 1 px top light in
-  dark) on cards, secondary buttons and tiles. `shadow-popover` and `shadow-dialog` for floating layers.
-  Nothing else casts a shadow, and selected edges, tab underlines and rings are borders or outlines,
-  never box-shadow lines, so studio can see them.
-- **Motion:** 100 ms for hover, 150 ms for most things, 200 ms for drawers, on `ease-standard`;
-  `ease-enter` for what arrives. Opacity and 2 px moves only. The live dot pulses; under reduced motion it
-  is a still ring and nothing moves.
-- **Icons:** `lucide-react`, 16 px, stroke 1.5 (set once in CSS).
+- **Radius, one per job** (the owner asked for less round cards than the mockup's 14; everything steps with
+  10): 4 (`rounded-sm`) keys, small marks, checkboxes, menu items; 6 (`rounded-md`) fields, selects, a
+  picture inside a card; 8 (`rounded-lg`) pictures, menus, popovers, rail items; 10 (`rounded-xl`) cards,
+  dialogs, Home's glass cards; 14 (`rounded-2xl`) Home's window; full for every button, chip,
+  count, segmented control, branch and the control pill. The wrapper tile is the dock's squircle at its own
+  ratio (8 at 28 px, 10 at 36, 12 at 44). Dialogs are the one exception to the steps: 12, as the designer drew
+  them, so a dialog reads as a layer above the cards' 10.
+- **Depth:** hairlines, plus the card lift (`shadow-lift`: a 1 px shadow in light, a 1 px top light in dark) on
+  cards, secondary buttons and tiles. `shadow-popover` and `shadow-dialog` for floating layers,
+  `shadow-glass` for glass, and the primary pill's own top light. Selected edges, tab underlines and rings are
+  borders or outlines, never box-shadow lines, so studio can see them.
+- **Motion:** 100 ms for hover, 150 ms for most things, 200 ms for drawers and a picture fading in, on
+  `ease-standard`; `ease-enter` for what arrives. Opacity and 2 px moves only. **Nothing moves all the time:**
+  the agent's ring and the old pulsing dots (`animate-pulse-dot`) are still. The one thing that moves is the
+  agent's pointer on a live screen, because it stands for the far screen's pointer.
+- **Icons:** `lucide-react`, 16 to 18 px, stroke 1.75 (set once in CSS): the desktop dock's fine line.
 
 ## Kinds of work, and how they stay apart from status
 
 | Kind | Mark (light / dark) | Icon | `kind` |
 |---|---|---|---|
-| Tests (`agentos run` suites) | violet `#9a5bd6` / `#b18cfa` | flask | `test` |
+| Tests (`openajar run` suites) | plum `#7a2f7d` / `#c66cc6` | flask | `test` |
 | Design (ui_check, ui_diff, a brand change) | pink `#c8337f` / `#f06bb0` | the check frame | `design` |
 | Build and CI | teal `#0b6e88` / `#3fc6dc` | box | `build` |
 | Dev server | blue `#1e40af` / `#4c7dff` | radio | `server` |
 | Machine, push, post, payment, VM, lane, brand, email | none: a neutral tile | its own | `machine` ... |
 
-A kind never reads as a status: different hues (status keeps green, amber, red, and ink for running),
-different shapes (a kind is always a rounded tile with an icon; a status is always a mark and a word),
-and different places (on a card the kind sits left and on the 2 px top edge, the status sits right as a
+A kind never reads as a status: different hues (status keeps green, amber, red, and the violet ring for an
+agent at work), different shapes (a kind is always a rounded tile with an icon; a status is always a mark and a
+word), and different places (on a card the kind sits left and on the 2 px top edge, the status sits right as a
 pill). There is no fifth hue: a new kind shares its family's hue and leans on its icon.
 
 ## Components
 
-Primitives live in `src/components/ui`. Use them; do not restyle them in a screen. Every one is in the
-catalog, **`/$org/design`** (dev only, `src/catalog/`), in every state and by group; open it in both themes
-at 390 and 1440 before you change one. How to build with them, the groups and the checks:
-[DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
+Primitives live in `src/components/ui`. Use them; do not restyle them in a screen: a screen should not need
+CSS of its own to look right. Every one is in the catalog, **`/$org/design`** (dev only, `src/catalog/`), in
+every state and by group; open it in both themes at 390 and 1440 before you change one. How to build with
+them, the groups and the checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 
-- **Button:** `primary` is ink, once per view, for the point of a screen (an empty state's next action,
-  a dialog's confirm, Approve). `secondary` is the card with a firm hairline and the lift, and is the
-  default. `ghost` for quiet actions in rows. `danger` is a red word on a hairline, never a red fill.
-  `inverse` sits on an ink bar. `sm` 28 (32 on a phone), `md` 32, `lg` 40. `shortcut="A"` shows the key
-  and sets `aria-keyshortcuts`. Pass `loading` rather than disabling by hand. An icon alone uses
-  `IconButton`, whose `label` is required.
-- **Status:** `<Status status={...} />`, a shape and a word. Dot fine, diamond needs a look, square
-  failed, ringed dot running (pulsing with `pulse`), hollow ring idle, quiet solid dot neutral. The word
-  takes its colour only when it asks for attention (failed, needs a look, running). Tones are
-  `ok | warn | bad | live | idle | neutral` (`info` is the old name for live). Every enum maps to words
-  and a tone in `src/lib/labels.ts`; add new ones there, never inline.
-- **Badge** (a 20 px pill, a soft tint per tone, or `solid`), **Count** (quiet, ink, warn, bad) and
-  **Chip** (a filter pill with `aria-pressed`; with `kind` its square doubles as the legend).
+- **Button:** every button is a pill. `primary` is the violet pill with white words and its own top light, once
+  per view, for the point of a screen (an empty state's next action, a dialog's confirm, Approve). `secondary`
+  is the card with a firm hairline and the lift, and is the default. `ghost` for quiet actions in rows.
+  `danger` is a red word on a hairline, never a red fill. `inverse` sits on an ink bar. `glass` sits on the
+  Dawn picture or the stage. `light` (white, the stage's ink) is the one action in the control pill on the night. `sm` 30 (32 on a phone), `md` 36, `lg` 40. `shortcut="A"` shows the key and sets
+  `aria-keyshortcuts`. Pass `loading` rather than disabling by hand. An icon alone uses `IconButton` (round),
+  whose `label` is required.
+- **Status:** `<Status status={...} />`, a shape and a word. Dot fine, diamond needs a look, square failed,
+  a violet ringed dot an agent at work (still, never pulsing; `starting: true` draws it dashed and empty),
+  hollow ring idle, quiet solid dot neutral. The word takes its colour only when it asks for attention (failed,
+  needs a look, at work). Tones are `ok | warn | bad | live | idle | neutral` (`info` is the old name for live).
+  Every enum maps to words and a tone in `src/lib/labels.ts`; add new ones there, never inline. `chip` sets it on
+  its tone's soft tint as a 24 px pill, for a table's result column and the state at an open ask's head.
+- **Badge** (a 24 px pill, a soft tint per tone, or `solid`), **Count** (quiet, `accent` for what waits for
+  you, ink, warn, bad) and **Chip** (a filter pill with `aria-pressed`, pressed is the violet tint with violet
+  words; with `kind` its square doubles as the legend).
+- **AppTile, the wrapper tile** (`tile.tsx`): the desktop dock's squircle, a gradient with a soft top light and
+  a white glyph, in seven tones (violet, blue, pink, amber, green, ink, teal; `--tile-*`). For the app's own
+  things: a kind of ask on Home, a channel, a settings section. Never for an action (a button is a pill), and
+  never for a kind of work (that is `KindTile`). `red` is the danger zone's alone (what deletes for good).
 - **KindTile, KindEyebrow:** the kind's tile (`xs` 18, `sm` 24, `md` 28, `lg` 32; `waiting` is dashed)
   and its word in mono caps. `Card kind="test"` adds the 2 px top edge.
 - **BranchPill:** a mono pill, `main` in ink, full name as a title. **IfYes:** "IF YES" and one line of
@@ -188,43 +248,60 @@ at 390 and 1440 before you change one. How to build with them, the groups and th
   the action, one hairline, no band. **FormCard** for settings. **Section** for a titled block.
 - **StatTile, StatStrip:** the stat role in tabular figures, its unit in the tertiary ink; a strip of
   tiles in one card divided by hairlines.
-- **Tables** (the showpiece, below).
-- **Tabs** (words on a hairline, the selected one ink with a 2 px edge) and **SegmentedControl** (a view
-  of the same thing: the chosen segment is the card on a quiet well; arrow keys move).
-- **Dialog** (centred, a bottom sheet on a phone), **Drawer** (the inspect surface), **SidePanel** (a
-  picked row's detail beside the list from 1024 px, a Drawer under it), **ConfirmDialog** (with
-  `typeToConfirm` when it cannot be undone). The close button is last in the DOM so the first field
-  takes focus; focus returns to whatever opened it (`useReturnFocus`).
+- **Tables** (below).
+- **Tabs** (words on a hairline, the selected one violet and semibold with a 2 px violet edge) and
+  **SegmentedControl** (a view of the same thing: a pill well, the chosen segment the card; arrow keys move).
+  The same well is drawn by `SegmentedTabList` (a page's few big views with a count on each, real tabs) and by
+  `Segmented` in `charts/small.tsx` (a range or level switch, real radios). Three behaviours, one look: change one,
+  change all three.
+- **Dialog** (centred, 460 wide at radius 12, no footer band: the buttons sit at its foot on the raised surface;
+  a bottom sheet on a phone), **Drawer** (the inspect surface), **SidePanel** (a picked row's detail beside the
+  list from 1024 px, a Drawer under it), **ConfirmDialog** (with `typeToConfirm` when it cannot be undone, see
+  "Forms"). The close button is last in the DOM so the first field takes focus; focus returns to whatever opened
+  it (`useReturnFocus`).
+- **Menu, Popover:** the raised surface, radius 8, items 36 tall at radius 4; a checked item's tick is violet.
 - **Tooltip:** the inverse surface, caption size. Every cut line also carries its full text as a title.
+- **Toasts** (`app.tsx`): the raised surface at radius 8 with the popover shadow, bottom right; at the top on a
+  phone.
 - **Skeleton, EmptyState, ErrorState, QueryView:** an empty state is an icon in a small bordered tile,
-  one bold line, one sentence, one action. An error says nothing changed and offers Try again.
-- **PageHeader:** the page title role (24/32 on a phone), an optional `eyebrow`, the lede, actions on the
+  one bold line, one sentence, one action. `dawn` puts the small Dawn crop in the icon's place, for good news
+  and a first use (`dawn="grey"` greys it, for "nothing right now"); it is the one way the picture appears in an
+  empty state, so a screen never draws its own. An error says nothing changed and offers Try again.
+- **PageHeader:** the page title role (26/32 on a phone), an optional `eyebrow`, the lede, actions on the
   right on the first row at every width.
-- **Field, Input, Select, Switch, Checkbox:** a firm hairline on the card; the focus ring sits on the
-  border; help is a caption; an error is red words. Checked is ink.
+- **Field, Input, Select, Switch, Checkbox:** 40 tall, a firm hairline on the card; focus turns the edge
+  violet with a soft violet halo (an outline); help is a secondary line in the tertiary ink; an error is a red
+  edge and red words with a mark. Checked and on are violet with white. The switch is 38 by 22; off is the control grey,
+  which holds 3:1 (the sheet's lighter grey would not). How they behave together is in "Forms" below.
+- **ScreenPicture** (`components/screen-picture.tsx`), the picture of an environment's screen, and
+  **PictureChip**, a chip on it: see "The screen's picture".
 - **Kbd** (mono micro on the card), **Meter** (4 px, ink on the chart track, amber at 80%, red at 95%),
   **CodeBlock** (a well with a copy button).
-- **Terminal:** read-only output, dark in both themes. ANSI colours are parsed into text spans (never
-  HTML). Line numbers, `highlight={{ 4: 'bad' }}`, follow mode (keeps the newest line in view until you
-  scroll up), wrap. A light status tint never goes on it: lines tint from the ANSI colours.
+- **Terminal:** read-only output, dark in both themes (the stage's night). ANSI colours are parsed into text
+  spans (never HTML). Line numbers, `highlight={{ 4: 'bad' }}`, follow mode, wrap. A light status tint never
+  goes on it.
 - **ImageFrame:** a page screenshot with findings outlined and numbered, boxes in the picture's own
   pixels; pins are buttons named "Finding 2: ..." when they can be picked; Zoom opens it large.
 - **BeforeAfter:** a wipe on a range input, or the two side by side.
-- **SelectionBar:** the ink bar over a table while rows are selected: "2 runs selected", the actions
+- **SelectionBar:** the floating ink bar under a table while rows are selected: "2 runs selected", the actions
   (`variant="inverse"`), Clear (Esc).
 - **Slider:** a row of cards with the next one peeking; the pager ("1–3 of 5"), arrow, page, Home and End
   keys, a mouse drag and a swipe move it, and it snaps to a card.
 - **Swatch, TokenChip:** a colour shown as data (marked `data-studio="ignore"`), a token name as a chip.
+- **Logo, MarkGlyph:** the "Window a" mark, drawn from `--mark-*` tokens (a white tile, a violet a), and its
+  one-colour glyph (`currentColor`) for small places such as Home's greeting.
+- **Avatar:** initials in a circle; `me` (the person signed in) is violet to blue with white initials.
 - **States for people:** `StateBadge` (`state-badge.tsx`) for screens a non-technical person reads: a
-  shaped glyph and a word for All good, Waiting for you, Stuck, Sleeping and Working now (ink, with the
-  ring). `lib/states.ts` maps every condition to one with one plain sentence.
+  shaped glyph and a word for All good, Waiting for you, Stuck, Sleeping and Working now (violet, with a still
+  halo). `lib/states.ts` maps every condition to one with one plain sentence.
 - **Words:** `src/lib/vocabulary.ts` holds the everyday words; `principalName` names who did something.
 - **Technical details:** `useTechnical()` is one person's switch for ids, logs, the terminal and costs.
 - **Identity marks:** `BusinessMark`, `PersonMark`, `SiteMark`, `AgentMark`: fills on small marks only.
 - **Grids:** a bare `.grid` has a shrinkable `minmax(0, 1fr)` track (`app.css`); flex children that
   truncate still need `min-w-0`.
-- **Focus:** one blue ring from `:focus-visible`, keyboard only (`lib/input-modality.ts`). Inside
-  anything clipped, add `focus-inset`. On a terminal the ring is the ANSI blue so it shows on black.
+- **Focus:** one violet ring from `:focus-visible`, keyboard only (`lib/input-modality.ts`); a field shows it
+  on every focus. Inside anything clipped, add `focus-inset`. On the night sidebar and the Dawn picture the ring
+  is violet 300 (`--sidebar-focus`), which holds 3:1 there; on a terminal it is the ANSI blue.
 
 ### Tables
 
@@ -232,17 +309,41 @@ From `table.tsx`. Real `<table>`, no zebra, **no grey band**: the head is the ta
 tertiary ink on the card over one hairline, sticky in its scroll box (`TableScroll`). Why: the band made
 every table look like a spreadsheet and added a third grey.
 
+- **A list page's table** follows the page's title and lede with no heading of its own (the lede already says
+  what the list is): first one row of filters on the page (search first, at most 360 wide, then selects, all 40
+  tall, then the states as a `SegmentedTabList` with a count on each, and the table's ⋯ menu at the row's end for
+  row height), then the card, which holds only the table and its total line. On a phone the states scroll sideways
+  in their row. A note about the list ("Routines ... are in History") sits under the card. A card's own head
+  (`CardHeader`, 15/22) is for a table inside a page about something else (the last hour, a machine's runs).
 - **Rows** 52 px (`density="compact"` 40, which hides second lines; `relaxed` 60), head 40, a hairline
   between rows, 20 px gutters at both ends.
 - **Sort:** `Th sort="asc" | "desc" onSort={...}` makes the whole head a button, sets `aria-sort`, and
-  shows the arrow on the label's far side so the label never moves.
-- **Numbers:** `Td numeric` (and `Th align="end"`): right, Geist Mono, tabular. Units in the head
-  (`Th unit="min"`). `<NoValue />` is an en dash; a zero is a zero, in `text-faint`.
+  shows the arrow on the label's far side so the label never moves. The sorted head is ink, the rest tertiary.
+- **Figures:** `Td numeric` (and `Th align="end"`): right, in Geist's tabular figures at the body size, so
+  "211", "51.4s" and "38 min" line up without looking like code. Units in the head (`Th unit="min"`).
+  `<NoValue />` is an en dash; a zero is a zero, in `text-faint`; a count that asks for attention (failed) is red.
+- **Money:** `Td money`: right, Geist Mono 13, tabular, so cents line up down the column. Ids, hashes,
+  commands, branches and addresses are mono too (`CellTitle mono`, `text-code`), never figures or dates.
+- **Dates and times** are words ("2h ago", "Yesterday", "20 Nov, 09:32") in Geist, left aligned, in
+  `text-muted`, with the full date and time as the cell's title. A time is the first column when the table is a log
+  (Audit log), the last when it is a list of things (Runs, Checks).
+- **Status** in a table's result column is `<Status chip>`: its shape and word on the tone's soft tint, as the
+  drawings set it (Running violet, Passed green, Failed red, Stopped early grey). Elsewhere it is plain `<Status>`.
+  Never a filled row, never a dot alone. Counts by severity are coloured by it (blockers red, majors amber, minors
+  ink, a zero faint).
 - **Main cell:** `Td main` (or `mainCell`) takes the spare width and truncates; `CellTitle` gives it a
   title with its full text on hover and a second line.
-- **Rows that act:** `Tr onActivate` takes a hover fill, a pointer, focus and Enter. `Tr selected` is a
-  tint with a 2 px ink edge. Row actions go in `RowActions`, which fade in on hover and focus (always
-  shown on touch). Selecting shows the `SelectionBar`.
+- **Rows that act:** `Tr onActivate` takes a hover fill, a pointer, focus and Enter. `Tr selected` is the
+  violet tint with a 2 px violet edge. Row actions go in `RowActions`, which fade in on hover and focus (always
+  shown on touch). A checkbox column is the first, 1 px wide with no right padding, and folds away on a phone.
+- **Selecting** shows the `SelectionBar` after the table: the ink bar at radius 10 with the popover shadow, sticky at
+  the foot of the view (above the phone's tab bar), so choosing a row never pushes the table down. "2 runs
+  selected", the actions as `inverse` pills, Clear (Esc). The count is said by a live region that is always in the
+  page, so the first choice is announced.
+- **0, 1 and many rows.** None at all: the empty state in the card (what would be here, the one next step), with no
+  filters above it. None that match: `TableEmpty` keeps the head and says "No run matches" with Clear filters. One
+  row: the same table (never a different layout for one). More than the node sends at once (200): the newest 200,
+  and a footnote under the table that says so and where the rest are; no pager for a list a node caps.
 - **Loading** is `TableSkeleton` (the real head and seven rows); **empty** is `TableEmpty` holding an
   `EmptyState`, with the head kept.
 - **On a phone:** `Table stack` turns the rows into a list under 768 px: the main cell gets its own line,
@@ -251,13 +352,115 @@ every table look like a spreadsheet and added a third grey.
 - Anything inside a fitted column that has no content width of its own needs one (`shrink-0` on a
   `Meter`, `w-max` on a bare `.grid`).
 
+## Forms
+
+Owned with settings (`features/settings/`), and the same everywhere a person types or chooses. Drawn in
+`states-forms.png`, `states-dialogs.png` and the settings pictures. The parts are in `components/ui`:
+`field.tsx` (Field, Input, AffixInput, CopyField, FieldError), `form.tsx` (FormActions, FormNote, useSaved,
+SettingRow, SaveStatus), `choice.tsx` (ChoiceGroup, Choice, CheckCard, RadioRow), `card.tsx` (FormCard),
+`dialog.tsx` (ConfirmDialog) and `components/unsaved-changes.tsx`.
+
+**A settings section.** The page title "Settings", the section list on the left (208 px; groups Organization,
+Fleet, Account; the open section is violet words, semibold, on the violet tint; the list scrolls inside itself
+when the window is short and keeps the open one in sight), and the section in a column of 720 px at most:
+`SettingsHeader` gives it a 26/32 title, one line under it in the secondary ink, and its main action at the top
+right (the section's one primary, such as Invite someone or New grant). A phone gets the list of sections as a
+card of rows, and each section has its way back.
+
+**A form card** (`FormCard`): the title in the section role with one line under it, the fields, and a footer
+band in the well with the note on the left and the action on the right. A wrapper tile goes before the title
+only when the card is a thing of its own (a channel, the plan, the danger zone); field cards have none. `aside`
+puts a switch or a button level with the title. `tone="danger"` is a red edge and a red band. With `onSubmit`
+the card is a real form: Enter in a field saves.
+
+**Fields.**
+- The label sits above, the help below in the tertiary ink, one line if it can. The label is the field's name
+  (`Field` ties label, help and error to the control); a card whose title already names its one field hides the
+  label for the eye (`hideLabel`), never for a screen reader.
+- Mark the few, not the many: a field that may be left empty says "(optional)" after its label. Required fields
+  carry no mark and `required`, so a screen reader still hears it.
+- An error is said under the field, in words that say what to do next ("Enter a full email address", "Give
+  the organization a name"), with a red mark, a red edge and `role="alert"`. It appears when the person leaves
+  the field or presses Save, never while they type, and goes as soon as they change the value. The help stays
+  tied to the field while the error shows.
+- Fixed words beside what is typed (an address's host, a unit, a currency) are an `AffixInput`: the words in
+  the well, one edge round both. Numbers and money are tabular, with the unit after them.
+- Something to copy is a `CopyField`: read-only in the well, selected on focus, and Copy beside it, which says
+  Copied with a tick for a moment (and to a screen reader). A secret is never typed here: the node serves those
+  forms, and `src/test/source-rules.test.ts` fails on a password field or a secret in state.
+- Long values cut with an ellipsis and carry their whole text as a title.
+
+**Saving a form** (`FormActions` and `FormNote` in the footer):
+- Untouched: Save is the dim secondary, and the note is the card's own line ("Up to 80 characters"), or
+  "Nothing changed yet".
+- Edited: Save turns into the violet primary, Discard (ghost) puts the fields back, and leaving the page asks
+  first (`UnsavedChanges`: "Leave without saving?", Stay or Leave; closing the tab gets the browser's own
+  question).
+- Errors: the note says "2 things to fix" in red; Save stays pressable and says the errors again.
+- Saving: the button says Saving, keeps its look and cannot be pressed twice; the note says "Saving your
+  changes".
+- Saved: for three seconds the button is "Saved" with a green tick and the note "Saved at 10:42". No toast: the
+  eye is already on the footer.
+- One primary per screen still holds: when two cards are edited at once both Saves are violet, which is the one
+  case two show, because each saves only its own card.
+
+**A setting that saves on its own** (a switch, a select in a row): `SettingRow` puts its name (the control's
+label, so a click on it works the switch) and one line on the left and the control on the right. It saves at
+once; the card's footer says Saving, then Saved with a tick, or what went wrong and that the last saved choice
+is back (`SaveStatus`). A toast is for what the page no longer shows (an address changed, a row removed, an
+invite sent), never for a change that is still on screen. (`states-forms.png` shows a toast with Undo for a
+switch; that needs the toast stack, which the shell owns. Until it has Undo, the footer says it.)
+
+**Choosing.**
+- One of two to four short answers to a short question: `RadioRow` ("Format: CSV, NDJSON"), real radios side by
+  side, arrow keys move.
+- One of a few answers that each need a line: `ChoiceGroup` with `Choice` cards (radius 10, the radio at the
+  right, or at the top right in a grid with `layout="stacked"`). The chosen card has a violet edge and a soft
+  violet ring, never a tinted fill. "Works today", "Coming soon" and "Recommended" are a badge beside the icon
+  or the title. One that cannot be chosen is dimmed to 70% and says why.
+- Several that can all be on: `CheckCard`.
+- A view of the same thing, or a pair such as "A business / Just me": `SegmentedControl`.
+- More than five answers, or answers that come from data (workspaces, roles): `Select`.
+- A grid of yes or no per person and place (workspace access): a tick per cell, a button with `aria-pressed`
+  and a name that says both ("Tomas Reyes sees Aster Coffee"); what cannot change is a quiet tick with a title
+  that says why.
+- How strong a yes (What needs a yes): a four-step ladder per cell, each step a radio, so a click or the arrow
+  keys move it; steps under a row's floor are drawn and not offered.
+
+**Confirming** (`ConfirmDialog`). The verb on the button says what happens ("Change address", "Remove member",
+"Delete for good"), never OK; Cancel is the quiet way out, or a clearer word ("Stay", "Keep it going").
+- A plain question: the violet primary.
+- A careful one (it stops something, or can be redone with work): the danger button, red words on a hairline,
+  with an amber tile when it helps (`tile`).
+- The dangerous one (it deletes for good): the red tile, the red edge, the person types the name ("Type
+  Northwind Group to confirm", the field takes focus), and the button is the product's one red fill, dim until
+  the name matches, with "The button wakes up when the name matches." under it.
+- A removal that only takes something away from one person (a passkey, a device) still asks, in one sentence
+  that says what still works afterwards.
+
+**Keyboard and screen readers.** Tab reaches every control in reading order; Enter saves a form card and
+submits a dialog's form; Escape closes a dialog or a menu and gives focus back to what opened it; arrow keys move
+inside radios, choice cards, segmented controls and the yes ladder. Every control has a name, every error is
+announced, Saved is announced (a status region that is always in the page).
+
 ## The shell
 
-The frame every page sits in (`src/components/shell/`), drawn from the Mono prototype.
+The frame every page sits in (`src/components/shell/`), drawn from Dawn's Full.
 
-- **The rail** runs full height on the left (240 px from 1024 px, icons only from 768 px, gone on a
-  phone). From the top: the org and its switch, **Search or run** (the command bar, with `⌘ K`), the
-  menu, and at the foot the **status line** and the Technical details switch.
+- **The rail** runs full height on the left, 248 px from 1024 px, icons only from 768 px, gone on a phone. It is
+  the **night sidebar** in both themes (`.rail-night`): the night sky (`--sidebar-sky`) with a few still stars
+  and the sunrise glowing at its foot. Inside it the usual roles (`--text-*`, `--line-*`, `--fill-*`, focus) are
+  redefined to the sidebar's own white words, lines and fills, so whatever sits in it reads on the night with no
+  night version of its own. From the top: **the mark and "openajar" alone**, **Search or run** (the command bar,
+  with `⌘K`, on night glass), the menu, and at the foot the **status line**, the **Technical details** switch
+  (its hint is the switch's tooltip and description) and **the organisation switch**.
+- **The organisation switch sits at the foot**, as the best tools keep a workspace switch at the foot of the
+  rail: a glass card (`bg-side-foot`, which keeps the words AA over the glow) with the org's mark (its first
+  letter on a square in its identity hue), its name in semibold (cut with the full name as a title) and your role
+  under it, and the up and down chevron. Its menu opens upward. On the icon rail it is the mark alone; on a phone
+  it is the mark in the top bar.
+- **A place** is 36 px, its icon 18 px at 1.75. At rest the words are the secondary white; hover is a faint
+  white fill; the place you are on is white, semibold, on a white tint with a hairline.
 - **The menu** is the one the owner approved with Mono, in five groups, each place with its "g" key:
 
   | Group | Places |
@@ -271,23 +474,25 @@ The frame every page sits in (`src/components/shell/`), drawn from the Mono prot
   A new place goes into one of these groups (`nav.ts`), with a key no screen acts on by itself. The key
   after g is always swallowed, so "g d" can never deny and "g a" can never approve. An approver's menu
   stays Needs you, History and Settings, with no group headings and no status line.
-- **Counts** sit on the right of a place: what waits for you in ink on Needs you, runs going now in a
-  quiet pill on Runs, open environments in a quiet pill on Environments. On hover or focus the place's keys take the count's spot. On the icon rail a dot
-  stands for the number. Every count comes from `counts.ts`; a number the node cannot give yet is left out,
-  never guessed.
+- **Counts** sit on the right of a place: what waits for you as a violet pill on Needs you, runs going now and
+  open environments as quiet numbers (the secondary white on the place you are on, so they keep 4.5:1). On hover
+  or focus the place's keys take the count's spot. On the icon rail a dot stands for the number. Every count
+  comes from `counts.ts`; a number the node cannot give yet is left out, never guessed.
 - **The status line** says the machines in a few words ("2 online · 1 not answering") beside one bar per
-  machine (pale when answering, amber when slow, low when not answering). It opens the system popover: the
-  worst thing first as a sentence, then each machine, the AI and today's AI usage, with Freeze for whoever may
-  freeze. On a phone the same popover opens from a dot in the top bar.
-- **The top bar** covers the page column only: the breadcrumb on the left (the workspace switch, the place,
-  then the page's own name in mono, which a page can set with `usePageCrumb`), and on the right a Frozen chip
-  while a freeze holds, **Live** while the event stream is open (Reconnecting when it drops, nothing when the
-  node has no stream), the keyboard list, the theme (one press between light and dark; System stays in the
-  account menu), what needs you (the bell) and the account menu.
+  machine. It opens the system popover: the worst thing first as a sentence, then each machine, the AI and
+  today's AI usage, with Freeze for whoever may freeze. On a phone the same popover opens from a dot in the top
+  bar.
+- **The top bar** covers the page column only, on the page with no edge (it blurs what scrolls under it): the
+  breadcrumb on the left (the workspace switch, a slash, the place, then the page's own name, which a page can
+  set with `usePageCrumb`), and on the right a Frozen chip while a freeze holds, **Live** while the event stream
+  is open, the keyboard list, the theme (one press between light and dark; System stays in the account menu),
+  what needs you (the bell, with a violet dot) and the account (your initials, violet to blue).
+- **The page frame** is 1200 px at most with 40 px gutters from 1024 px, so Home's window spans 1112 px at 1440.
 - **No clock.** The browser's clock is not the machine's, and a number that changes every second pulls the
-  eye from the one thing allowed to move: work that is running. Times on a page say "2 min ago".
+  eye from the one thing allowed to move.
 - **On a phone** the top bar holds the org's mark, the workspace switch, search, the status dot, the bell
-  and the account; the tab bar holds Home, Runs, Checks, Machines and Needs you, and More holds the rest.
+  and the account; the tab bar (the page, blurred) holds Home, Environments, Runs, Checks and Needs you, with
+  the place you are on in violet, and More holds the rest.
 - **The command bar** lists every place with its keys, then what features add, the workspaces, accounts once
   you type, and the actions. A feature adds its own rows by exporting `commands` from
   `src/features/<it>/commands.ts` (see `commands.ts`); it never edits the shell.
@@ -295,14 +500,99 @@ The frame every page sits in (`src/components/shell/`), drawn from the Mono prot
   `app/paths.ts`); `/computers` and `/nodes` links keep working. Each place's params live in its own folder
   (`features/<place>/search.ts`), so a screen adds a param without touching the router.
 
+## Home
+
+`features/home/`, Dawn's Full. Three answers in the first five seconds.
+
+- **The window** (`home-hero.tsx`): the Dawn picture (mirrored, so the sun rises on the right, away from the
+  words) at radius 14, with the greeting and date (and the workspaces) by the mark glyph, **the sentence**
+  (`sentence.ts`, real data only) in the display role in white, and the line under it with its links. Under
+  768 px the scrim runs top to bottom and the sentence is the compact title.
+- **What needs you** sits on the window's lower edge as glass cards: the heaviest three (`waitingOrder`), each
+  with its wrapper tile (a kind of ask: money amber, a push violet, a post pink ...), its title, what a yes does
+  ("IF YES"), who asked and when, and one action, Look, which opens it on Needs you. The heaviest card's Look is
+  the screen's one primary. Home never decides on one click: the arming delay, the second step for money and the
+  irreversible, step-up and Undo live on Needs you. "See all 30" follows when more wait. Nothing waiting is one
+  calm glass card ("Nothing needs you"); while it is read, three glass skeletons.
+- **Working now** (`working-now.tsx`): each open environment as a card with the picture of its screen, the
+  status chip and the time left on the picture, the title, and who works in it with what it is doing
+  (`ENV_DOING`). The meta says how many and what they cost so far. Nothing at all when the node has no
+  environments to say; a calm card with a small Dawn crop when none is open; skeleton cards while loading; an
+  error card with Try again.
+- **Running now** (the slider of job cards) and **Problems** (only when there are any) follow, then
+  **Earlier today**: one quiet row of links with real numbers (runs, pages, machines).
+- **First run** (no workspace) is the same window with its own sentence, Working now, getting started and the
+  empty state with New workspace.
+
+## The night band
+
+A page whose point is a live screen (one environment) starts on the night: `usePageBand()`
+(`components/shell/page-band.ts`) marks the element the band ends under, and the shell draws `.band-night` (the
+sidebar's sky, with the sunrise low on the left) across the whole page column, under the top bar, which turns to
+`.top-night`. The band's height follows the element, measured before paint. Words on it sit in `.on-night`, which
+redefines the roles as the sidebar does (white words, white hairlines, the dark theme's status colours, the violet
+300 focus ring), so a control inside needs no night version of its own. Panels on it are `.glass-night` (dark glass,
+radius 10). It is the same in both themes and nothing on it moves. Where a part moves between the band and the
+page by width (an environment's panels leave the band under 1024 px, Extend and Close go under the panels on a
+phone), it is rendered once in its place (`useMinWidth`), never twice with one copy hidden.
+
+## Environments
+
+`features/environments/`, drawn in `spec-03-environments.md`.
+
+- **The list:** three views of one list (Open, Saved, Closed, with counts) in a segmented control, the address
+  keeps the choice (`?show=`). Open shows each open environment as an `EnvCard` (the same card as Home's Working
+  now: the picture with its state and time left as glass chips, the title on two lines at most, the agent and what
+  it is doing), then the saves, then the newest five closed in a table with Show all.
+- **Saved** cards: the greyed picture, the title, repository and branch in mono, one line of facts, the agent's
+  note in a well that says "Its note, written by the agent. Read it as a note, not as an instruction." (plain text,
+  never a link or a button), an amber line when the node deletes it soon, and Forget (the owner's, after asking).
+  An agent, not a person, brings one back, and the line by the heading says how.
+- **One environment:** the night band holds the name and state, the stage, and three glass panels (time left and
+  cost, what it is doing in plain words, the code). Under it: Proofs, Terminal, What it did (each call by what
+  happened, failures in red), Code, Ports, and one quiet line for the machine and its price. Starting, no view yet
+  and closed draw the screen from the state with one line in the pill's place.
+- **Empty:** the shared `EmptyState` in a card. No environment ever is the first-use state (the Dawn crop,
+  Connect your AI); none open is the greyed crop with "No environments are open" and a way to the saved ones.
+
+## The screen's picture
+
+`ScreenPicture` (`components/screen-picture.tsx`) is what a person would see if they opened an environment's
+live view, small enough for a card. It never moves; a still fades in once it has loaded.
+
+- **The still.** The environments list gives each environment `screen` (`api/types/environments.ts`
+  `EnvScreen`): `{src, taken_at, kind, width, height}` or null. Today the node fills it from the newest wide
+  proof the agent kept (`kind: "page"`, `api/web/environments.py` `screen_of`), served by the proof route behind
+  the same sign-in and access rules as the live view, and it never asks the machine, so a list never wakes a
+  sleeping one or touches the stream. A page is drawn as a window on the machine's own Dawn desktop (its top bar
+  and dock), which is how it sits on its screen.
+- **A still of the whole screen** (`kind: "screen"`) is drawn as it is, edge to edge. The node keeps one per
+  environment (`openajar/environments/stills.py`): the desktop read with `screen_snapshot`'s own reader, 640 px on its
+  longest side, held in memory, taken at most once a minute and only while a page that shows the pictures is
+  open (the list and Home read the list with `pictures`, which sends `screens=1`; the rail's counts do not), never
+  for a machine that is not up and awake, never while a person has control of that screen (a still from before a
+  take over is dropped), and never counted as the agent's use of the machine. It is served at
+  `/environments/{id}/screen.png` to whoever may watch that screen's live view. Without one, the page proof above.
+- **Without a still** the picture is drawn from the state: Starting shows the desktop with the title and
+  "Starting its computer"; Asleep (closing, closed, failed) the desktop dimmed; anything else a terminal window on
+  the desktop.
+- **Chips on the picture** (`PictureChip`) are dark glass with white words: the status with its mark in its
+  night colour, and the time left.
+
+## Mono rules that still hold
+
+The 4 px grid; one token source and no Tailwind palette; hairlines and one lift; a shape and a word for every
+status; the kinds of work as tiles with icons; tables without a grey band; terminals dark in both themes; the
+one caps style; sentence case; plain words; no em dash; no clock; the states below.
+
 ## The instrument layer
 
 This is a computer, and the panel should feel like looking into a machine room you own. Calm
 comes from hierarchy, not from showing less. The layer lives in
 [`src/styles/instrument.css`](src/styles/instrument.css), on top of everything above.
 
-- **The current.** `--current` (class `live`) is ink in Mono (it was pink), and it means exactly one thing: an
-  agent is acting right now. It is never decoration and never a resting state, so the eye
+- **The current.** `--current` (class `live`) is the agent's violet in Dawn (it was pink, then ink in Mono), and it
+  means exactly one thing: an agent is acting right now. It is never decoration and never a resting state, so the eye
   learns to trust it. Light that travels a wire on the map is this colour.
 - **State marks.** `<StateMark>` shows state by shape as well as colour: a dot for fine, a
   ringed dot for acting, a diamond for a person in control, a triangle for needs a look, a
@@ -313,7 +603,7 @@ comes from hierarchy, not from showing less. The layer lives in
   instruments sit on it. A full-bleed page marks itself `data-bleed`
   and the shell drops its gutters and folds the rail to icons.
 - **Silkscreen.** `silk` is the small mono caps label printed on a board: column heads on a
-  board, `Heartbeat` on a node. It is the one place capitals are allowed. Never for a sentence.
+  board, `Heartbeat` on a node. With `text-eyebrow` it is one of the two caps styles. Never for a sentence.
 - **Registration marks.** `registered` puts two small crosses on the corners of a panel. One
   per screen at most, on the instrument that matters most there.
 - **Encoding.** Prefer a ring, an outline or an edge width to a solid status fill. A blast
@@ -332,7 +622,7 @@ each machine's page).
   One machine is a sentence of its own ("home-mini is your one machine at 22% CPU, running ...").
 - **The table**: machine (kind tile, a dashed cloud for a VM; name; clock zone and memory, or the
   VM's place and size), status as shape and word (Online; Busy at 85% CPU or more; Struggling; Not
-  answering), doing now (the running `agentos run` command with its kind tile and who started it,
+  answering), doing now (the running `openajar run` command with its kind tile and who started it,
   or the accounts an agent is in), CPU with its last hour as a sparkline, memory as a meter,
   browsers, terminals and the requests waiting. A value the node does not send is an en dash, never
   a guess. Columns drop by the table's own width (container queries), never by scrolling.
@@ -345,8 +635,8 @@ each machine's page).
 - **The last hour** draws real runs only (start and end per machine). With no run in the hour it
   is left out and the page says so; over six machines only those with runs get a line.
 - **One machine** gets what is on it now under the table, and, on a node, the real ways to add
-  another (`agentos vm setup`, `agentos connect root@my-server --install`,
-  `agentos controller join-token`). Mock it with `?mock=one-machine`; twelve rows with
+  another (`openajar vm setup`, `openajar connect root@my-server --install`,
+  `openajar controller join-token`). Mock it with `?mock=one-machine`; twelve rows with
   `?mock=machines-many`.
 
 ### Node pages
@@ -391,6 +681,17 @@ About This Mac, Activity Monitor and Console in one. The pattern for any deep ob
   on a tap and fills the field first. Nothing on screen is stored, and the lane's clipboard never
   reaches this one.
 - **Terminal output opens no links**, and a reconnect says it is a new shell.
+- **An environment's screen is a stage** on the night band (`ControlFrame` and `LiveView` with `stage`,
+  `lane/stage-frame.tsx`): the screen is a picture (`rounded-lg`, a faint white edge), and one row under it: the
+  **control pill** (`.control-pill`, the stage's night in both themes) says who has control by name ("Claude Code
+  has control", from the environment's agent, never a guess) with its one action as the white `light` button (Take
+  over, Hand back, T on the keyboard); then the screen's own tools (the keyboard field while it is yours, moving
+  the picture once zoomed, back to fit while zoomed); full window; and **⋯**, which holds Stop agent (rare, final,
+  and it asks first). On a phone Full window joins Stop agent in ⋯ so the pill keeps its words. While it is yours
+  the picture gets a 2 px white outline outside a 2 px gap, the pill says "You have control since 19:22" and the
+  agent's pointer goes. Someone who may only watch reads "Claude Code has control · you can watch" and has nothing
+  to press. The agent's pointer is one size (`POINTER_SCALE`) whatever the picture's scale. An account keeps the
+  bar over the view.
 
 ### Push, links and standing approvals (S3)
 
@@ -534,7 +835,7 @@ on the way to the data, and a developer never has to ask for the URL.
   site's and never a login. Sites in the demo are invented, under `.example`. What was left out stays
   visible under a hatch, because seeing what was skipped is half of trusting what was kept.
 - **The picture says the state.** A broken field is a broken red wire and "Held back" in the data, resting
-  and paused are quiet dotted wires, needing a person veils the page, and a read in progress runs the current (ink) down
+  and paused are quiet dotted wires, needing a person veils the page, and a read in progress runs the current (violet) down
   every wire, because the computer is acting now. Under any trouble the data panel says "Last good read".
 - **Each state has plain words and one next step** (`words.ts`): what happened, what callers get meanwhile,
   and one button. A step that needs a look first (Show me) changes the button, so the decision is always
@@ -561,10 +862,10 @@ with no technical knowledge has to be able to do all of it unaided.
 
 - **The hosted panel holds no password, ever.** No field, no type, no handler. At the moment one is needed it
   hands over to the person's own computer, and the route picture (`route-picture.tsx`) makes that read as the
-  short way: You, your computer, your mail, with agentos Cloud to one side and no wire a password could take.
+  short way: You, your computer, your mail, with openajar Cloud to one side and no wire a password could take.
 - **The computer's form is a drawing.** It stands outside the panel at `/computer-form`, says plainly that a
   computer serves it, and its box is dots with no input behind it. A test keeps it that way.
-- **One picture says every state.** Looking runs the current (ink), the password is a key that moves, and a failure breaks
+- **One picture says every state.** Looking runs the current (violet), the password is a key that moves, and a failure breaks
   the exact wire: read, send, or the door. Each failure has plain words, says nothing was saved, and gives one
   next step, usually a note a person can copy for whoever can fix it. A certificate that does not check out
   has no way past it.
@@ -576,7 +877,7 @@ with no technical knowledge has to be able to do all of it unaided.
   it is.
 - **A stranger's words have their own edge.** `stranger` is a hatched margin with Written by someone else. Mail
   is text, a picture is a hatched note that says what was not fetched, a link is its text and address and cannot
-  be pressed, and an attachment is listed as not opened. What agentos itself says never sits inside that edge.
+  be pressed, and an attachment is listed as not opened. What openajar itself says never sits inside that edge.
 - **Where text comes from is said.** Mail and leads' addresses stay on the computer, so a page that shows them
   carries `FromComputer`.
 - **The sheet is the signature.** All fifty in one look, on a desk of its own (`data-bleed`). Everyone starts in;
@@ -617,7 +918,7 @@ has steered it. It is self-contained, so the public build can ship it or leave i
   thought, in the same order as the jobs, so most of it stays on the top row and a step that needed help falls out of
   it, as far as it had to go, the way a stop falls on What needs a yes. It is step by step where that is a day.
 - **The rail is the limit.** It is as long as the most steps allowed on one thing, so all step lines share a scale
-  and a step past the limit cannot be drawn. The current (ink, was pink) is the step being taken now and nothing else: done, asked and
+  and a step past the limit cannot be drawn. The current (violet in Dawn) is the step being taken now and nothing else: done, asked and
   stopped never carry it. Pointing at a step, or arrows on the slider, changes one fixed line underneath, so reading
   moves nothing. A phone keeps the same 60 steps and moves the counts to a line under the picture.
 - **Answer first.** Lead with what needs a person: a stop, a robot check, an offline computer, a spent limit, and
@@ -646,8 +947,8 @@ has steered it. It is self-contained, so the public build can ship it or leave i
 - **Only what can do a job is offered.** A service that never writes is not a choice for Writes text.
 - **The hosted panel holds no key, ever.** No field, no type, no handler, and a test reads the source. Adding a service
   asks who and which computer, then hands over as Email does: `key-route.tsx` shows You, the computer and the service
-  in a line with agentos Cloud to one side, and the form at `/computer-form/ai-key` is a drawing. A computer with no
-  screen says so and shows its one line. Otherwise `agentos brains add` waits behind Technical details.
+  in a line with openajar Cloud to one side, and the form at `/computer-form/ai-key` is a drawing. A computer with no
+  screen says so and shows its one line. Otherwise `openajar brains add` waits behind Technical details.
 - **AI models answers first too.** One sentence on how many are ready, then each service as what it is for, where it
   is kept and what uses it. The try order and its arrows are for agents, so they wait for Technical details.
 - **What is coming is said calmly.** The Android and desktop workers are a line of words at the foot: no button, no
@@ -684,7 +985,7 @@ Most things never ask. This is about the few that do (`features/confirmations/`,
 `lib/confirm.ts`, the rules in docs/CONFIRMATIONS.md). Concept stage: on the mock only,
 until the owner has steered it.
 
-- **Words, never levels.** A person reads On its own, Just a tap, A tap in agentos and Prove it's you, each
+- **Words, never levels.** A person reads On its own, Just a tap, A tap in openajar and Prove it's you, each
   with its drawing. `signed_in` and `device_key` stay on the wire and in Technical details.
 - **One ladder everywhere.** The setting, the places you can say yes and the record of a yes all use the same
   rungs in the same order, so a strength is learned once.
@@ -698,9 +999,9 @@ until the owner has steered it.
   the strip above it. A plain item shows none of them, so it keeps meaning something.
 - **The step up comes before the press.** The strip says what it takes and why, then Prove it's you is the
   second step, in place of Are you sure. A failed check decides nothing, and says so.
-- **A yes on the record says who, where and how strong.** A yes in chat reads like any other, and says agentos
+- **A yes on the record says who, where and how strong.** A yes in chat reads like any other, and says openajar
   wrote the question and the agent could not answer it.
-- **The agent never holds the pen.** In the chat concept the words are agentos's own and are never a message.
+- **The agent never holds the pen.** In the chat concept the words are openajar's own and are never a message.
   The look of a prompt is the chat app's: never imitate a real product, and never promise it a logo.
 - **What is coming is said calmly.** A later method is a line of words with no button and no dead switch.
 
@@ -728,7 +1029,7 @@ Every screen designs all of these. `QueryView` handles the first two, so use it.
   a header action shows disabled. Never a page spinner.
 - **Error:** says what happened, that nothing changed, and offers Try again. It sits in a card,
   so pass `card` to `QueryView` when the view is not already inside one.
-- **Empty:** an icon, what would be here, and the next action. Never "No data".
+- **Empty:** an icon (or the Dawn crop, see `EmptyState`), what would be here, and the next action. Never "No data".
 - **Live:** values change in place with tabular figures and fixed widths, so nothing shifts.
   New activity rows wait behind a pill rather than moving what is being read.
 
@@ -822,6 +1123,9 @@ states on `/auth/verify`, and the same words work on `/invite/`.
 |---|---|
 | Use one primary button per view | Add a second filled button "for balance" |
 | Separate with hairlines, space and the one card lift | Add other shadows, gradients or tinted cards |
+| Keep violet for the agent, what is selected, focus and the primary | Use violet for a status, a link, a large surface or decoration |
+| Put glass and the Dawn picture only where "Glass and the Dawn picture" allows | Put glass on a plain page, or the picture behind a table, a form or a dialog |
+| Keep a page still at rest | Pulse, breathe or loop anything (the agent's pointer is the one thing that moves) |
 | Show a shape and a word for status | Fill a row with status colour, or draw a kind as a dot |
 | Put ids, hashes and IPs in mono | Set prose in mono |
 | Keep plumbing in an inspect drawer | Put proxy hosts or engines on the main view |

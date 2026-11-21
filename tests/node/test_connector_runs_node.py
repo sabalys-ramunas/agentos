@@ -25,14 +25,14 @@ from urllib.parse import urlsplit
 import pytest
 import pytest_asyncio
 
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, LaneState, RunStatus, utcnow
-from agentos.core.runtime import Runtime
-from agentos.node import flow_driver as fd
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.service import build
-from agentos.runner.util import Clock
+from openajar.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, LaneState, RunStatus, utcnow
+from openajar.core.runtime import Runtime
+from openajar.node import flow_driver as fd
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.service import build
+from openajar.runner.util import Clock
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
@@ -170,13 +170,13 @@ class Lanes:
     def control(self, lane_id: str) -> LaneControl:
         return self._control
 
-    async def hold(self, lane_id: str, *, reason: str, until: Any = None, by: str = "agentos") -> LaneInfo:
+    async def hold(self, lane_id: str, *, reason: str, until: Any = None, by: str = "openajar") -> LaneInfo:
         self.holds.append(reason)
         self._control = LaneControl(state=ControlState.PAUSED, by=by, since=utcnow(), reason=reason)
         return self.get(lane_id)
 
     async def read_signed_out(self, lane_id: str, url: str, text: str, *, timeout_ms: int = 20_000) -> dict:
-        from agentos.node.signed_out import read_visibility
+        from openajar.node.signed_out import read_visibility
 
         self.signed_out_reads.append(url)
         ctx = await self.page.context.browser.new_context()
@@ -251,7 +251,7 @@ async def _runner(tmp_path: Path, page: Any, ia: PlaywrightInteraction, ops: dic
 
 
 async def _run(runner: Any, flow_id: str, params: dict[str, Any]) -> Any:
-    """Bind the surface the way `agentos connector bind` does (its acts-as id and account language
+    """Bind the surface the way `openajar connector bind` does (its acts-as id and account language
     are the binding's, never the caller's), then run."""
     params = dict(params)
     if "acts_as_id" in params:  # a connector operation; a plain flow has no surface

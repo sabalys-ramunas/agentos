@@ -4,7 +4,7 @@
     uv run python tests/studio_eval/run.py --agent claude --model haiku
     uv run python tests/studio_eval/run.py --agent claude --model sonnet --task t01_fix_clipped t04_why_moved
 
-Each agent kind gets its own `agentos studio up` in a scratch HOME (never your ~/.agentos) and its
+Each agent kind gets its own `openajar studio up` in a scratch HOME (never your ~/.openajar) and its
 own copy of the task pages. Per task it records: finished (every check of the task passed), the
 studio calls, the tokens read from tool results (characters / 4), the images fetched and the
 wrong turns. Results go to <out>/results.json, transcripts to <out>/<agent>/<task>.log.

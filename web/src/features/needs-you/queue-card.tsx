@@ -1,14 +1,11 @@
 /** The list half of Needs you: what to decide, grouped by what is at stake, then brand changes, codes and questions. */
 import { Check, ListChecks, X } from 'lucide-react';
 import type { Approval } from '@/api/types';
-import { Count } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
-import { Kbd } from '@/components/ui/misc';
+import { Card } from '@/components/ui/card';
 import type { usePrincipalName } from '@/lib/use-principal';
 import { CodeRow } from './code-card';
 import { BrandRow } from './brand-proposal';
-import { waitedShort } from './queue-words';
 import { GroupHeader, QuestionRow, Row, batchWords, batchable } from './queue-rows';
 import type { Queue } from './use-queue';
 
@@ -22,6 +19,8 @@ export interface OpenIds {
 
 interface QueueCardProps {
   queue: Queue;
+  /** Which tab the list is under: what to decide, or the brand changes. */
+  tab: 'decide' | 'brand';
   open: OpenIds;
   whoOf: ReturnType<typeof usePrincipalName>;
   canDecide: boolean;
@@ -34,30 +33,20 @@ interface QueueCardProps {
   onSelect: (id: string, checked: boolean) => void;
 }
 
-export function QueueCard({ queue, open, whoOf, canDecide, changed, selecting, selected, onHover, onChooseSeveral, onOpen, onSelect }: QueueCardProps) {
-  const { groups, brands, codeRows, questionRows, openCodes, questions, businessOf, colorOf, oldest, waiting, toDecide } = queue;
+export function QueueCard({ queue, tab, open, whoOf, canDecide, changed, selecting, selected, onHover, onChooseSeveral, onOpen, onSelect }: QueueCardProps) {
+  const { brands: allBrands, openCodes, questions, businessOf, colorOf, waiting } = queue;
+  // The tab says what the list holds, so the list needs no head of its own.
+  const brandTab = tab === 'brand';
+  const groups = brandTab ? [] : queue.groups;
+  const codeRows = brandTab ? [] : queue.codeRows;
+  const questionRows = brandTab ? [] : queue.questionRows;
+  const brands = brandTab ? allBrands : [];
   return (
     <Card
-      className="relative min-w-0 overflow-hidden lg:sticky lg:top-[calc(var(--topbar-height)+16px)]"
+      className="relative min-w-0 overflow-hidden"
       onPointerEnter={(event) => event.pointerType === 'mouse' && onHover(true)}
       onPointerLeave={() => onHover(false)}
     >
-      <CardHeader
-        title={
-          <>
-            To decide
-            <Count value={toDecide} tone="warn" />
-          </>
-        }
-        meta={oldest ? <span className="hidden sm:inline">the oldest for {waitedShort(oldest)}</span> : null}
-        action={
-          <span className="hidden items-center gap-1 text-caption text-faint lg:inline-flex" aria-hidden="true">
-            <Kbd>J</Kbd>
-            <Kbd>K</Kbd>
-            move
-          </span>
-        }
-      />
       {waiting > 0 ? (
         <div className="pointer-events-none sticky top-2 z-10 -mb-6 flex h-0 justify-center">
           <span className="tabular h-6 animate-pop-in rounded-full border border-line bg-raised px-2 text-caption leading-6 text-muted shadow-popover">
@@ -65,7 +54,7 @@ export function QueueCard({ queue, open, whoOf, canDecide, changed, selecting, s
           </span>
         </div>
       ) : null}
-      <div className="divide-y divide-line pb-2">
+      <div className="pb-2">
         {groups.map((group) => {
           const choosable = canDecide && group.items.some(batchable);
           return (

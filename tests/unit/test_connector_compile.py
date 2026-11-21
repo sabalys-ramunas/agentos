@@ -6,11 +6,16 @@ import copy
 import pytest
 from connector_samples import SITES, commit_op, connector, read_op, write_dir
 
-from agentos.core.models import Effect
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path, contract_hash
-from agentos.runner.connectors.models import Connector
-from agentos.runner.connectors.steps import PENDING_MARKER, runner_capabilities
-from agentos.runner.models import FlowDefinition
+from openajar.core.models import Effect
+from openajar.runner.connectors.compile import (
+    ConnectorInvalid,
+    compile_connector,
+    compile_path,
+    contract_hash,
+)
+from openajar.runner.connectors.models import Connector
+from openajar.runner.connectors.steps import PENDING_MARKER, runner_capabilities
+from openajar.runner.models import FlowDefinition
 
 
 def _compile(doc, **kw):
@@ -320,7 +325,7 @@ def _read(**edits):
      "${nope} is not a declared param"),
     (_read(a=lambda o: o["steps"].append({"type": "wait_for", "locator": {"role": "region", "name": "${missing}"}})),
      "is not a declared param"),
-    (connector(site="nowhere", connector="nowhere"), "not a site agentos knows"),
+    (connector(site="nowhere", connector="nowhere"), "not a site openajar knows"),
     (connector(domain="elsewhere.example"), "not one of the social hosts"),
 ])
 def test_strict_lint_read_rules(doc, needle):
@@ -361,7 +366,7 @@ def test_load_errors_are_clear(tmp_path):
         compile_path(tmp_path, sites=SITES)
 
 
-def test_the_default_site_table_is_agentos_node_sites():
+def test_the_default_site_table_is_openajar_node_sites():
     doc = connector(connector="reddit", site="reddit", domain="reddit.com")
     doc["operations"]["profile_summary"]["steps"][0]["url"] = "https://www.reddit.com/user/${acts_as_id}"
     out = doc["operations"]["profile_summary"]["output"]["properties"]["profile_url"]

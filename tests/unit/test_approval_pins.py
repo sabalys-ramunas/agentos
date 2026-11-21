@@ -9,11 +9,11 @@ import pytest
 from events_support import World, no_quiet
 from test_policy_support import Clock, make_service
 
-import agentos.events.service as events_service
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.util import content_hash
+import openajar.events.service as events_service
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.util import content_hash
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@
   ::1, "localhost") or a Unix socket. Anything else raises NetworkBlocked and fails the test, even
   when the code under test swallows the error. Tests that really need the network say so with
   `@pytest.mark.network`; node tests (`-m node`) are not guarded (their browser is walled off by
-  its own context routes, and CI runs them with outbound traffic dropped). AGENTOS_TEST_NETWORK=1
+  its own context routes, and CI runs them with outbound traffic dropped). OPENAJAR_TEST_NETWORK=1
   turns the guard off for a local experiment.
 - A process that starts with SIGINT ignored (some CI shells do this) passes the ignore on to
   every child, so a test shell's Ctrl-C would never interrupt `sleep`. Production is not
@@ -19,7 +19,7 @@
   paid. Test servers skip it; the name is only used for CGI.
 - A session fails when it held many more open files than it started with (FD_MARGIN below), and
   names the test files where the count grew: a leak that Linux hides and macOS does not.
-- AGENTOS_TEST_SHARD=<i>/<n> runs only shard i of n (CI splits the unit tests over n runners). Whole
+- OPENAJAR_TEST_SHARD=<i>/<n> runs only shard i of n (CI splits the unit tests over n runners). Whole
   files go to one shard, the largest first to the shard with the fewest tests, so the n shards
   together run every selected test exactly once.
 """
@@ -67,12 +67,12 @@ def shard_of(counts: Counter[str], shards: int) -> dict[str, int]:
 
 @pytest.hookimpl(trylast=True)  # after -m and -k have deselected, so the shards share what runs
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    spec = os.environ.get("AGENTOS_TEST_SHARD")
+    spec = os.environ.get("OPENAJAR_TEST_SHARD")
     if not spec:
         return
     index, _, total = spec.partition("/")
     if not (index.isdigit() and total.isdigit() and 1 <= int(index) <= int(total)):
-        raise pytest.UsageError(f"AGENTOS_TEST_SHARD must be <i>/<n> with 1 <= i <= n (got {spec!r})")
+        raise pytest.UsageError(f"OPENAJAR_TEST_SHARD must be <i>/<n> with 1 <= i <= n (got {spec!r})")
     files = [item.nodeid.split("::", 1)[0] for item in items]
     shards = shard_of(Counter(files), int(total))
     mine = int(index) - 1
@@ -87,7 +87,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 # Descriptors a session may hold on top of its start: at its end, once garbage is collected (a
 # shard ends 20 to 200 up), and at any point between two test files, garbage included (a shard
-# peaks 1,050 to 1,400 up; macOS gives a process 10,240). AGENTOS_TEST_FD_MARGIN="<end>,<peak>".
+# peaks 1,050 to 1,400 up; macOS gives a process 10,240). OPENAJAR_TEST_FD_MARGIN="<end>,<peak>".
 FD_MARGIN = (500, 4000)
 _fds: dict[str, Any] = {"start": None, "file": None, "at": 0, "peak": 0, "grew": Counter()}
 
@@ -118,7 +118,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """Fail a session that held many more open files than it started with: a leak (a store, a
     socket, an event loop never closed) that Linux's 65,536 open files hide and macOS's 10,240 do
     not. Seen: "Too many open files" at the end of a macOS shard, from dev nodes that stayed
-    reachable after their tests (agentos.dev.lanes, FakeLaneManager.shutdown)."""
+    reachable after their tests (openajar.dev.lanes, FakeLaneManager.shutdown)."""
     start = _fds["start"]
     if start is None or start < 0 or session.config.option.collectonly:
         return
@@ -128,7 +128,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         _fds["peak"] = max(_fds["peak"], now)
     gc.collect()  # what only waits for the collector is counted in the peak, not at the end
     _fds["end"] = open_fds()
-    wanted = os.environ.get("AGENTOS_TEST_FD_MARGIN")
+    wanted = os.environ.get("OPENAJAR_TEST_FD_MARGIN")
     end_margin, peak_margin = (int(x) for x in wanted.split(",")) if wanted else FD_MARGIN
     if _fds["end"] - start > end_margin or _fds["peak"] - start > peak_margin:
         _fds["failed"] = (end_margin, peak_margin)
@@ -151,16 +151,16 @@ def pytest_terminal_summary(terminalreporter: Any) -> None:
 
 @pytest.fixture(autouse=True)
 def _no_real_agent_config(monkeypatch):
-    """`agentos connect` writes Codex's config.toml and Claude Code's skills folder: with these two
+    """`openajar connect` writes Codex's config.toml and Claude Code's skills folder: with these two
     set, a test that points HOME at a temp dir would still reach the owner's real ones."""
     monkeypatch.delenv("CODEX_HOME", raising=False)
     monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
-    # `agentos up` connects this machine's own Claude Code and Codex when they are installed: never in tests
-    from agentos.dev import cli as dev_cli
+    # `openajar up` connects this machine's own Claude Code and Codex when they are installed: never in tests
+    from openajar.dev import cli as dev_cli
 
     monkeypatch.setattr(dev_cli, "connect_clients", lambda port, token: [])
     try:
-        from agentos.controller import cli as controller_cli
+        from openajar.controller import cli as controller_cli
     except ModuleNotFoundError:
         return
     monkeypatch.setattr(controller_cli, "_here", lambda here: False)
@@ -169,7 +169,7 @@ def _no_real_agent_config(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_network(request, monkeypatch):
     if (request.node.get_closest_marker("node") or request.node.get_closest_marker("network")
-            or os.environ.get("AGENTOS_TEST_NETWORK") == "1"):
+            or os.environ.get("OPENAJAR_TEST_NETWORK") == "1"):
         yield
         return
     attempts = request.node.stash[_netguard.ATTEMPTS] = []
@@ -183,17 +183,17 @@ def _no_network(request, monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_host_resources(request, monkeypatch):
     if request.node.get_closest_marker("node") is None:
-        from agentos.node.lanes import resources  # where the lane manager reads its probes
+        from openajar.node.lanes import resources  # where the lane manager reads its probes
 
         monkeypatch.setattr(resources, "available_memory_mb", lambda: None)
         monkeypatch.setattr(resources, "disk_free_bytes", lambda path: None)
 
 
 # Modules that use a commit as the call that waits for a person, to test what happens around that
-# wait (approvals, standing approvals, pushes). They predate "Ask me first" (agentos.policy.ask_first).
+# wait (approvals, standing approvals, pushes). They predate "Ask me first" (openajar.policy.ask_first).
 # They run on the shipped default, as if a person had turned Ask me first on for each lane they use,
 # so every assertion in them holds on the shipped table with a real switch. Everything else runs with
-# no switch at all. AGENTOS_TEST_NO_SWITCHES=1 runs these with none too, which is what
+# no switch at all. OPENAJAR_TEST_NO_SWITCHES=1 runs these with none too, which is what
 # the ask-first default audit classifies.
 SWITCHED_ON = frozenset({
     "test_api_members", "test_approval_cards", "test_channel_e2e", "test_confirm_paths", "test_channel_member_call_limits",
@@ -209,9 +209,9 @@ SWITCHED_ON = frozenset({
 
 @pytest.fixture(autouse=True)
 def _a_person_switched_it_on(request, monkeypatch):
-    if request.module.__name__.rsplit(".", 1)[-1] not in SWITCHED_ON or os.environ.get("AGENTOS_TEST_NO_SWITCHES") == "1":
+    if request.module.__name__.rsplit(".", 1)[-1] not in SWITCHED_ON or os.environ.get("OPENAJAR_TEST_NO_SWITCHES") == "1":
         return
-    from agentos.policy.ask_first import AskFirst
+    from openajar.policy.ask_first import AskFirst
 
     for_call = AskFirst.for_call
 
@@ -225,9 +225,9 @@ def _a_person_switched_it_on(request, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_raw_files(monkeypatch):
-    """An open reads a public repository's .agentos/environment.toml from GitHub's raw files; in tests,
+    """An open reads a public repository's .openajar/environment.toml from GitHub's raw files; in tests,
     GitHub does not answer (the file is then read in the checkout), unless a test gives raw_fetch."""
-    from agentos.environments import preparing
+    from openajar.environments import preparing
 
     async def no_answer(url):
         return 0, b""
@@ -238,8 +238,8 @@ def _no_raw_files(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_preflight_waits(monkeypatch):
     """A network check before an open is tried again over about 15 s; in tests, at once."""
-    from agentos.environments import manager as env_manager
-    from agentos.vms import manager as vm_manager
+    from openajar.environments import manager as env_manager
+    from openajar.vms import manager as vm_manager
 
     monkeypatch.setattr(env_manager, "REPO_CHECK_WAITS_S", (0.0, 0.0, 0.0))
     monkeypatch.setattr(vm_manager, "PREFLIGHT_WAITS_S", (0.0, 0.0, 0.0))

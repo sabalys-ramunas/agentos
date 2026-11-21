@@ -1,5 +1,5 @@
 /**
- * Where a key goes, drawn. You, your computer and the AI service stand in a line, and agentos Cloud
+ * Where a key goes, drawn. You, your computer and the AI service stand in a line, and openajar Cloud
  * sits to one side with no wire a key could take. The same picture says every stage: the key waiting
  * with you, the check running pink, the key kept on the computer, and where a refusal broke it.
  */
@@ -26,9 +26,9 @@ const KEY_X: Record<KeyAt, number> = { you: 62, computer: 206, kept: 206 };
 export function KeyRoute({ computer, service, thing, keyAt, checking = false, refused = false }: { computer: string; service: string; thing: string; keyAt: KeyAt; checking?: boolean; refused?: boolean }) {
   const moved = keyAt !== 'you';
   return (
-    <svg viewBox="0 0 420 236" role="img" aria-label={`You, then ${computer}, then ${service}. agentos Cloud stands to one side and never sees the ${thing}.`} className="block w-full">
+    <svg viewBox="0 0 420 236" role="img" aria-label={`You, then ${computer}, then ${service}. openajar Cloud stands to one side and never sees the ${thing}.`} className="block w-full">
       <rect x={132} y={8} width={156} height={52} rx={10} className="key-cloud" />
-      <text x={210} y={30} className="key-label">agentos Cloud</text>
+      <text x={210} y={30} className="key-label">openajar Cloud</text>
       <text x={210} y={46} className="key-note">Never sees the {thing}</text>
       <path d="M210 60 V132" className="key-wire" data-kind="quiet" />
       <text x={218} y={100} className="key-note" style={{ textAnchor: 'start' }}>the result only</text>

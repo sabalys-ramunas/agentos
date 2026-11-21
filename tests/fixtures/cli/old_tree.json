@@ -12,7 +12,7 @@
    "--note",
    "<approval_id>"
   ],
-  "target": "agentos.policy.cli:approvals_approve"
+  "target": "openajar.policy.cli:approvals_approve"
  },
  "approvals batch": {
   "kind": "command",
@@ -21,7 +21,7 @@
    "--note",
    "<ids>"
   ],
-  "target": "agentos.policy.cli:approvals_batch"
+  "target": "openajar.policy.cli:approvals_batch"
  },
  "approvals deny": {
   "kind": "command",
@@ -30,7 +30,7 @@
    "--note",
    "<approval_id>"
   ],
-  "target": "agentos.policy.cli:approvals_deny"
+  "target": "openajar.policy.cli:approvals_deny"
  },
  "approvals list": {
   "kind": "command",
@@ -40,7 +40,7 @@
    "--node",
    "--state"
   ],
-  "target": "agentos.policy.cli:approvals_list"
+  "target": "openajar.policy.cli:approvals_list"
  },
  "approvals standing": {
   "kind": "group",
@@ -62,21 +62,21 @@
    "--until",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:standing_add"
+  "target": "openajar.policy.cli:standing_add"
  },
  "approvals standing list": {
   "kind": "command",
   "params": [
    "--all"
   ],
-  "target": "agentos.policy.cli:standing_list"
+  "target": "openajar.policy.cli:standing_list"
  },
  "approvals standing revoke": {
   "kind": "command",
   "params": [
    "<standing_id>"
   ],
-  "target": "agentos.policy.cli:standing_revoke"
+  "target": "openajar.policy.cli:standing_revoke"
  },
  "audit": {
   "kind": "group",
@@ -86,7 +86,7 @@
  "audit checkpoint": {
   "kind": "command",
   "params": [],
-  "target": "agentos.audit.cli:checkpoint_cmd"
+  "target": "openajar.audit.cli:checkpoint_cmd"
  },
  "audit export": {
   "kind": "command",
@@ -97,14 +97,14 @@
    "--tz",
    "-o"
   ],
-  "target": "agentos.audit.cli:export_cmd"
+  "target": "openajar.audit.cli:export_cmd"
  },
  "audit keys": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.audit.cli:keys_cmd"
+  "target": "openajar.audit.cli:keys_cmd"
  },
  "audit replay": {
   "kind": "command",
@@ -114,7 +114,7 @@
    "--lane",
    "--tz"
   ],
-  "target": "agentos.audit.cli:replay_cmd"
+  "target": "openajar.audit.cli:replay_cmd"
  },
  "audit rotate-key": {
   "kind": "command",
@@ -122,7 +122,7 @@
    "--no-reset",
    "--reset"
   ],
-  "target": "agentos.audit.cli:rotate_key_cmd"
+  "target": "openajar.audit.cli:rotate_key_cmd"
  },
  "audit share": {
   "kind": "group",
@@ -140,21 +140,21 @@
    "--ttl",
    "--tz"
   ],
-  "target": "agentos.audit.cli:share_create_cmd"
+  "target": "openajar.audit.cli:share_create_cmd"
  },
  "audit share list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.audit.cli:share_list_cmd"
+  "target": "openajar.audit.cli:share_list_cmd"
  },
  "audit share revoke": {
   "kind": "command",
   "params": [
    "<share_id>"
   ],
-  "target": "agentos.audit.cli:share_revoke_cmd"
+  "target": "openajar.audit.cli:share_revoke_cmd"
  },
  "audit verify": {
   "kind": "command",
@@ -167,7 +167,7 @@
    "--tz",
    "--until"
   ],
-  "target": "agentos.audit.cli:verify_cmd"
+  "target": "openajar.audit.cli:verify_cmd"
  },
  "backup": {
   "kind": "group",
@@ -184,7 +184,7 @@
    "--passphrase-file",
    "--to"
   ],
-  "target": "agentos.ops.cli:backup_create"
+  "target": "openajar.ops.cli:backup_create"
  },
  "backup list": {
   "kind": "command",
@@ -192,7 +192,7 @@
    "--json",
    "--to"
   ],
-  "target": "agentos.ops.cli:backup_list"
+  "target": "openajar.ops.cli:backup_list"
  },
  "backup prune": {
   "kind": "command",
@@ -200,7 +200,7 @@
    "--keep",
    "--to"
   ],
-  "target": "agentos.ops.cli:backup_prune"
+  "target": "openajar.ops.cli:backup_prune"
  },
  "backup restore": {
   "kind": "command",
@@ -212,7 +212,7 @@
    "--to",
    "<archive>"
   ],
-  "target": "agentos.ops.cli:backup_restore"
+  "target": "openajar.ops.cli:backup_restore"
  },
  "backup verify": {
   "kind": "command",
@@ -221,7 +221,7 @@
    "--passphrase-file",
    "<archive>"
   ],
-  "target": "agentos.ops.cli:backup_verify"
+  "target": "openajar.ops.cli:backup_verify"
  },
  "brains": {
   "kind": "group",
@@ -251,7 +251,7 @@
    "--window-tokens",
    "<name>"
   ],
-  "target": "agentos.brains.cli:add"
+  "target": "openajar.brains.cli:add"
  },
  "brains auth": {
   "kind": "command",
@@ -261,40 +261,40 @@
    "--stdin",
    "<name>"
   ],
-  "target": "agentos.brains.cli:auth"
+  "target": "openajar.brains.cli:auth"
  },
  "brains child-token": {
   "kind": "command",
   "params": [
    "--stdin"
   ],
-  "target": "agentos.brains.cli:child_token"
+  "target": "openajar.brains.cli:child_token"
  },
  "brains confinement": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.brains.cli:confinement"
+  "target": "openajar.brains.cli:confinement"
  },
  "brains doctor": {
   "kind": "command",
   "params": [],
-  "target": "agentos.brains.cli:doctor"
+  "target": "openajar.brains.cli:doctor"
  },
  "brains list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.brains.cli:list_cmd"
+  "target": "openajar.brains.cli:list_cmd"
  },
  "brains order": {
   "kind": "command",
   "params": [
    "<names>"
   ],
-  "target": "agentos.brains.cli:order"
+  "target": "openajar.brains.cli:order"
  },
  "brains privacy": {
   "kind": "command",
@@ -302,14 +302,14 @@
    "<level>",
    "<workspace>"
   ],
-  "target": "agentos.brains.cli:privacy"
+  "target": "openajar.brains.cli:privacy"
  },
  "brains remove": {
   "kind": "command",
   "params": [
    "<name>"
   ],
-  "target": "agentos.brains.cli:remove"
+  "target": "openajar.brains.cli:remove"
  },
  "brains signin": {
   "kind": "command",
@@ -321,7 +321,7 @@
    "--stdin",
    "<provider>"
   ],
-  "target": "agentos.brains.cli:signin"
+  "target": "openajar.brains.cli:signin"
  },
  "brains tasks": {
   "kind": "group",
@@ -335,7 +335,7 @@
    "--wait",
    "<task_id>"
   ],
-  "target": "agentos.brains.cli:tasks_cancel"
+  "target": "openajar.brains.cli:tasks_cancel"
  },
  "brains tasks list": {
   "kind": "command",
@@ -345,7 +345,7 @@
    "--status",
    "--workspace"
   ],
-  "target": "agentos.brains.cli:tasks_list"
+  "target": "openajar.brains.cli:tasks_list"
  },
  "brains tasks resume": {
   "kind": "command",
@@ -353,14 +353,14 @@
    "--brain",
    "<task_id>"
   ],
-  "target": "agentos.brains.cli:tasks_resume"
+  "target": "openajar.brains.cli:tasks_resume"
  },
  "brains tasks show": {
   "kind": "command",
   "params": [
    "<task_id>"
   ],
-  "target": "agentos.brains.cli:tasks_show"
+  "target": "openajar.brains.cli:tasks_show"
  },
  "brains tasks tail": {
   "kind": "command",
@@ -371,7 +371,7 @@
    "-f",
    "<task_id>"
   ],
-  "target": "agentos.brains.cli:tasks_tail"
+  "target": "openajar.brains.cli:tasks_tail"
  },
  "brains test": {
   "kind": "command",
@@ -381,7 +381,7 @@
    "--timeout",
    "<name>"
   ],
-  "target": "agentos.brains.cli:test"
+  "target": "openajar.brains.cli:test"
  },
  "brains use": {
   "kind": "command",
@@ -389,7 +389,7 @@
    "--workspace",
    "<name>"
   ],
-  "target": "agentos.brains.cli:use"
+  "target": "openajar.brains.cli:use"
  },
  "config": {
   "kind": "group",
@@ -399,14 +399,14 @@
  "config example": {
   "kind": "command",
   "params": [],
-  "target": "agentos.commands.node:config_example"
+  "target": "openajar.commands.node:config_example"
  },
  "config show": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.commands.node:config_show"
+  "target": "openajar.commands.node:config_show"
  },
  "confirmation": {
   "kind": "group",
@@ -420,14 +420,14 @@
    "<key>",
    "<value>"
   ],
-  "target": "agentos.policy.cli:confirmation_set"
+  "target": "openajar.policy.cli:confirmation_set"
  },
  "confirmation show": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.policy.cli:confirmation_show"
+  "target": "openajar.policy.cli:confirmation_show"
  },
  "connect": {
   "kind": "command",
@@ -445,7 +445,7 @@
    "--upgrade",
    "<ssh_host>"
   ],
-  "target": "agentos.client.cli:connect"
+  "target": "openajar.client.cli:connect"
  },
  "connector": {
   "kind": "group",
@@ -464,7 +464,7 @@
    "--title",
    "<surface>"
   ],
-  "target": "agentos.runner.connectors.cli:bind_cmd"
+  "target": "openajar.runner.connectors.cli:bind_cmd"
  },
  "connector compile": {
   "kind": "command",
@@ -474,7 +474,7 @@
    "--out",
    "<path>"
   ],
-  "target": "agentos.runner.connectors.cli:compile_cmd"
+  "target": "openajar.runner.connectors.cli:compile_cmd"
  },
  "connector health": {
   "kind": "command",
@@ -485,7 +485,7 @@
    "--on",
    "<operation>"
   ],
-  "target": "agentos.runner.connectors.cli:health_cmd"
+  "target": "openajar.runner.connectors.cli:health_cmd"
  },
  "connector install": {
   "kind": "command",
@@ -495,21 +495,21 @@
    "--trust",
    "<path>"
   ],
-  "target": "agentos.runner.connectors.cli:install_cmd"
+  "target": "openajar.runner.connectors.cli:install_cmd"
  },
  "connector keygen": {
   "kind": "command",
   "params": [
    "<out>"
   ],
-  "target": "agentos.runner.connectors.cli:keygen_cmd"
+  "target": "openajar.runner.connectors.cli:keygen_cmd"
  },
  "connector list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.connectors.cli:list_cmd"
+  "target": "openajar.runner.connectors.cli:list_cmd"
  },
  "connector remove": {
   "kind": "command",
@@ -518,7 +518,7 @@
    "-y",
    "<connector>"
   ],
-  "target": "agentos.runner.connectors.cli:remove_cmd"
+  "target": "openajar.runner.connectors.cli:remove_cmd"
  },
  "connector run": {
   "kind": "command",
@@ -531,7 +531,7 @@
    "-p",
    "<operation>"
   ],
-  "target": "agentos.runner.connectors.cli:run_cmd"
+  "target": "openajar.runner.connectors.cli:run_cmd"
  },
  "connector sign": {
   "kind": "command",
@@ -540,7 +540,7 @@
    "--out",
    "<paths>"
   ],
-  "target": "agentos.runner.connectors.cli:sign_cmd"
+  "target": "openajar.runner.connectors.cli:sign_cmd"
  },
  "connector surfaces": {
   "kind": "command",
@@ -548,14 +548,14 @@
    "--json",
    "--site"
   ],
-  "target": "agentos.runner.connectors.cli:surfaces_cmd"
+  "target": "openajar.runner.connectors.cli:surfaces_cmd"
  },
  "connector unbind": {
   "kind": "command",
   "params": [
    "<surface>"
   ],
-  "target": "agentos.runner.connectors.cli:unbind_cmd"
+  "target": "openajar.runner.connectors.cli:unbind_cmd"
  },
  "connector verify": {
   "kind": "command",
@@ -569,7 +569,7 @@
    "--revoke",
    "<operation>"
   ],
-  "target": "agentos.runner.connectors.cli:verify_cmd"
+  "target": "openajar.runner.connectors.cli:verify_cmd"
  },
  "controller": {
   "kind": "group",
@@ -582,7 +582,7 @@
    "--new",
    "--ssh-host"
   ],
-  "target": "agentos.controller.cli:agent_token"
+  "target": "openajar.controller.cli:agent_token"
  },
  "controller freeze": {
   "kind": "command",
@@ -590,12 +590,12 @@
    "--reason",
    "-r"
   ],
-  "target": "agentos.controller.cli:freeze"
+  "target": "openajar.controller.cli:freeze"
  },
  "controller freeze-status": {
   "kind": "command",
   "params": [],
-  "target": "agentos.controller.cli:freeze_status"
+  "target": "openajar.controller.cli:freeze_status"
  },
  "controller init": {
   "kind": "command",
@@ -604,7 +604,7 @@
    "--port",
    "--public-url"
   ],
-  "target": "agentos.controller.cli:init"
+  "target": "openajar.controller.cli:init"
  },
  "controller join-token": {
   "kind": "command",
@@ -613,17 +613,17 @@
    "--name",
    "--ttl-minutes"
   ],
-  "target": "agentos.controller.cli:join_token"
+  "target": "openajar.controller.cli:join_token"
  },
  "controller login": {
   "kind": "command",
   "params": [],
-  "target": "agentos.controller.cli:login"
+  "target": "openajar.controller.cli:login"
  },
  "controller nodes": {
   "kind": "command",
   "params": [],
-  "target": "agentos.controller.cli:nodes"
+  "target": "openajar.controller.cli:nodes"
  },
  "controller serve": {
   "kind": "command",
@@ -633,12 +633,12 @@
    "--verbose",
    "-v"
   ],
-  "target": "agentos.controller.cli:serve"
+  "target": "openajar.controller.cli:serve"
  },
  "controller unfreeze": {
   "kind": "command",
   "params": [],
-  "target": "agentos.controller.cli:unfreeze"
+  "target": "openajar.controller.cli:unfreeze"
  },
  "dash": {
   "kind": "command",
@@ -650,7 +650,7 @@
    "--token",
    "--url"
   ],
-  "target": "agentos.tui.cli:dash"
+  "target": "openajar.tui.cli:dash"
  },
  "dev": {
   "kind": "group",
@@ -664,7 +664,7 @@
    "--port",
    "--seed"
   ],
-  "target": "agentos.dev.cli:up"
+  "target": "openajar.dev.cli:up"
  },
  "device": {
   "kind": "group",
@@ -680,14 +680,14 @@
    "--yes",
    "<name>"
   ],
-  "target": "agentos.commands.devices:device_create"
+  "target": "openajar.commands.devices:device_create"
  },
  "device list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.commands.devices:device_list"
+  "target": "openajar.commands.devices:device_list"
  },
  "device remove": {
   "kind": "command",
@@ -695,7 +695,7 @@
    "--yes",
    "<name>"
   ],
-  "target": "agentos.commands.devices:device_remove"
+  "target": "openajar.commands.devices:device_remove"
  },
  "device show": {
   "kind": "command",
@@ -704,14 +704,14 @@
    "--offline",
    "<name>"
   ],
-  "target": "agentos.commands.devices:device_show"
+  "target": "openajar.commands.devices:device_show"
  },
  "disconnect": {
   "kind": "command",
   "params": [
    "<name>"
   ],
-  "target": "agentos.client.cli:disconnect"
+  "target": "openajar.client.cli:disconnect"
  },
  "doctor": {
   "kind": "group",
@@ -721,14 +721,14 @@
    "--only",
    "--unit"
   ],
-  "target": "agentos.ops.cli:doctor_cmd"
+  "target": "openajar.ops.cli:doctor_cmd"
  },
  "env": {
   "kind": "group",
   "params": [
    "--home"
   ],
-  "target": "agentos.env.cli:main"
+  "target": "openajar.env.cli:main"
  },
  "env confinement": {
   "kind": "command",
@@ -736,7 +736,7 @@
    "--json",
    "<lane>"
   ],
-  "target": "agentos.env.cli:confinement"
+  "target": "openajar.env.cli:confinement"
  },
  "env create": {
   "kind": "command",
@@ -763,14 +763,14 @@
    "--volume",
    "<lane>"
   ],
-  "target": "agentos.env.cli:create"
+  "target": "openajar.env.cli:create"
  },
  "env doctor": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.env.cli:doctor"
+  "target": "openajar.env.cli:doctor"
  },
  "env exec": {
   "kind": "command",
@@ -779,7 +779,7 @@
    "--timeout",
    "<lane>"
   ],
-  "target": "agentos.env.cli:exec_"
+  "target": "openajar.env.cli:exec_"
  },
  "env images": {
   "kind": "group",
@@ -791,14 +791,14 @@
   "params": [
    "<name>"
   ],
-  "target": "agentos.env.cli:images_build"
+  "target": "openajar.env.cli:images_build"
  },
  "env images list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.env.cli:images_list"
+  "target": "openajar.env.cli:images_list"
  },
  "env install": {
   "kind": "command",
@@ -807,14 +807,14 @@
    "<lane>",
    "<packages>"
   ],
-  "target": "agentos.env.cli:install"
+  "target": "openajar.env.cli:install"
  },
  "env list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.env.cli:list_"
+  "target": "openajar.env.cli:list_"
  },
  "env remove": {
   "kind": "command",
@@ -822,14 +822,14 @@
    "--yes",
    "<lane>"
   ],
-  "target": "agentos.env.cli:remove"
+  "target": "openajar.env.cli:remove"
  },
  "env reset": {
   "kind": "command",
   "params": [
    "<lane>"
   ],
-  "target": "agentos.env.cli:reset"
+  "target": "openajar.env.cli:reset"
  },
  "env services": {
   "kind": "group",
@@ -842,7 +842,7 @@
    "--lines",
    "<lane>"
   ],
-  "target": "agentos.env.cli:services_logs"
+  "target": "openajar.env.cli:services_logs"
  },
  "env services start": {
   "kind": "command",
@@ -852,7 +852,7 @@
    "--ttl",
    "<lane>"
   ],
-  "target": "agentos.env.cli:services_start"
+  "target": "openajar.env.cli:services_start"
  },
  "env services status": {
   "kind": "command",
@@ -860,21 +860,21 @@
    "--json",
    "<lane>"
   ],
-  "target": "agentos.env.cli:services_status"
+  "target": "openajar.env.cli:services_status"
  },
  "env services stop": {
   "kind": "command",
   "params": [
    "<lane>"
   ],
-  "target": "agentos.env.cli:services_stop"
+  "target": "openajar.env.cli:services_stop"
  },
  "env shell": {
   "kind": "command",
   "params": [
    "<lane>"
   ],
-  "target": "agentos.env.cli:shell"
+  "target": "openajar.env.cli:shell"
  },
  "errors": {
   "kind": "command",
@@ -883,7 +883,7 @@
    "--markdown",
    "<code>"
   ],
-  "target": "agentos.cli:errors"
+  "target": "openajar.cli:errors"
  },
  "flows": {
   "kind": "group",
@@ -897,7 +897,7 @@
    "--json",
    "<words>"
   ],
-  "target": "agentos.runner.cli:flows_ask_first"
+  "target": "openajar.runner.cli:flows_ask_first"
  },
  "flows list": {
   "kind": "command",
@@ -905,14 +905,14 @@
    "--json",
    "--prefix"
   ],
-  "target": "agentos.runner.cli:flows_list"
+  "target": "openajar.runner.cli:flows_list"
  },
  "flows remove": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_remove"
+  "target": "openajar.runner.cli:flows_remove"
  },
  "flows run": {
   "kind": "command",
@@ -925,14 +925,14 @@
    "-p",
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_run"
+  "target": "openajar.runner.cli:flows_run"
  },
  "flows save": {
   "kind": "command",
   "params": [
    "<file>"
   ],
-  "target": "agentos.runner.cli:flows_save"
+  "target": "openajar.runner.cli:flows_save"
  },
  "flows show": {
   "kind": "command",
@@ -940,14 +940,14 @@
    "--version",
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_show"
+  "target": "openajar.runner.cli:flows_show"
  },
  "flows versions": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_versions"
+  "target": "openajar.runner.cli:flows_versions"
  },
  "freeze": {
   "kind": "group",
@@ -962,7 +962,7 @@
    "-r",
    "<lane_id>"
   ],
-  "target": "agentos.freeze.cli:freeze_lane"
+  "target": "openajar.freeze.cli:freeze_lane"
  },
  "freeze node": {
   "kind": "command",
@@ -972,14 +972,14 @@
    "-r",
    "<target>"
   ],
-  "target": "agentos.freeze.cli:freeze_node"
+  "target": "openajar.freeze.cli:freeze_node"
  },
  "freeze status": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.freeze.cli:freeze_status"
+  "target": "openajar.freeze.cli:freeze_status"
  },
  "freeze workspace": {
   "kind": "command",
@@ -989,7 +989,7 @@
    "-r",
    "<workspace>"
   ],
-  "target": "agentos.freeze.cli:freeze_workspace"
+  "target": "openajar.freeze.cli:freeze_workspace"
  },
  "grants": {
   "kind": "group",
@@ -1013,14 +1013,14 @@
    "--ttl",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:grants_attenuate"
+  "target": "openajar.policy.cli:grants_attenuate"
  },
  "grants explain": {
   "kind": "command",
   "params": [
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_explain"
+  "target": "openajar.policy.cli:grants_explain"
  },
  "grants issue": {
   "kind": "command",
@@ -1059,14 +1059,14 @@
    "--ttl",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:grants_issue"
+  "target": "openajar.policy.cli:grants_issue"
  },
  "grants keys": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.policy.cli:grants_keys"
+  "target": "openajar.policy.cli:grants_keys"
  },
  "grants list": {
   "kind": "command",
@@ -1074,7 +1074,7 @@
    "--all",
    "--json"
   ],
-  "target": "agentos.policy.cli:grants_list"
+  "target": "openajar.policy.cli:grants_list"
  },
  "grants meters": {
   "kind": "command",
@@ -1084,7 +1084,7 @@
    "--unset",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_meters"
+  "target": "openajar.policy.cli:grants_meters"
  },
  "grants retire-key": {
   "kind": "command",
@@ -1092,7 +1092,7 @@
    "--at",
    "<kid>"
   ],
-  "target": "agentos.policy.cli:grants_retire_key"
+  "target": "openajar.policy.cli:grants_retire_key"
  },
  "grants revoke": {
   "kind": "command",
@@ -1100,7 +1100,7 @@
    "--reason",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_revoke"
+  "target": "openajar.policy.cli:grants_revoke"
  },
  "grants rotate-key": {
   "kind": "command",
@@ -1108,14 +1108,14 @@
    "--overlap",
    "--yes"
   ],
-  "target": "agentos.policy.cli:grants_rotate_key"
+  "target": "openajar.policy.cli:grants_rotate_key"
  },
  "grants show": {
   "kind": "command",
   "params": [
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_show"
+  "target": "openajar.policy.cli:grants_show"
  },
  "grants taint": {
   "kind": "command",
@@ -1123,7 +1123,7 @@
    "--clear",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_taint"
+  "target": "openajar.policy.cli:grants_taint"
  },
  "health": {
   "kind": "group",
@@ -1136,14 +1136,14 @@
    "--json",
    "--offline"
   ],
-  "target": "agentos.ops.cli:health_check"
+  "target": "openajar.ops.cli:health_check"
  },
  "health status": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.ops.cli:health_status"
+  "target": "openajar.ops.cli:health_status"
  },
  "identity": {
   "kind": "group",
@@ -1162,7 +1162,7 @@
    "<lane_id>",
    "<origin>"
   ],
-  "target": "agentos.webbotauth.cli:hosts_add"
+  "target": "openajar.webbotauth.cli:hosts_add"
  },
  "identity hosts remove": {
   "kind": "command",
@@ -1170,7 +1170,7 @@
    "<lane_id>",
    "<origin>"
   ],
-  "target": "agentos.webbotauth.cli:hosts_remove"
+  "target": "openajar.webbotauth.cli:hosts_remove"
  },
  "identity init": {
   "kind": "command",
@@ -1181,7 +1181,7 @@
    "--json",
    "<lane_id>"
   ],
-  "target": "agentos.webbotauth.cli:init"
+  "target": "openajar.webbotauth.cli:init"
  },
  "identity show": {
   "kind": "command",
@@ -1189,7 +1189,7 @@
    "--json",
    "<lane_id>"
   ],
-  "target": "agentos.webbotauth.cli:show"
+  "target": "openajar.webbotauth.cli:show"
  },
  "identity test-sign": {
   "kind": "command",
@@ -1200,7 +1200,7 @@
    "<lane_id>",
    "<url>"
   ],
-  "target": "agentos.webbotauth.cli:test_sign"
+  "target": "openajar.webbotauth.cli:test_sign"
  },
  "lane": {
   "kind": "group",
@@ -1212,7 +1212,7 @@
   "params": [
    "--json"
   ],
-  "target": "agentos.ops.lane_cli:lane_audit_cmd"
+  "target": "openajar.ops.lane_cli:lane_audit_cmd"
  },
  "lane check": {
   "kind": "command",
@@ -1222,7 +1222,7 @@
    "--offline",
    "<lane>"
   ],
-  "target": "agentos.ops.lane_cli:lane_check_cmd"
+  "target": "openajar.ops.lane_cli:lane_check_cmd"
  },
  "lane create": {
   "kind": "command",
@@ -1232,7 +1232,7 @@
    "--proxy",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lanes:lane_create"
+  "target": "openajar.commands.lanes:lane_create"
  },
  "lane delete": {
   "kind": "command",
@@ -1240,14 +1240,14 @@
    "--yes",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lanes:lane_delete"
+  "target": "openajar.commands.lanes:lane_delete"
  },
  "lane deny": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_deny"
+  "target": "openajar.commands.lane_control:lane_deny"
  },
  "lane gate-log": {
   "kind": "command",
@@ -1262,7 +1262,7 @@
    "--since",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_sites:lane_gate_log"
+  "target": "openajar.commands.lane_sites:lane_gate_log"
  },
  "lane handback": {
   "kind": "command",
@@ -1270,7 +1270,7 @@
    "--note",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_handback"
+  "target": "openajar.commands.lane_control:lane_handback"
  },
  "lane import": {
   "kind": "command",
@@ -1281,7 +1281,7 @@
    "--proxy",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lanes:lane_import"
+  "target": "openajar.commands.lanes:lane_import"
  },
  "lane keepalive": {
   "kind": "command",
@@ -1293,12 +1293,12 @@
    "--on",
    "<lane>"
   ],
-  "target": "agentos.keepalive.cli:keepalive_cmd"
+  "target": "openajar.keepalive.cli:keepalive_cmd"
  },
  "lane list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.commands.lanes:lane_list"
+  "target": "openajar.commands.lanes:lane_list"
  },
  "lane login": {
   "kind": "command",
@@ -1306,7 +1306,7 @@
    "--url",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_login"
+  "target": "openajar.commands.lane_control:lane_login"
  },
  "lane pace": {
   "kind": "command",
@@ -1321,7 +1321,7 @@
    "--workspace",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_sites:lane_pace"
+  "target": "openajar.commands.lane_sites:lane_pace"
  },
  "lane redteam": {
   "kind": "command",
@@ -1344,7 +1344,7 @@
    "--slot",
    "--targets"
   ],
-  "target": "agentos.ops.lane_cli:redteam_cmd"
+  "target": "openajar.ops.lane_cli:redteam_cmd"
  },
  "lane refresh-fingerprint": {
   "kind": "command",
@@ -1356,7 +1356,7 @@
    "--yes",
    "<lane>"
   ],
-  "target": "agentos.ops.lane_cli:refresh_fingerprint_cmd"
+  "target": "openajar.ops.lane_cli:refresh_fingerprint_cmd"
  },
  "lane rules": {
   "kind": "command",
@@ -1366,7 +1366,7 @@
    "--stale-days",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_sites:lane_rules"
+  "target": "openajar.commands.lane_sites:lane_rules"
  },
  "lane set-device": {
   "kind": "command",
@@ -1375,7 +1375,7 @@
    "<device>",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lanes:lane_set_device"
+  "target": "openajar.commands.lanes:lane_set_device"
  },
  "lane set-proxy": {
   "kind": "command",
@@ -1384,7 +1384,7 @@
    "<label>",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lanes:lane_set_proxy"
+  "target": "openajar.commands.lanes:lane_set_proxy"
  },
  "lane sites": {
   "kind": "command",
@@ -1393,7 +1393,7 @@
    "<lane_id>",
    "<values>"
   ],
-  "target": "agentos.commands.lane_sites:lane_sites"
+  "target": "openajar.commands.lane_sites:lane_sites"
  },
  "lane stealth-check": {
   "kind": "command",
@@ -1411,21 +1411,21 @@
    "--slot",
    "--soak-minutes"
   ],
-  "target": "agentos.ops.lane_cli:stealth_check_cmd"
+  "target": "openajar.ops.lane_cli:stealth_check_cmd"
  },
  "lane stop": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_stop"
+  "target": "openajar.commands.lane_control:lane_stop"
  },
  "lane take": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_take"
+  "target": "openajar.commands.lane_control:lane_take"
  },
  "lane view": {
   "kind": "command",
@@ -1434,7 +1434,7 @@
    "--ttl",
    "<lane_id>"
   ],
-  "target": "agentos.commands.lane_control:lane_view_link"
+  "target": "openajar.commands.lane_control:lane_view_link"
  },
  "lanebench": {
   "kind": "group",
@@ -1447,7 +1447,7 @@
    "--tasks",
    "-t"
   ],
-  "target": "agentos.lanebench_cli:list_tasks"
+  "target": "openajar.lanebench_cli:list_tasks"
  },
  "lanebench run": {
   "kind": "command",
@@ -1462,7 +1462,7 @@
    "-e",
    "-t"
   ],
-  "target": "agentos.lanebench_cli:run"
+  "target": "openajar.lanebench_cli:run"
  },
  "logs": {
   "kind": "command",
@@ -1480,7 +1480,7 @@
    "--workspace",
    "-f"
   ],
-  "target": "agentos.ops.cli:logs_cmd"
+  "target": "openajar.ops.cli:logs_cmd"
  },
  "mail": {
   "kind": "group",
@@ -1499,12 +1499,12 @@
    "--smtp-security",
    "<address>"
   ],
-  "target": "agentos.runner.mail.cli:connect"
+  "target": "openajar.runner.mail.cli:connect"
  },
  "mail list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.runner.mail.cli:list_"
+  "target": "openajar.runner.mail.cli:list_"
  },
  "mail remove": {
   "kind": "command",
@@ -1513,14 +1513,14 @@
    "-y",
    "<mailbox>"
   ],
-  "target": "agentos.runner.mail.cli:remove"
+  "target": "openajar.runner.mail.cli:remove"
  },
  "mail test": {
   "kind": "command",
   "params": [
    "<mailbox>"
   ],
-  "target": "agentos.runner.mail.cli:test"
+  "target": "openajar.runner.mail.cli:test"
  },
  "members": {
   "kind": "group",
@@ -1544,14 +1544,14 @@
    "-w",
    "<handle>"
   ],
-  "target": "agentos.commands.members:members_invite"
+  "target": "openajar.commands.members:members_invite"
  },
  "members list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.commands.members:members_list"
+  "target": "openajar.commands.members:members_list"
  },
  "members remove": {
   "kind": "command",
@@ -1559,7 +1559,7 @@
    "--yes",
    "<who>"
   ],
-  "target": "agentos.commands.members:members_remove"
+  "target": "openajar.commands.members:members_remove"
  },
  "members role": {
   "kind": "command",
@@ -1574,7 +1574,7 @@
    "-w",
    "<who>"
   ],
-  "target": "agentos.commands.members:members_role"
+  "target": "openajar.commands.members:members_role"
  },
  "memory": {
   "kind": "group",
@@ -1590,7 +1590,7 @@
    "<entry_id>",
    "<version>"
   ],
-  "target": "agentos.memory.cli:confirm"
+  "target": "openajar.memory.cli:confirm"
  },
  "memory export": {
   "kind": "command",
@@ -1599,7 +1599,7 @@
    "--md",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:export"
+  "target": "openajar.memory.cli:export"
  },
  "memory forget": {
   "kind": "command",
@@ -1609,7 +1609,7 @@
    "-y",
    "<entry_id>"
   ],
-  "target": "agentos.memory.cli:forget"
+  "target": "openajar.memory.cli:forget"
  },
  "memory import": {
   "kind": "command",
@@ -1618,7 +1618,7 @@
    "<file>",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:import_cmd"
+  "target": "openajar.memory.cli:import_cmd"
  },
  "memory list": {
   "kind": "command",
@@ -1633,14 +1633,14 @@
    "-t",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:list_cmd"
+  "target": "openajar.memory.cli:list_cmd"
  },
  "memory review": {
   "kind": "command",
   "params": [
    "<entry_id>"
   ],
-  "target": "agentos.memory.cli:review"
+  "target": "openajar.memory.cli:review"
  },
  "memory search": {
   "kind": "command",
@@ -1653,7 +1653,7 @@
    "<query>",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:search"
+  "target": "openajar.memory.cli:search"
  },
  "memory show": {
   "kind": "command",
@@ -1664,7 +1664,7 @@
    "--version",
    "<entry_id>"
   ],
-  "target": "agentos.memory.cli:show"
+  "target": "openajar.memory.cli:show"
  },
  "memory stats": {
   "kind": "command",
@@ -1672,7 +1672,7 @@
    "--json",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:stats"
+  "target": "openajar.memory.cli:stats"
  },
  "memory verify": {
   "kind": "command",
@@ -1680,7 +1680,7 @@
    "--json",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:verify"
+  "target": "openajar.memory.cli:verify"
  },
  "memory write": {
   "kind": "command",
@@ -1696,7 +1696,7 @@
    "-t",
    "<workspace>"
   ],
-  "target": "agentos.memory.cli:write"
+  "target": "openajar.memory.cli:write"
  },
  "migrate": {
   "kind": "group",
@@ -1710,14 +1710,14 @@
    "--json",
    "--no-backup"
   ],
-  "target": "agentos.ops.cli:migrate_run"
+  "target": "openajar.ops.cli:migrate_run"
  },
  "migrate status": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.ops.cli:migrate_status"
+  "target": "openajar.ops.cli:migrate_status"
  },
  "migrate-service-user": {
   "kind": "command",
@@ -1731,7 +1731,7 @@
    "--yes",
    "-y"
   ],
-  "target": "agentos.ops.cli:migrate_service_user_cmd"
+  "target": "openajar.ops.cli:migrate_service_user_cmd"
  },
  "node": {
   "kind": "group",
@@ -1750,7 +1750,7 @@
    "--viewer-base",
    "--vnc-base"
   ],
-  "target": "agentos.commands.node:node_init"
+  "target": "openajar.commands.node:node_init"
  },
  "node join": {
   "kind": "command",
@@ -1761,7 +1761,7 @@
    "<controller_url>",
    "<join_token>"
   ],
-  "target": "agentos.commands.node:node_join"
+  "target": "openajar.commands.node:node_join"
  },
  "node restart": {
   "kind": "command",
@@ -1772,12 +1772,12 @@
    "--yes",
    "-y"
   ],
-  "target": "agentos.ops.restart:restart_command"
+  "target": "openajar.ops.restart:restart_command"
  },
  "node rotate-token": {
   "kind": "command",
   "params": [],
-  "target": "agentos.commands.node:node_rotate_token"
+  "target": "openajar.commands.node:node_rotate_token"
  },
  "node serve": {
   "kind": "command",
@@ -1785,19 +1785,19 @@
    "--verbose",
    "-v"
   ],
-  "target": "agentos.commands.node:node_serve"
+  "target": "openajar.commands.node:node_serve"
  },
  "node templates": {
   "kind": "command",
   "params": [
    "<name>"
   ],
-  "target": "agentos.ops.templates:templates_command"
+  "target": "openajar.ops.templates:templates_command"
  },
  "nodes": {
   "kind": "command",
   "params": [],
-  "target": "agentos.client.cli:nodes"
+  "target": "openajar.client.cli:nodes"
  },
  "open": {
   "kind": "command",
@@ -1807,12 +1807,12 @@
    "--wake",
    "<lane>"
   ],
-  "target": "agentos.client.cli:open_lane"
+  "target": "openajar.client.cli:open_lane"
  },
  "panel": {
   "kind": "group",
   "params": [],
-  "target": "agentos.api.cli:panel"
+  "target": "openajar.api.cli:panel"
  },
  "panel login": {
   "kind": "command",
@@ -1821,7 +1821,7 @@
    "--home",
    "--ttl"
   ],
-  "target": "agentos.api.cli:login"
+  "target": "openajar.api.cli:login"
  },
  "pilot": {
   "kind": "group",
@@ -1833,7 +1833,7 @@
   "params": [
    "--json"
   ],
-  "target": "agentos.pilot.cli:show_settings"
+  "target": "openajar.pilot.cli:show_settings"
  },
  "plugins": {
   "kind": "group",
@@ -1847,21 +1847,21 @@
    "<job>",
    "<plugin_id>"
   ],
-  "target": "agentos.plugins.cli:assign"
+  "target": "openajar.plugins.cli:assign"
  },
  "plugins disable": {
   "kind": "command",
   "params": [
    "<plugin_id>"
   ],
-  "target": "agentos.plugins.cli:disable"
+  "target": "openajar.plugins.cli:disable"
  },
  "plugins enable": {
   "kind": "command",
   "params": [
    "<plugin_id>"
   ],
-  "target": "agentos.plugins.cli:enable"
+  "target": "openajar.plugins.cli:enable"
  },
  "plugins lane": {
   "kind": "command",
@@ -1870,14 +1870,14 @@
    "<lane>",
    "<state>"
   ],
-  "target": "agentos.plugins.cli:lane_switch"
+  "target": "openajar.plugins.cli:lane_switch"
  },
  "plugins list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.plugins.cli:list_plugins"
+  "target": "openajar.plugins.cli:list_plugins"
  },
  "plugins show": {
   "kind": "command",
@@ -1885,7 +1885,7 @@
    "--json",
    "<plugin_id>"
   ],
-  "target": "agentos.plugins.cli:show_plugin"
+  "target": "openajar.plugins.cli:show_plugin"
  },
  "plugins unassign": {
   "kind": "command",
@@ -1893,7 +1893,7 @@
    "<job>",
    "<plugin_id>"
   ],
-  "target": "agentos.plugins.cli:unassign"
+  "target": "openajar.plugins.cli:unassign"
  },
  "policy": {
   "kind": "group",
@@ -1913,7 +1913,7 @@
    "--note",
    "<approval_id>"
   ],
-  "target": "agentos.policy.cli:approvals_approve"
+  "target": "openajar.policy.cli:approvals_approve"
  },
  "policy approvals batch": {
   "kind": "command",
@@ -1922,7 +1922,7 @@
    "--note",
    "<ids>"
   ],
-  "target": "agentos.policy.cli:approvals_batch"
+  "target": "openajar.policy.cli:approvals_batch"
  },
  "policy approvals deny": {
   "kind": "command",
@@ -1931,7 +1931,7 @@
    "--note",
    "<approval_id>"
   ],
-  "target": "agentos.policy.cli:approvals_deny"
+  "target": "openajar.policy.cli:approvals_deny"
  },
  "policy approvals list": {
   "kind": "command",
@@ -1941,7 +1941,7 @@
    "--node",
    "--state"
   ],
-  "target": "agentos.policy.cli:approvals_list"
+  "target": "openajar.policy.cli:approvals_list"
  },
  "policy approvals standing": {
   "kind": "group",
@@ -1963,21 +1963,21 @@
    "--until",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:standing_add"
+  "target": "openajar.policy.cli:standing_add"
  },
  "policy approvals standing list": {
   "kind": "command",
   "params": [
    "--all"
   ],
-  "target": "agentos.policy.cli:standing_list"
+  "target": "openajar.policy.cli:standing_list"
  },
  "policy approvals standing revoke": {
   "kind": "command",
   "params": [
    "<standing_id>"
   ],
-  "target": "agentos.policy.cli:standing_revoke"
+  "target": "openajar.policy.cli:standing_revoke"
  },
  "policy grants": {
   "kind": "group",
@@ -2001,14 +2001,14 @@
    "--ttl",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:grants_attenuate"
+  "target": "openajar.policy.cli:grants_attenuate"
  },
  "policy grants explain": {
   "kind": "command",
   "params": [
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_explain"
+  "target": "openajar.policy.cli:grants_explain"
  },
  "policy grants issue": {
   "kind": "command",
@@ -2047,14 +2047,14 @@
    "--ttl",
    "--workspace"
   ],
-  "target": "agentos.policy.cli:grants_issue"
+  "target": "openajar.policy.cli:grants_issue"
  },
  "policy grants keys": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.policy.cli:grants_keys"
+  "target": "openajar.policy.cli:grants_keys"
  },
  "policy grants list": {
   "kind": "command",
@@ -2062,7 +2062,7 @@
    "--all",
    "--json"
   ],
-  "target": "agentos.policy.cli:grants_list"
+  "target": "openajar.policy.cli:grants_list"
  },
  "policy grants meters": {
   "kind": "command",
@@ -2072,7 +2072,7 @@
    "--unset",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_meters"
+  "target": "openajar.policy.cli:grants_meters"
  },
  "policy grants retire-key": {
   "kind": "command",
@@ -2080,7 +2080,7 @@
    "--at",
    "<kid>"
   ],
-  "target": "agentos.policy.cli:grants_retire_key"
+  "target": "openajar.policy.cli:grants_retire_key"
  },
  "policy grants revoke": {
   "kind": "command",
@@ -2088,7 +2088,7 @@
    "--reason",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_revoke"
+  "target": "openajar.policy.cli:grants_revoke"
  },
  "policy grants rotate-key": {
   "kind": "command",
@@ -2096,14 +2096,14 @@
    "--overlap",
    "--yes"
   ],
-  "target": "agentos.policy.cli:grants_rotate_key"
+  "target": "openajar.policy.cli:grants_rotate_key"
  },
  "policy grants show": {
   "kind": "command",
   "params": [
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_show"
+  "target": "openajar.policy.cli:grants_show"
  },
  "policy grants taint": {
   "kind": "command",
@@ -2111,12 +2111,12 @@
    "--clear",
    "<grant_id>"
   ],
-  "target": "agentos.policy.cli:grants_taint"
+  "target": "openajar.policy.cli:grants_taint"
  },
  "policy key": {
   "kind": "command",
   "params": [],
-  "target": "agentos.policy.cli:key"
+  "target": "openajar.policy.cli:key"
  },
  "policy notify": {
   "kind": "group",
@@ -2135,7 +2135,7 @@
    "--urgent-breaks-quiet",
    "--urgent-waits"
   ],
-  "target": "agentos.policy.cli:notify_hours"
+  "target": "openajar.policy.cli:notify_hours"
  },
  "policy notify member": {
   "kind": "command",
@@ -2148,7 +2148,7 @@
    "--webhook-url",
    "<member>"
   ],
-  "target": "agentos.policy.cli:notify_member"
+  "target": "openajar.policy.cli:notify_member"
  },
  "policy notify ntfy": {
   "kind": "command",
@@ -2158,35 +2158,35 @@
    "--token-from",
    "<topic>"
   ],
-  "target": "agentos.policy.cli:notify_ntfy"
+  "target": "openajar.policy.cli:notify_ntfy"
  },
  "policy notify remove": {
   "kind": "command",
   "params": [
    "<member>"
   ],
-  "target": "agentos.policy.cli:notify_remove"
+  "target": "openajar.policy.cli:notify_remove"
  },
  "policy notify rotate": {
   "kind": "command",
   "params": [
    "<member>"
   ],
-  "target": "agentos.policy.cli:notify_rotate"
+  "target": "openajar.policy.cli:notify_rotate"
  },
  "policy notify show": {
   "kind": "command",
   "params": [
    "--member"
   ],
-  "target": "agentos.policy.cli:notify_show"
+  "target": "openajar.policy.cli:notify_show"
  },
  "policy notify test": {
   "kind": "command",
   "params": [
    "--member"
   ],
-  "target": "agentos.policy.cli:notify_test"
+  "target": "openajar.policy.cli:notify_test"
  },
  "policy notify urls": {
   "kind": "command",
@@ -2194,7 +2194,7 @@
    "--panel-url",
    "--public-base-url"
   ],
-  "target": "agentos.policy.cli:notify_urls"
+  "target": "openajar.policy.cli:notify_urls"
  },
  "policy notify webhook": {
   "kind": "command",
@@ -2203,14 +2203,14 @@
    "--secret-from",
    "<url>"
   ],
-  "target": "agentos.policy.cli:notify_webhook"
+  "target": "openajar.policy.cli:notify_webhook"
  },
  "policy routing": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.policy.cli:routing"
+  "target": "openajar.policy.cli:routing"
  },
  "policy traces": {
   "kind": "command",
@@ -2221,7 +2221,7 @@
    "--status",
    "--tool"
   ],
-  "target": "agentos.policy.cli:traces"
+  "target": "openajar.policy.cli:traces"
  },
  "proxy": {
   "kind": "group",
@@ -2235,12 +2235,12 @@
    "<label>",
    "<spec>"
   ],
-  "target": "agentos.commands.proxy:proxy_add"
+  "target": "openajar.commands.proxy:proxy_add"
  },
  "proxy list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.commands.proxy:proxy_list"
+  "target": "openajar.commands.proxy:proxy_list"
  },
  "runner": {
   "kind": "group",
@@ -2259,7 +2259,7 @@
    "--json",
    "<words>"
   ],
-  "target": "agentos.runner.cli:flows_ask_first"
+  "target": "openajar.runner.cli:flows_ask_first"
  },
  "runner flows list": {
   "kind": "command",
@@ -2267,14 +2267,14 @@
    "--json",
    "--prefix"
   ],
-  "target": "agentos.runner.cli:flows_list"
+  "target": "openajar.runner.cli:flows_list"
  },
  "runner flows remove": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_remove"
+  "target": "openajar.runner.cli:flows_remove"
  },
  "runner flows run": {
   "kind": "command",
@@ -2287,14 +2287,14 @@
    "-p",
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_run"
+  "target": "openajar.runner.cli:flows_run"
  },
  "runner flows save": {
   "kind": "command",
   "params": [
    "<file>"
   ],
-  "target": "agentos.runner.cli:flows_save"
+  "target": "openajar.runner.cli:flows_save"
  },
  "runner flows show": {
   "kind": "command",
@@ -2302,14 +2302,14 @@
    "--version",
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_show"
+  "target": "openajar.runner.cli:flows_show"
  },
  "runner flows versions": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.cli:flows_versions"
+  "target": "openajar.runner.cli:flows_versions"
  },
  "runner runs": {
   "kind": "group",
@@ -2321,7 +2321,7 @@
   "params": [
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_cancel"
+  "target": "openajar.runner.cli:runs_cancel"
  },
  "runner runs decide": {
   "kind": "command",
@@ -2329,7 +2329,7 @@
    "<decision>",
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_decide"
+  "target": "openajar.runner.cli:runs_decide"
  },
  "runner runs list": {
   "kind": "command",
@@ -2340,7 +2340,7 @@
    "--limit",
    "--status"
   ],
-  "target": "agentos.runner.cli:runs_list"
+  "target": "openajar.runner.cli:runs_list"
  },
  "runner runs show": {
   "kind": "command",
@@ -2348,7 +2348,7 @@
    "--json",
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_show"
+  "target": "openajar.runner.cli:runs_show"
  },
  "runner schedules": {
   "kind": "group",
@@ -2373,42 +2373,42 @@
    "-p",
    "<flow>"
   ],
-  "target": "agentos.runner.cli:schedules_add"
+  "target": "openajar.runner.cli:schedules_add"
  },
  "runner schedules disable": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_disable"
+  "target": "openajar.runner.cli:schedules_disable"
  },
  "runner schedules enable": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_enable"
+  "target": "openajar.runner.cli:schedules_enable"
  },
  "runner schedules list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.cli:schedules_list"
+  "target": "openajar.runner.cli:schedules_list"
  },
  "runner schedules remove": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_remove"
+  "target": "openajar.runner.cli:schedules_remove"
  },
  "runner schedules show": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_show"
+  "target": "openajar.runner.cli:schedules_show"
  },
  "runner watches": {
   "kind": "group",
@@ -2434,21 +2434,21 @@
    "-p",
    "<flow>"
   ],
-  "target": "agentos.runner.cli:watches_add"
+  "target": "openajar.runner.cli:watches_add"
  },
  "runner watches list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.cli:watches_list"
+  "target": "openajar.runner.cli:watches_list"
  },
  "runner watches remove": {
   "kind": "command",
   "params": [
    "<watch_id>"
   ],
-  "target": "agentos.runner.cli:watches_remove"
+  "target": "openajar.runner.cli:watches_remove"
  },
  "runs": {
   "kind": "group",
@@ -2460,7 +2460,7 @@
   "params": [
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_cancel"
+  "target": "openajar.runner.cli:runs_cancel"
  },
  "runs decide": {
   "kind": "command",
@@ -2468,7 +2468,7 @@
    "<decision>",
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_decide"
+  "target": "openajar.runner.cli:runs_decide"
  },
  "runs list": {
   "kind": "command",
@@ -2479,7 +2479,7 @@
    "--limit",
    "--status"
   ],
-  "target": "agentos.runner.cli:runs_list"
+  "target": "openajar.runner.cli:runs_list"
  },
  "runs show": {
   "kind": "command",
@@ -2487,7 +2487,7 @@
    "--json",
    "<run_id>"
   ],
-  "target": "agentos.runner.cli:runs_show"
+  "target": "openajar.runner.cli:runs_show"
  },
  "schedules": {
   "kind": "group",
@@ -2512,42 +2512,42 @@
    "-p",
    "<flow>"
   ],
-  "target": "agentos.runner.cli:schedules_add"
+  "target": "openajar.runner.cli:schedules_add"
  },
  "schedules disable": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_disable"
+  "target": "openajar.runner.cli:schedules_disable"
  },
  "schedules enable": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_enable"
+  "target": "openajar.runner.cli:schedules_enable"
  },
  "schedules list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.cli:schedules_list"
+  "target": "openajar.runner.cli:schedules_list"
  },
  "schedules remove": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_remove"
+  "target": "openajar.runner.cli:schedules_remove"
  },
  "schedules show": {
   "kind": "command",
   "params": [
    "<schedule_id>"
   ],
-  "target": "agentos.runner.cli:schedules_show"
+  "target": "openajar.runner.cli:schedules_show"
  },
  "site-api": {
   "kind": "group",
@@ -2560,7 +2560,7 @@
    "--vouch",
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.cli:activate"
+  "target": "openajar.runner.siteapis.cli:activate"
  },
  "site-api discover": {
   "kind": "command",
@@ -2569,7 +2569,7 @@
    "<on>",
    "<url>"
   ],
-  "target": "agentos.runner.siteapis.cli:discover"
+  "target": "openajar.runner.siteapis.cli:discover"
  },
  "site-api keys": {
   "kind": "group",
@@ -2587,28 +2587,28 @@
    "--surface",
    "<label>"
   ],
-  "target": "agentos.runner.siteapis.http_cli:add"
+  "target": "openajar.runner.siteapis.http_cli:add"
  },
  "site-api keys list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.siteapis.http_cli:list_keys"
+  "target": "openajar.runner.siteapis.http_cli:list_keys"
  },
  "site-api keys revoke": {
   "kind": "command",
   "params": [
    "<key_id>"
   ],
-  "target": "agentos.runner.siteapis.http_cli:revoke"
+  "target": "openajar.runner.siteapis.http_cli:revoke"
  },
  "site-api list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.siteapis.cli:list_cmd"
+  "target": "openajar.runner.siteapis.cli:list_cmd"
  },
  "site-api new": {
   "kind": "command",
@@ -2622,7 +2622,7 @@
    "--vouch",
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.cli:new"
+  "target": "openajar.runner.siteapis.cli:new"
  },
  "site-api openapi": {
   "kind": "command",
@@ -2631,28 +2631,28 @@
    "--server",
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.http_cli:openapi_cmd"
+  "target": "openajar.runner.siteapis.http_cli:openapi_cmd"
  },
  "site-api pause": {
   "kind": "command",
   "params": [
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.cli:pause"
+  "target": "openajar.runner.siteapis.cli:pause"
  },
  "site-api remove": {
   "kind": "command",
   "params": [
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.cli:remove"
+  "target": "openajar.runner.siteapis.cli:remove"
  },
  "site-api show": {
   "kind": "command",
   "params": [
    "<api>"
   ],
-  "target": "agentos.runner.siteapis.cli:show"
+  "target": "openajar.runner.siteapis.cli:show"
  },
  "site-api try": {
   "kind": "command",
@@ -2663,14 +2663,14 @@
    "<api>",
    "<endpoint>"
   ],
-  "target": "agentos.runner.siteapis.cli:try_cmd"
+  "target": "openajar.runner.siteapis.cli:try_cmd"
  },
  "status": {
   "kind": "command",
   "params": [
    "<name>"
   ],
-  "target": "agentos.client.cli:status"
+  "target": "openajar.client.cli:status"
  },
  "tools": {
   "kind": "command",
@@ -2678,7 +2678,7 @@
    "--json",
    "--markdown"
   ],
-  "target": "agentos.cli:tools"
+  "target": "openajar.cli:tools"
  },
  "unfreeze": {
   "kind": "group",
@@ -2690,24 +2690,24 @@
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.freeze.cli:unfreeze_lane"
+  "target": "openajar.freeze.cli:unfreeze_lane"
  },
  "unfreeze mesh": {
   "kind": "command",
   "params": [],
-  "target": "agentos.freeze.cli:unfreeze_mesh"
+  "target": "openajar.freeze.cli:unfreeze_mesh"
  },
  "unfreeze node": {
   "kind": "command",
   "params": [],
-  "target": "agentos.freeze.cli:unfreeze_node"
+  "target": "openajar.freeze.cli:unfreeze_node"
  },
  "unfreeze workspace": {
   "kind": "command",
   "params": [
    "<workspace>"
   ],
-  "target": "agentos.freeze.cli:unfreeze_workspace"
+  "target": "openajar.freeze.cli:unfreeze_workspace"
  },
  "up": {
   "kind": "command",
@@ -2717,7 +2717,7 @@
    "--verbose",
    "-v"
   ],
-  "target": "agentos.controller.cli:up_command"
+  "target": "openajar.controller.cli:up_command"
  },
  "upgrade": {
   "kind": "group",
@@ -2735,7 +2735,7 @@
    "--yes",
    "-y"
   ],
-  "target": "agentos.ops.cli:upgrade_cmd"
+  "target": "openajar.ops.cli:upgrade_cmd"
  },
  "vault": {
   "kind": "group",
@@ -2758,7 +2758,7 @@
    "--username",
    "<name>"
   ],
-  "target": "agentos.vault.cli:add"
+  "target": "openajar.vault.cli:add"
  },
  "vault bind": {
   "kind": "command",
@@ -2766,7 +2766,7 @@
    "<lanes>",
    "<name>"
   ],
-  "target": "agentos.vault.cli:bind"
+  "target": "openajar.vault.cli:bind"
  },
  "vault catcher": {
   "kind": "command",
@@ -2783,7 +2783,7 @@
    "--window",
    "<name>"
   ],
-  "target": "agentos.vault.cli:catcher"
+  "target": "openajar.vault.cli:catcher"
  },
  "vault import": {
   "kind": "command",
@@ -2796,14 +2796,14 @@
    "--shred",
    "<file>"
   ],
-  "target": "agentos.vault.cli:import_"
+  "target": "openajar.vault.cli:import_"
  },
  "vault init": {
   "kind": "command",
   "params": [
    "--passphrase"
   ],
-  "target": "agentos.vault.cli:init"
+  "target": "openajar.vault.cli:init"
  },
  "vault list": {
   "kind": "command",
@@ -2811,7 +2811,7 @@
    "--json",
    "--lane"
   ],
-  "target": "agentos.vault.cli:list_"
+  "target": "openajar.vault.cli:list_"
  },
  "vault remove": {
   "kind": "command",
@@ -2820,33 +2820,33 @@
    "-y",
    "<name>"
   ],
-  "target": "agentos.vault.cli:remove"
+  "target": "openajar.vault.cli:remove"
  },
  "vault rotate-key": {
   "kind": "command",
   "params": [
    "--master"
   ],
-  "target": "agentos.vault.cli:rotate_key"
+  "target": "openajar.vault.cli:rotate_key"
  },
  "vault seal": {
   "kind": "command",
   "params": [],
-  "target": "agentos.vault.cli:seal"
+  "target": "openajar.vault.cli:seal"
  },
  "vault show": {
   "kind": "command",
   "params": [
    "<name>"
   ],
-  "target": "agentos.vault.cli:show"
+  "target": "openajar.vault.cli:show"
  },
  "vault status": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.vault.cli:status"
+  "target": "openajar.vault.cli:status"
  },
  "vault unbind": {
   "kind": "command",
@@ -2854,17 +2854,17 @@
    "<lanes>",
    "<name>"
   ],
-  "target": "agentos.vault.cli:unbind"
+  "target": "openajar.vault.cli:unbind"
  },
  "vault unseal": {
   "kind": "command",
   "params": [],
-  "target": "agentos.vault.cli:unseal"
+  "target": "openajar.vault.cli:unseal"
  },
  "version": {
   "kind": "command",
   "params": [],
-  "target": "agentos.cli:version"
+  "target": "openajar.cli:version"
  },
  "workflows": {
   "kind": "group",
@@ -2877,14 +2877,14 @@
    "--enable",
    "<path>"
   ],
-  "target": "agentos.runner.workflows.cli:apply"
+  "target": "openajar.runner.workflows.cli:apply"
  },
  "workflows disable": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:disable"
+  "target": "openajar.runner.workflows.cli:disable"
  },
  "workflows enable": {
   "kind": "command",
@@ -2892,14 +2892,14 @@
    "--version",
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:enable"
+  "target": "openajar.runner.workflows.cli:enable"
  },
  "workflows export": {
   "kind": "command",
   "params": [
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:export"
+  "target": "openajar.runner.workflows.cli:export"
  },
  "workflows leads": {
   "kind": "group",
@@ -2911,7 +2911,7 @@
   "params": [
    "<batch>"
   ],
-  "target": "agentos.runner.workflows.cli:leads_drop"
+  "target": "openajar.runner.workflows.cli:leads_drop"
  },
  "workflows leads erase": {
   "kind": "command",
@@ -2919,31 +2919,31 @@
    "<email>",
    "<workspace>"
   ],
-  "target": "agentos.runner.workflows.cli:leads_erase"
+  "target": "openajar.runner.workflows.cli:leads_erase"
  },
  "workflows leads export": {
   "kind": "command",
   "params": [
    "<list_id>"
   ],
-  "target": "agentos.runner.workflows.cli:leads_export"
+  "target": "openajar.runner.workflows.cli:leads_export"
  },
  "workflows leads list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.runner.workflows.cli:leads_list"
+  "target": "openajar.runner.workflows.cli:leads_list"
  },
  "workflows leads seen": {
   "kind": "command",
   "params": [],
-  "target": "agentos.runner.workflows.cli:leads_seen"
+  "target": "openajar.runner.workflows.cli:leads_seen"
  },
  "workflows leads show": {
   "kind": "command",
   "params": [
    "<batch>"
   ],
-  "target": "agentos.runner.workflows.cli:leads_show"
+  "target": "openajar.runner.workflows.cli:leads_show"
  },
  "workflows leads take": {
   "kind": "command",
@@ -2951,14 +2951,14 @@
    "--only",
    "<batch>"
   ],
-  "target": "agentos.runner.workflows.cli:leads_take"
+  "target": "openajar.runner.workflows.cli:leads_take"
  },
  "workflows list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.runner.workflows.cli:list_"
+  "target": "openajar.runner.workflows.cli:list_"
  },
  "workflows retry": {
   "kind": "command",
@@ -2967,7 +2967,7 @@
    "<flow_id>",
    "<run_id>"
   ],
-  "target": "agentos.runner.workflows.cli:retry"
+  "target": "openajar.runner.workflows.cli:retry"
  },
  "workflows run": {
   "kind": "command",
@@ -2975,7 +2975,7 @@
    "--values",
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:run"
+  "target": "openajar.runner.workflows.cli:run"
  },
  "workflows runs": {
   "kind": "command",
@@ -2983,7 +2983,7 @@
    "--limit",
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:runs"
+  "target": "openajar.runner.workflows.cli:runs"
  },
  "workflows templates": {
   "kind": "command",
@@ -2991,7 +2991,7 @@
    "--workspace",
    "<template>"
   ],
-  "target": "agentos.runner.workflows.cli:templates"
+  "target": "openajar.runner.workflows.cli:templates"
  },
  "workflows watch": {
   "kind": "command",
@@ -2999,7 +2999,7 @@
    "--json",
    "<flow_id>"
   ],
-  "target": "agentos.runner.workflows.cli:watch"
+  "target": "openajar.runner.workflows.cli:watch"
  },
  "workspace": {
   "kind": "group",
@@ -3019,7 +3019,7 @@
    "-y",
    "<template>"
   ],
-  "target": "agentos.workspaces.cli:apply_template"
+  "target": "openajar.workspaces.cli:apply_template"
  },
  "workspace create": {
   "kind": "command",
@@ -3030,7 +3030,7 @@
    "--proxy",
    "<workspace_id>"
   ],
-  "target": "agentos.workspaces.cli:create_workspace"
+  "target": "openajar.workspaces.cli:create_workspace"
  },
  "workspace delete": {
   "kind": "command",
@@ -3040,7 +3040,7 @@
    "-y",
    "<workspace_id>"
   ],
-  "target": "agentos.workspaces.cli:delete_workspace"
+  "target": "openajar.workspaces.cli:delete_workspace"
  },
  "workspace export": {
   "kind": "command",
@@ -3054,7 +3054,7 @@
    "-r",
    "<workspace_id>"
   ],
-  "target": "agentos.workspaces.cli:export_cmd"
+  "target": "openajar.workspaces.cli:export_cmd"
  },
  "workspace import": {
   "kind": "command",
@@ -3075,21 +3075,21 @@
    "-y",
    "<file>"
   ],
-  "target": "agentos.workspaces.cli:import_cmd"
+  "target": "openajar.workspaces.cli:import_cmd"
  },
  "workspace list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.workspaces.cli:list_workspaces"
+  "target": "openajar.workspaces.cli:list_workspaces"
  },
  "workspace overrides": {
   "kind": "command",
   "params": [
    "--limit"
   ],
-  "target": "agentos.workspaces.cli:show_overrides"
+  "target": "openajar.workspaces.cli:show_overrides"
  },
  "workspace plan": {
   "kind": "command",
@@ -3103,7 +3103,7 @@
    "-w",
    "<template>"
   ],
-  "target": "agentos.workspaces.cli:plan_template"
+  "target": "openajar.workspaces.cli:plan_template"
  },
  "workspace queue": {
   "kind": "command",
@@ -3111,14 +3111,14 @@
    "--json",
    "<workspace>"
   ],
-  "target": "agentos.workspaces.cli:show_queue"
+  "target": "openajar.workspaces.cli:show_queue"
  },
  "workspace ready": {
   "kind": "command",
   "params": [
    "<lane>"
   ],
-  "target": "agentos.workspaces.cli:mark_ready"
+  "target": "openajar.workspaces.cli:mark_ready"
  },
  "workspace show": {
   "kind": "command",
@@ -3126,14 +3126,14 @@
    "--json",
    "<workspace_id>"
   ],
-  "target": "agentos.workspaces.cli:show_workspace"
+  "target": "openajar.workspaces.cli:show_workspace"
  },
  "workspace templates": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.workspaces.cli:list_templates"
+  "target": "openajar.workspaces.cli:list_templates"
  },
  "workspace unready": {
   "kind": "command",
@@ -3142,7 +3142,7 @@
    "--note",
    "<lane>"
   ],
-  "target": "agentos.workspaces.cli:mark_unready"
+  "target": "openajar.workspaces.cli:mark_unready"
  },
  "workspace update": {
   "kind": "command",
@@ -3155,6 +3155,6 @@
    "--proxy",
    "<workspace_id>"
   ],
-  "target": "agentos.workspaces.cli:update_workspace"
+  "target": "openajar.workspaces.cli:update_workspace"
  }
 }

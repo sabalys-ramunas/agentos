@@ -9,7 +9,7 @@
 import type { Approval, ConfirmationOverlay, ConfirmationSetting, ConfirmDay, ConfirmDayStop, ConfirmDayTick, ConfirmLevel, ConfirmMethodId, ConfirmRow, Effect } from '@/api/types';
 
 /** Said in the step-up, because this makes a real payment easier to approve. */
-export const LOWERING_A_YES = 'This changes how strong a yes has to be for everyone here, so agentos checks it is you first.';
+export const LOWERING_A_YES = 'This changes how strong a yes has to be for everyone here, so openajar checks it is you first.';
 
 export type Rung = 'auto' | 'chat' | 'signed_in' | 'present';
 
@@ -23,7 +23,7 @@ export const rungOfLevel = (level: ConfirmLevel): Exclude<Rung, 'auto'> => (leve
 export const RUNG_WORDS: Record<Rung, { word: string; line: string }> = {
   auto: { word: 'On its own', line: 'Nobody is asked.' },
   chat: { word: 'Just a tap', line: 'Anywhere you can answer, even in a chat.' },
-  signed_in: { word: 'A tap in agentos', line: 'Here or in the Mac app. A chat does not count.' },
+  signed_in: { word: 'A tap in openajar', line: 'Here or in the Mac app. A chat does not count.' },
   present: { word: "Prove it's you", line: 'Your finger, your face or your password, just now.' },
 };
 
@@ -206,7 +206,7 @@ export interface MethodWords {
 }
 
 export const METHOD_WORDS: Record<ConfirmMethodId, MethodWords> = {
-  chat: { word: 'In a chat', feel: 'Your chat app shows a yes and a no, in words agentos wrote.', said: 'in a chat' },
+  chat: { word: 'In a chat', feel: 'Your chat app shows a yes and a no, in words openajar wrote.', said: 'in a chat' },
   panel: { word: 'Here in the panel', feel: 'A tap in any browser you are signed in to.', said: 'in the panel' },
   passkey: { word: 'Your passkey', feel: 'Your finger or face, or your device PIN, right in the browser.', said: 'with a passkey' },
   mac: { word: 'The Mac app', feel: 'A click for most things. Touch ID or your Mac password when it matters.', said: 'on a Mac' },

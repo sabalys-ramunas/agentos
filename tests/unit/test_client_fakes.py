@@ -27,16 +27,16 @@ from pathlib import Path
 
 from fakes import ControlFakeLaneManager, FakeInteraction, FakeLaneManager
 
-from agentos.core.config import NodeConfig, save_config
-from agentos.core.models import LaneSpec
-from agentos.node.daemon import build_services, node_runtime, serve
+from openajar.core.config import NodeConfig, save_config
+from openajar.core.models import LaneSpec
+from openajar.node.daemon import build_services, node_runtime, serve
 
 TOOLS = ("ssh", "security", "launchctl", "systemctl", "claude", "rsync")
 
 FAKE = r'''
 import json, os, plistlib, shlex, signal, socket, subprocess, sys, threading, time
 
-STATE = os.environ["AGENTOS_FAKE_STATE"]
+STATE = os.environ["OPENAJAR_FAKE_STATE"]
 TOOL = os.path.basename(sys.argv[0])
 ARGS = sys.argv[1:]
 BIN = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -189,18 +189,18 @@ def ssh():
         tunnel(forwards)
     if command == ["sh", "-s"]:
         script = sys.stdin.read()
-        if "# agentos-prepare-source" in script:
+        if "# openajar-prepare-source" in script:
             with open(path("installs.jsonl"), "a") as f:
                 f.write(json.dumps({"host": host, "script": script, "step": "prepare"}) + "\n")
             sys.exit(0)
-        if "# agentos-install-node" in script:
+        if "# openajar-install-node" in script:
             with open(path("installs.jsonl"), "a") as f:
                 f.write(json.dumps({"host": host, "script": script}) + "\n")
             if node.get("install_fails"):
                 die("E: Unable to locate package xvfb", 1)
             import shutil as _shutil
             _shutil.copy(os.path.join(node["install_from"], "node.toml"), os.path.join(node["home"], "node.toml"))
-            print("==> Done. agentos is at /opt/agentos/.venv/bin/agentos")
+            print("==> Done. openajar is at /opt/agentos/.venv/bin/openajar")
             sys.exit(0)
         script = script.replace("/var/lib/agentos", node["home"])
         for real, fake in (node.get("paths") or {}).items():
@@ -439,7 +439,7 @@ class FakeSystem:
         (self.bin / tool).unlink()
 
     def env(self) -> dict[str, str]:
-        return {"PATH": str(self.bin), "AGENTOS_FAKE_STATE": str(self.state)}
+        return {"PATH": str(self.bin), "OPENAJAR_FAKE_STATE": str(self.state)}
 
     # ---- nodes ----
 
@@ -450,7 +450,7 @@ class FakeSystem:
 
     def add_bare_host(self, host: str, home: Path, install_from: Path, *, os_release: str = "ubuntu 24.04",
                       **flags) -> None:
-        """A host with no agentos: `connect --install` "installs" by copying install_from/node.toml in."""
+        """A host with no openajar: `connect --install` "installs" by copying install_from/node.toml in."""
         home.mkdir(parents=True, exist_ok=True)
         os_id, _, version = os_release.partition(" ")
         release = self.root / f"os-release-{host}"
@@ -582,7 +582,7 @@ class NodeServer:
 
             runtime = node_runtime(config, manager, FakeInteraction())
             if self.policy:
-                build_services(runtime, ["agentos.policy.service"])
+                build_services(runtime, ["openajar.policy.service"])
             if self.setup is not None:
                 self.setup(runtime)
             self.runtime = runtime

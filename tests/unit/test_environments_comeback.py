@@ -22,12 +22,12 @@ import httpx
 import pytest
 from test_environments_saves import REPO, TITLE, disk, node, opened, work_on_it  # noqa: F401 - the fixture
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.environments import comeback, ports, pulls, saving, signins
-from agentos.environments.saves import open_payload
-from agentos.git import keys as keymod
-from agentos.git import login
-from agentos.policy.wrap import ToolCallError
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.environments import comeback, ports, pulls, saving, signins
+from openajar.environments.saves import open_payload
+from openajar.git import keys as keymod
+from openajar.git import login
+from openajar.policy.wrap import ToolCallError
 
 STATE = {"cookies": [{"name": "sid", "value": "cookie-secret-1", "domain": "shop.test", "path": "/",
                       "expires": -1, "httpOnly": True, "secure": False, "sameSite": "Lax", "junk": 1}],
@@ -87,7 +87,7 @@ async def test_nothing_restarts_lists_the_lost_jobs(node, monkeypatch):
     assert again["resumed"]["services"][0]["restart"].startswith('terminal_job_start(cmd="pnpm dev --port 5321"')
 
 
-# scripts.LISTENING's lines from ubuntu:24.04 in docker (2026-11-16): a job started the way agentos
+# scripts.LISTENING's lines from ubuntu:24.04 in docker (2026-11-16): a job started the way openajar
 # starts one (port 3000, under the node's workload shell), a server left running with nohup (port 4000),
 # and one outside /work (port 5000, not listed)
 PROCS = [
@@ -115,7 +115,7 @@ def test_what_listens_in_work_gives_the_command_that_was_started():
 
 
 def test_a_listener_a_job_has_is_that_jobs():
-    from agentos.environments.saves import Service
+    from openajar.environments.saves import Service
 
     jobs = [Service(cmd="python3 -m http.server 3000", cwd="/work/app", port=None),
             Service(cmd="pnpm dev --port 5173", cwd="/work/shop", port=5173)]
@@ -165,7 +165,7 @@ async def test_close_with_a_note_saves_it_and_says_what_the_pause_costs(node):
     assert closed["keep"] == "save" and closed["saves"]["made"] == closed["saved"]["save_id"]
     # 1.5 GB at EUR 0.0119 a GB: about EUR 0.02 a month; a snapshot resumes in about a minute
     assert closed["pause"] == "saved: about EUR 0.02 a month, resumes in about a minute"
-    assert closed["pause"] in closed["next"] and "continue Black Friday page in agentos" in closed["next"]
+    assert closed["pause"] in closed["next"] and "continue Black Friday page in openajar" in closed["next"]
     listed = await node["call"]("environment", session="chat-2")
     assert listed["saved"][0]["note"] == "tests pass; next: the mobile menu"
     again = await node["call"]("environment_open", title=TITLE, session="chat-2")
@@ -435,7 +435,7 @@ async def test_environment_port_on_a_laptop_gives_a_local_url_that_reaches_the_m
 
 
 async def test_environment_port_on_a_server_node_gives_the_ssh_line(node, proxied, monkeypatch):
-    monkeypatch.setenv("AGENTOS_SSH_HOST", "my-node")
+    monkeypatch.setenv("OPENAJAR_SSH_HOST", "my-node")
     got = await node["call"]("environment_port", port=4000)
     p = got["local_port"]
     assert got["tunnel"] == f"ssh -N -L {p}:127.0.0.1:{p} my-node" and got["tunnel"] in got["next"]
@@ -543,7 +543,7 @@ async def test_pull_request_only_for_its_own_branches_and_with_a_token():
     mgr, env = fake_mgr(gh, [cred("git:shop-deploy", kind=keymod.SSH_KIND)], {})
     with pytest.raises(pulls.PullRequestFailed) as e:
         await pulls.open_pull_request(mgr, env, title="Fix")
-    assert "agentos setup github" in e.value.message and gh.calls == []
+    assert "openajar setup github" in e.value.message and gh.calls == []
     env.repo = "gitlab.com/me/shop"
     with pytest.raises(InvalidRequest):
         await pulls.open_pull_request(mgr, env, title="Fix")

@@ -1,5 +1,5 @@
 """Signed connector bundles: signing and verification with a test key, install from a
-bundle, and the `agentos connector` CLI."""
+bundle, and the `openajar connector` CLI."""
 
 import copy
 import json
@@ -9,10 +9,10 @@ from connector_samples import SITES, connector, write_dir
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
 
-from agentos.runner.connectors import cli as connector_cli
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.signing import (
+from openajar.runner.connectors import cli as connector_cli
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.signing import (
     BUNDLE_FORMAT,
     BundleRejected,
     build_payload,
@@ -23,7 +23,7 @@ from agentos.runner.connectors.signing import (
     trusted_from,
     verify_bundle,
 )
-from agentos.runner.fakes import OWNER, Harness
+from openajar.runner.fakes import OWNER, Harness
 
 TEST_KEY = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))  # a fixed test key, never a real one
 OTHER_KEY = Ed25519PrivateKey.from_private_bytes(bytes(range(1, 33)))
@@ -122,11 +122,11 @@ def test_a_bundle_holds_each_connector_once():
 
 
 def test_cli_compile_keygen_sign_and_install(tmp_path, monkeypatch):
-    import agentos.runner.connectors.lint as lint_mod
+    import openajar.runner.connectors.lint as lint_mod
 
     real = lint_mod.site_hosts
     monkeypatch.setattr(lint_mod, "site_hosts", lambda sites=None: real(SITES if sites is None else sites))
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     d = write_dir(tmp_path / "connectors", connector())
     run = CliRunner()
@@ -169,7 +169,7 @@ def test_cli_compile_reports_errors(tmp_path):
 
 
 def test_private_keys_round_trip_as_pem(tmp_path):
-    from agentos.runner.connectors.signing import load_private_key
+    from openajar.runner.connectors.signing import load_private_key
 
     (tmp_path / "k.pem").write_bytes(private_pem(TEST_KEY))
     assert key_id(load_private_key(tmp_path / "k.pem")) == key_id(TEST_KEY)

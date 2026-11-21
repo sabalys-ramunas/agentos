@@ -192,7 +192,7 @@ export function StatusPill({ org, variant = 'line' }: { org: string; variant?: '
         <PopoverTrigger
           aria-label={label}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center justify-center gap-2 rounded-md px-2 text-caption text-muted lg:justify-start',
+            'flex h-9 w-full min-w-0 items-center justify-center gap-3 rounded-lg px-2 text-secondary text-muted lg:justify-start lg:px-3',
             'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg data-[state=open]:bg-pressed data-[state=open]:text-fg',
           )}
         >
@@ -253,7 +253,7 @@ export function StatusPill({ org, variant = 'line' }: { org: string; variant?: '
               {usd(status.cost_today.usd)}
               {technical ? <span className="text-muted"> · {compact(status.cost_today.tokens)} tokens</span> : null}
             </p>
-            <p className="text-caption text-faint">Only what the AI models cost. agentos never charges per task.</p>
+            <p className="text-caption text-faint">Only what the AI models cost. openajar never charges per task.</p>
           </Row>
         ) : null}
         <div className="flex flex-wrap items-center gap-1 border-t border-line p-2">

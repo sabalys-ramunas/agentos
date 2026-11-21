@@ -21,13 +21,13 @@ describe('the install prompt', () => {
     await screen.findByRole('region', { name: 'Posts to check' });
     const event = offerInstall();
     expect(event.defaultPrevented).toBe(true);
-    expect(screen.queryByRole('complementary', { name: 'Install agentos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Install openajar' })).not.toBeInTheDocument();
     // The first decision earns it: a no to the payment in front.
     await user.click(await screen.findByRole('button', { name: "Don't pay" }));
-    const prompt = within(await screen.findByRole('complementary', { name: 'Install agentos' }));
+    const prompt = within(await screen.findByRole('complementary', { name: 'Install openajar' }));
     await user.click(prompt.getByRole('button', { name: 'Install' }));
     expect(event.prompt).toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Install agentos' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Install openajar' })).not.toBeInTheDocument());
   });
 
   it('rests for a month after Not now', async () => {
@@ -35,9 +35,9 @@ describe('the install prompt', () => {
     const { user } = renderApp('/northwind-group/needs-you');
     await screen.findByRole('region', { name: 'Posts to check' });
     offerInstall();
-    const prompt = within(await screen.findByRole('complementary', { name: 'Install agentos' }));
+    const prompt = within(await screen.findByRole('complementary', { name: 'Install openajar' }));
     await user.click(prompt.getByRole('button', { name: 'Not now' }));
-    expect(screen.queryByRole('complementary', { name: 'Install agentos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Install openajar' })).not.toBeInTheDocument();
     expect(Number(localStorage.getItem('agentos.install.dismissed-at'))).toBeGreaterThan(0);
   });
 });

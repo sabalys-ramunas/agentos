@@ -1,5 +1,5 @@
 /**
- * Where a password goes, drawn. You, your computer and the mail company stand in a line, and agentos
+ * Where a password goes, drawn. You, your computer and the mail company stand in a line, and openajar
  * Cloud sits off to one side with no wire a password could take. The same picture says every state:
  * looking, the password on its way, the two checks, and exactly where a failure broke.
  */
@@ -37,7 +37,7 @@ export function RoutePicture({ computer, provider, site, looking = false, keyAt 
   lit?: 'you' | 'computer' | 'mail';
 }) {
   const name = provider ?? 'Your mail';
-  const summary = `You, then ${computer}, then ${name}. agentos Cloud stands to one side and never sees the password.`;
+  const summary = `You, then ${computer}, then ${name}. openajar Cloud stands to one side and never sees the password.`;
   const at = keyAt === 'none' ? null : KEY_X[keyAt];
   return (
     <svg viewBox="0 0 420 236" role="img" aria-label={summary} className="block w-full">
@@ -50,7 +50,7 @@ export function RoutePicture({ computer, provider, site, looking = false, keyAt 
 
       {/* The cloud hears a start and a result, on a dotted wire. No password fits down it. */}
       <rect x={132} y={8} width={156} height={52} rx={10} className="route-cloud" />
-      <text x={210} y={30} className="route-label">agentos Cloud</text>
+      <text x={210} y={30} className="route-label">openajar Cloud</text>
       <text x={210} y={46} className="route-note">Never sees the password</text>
       <path d="M210 60 V132" className="route-wire" data-kind="quiet" />
       <text x={218} y={100} className="route-note" style={{ textAnchor: 'start' }}>the result only</text>

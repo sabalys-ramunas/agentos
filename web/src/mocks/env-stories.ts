@@ -305,7 +305,7 @@ export function storyEnvironments(now: number): MockEnv[] {
             { host: 'o4501.ingest.sentry.io', count: 7, last: at(now, -31 * MINUTE) },
           ],
           secrets: ['PARCELPOINT_API_KEY', 'SENTRY_DSN'],
-          fix: 'the owner allows a host with `agentos environments allow --host api.segment.io`',
+          fix: 'the owner allows a host with `openajar environments allow --host api.segment.io`',
         },
         watched: null,
         checkpoints: [],
@@ -334,11 +334,11 @@ export function storyEnvironments(now: number): MockEnv[] {
         closed_reason: null,
         unsaved: { dirty_files: ['src/cart/totals.ts', 'src/cart/totals.test.ts', 'src/cart/summary.tsx'], unpushed: ['8e2f1c0 Cart: a fixed discount never takes the total under zero', '4a7d9b3 Cart: percent and fixed discounts'] },
         bringup: done('c5kp'),
-        prepared: { used: false, why: 'the repository has no .agentos/environment.toml, so there is nothing to prepare' },
+        prepared: { used: false, why: 'the repository has no .openajar/environment.toml, so there is nothing to prepare' },
         network: { policy: 'full', allowed: { all: true }, blocked: [], secrets: [] },
         watched: { since: at(now, -3 * MINUTE), viewers: 1, live_views: 1, port_connections: 0 },
         checkpoints: [
-          // the agent went back to 3 eighteen minutes ago: agentos kept the work as it was first, as 5
+          // the agent went back to 3 eighteen minutes ago: openajar kept the work as it was first, as 5
           checkpoint(now, 6, 6, 'Fixed discounts never take the total under zero', [repo('shop', '8e2f1c0a9b3d', 2, change([0, 1, 0], 9, 2)), repo('ui-kit', '4a7d9b3c2e10', 0, change([0, 0, 0], 0, 0))]),
           checkpoint(now, 5, 18, 'automatic, before the rollback to checkpoint 3', [repo('shop', '4a7d9b3c2e10', 11, change([1, 9, 2], 102, 391)), repo('ui-kit', '4a7d9b3c2e10', 2, change([0, 2, 0], 9, 31))], 'before rollback to 3'),
           checkpoint(now, 4, 25, 'Try: discounts per line item', [repo('shop', '4a7d9b3c2e10', 11, change([1, 9, 2], 102, 391)), repo('ui-kit', '4a7d9b3c2e10', 2, change([0, 2, 0], 9, 31))]),

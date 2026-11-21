@@ -10,7 +10,6 @@ from typing import Any
 import httpx
 import pytest
 
-from agentos.core.errors import PolicyDenied
 from lanebench.executors.jev import (
     JevClient,
     JevExecutor,
@@ -25,6 +24,7 @@ from lanebench.executors.jev import (
     safe_goal,
 )
 from lanebench.tasks import load_all
+from openajar.core.errors import PolicyDenied
 
 OUTLINE = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 6 refs

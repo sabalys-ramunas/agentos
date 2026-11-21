@@ -10,13 +10,13 @@ import pytest
 from test_handback import LANE, Ctx, FormPage, SnapInteraction, field
 from test_lanes import make
 
-from agentos.core.errors import FormChanged, RefNotFound
-from agentos.core.models import ActionKind, ActionResult, LaneSpec, Signal
-from agentos.core.runtime import Runtime
-from agentos.node import fields as fields_mod
-from agentos.node import human
-from agentos.node import tools as node_tools
-from agentos.node.tools.form_check import _form_change, form_sent
+from openajar.core.errors import FormChanged, RefNotFound
+from openajar.core.models import ActionKind, ActionResult, LaneSpec, Signal
+from openajar.core.runtime import Runtime
+from openajar.node import fields as fields_mod
+from openajar.node import human
+from openajar.node import tools as node_tools
+from openajar.node.tools.form_check import _form_change, form_sent
 
 FORM = {"action": "https://shop.test/account", "method": "post", "fields": [
     field("input|text|street|0", "text", "Street", "s2", value="22 New Street", was="1 Old Road", dirty=True),
@@ -269,3 +269,36 @@ async def test_a_stale_ref_says_ref_not_found_not_form_changed(lane, matches, er
     assert inter.acts == []  # nothing was clicked either way
     if error is RefNotFound:
         assert err.value.code == "ref_not_found" and "new snapshot" in err.value.message
+
+
+def test_the_field_a_select_or_a_typed_newline_writes_is_the_act_not_a_change():
+    """A select presses arrow keys and then Enter, and a typed newline comes after its text: each press is
+    checked, and the field the act writes has its new value by then. That one field is left out, by the
+    name it is sent under; any other field the page changes still stops the press."""
+    shown = fields_mod.form_diff({**FORM, "own": "city"})
+    picked = fields_mod.form_diff({**changed(FORM, "City", value="Kaunas"), "own": "city"})
+    assert shown["own"] == "city"
+    assert _form_change(shown, picked, "city") is None
+    assert _form_change(shown, picked) == 'fields changed: "City"'
+    other = fields_mod.form_diff({**changed(FORM, "Street", value="9 Other Way"), "own": "city"})
+    assert _form_change(shown, other, "city") == 'fields changed: "Street"'
+    assert "const own = (ownField && ownField.form === form && ownField.name) || ''" in fields_mod.FORM_DIFF_JS
+
+
+@pytest.mark.parametrize(("action", "skips"), [(ActionKind.SELECT, True), (ActionKind.FILL, True),
+                                               (ActionKind.TYPE, True), (ActionKind.CLICK, False),
+                                               (ActionKind.PRESS, False)])
+async def test_only_acts_that_write_their_own_field_leave_it_out(action, skips):
+    class Page:
+        def locator(self, _selector):
+            return self
+
+        async def evaluate(self, _js, _arg):
+            return {**changed(FORM, "City", value="Kaunas"), "own": "city"}
+
+    approved = fields_mod.form_diff({**FORM, "own": "city"})
+    if skips:
+        await node_tools.check_form_unchanged(Page(), "e9", action, approved, "Poland" if action is ActionKind.SELECT else "x\n")
+    else:
+        with pytest.raises(FormChanged):
+            await node_tools.check_form_unchanged(Page(), "e9", action, approved, "Enter")

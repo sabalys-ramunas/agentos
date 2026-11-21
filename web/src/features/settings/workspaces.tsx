@@ -1,11 +1,11 @@
-import { BusinessMark } from '@/components/brand/identity';
-import { useParams } from '@tanstack/react-router';
-import { Download, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Link, useParams } from '@tanstack/react-router';
+import { Briefcase, ChevronRight, Download, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useCreateWorkspace, useDeleteWorkspace, useStatus, useUpdateWorkspace, useWorkspaces } from '@/api/hooks';
 import type { Workspace } from '@/api/types';
 import { OverLimitBanner, PlanNotice, usePlanRoom } from '@/components/plan-notice';
+import { BusinessMark } from '@/components/brand/identity';
 import { Badge } from '@/components/ui/badge';
 import { Button, IconButton } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -75,7 +75,7 @@ function ImportDialog({ org, open, onOpenChange }: { org: string; open: boolean;
         onOpenChange(next);
       }}
       title="Import a workspace"
-      description="Choose the export file, and type the passphrase it was sealed with, on this computer. agentos checks the file first and imports nothing that does not pass."
+      description="Choose the export file, and type the passphrase it was sealed with, on this computer. openajar checks the file first and imports nothing that does not pass."
       kind="workspace_import"
       fields={typed ? { name: typed } : undefined}
       confirmLabel="Continue on this computer"
@@ -148,50 +148,66 @@ export function WorkspacesSettings() {
         description="One per brand or person. Each is a clean desk with only its own accounts and logins."
         action={
           canCreate || canTransfer ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {canTransfer ? <Button variant="ghost" onClick={() => setImporting(true)}>Import a workspace</Button> : null}
+            <>
+              {canTransfer ? (
+                <Button icon={<Download className="size-4" />} onClick={() => setImporting(true)} aria-label="Import a workspace">
+                  Import
+                </Button>
+              ) : null}
               {canCreate ? (
-                <Button icon={<Plus className="size-4" />} disabled={room.full} onClick={() => setCreating(true)}>
+                <Button variant="primary" icon={<Plus className="size-4" />} disabled={room.full} onClick={() => setCreating(true)}>
                   New workspace
                 </Button>
               ) : null}
-            </div>
+            </>
           ) : undefined
         }
       />
       <div className="grid gap-4">
         <OverLimitBanner org={org} />
         {canCreate ? <PlanNotice org={org} resource="workspaces" /> : null}
-        <Card className="overflow-hidden">
-          <QueryView
-            query={workspaces}
-            skeleton={
-              <div className="grid gap-4 p-6">
-                <Skeleton />
-                <Skeleton />
-                <Skeleton className="w-2/3" />
-              </div>
-            }
-          >
-            {(items) =>
-              items.length ? (
-                <ul className="divide-y divide-line">
-                  {items.map((workspace, index) => {
-                    // As in the API: past the limit, the newest are read-only.
-                    const readOnly = status?.limits !== undefined && index >= status.limits.workspaces;
-                    return (
-                      <li key={workspace.id} className="flex min-h-14 items-center gap-2 px-4 py-2 sm:px-6">
-                        <BusinessMark name={workspace.name} color={workspace.color} className="mr-1" />
+        <QueryView
+          query={workspaces}
+          card
+          skeleton={
+            <ul className="grid gap-4 sm:grid-cols-2" role="status" aria-label="Loading">
+              {[0, 1, 2, 3].map((index) => (
+                <li key={index}>
+                  <Skeleton className="h-21 rounded-xl" />
+                </li>
+              ))}
+            </ul>
+          }
+        >
+          {(items) =>
+            items.length ? (
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {items.map((workspace, index) => {
+                  // As in the API: past the limit, the newest are read-only.
+                  const readOnly = status?.limits !== undefined && index >= status.limits.workspaces;
+                  return (
+                    <li key={workspace.id}>
+                      <Card className="relative flex min-h-21 items-center gap-4 py-4 pr-3 pl-5 transition-colors duration-(--duration-fast) ease-standard has-[a:hover]:border-line-strong">
+                        <BusinessMark name={workspace.name} color={workspace.color} size={40} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-body">{workspace.name}</p>
-                          {technical ? <p className="mono truncate text-caption text-faint">{workspace.id}</p> : null}
+                          <Link
+                            to="/$org/workspaces/$ws"
+                            params={{ org, ws: workspace.id }}
+                            className="block truncate text-card-title outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:outline-2 focus-visible:after:outline-(--focus-ring)"
+                            title={workspace.name}
+                          >
+                            {workspace.name}
+                          </Link>
+                          <p className="truncate text-secondary text-muted">
+                            {plural(workspace.lanes.length, 'account')}
+                            {technical ? <span className="mono text-code-caption text-faint"> · {workspace.id}</span> : null}
+                          </p>
                         </div>
                         {readOnly ? <Badge>Read-only</Badge> : null}
-                        <span className="hidden text-secondary text-muted sm:inline">{plural(workspace.lanes.length, 'account')}</span>
                         {canManage ? (
                           <Menu>
                             <MenuTrigger asChild>
-                              <IconButton label={`Actions for ${workspace.name}`} size="sm" className="ml-2">
+                              <IconButton label={`Actions for ${workspace.name}`} size="sm" className="relative z-1">
                                 <MoreHorizontal className="size-4" />
                               </IconButton>
                             </MenuTrigger>
@@ -215,20 +231,30 @@ export function WorkspacesSettings() {
                             </MenuContent>
                           </Menu>
                         ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
+                        <ChevronRight aria-hidden className="size-4 shrink-0 text-faint" />
+                      </Card>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <Card>
                 <EmptyState
+                  icon={<Briefcase className="size-5" />}
                   title="No workspaces yet"
                   description={canCreate ? 'Add one for each brand or person you run.' : 'An owner or admin sets these up.'}
-                  action={canCreate ? <Button onClick={() => setCreating(true)}>New workspace</Button> : undefined}
+                  action={
+                    canCreate ? (
+                      <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+                        New workspace
+                      </Button>
+                    ) : undefined
+                  }
                 />
-              )
-            }
-          </QueryView>
-        </Card>
+              </Card>
+            )
+          }
+        </QueryView>
       </div>
       <NewWorkspaceDialog org={org} open={creating} onOpenChange={setCreating} />
       <ImportDialog org={org} open={importing} onOpenChange={setImporting} />
@@ -241,7 +267,7 @@ export function WorkspacesSettings() {
             if (!next) setExporting(null);
           }}
           title={`Export ${exporting.name}`}
-          description="The file is sealed with a passphrase you type on this computer. Keep the passphrase: without it nobody can open the file. It downloads from that page, and agentos keeps no copy."
+          description="The file is sealed with a passphrase you type on this computer. Keep the passphrase: without it nobody can open the file. It downloads from that page, and openajar keeps no copy."
           kind="workspace_export"
           fields={{ workspace: exporting.id }}
           confirmLabel="Continue on this computer"
@@ -253,7 +279,7 @@ export function WorkspacesSettings() {
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={`Delete ${deleting?.name}?`}
-        description={`This removes ${plural(deleting?.lanes.length ?? 0, 'account')} from agentos, and members lose access to this workspace. Profiles and logins stay on your computers.`}
+        description={`This removes ${plural(deleting?.lanes.length ?? 0, 'account')} from openajar, and members lose access to this workspace. Profiles and logins stay on your computers.`}
         confirmLabel="Delete workspace"
         danger
         typeToConfirm={deleting?.id}

@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 /* The token sources hold class names as data, not as classes to build. */
 @source not '../../tokens';
-/* Generated from web/tokens/build-tokens.py: the Mono token set, the one source. */
+/* Generated from web/tokens/build-tokens.py: the Dawn token set (on Mono's bones), the one source. */
 @import './tokens.css';
 /* The names the screens used before Mono, mapped onto it, and the app-only tokens. */
 @import './aliases.css';
@@ -58,20 +58,12 @@
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
-@keyframes pulse-dot {
-  50% { opacity: 0.4; }
-}
-/* The Working now glyph: a ring that breathes out from the pink disc. */
-@keyframes state-ring {
-  from { opacity: 0.55; transform: scale(1); }
-  to { opacity: 0; transform: scale(1.6); }
-}
+/* The Working now glyph: a still violet halo around the violet disc. Dawn: nothing pulses. */
 .state-ring {
-  /* With reduced motion the ring stays still at this strength. */
   opacity: 0.35;
   transform-box: fill-box;
   transform-origin: center;
-  animation: state-ring 1.8s var(--ease-out) infinite;
+  transform: scale(1.35);
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -80,6 +72,12 @@
 :root {
   /* The lift every card, button and tile shares: a 1 px shadow in light, a 1 px top light in dark. */
   --lift: var(--shadow-card), inset 0 1px 0 var(--highlight-card);
+  /* The violet pill's own light: a top highlight and a violet drop. A switch thumb's small shadow. */
+  --shadow-primary: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 1px 2px color-mix(in srgb, var(--violet-800) 30%, transparent);
+  --shadow-thumb: 0 1px 2px rgb(0 0 0 / 0.25);
+  --glass-lift: inset 0 0 0 1px var(--glass-line), inset 0 1px 0 var(--glass-highlight), 0 12px 32px -10px var(--glass-shadow);
+  /* The night sidebar's sky, with the sunrise at its foot (web/DESIGN.md, The shell). */
+  --sidebar-sky: linear-gradient(180deg, var(--sidebar-sky-1) 0%, var(--sidebar-sky-2) 52%, var(--sidebar-sky-3) 78%, var(--sidebar-sky-4) 90%, var(--sidebar-glow-1) 97%, var(--sidebar-glow-2) 100%);
 }
 
 @layer base {
@@ -127,17 +125,27 @@
     cursor: not-allowed;
   }
 
-  /* One focus ring for the whole product, shown for keyboard users only. The one blue. */
+  /* One focus ring for the whole product, shown for keyboard users only. Violet. */
   :focus-visible {
     outline: var(--border-width-focus) solid var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
 
-  /* On a field the ring sits on the border, so a focused field is not wider than its neighbours. */
-  input:focus-visible,
+  /*
+   * A focused field: its border turns violet and a soft violet halo (an outline, so studio sees it)
+   * sits around it. Shown on every focus of a field, pointer or keyboard, since typing goes there.
+   */
+  input:not([type='checkbox'], [type='radio'], [type='range']):focus-visible,
   textarea:focus-visible,
   [role='combobox']:focus-visible {
-    outline-offset: -1px;
+    border-color: var(--focus-ring);
+    outline: 3px solid color-mix(in srgb, var(--focus-ring) 22%, transparent);
+    outline-offset: 0;
+  }
+  input[aria-invalid='true']:focus-visible,
+  textarea[aria-invalid='true']:focus-visible {
+    border-color: var(--status-bad-dot);
+    outline-color: color-mix(in srgb, var(--status-bad-dot) 16%, transparent);
   }
 
   /* After a click, only fields keep a ring. See lib/input-modality.ts. */
@@ -164,9 +172,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* lucide draws at 2; the product draws at 1.5 everywhere. */
+  /* lucide draws at 2; Dawn draws the app's line icons at 1.75, the desktop dock's fine line. */
   .lucide {
-    stroke-width: 1.5;
+    stroke-width: 1.75;
     flex-shrink: 0;
   }
 }
@@ -180,7 +188,7 @@
   .link,
   a.text-blue,
   button.text-blue {
-    color: var(--accent-text);
+    color: var(--link-text);
     text-decoration-line: underline;
     text-decoration-color: var(--line-control);
     text-decoration-thickness: 1px;
@@ -302,4 +310,291 @@ html[data-step-up] [data-dialog-overlay]:not([data-step-up-dialog]) {
 }
 @media (prefers-reduced-motion: reduce) {
   .home-rise { animation: none; }
+}
+
+/* The scrims that keep white words readable on the Dawn picture (sign-in's side, the welcome's band). */
+.scrim-auth { background: linear-gradient(90deg, color-mix(in srgb, var(--dawn-scrim) 45%, transparent), transparent 50%); }
+.scrim-welcome { background: linear-gradient(90deg, var(--dawn-scrim), color-mix(in srgb, var(--dawn-scrim) 55%, transparent) 45%, transparent 80%); }
+@media (max-width: 767.98px) {
+  .scrim-welcome { background: linear-gradient(180deg, var(--dawn-scrim), color-mix(in srgb, var(--dawn-scrim) 70%, transparent)); }
+}
+
+/*
+ * The agent's pointer over an environment's live view (features/lane/live/agent-pointer.tsx), as the node's own
+ * live view page draws it. It stands for the far screen's pointer, so it moves (a glide between the points the
+ * node sends, a transform only), where the rest of the app only fades.
+ */
+.agent-pointer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+  will-change: transform;
+}
+.agent-pointer[data-shown='true'] { opacity: 1; }
+.agent-pointer[data-jump='true'] { transition: opacity 0.4s ease; }
+.agent-pointer-body { position: relative; transform-origin: 0 0; }
+.agent-pointer-arrow {
+  position: absolute;
+  left: -3px;
+  top: -2.5px;
+  width: 34px;
+  height: 40px;
+  overflow: visible;
+  fill: var(--color-agent);
+  stroke: white;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.35));
+}
+.agent-pointer-arrow[data-press='true'] { animation: agent-pointer-press 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes agent-pointer-press { 40% { transform: scale(0.82); } }
+.agent-pointer-tag {
+  position: absolute;
+  left: 22px;
+  top: 28.5px;
+  padding: 6px 13px 7px;
+  border-radius: 4px 14px 14px 14px;
+  background: var(--color-agent);
+  color: white;
+  font: 600 16px/1.2 var(--font-sans);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px white, 0 8px 20px -4px rgb(0 0 0 / 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-pointer { transition: opacity 0.4s ease; }
+  .agent-pointer-arrow[data-press='true'] { animation: none; }
+}
+
+/*
+ * The night sidebar (Dawn's Full, web/DESIGN.md "The shell"): the night sky in both themes, a few still
+ * stars, and the sunrise at its foot. Inside it the usual roles are redefined to the sidebar's own white
+ * words, lines and fills, so whatever sits in it (the status line, the Technical details switch, keys)
+ * reads on the night without a night version of its own. Nothing here moves.
+ */
+.rail-night {
+  --text-primary: var(--sidebar-text);
+  --text-secondary: var(--sidebar-text-secondary);
+  --text-tertiary: var(--sidebar-text-tertiary);
+  --line-default: var(--sidebar-line);
+  --line-strong: var(--sidebar-line);
+  --line-control: var(--sidebar-text-tertiary);
+  --fill-hover: var(--sidebar-fill-hover);
+  --fill-pressed: var(--sidebar-fill-selected);
+  --surface-card: var(--sidebar-fill-hover);
+  --focus-ring: var(--sidebar-focus);
+  --highlight-card: transparent;
+  --shadow-card: transparent;
+  color-scheme: dark;
+  /* Positioned for its stars, and sticky, so the night stays put while a long page scrolls under the top bar.
+     (A plain `relative` here outranked the rail's sticky utility, and the sidebar scrolled away.) */
+  position: sticky;
+  isolation: isolate;
+  color: var(--sidebar-text);
+  background: var(--sidebar-sky);
+}
+.rail-night::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 30px 150px, rgb(255 255 255 / 0.55), transparent 60%),
+    radial-gradient(1px 1px at 190px 60px, rgb(255 255 255 / 0.45), transparent 60%),
+    radial-gradient(1.2px 1.2px at 120px 310px, rgb(255 255 255 / 0.35), transparent 60%),
+    radial-gradient(1px 1px at 215px 430px, rgb(255 255 255 / 0.4), transparent 60%),
+    radial-gradient(1px 1px at 60px 530px, rgb(255 255 255 / 0.3), transparent 60%),
+    radial-gradient(1px 1px at 170px 220px, rgb(255 255 255 / 0.3), transparent 60%),
+    radial-gradient(ellipse 140% 16% at 30% 100%, color-mix(in srgb, var(--sidebar-glow-2) 70%, transparent), transparent 70%);
+}
+/* Selected words on the night take the night's own glow, never the page's violet. */
+.rail-night ::selection {
+  background: rgb(255 255 255 / 0.25);
+}
+
+/*
+ * The night band (web/DESIGN.md, "The night band"): the top of a page whose point is a live screen (one
+ * environment). The shell draws it across the page column under the top bar (components/shell/page-band.ts);
+ * the sky is the sidebar's, with the sunrise low on the left and a little violet high on the right. Words on it
+ * sit in `.on-night`, which redefines the roles as the sidebar does; the top bar over it is `.top-night`.
+ * Panels on it are `.glass-night`. It is the same in both themes, and nothing in it moves.
+ */
+.band-night {
+  background:
+    radial-gradient(ellipse 60% 50% at 38% 105%, rgb(255 184 135 / 0.16), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 85% 0%, rgb(132 102 255 / 0.16), transparent 70%),
+    linear-gradient(180deg, var(--sidebar-sky-1) 0%, color-mix(in srgb, var(--sidebar-sky-1) 55%, var(--sidebar-sky-2)) 55%, var(--sidebar-sky-2) 100%);
+}
+.on-night,
+.top-night {
+  --text-primary: var(--sidebar-text);
+  --text-secondary: var(--sidebar-text-secondary);
+  --text-tertiary: var(--sidebar-text-tertiary);
+  --line-default: var(--sidebar-line);
+  --line-strong: rgb(255 255 255 / 0.22);
+  --line-control: var(--sidebar-text-tertiary);
+  --fill-hover: var(--sidebar-fill-hover);
+  --fill-pressed: var(--sidebar-fill-selected);
+  --surface-card: var(--sidebar-fill-hover);
+  --surface-inset: rgb(255 255 255 / 0.05);
+  --focus-ring: var(--sidebar-focus);
+  --highlight-card: transparent;
+  --shadow-card: transparent;
+  /* Status words and tints on the night: the dark theme's own values, in both themes. */
+  --status-live-dot: #a08aff;
+  --status-live-text: #c4b8ff;
+  --status-live-fill: rgb(132 102 255 / 0.14);
+  --status-live-line: #4a3f99;
+  --status-ok-text: #4cc27a;
+  --status-ok-fill: #0f2418;
+  --status-ok-line: #1d4a2f;
+  --status-warn-text: #f5a524;
+  --status-warn-dot: #f5a524;
+  --status-warn-fill: #2a1d07;
+  --status-warn-line: #5a3c0b;
+  --status-bad-text: #ff6b70;
+  --status-bad-fill: #2d1213;
+  --status-bad-line: #5c2224;
+  --status-idle-dot: var(--sidebar-text-secondary);
+  color-scheme: dark;
+  color: var(--sidebar-text);
+}
+/* A live screen on the night: its own faint edge (the ring while it is yours is an outline outside it). */
+.stage-screen {
+  border: var(--border-width-hairline) solid rgb(255 255 255 / 0.08);
+}
+/* The control pill under a live screen (the sheet's "control pill"): the stage's night in both themes. */
+.control-pill {
+  background: color-mix(in srgb, var(--surface-stage) 88%, white 4%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.top-night {
+  background: color-mix(in srgb, var(--sidebar-sky-1) 86%, transparent);
+}
+.on-night ::selection {
+  background: rgb(255 255 255 / 0.25);
+}
+/* A panel on the night: dark glass with a white hairline and a top light. */
+.glass-night {
+  background: var(--glass-dark-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-dark-line), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-night {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--sidebar-sky-1);
+  }
+}
+
+/*
+ * The picture of an environment's screen (components/screen-picture.tsx): the machine's desktop drawn small.
+ * Its top bar, dock and windows are the desktop's own (environments/desktop), so a drawn picture and a real
+ * still look like the same machine. Sizes are in the picture's own width (cqw), so it reads at every size.
+ */
+.screen-picture {
+  container-type: inline-size;
+}
+.screen-topbar {
+  background: linear-gradient(rgb(5 8 26 / 0.62), rgb(5 8 26 / 0.3));
+}
+.screen-dock {
+  background: rgb(255 255 255 / 0.28);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35);
+}
+.screen-window {
+  box-shadow: 0 0 0 1px rgb(185 186 194 / 0.7), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+}
+.screen-window-bar {
+  background: linear-gradient(rgb(248 248 249), rgb(235 235 238));
+}
+.screen-greeting {
+  color: var(--sidebar-text);
+  text-shadow: 0 1px 6px rgb(4 6 24 / 0.6);
+}
+/* A chip on a picture: dark glass and white words; the status marks take their night colours. */
+.picture-chip {
+  --status-live-dot: var(--violet-300);
+  --status-idle-dot: var(--sidebar-text-secondary);
+  color: var(--sidebar-text);
+  background: var(--glass-dark-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-dark-line);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+/*
+ * Home's window (features/home/home-hero.tsx): the Dawn picture, mirrored so the sun rises on the right,
+ * away from the words. A scrim from the left keeps the white words AA over every sky they sit on
+ * (build-tokens.py checks the lede over the picture's skies), and at night the whole picture dims by a
+ * third. Nothing in it moves.
+ */
+.home-window {
+  min-height: 300px;
+  background: var(--surface-stage);
+}
+.home-window-picture {
+  transform: scaleX(-1);
+  object-position: 50% 38%;
+}
+.home-window-scrim {
+  background:
+    linear-gradient(var(--dawn-dim), var(--dawn-dim)),
+    linear-gradient(90deg, var(--dawn-scrim) 0%, color-mix(in srgb, var(--dawn-scrim) 80%, transparent) 40%, color-mix(in srgb, var(--dawn-scrim) 40%, transparent) 66%, transparent 88%);
+}
+@media (max-width: 767px) {
+  .home-window-scrim {
+    background:
+      linear-gradient(var(--dawn-dim), var(--dawn-dim)),
+      linear-gradient(180deg, var(--dawn-scrim), color-mix(in srgb, var(--dawn-scrim) 80%, transparent));
+  }
+}
+/* Words on the Dawn picture: white, and the roles a link or a line under it uses go white with them. */
+.on-dawn {
+  --text-primary: var(--sidebar-text);
+  --text-secondary: var(--sidebar-text-secondary);
+  --line-strong: rgb(255 255 255 / 0.5);
+  --focus-ring: var(--sidebar-focus);
+  --fill-2: rgb(255 255 255 / 0.12);
+  --fill-3: rgb(255 255 255 / 0.2);
+  color: var(--sidebar-text-secondary);
+}
+.on-dawn h1 {
+  color: var(--sidebar-text);
+  text-shadow: 0 1px 12px rgb(4 6 24 / 0.25);
+}
+/* What needs you, on the window's edge: glass from 768 px, where it sits on the picture; a card on a phone. */
+.home-ask {
+  background: var(--surface-card);
+  border: var(--border-width-hairline) solid var(--line-default);
+  box-shadow: var(--lift);
+}
+@media (min-width: 768px) {
+  .home-ask {
+    /* On glass the quiet ink steps up to the secondary one, which build-tokens.py checks over the picture. */
+    --text-tertiary: var(--text-secondary);
+    border-color: transparent;
+    background: var(--glass-fill);
+    box-shadow: var(--glass-lift);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+  }
+}
+/* A person who asks for less transparency gets the plain card everywhere. */
+@media (prefers-reduced-transparency: reduce) {
+  .home-ask,
+  .picture-chip {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .home-ask {
+    background: var(--surface-card);
+  }
 }

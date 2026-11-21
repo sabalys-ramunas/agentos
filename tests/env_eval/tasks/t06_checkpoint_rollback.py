@@ -1,6 +1,6 @@
 """A risky change with a checkpoint: try it, and roll back if the tests fail, saying what broke.
 
-Needs environment_checkpoint and environment_rollback; on an agentos without them the task is skipped.
+Needs environment_checkpoint and environment_rollback; on an openajar without them the task is skipped.
 The change asked for (amounts in euros as decimals) breaks the ledger's tests when it is made the quick
 way, so one right end is the code as it was, tests passing, and the human told why. A careful model can
 make the change so the tests pass (Haiku did, 2026-11-18): that is a right end too, with the tests
@@ -88,7 +88,7 @@ TASK = Task(
     title="a risky change: checkpoint, try, roll back when the tests fail",
     repo="ledger",
     requires=("environment_checkpoint", "environment_rollback"),
-    sessions=[Session("In agentos, try changing {repo} to keep amounts in euros (decimals) instead of cents. It is "
+    sessions=[Session("In openajar, try changing {repo} to keep amounts in euros (decimals) instead of cents. It is "
                       "risky: make a checkpoint first, and if the tests fail afterwards, roll back and tell me what "
                       "broke.")],
     check=check, perfect=perfect, careless=careless,

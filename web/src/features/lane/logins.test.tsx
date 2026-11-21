@@ -44,7 +44,7 @@ describe('login queue', () => {
     renderApp('/northwind-group/logins');
     await screen.findByRole('heading', { level: 2 });
     expect(document.querySelector('input[type="password"]')).toBeNull();
-    expect(screen.getByText(/agentos never sees it/)).toBeInTheDocument();
+    expect(screen.getByText(/openajar never sees it/)).toBeInTheDocument();
   });
 
   it('gives a viewer the queue without the controls', async () => {

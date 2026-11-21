@@ -1,10 +1,11 @@
-import { SegmentedControl } from '@/components/ui/tabs';
+import { InlineError } from '@/components/ui/states';
 import { useParams } from '@tanstack/react-router';
-import { Download } from 'lucide-react';
+import { Check, Download } from 'lucide-react';
 import { useState } from 'react';
 import { useExportActivity, useRetention, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
 import type { Retention } from '@/api/types';
+import { RadioRow } from '@/components/ui/choice';
 import { Button } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -28,18 +29,18 @@ function Window({ data }: { data: Retention }) {
   const oldest = data.oldest_at ? Math.max(0, Math.min(100, 100 - ((now - new Date(data.oldest_at).getTime()) / DAY / span) * 100)) : null;
   return (
     <figure className="grid gap-2">
-      <div className="relative h-6 overflow-hidden rounded-md border border-line bg-inset" aria-hidden="true">
+      <div className="relative h-2 overflow-hidden rounded-full bg-chart-grid" aria-hidden="true">
         {data.kept_days > data.retention_days ? (
-          <span className="absolute inset-y-0 left-0 bg-hover" style={{ width: `${planStart}%` }} />
+          <span className="absolute inset-y-0 left-0 bg-chart-bar" style={{ width: `${planStart}%` }} />
         ) : null}
-        <span className="absolute inset-y-0 right-0 bg-fill-strong" style={{ left: `${planStart}%` }} />
-        {oldest !== null ? <span className="absolute inset-y-0 w-px bg-fg" style={{ left: `${oldest}%` }} /> : null}
+        <span className="absolute inset-y-0 right-0 bg-chart-bar-strong" style={{ left: `${planStart}%` }} />
+        {oldest !== null ? <span className="absolute inset-y-0 w-0.5 bg-card" style={{ left: `${oldest}%` }} /> : null}
       </div>
-      <div className="mono tabular flex justify-between text-caption text-faint" aria-hidden="true">
-        <span>{span} days ago</span>
+      <div className="tabular flex justify-between text-secondary text-muted" aria-hidden="true">
+        <span>{date(new Date(now - span * DAY).toISOString())}</span>
         <span>Now</span>
       </div>
-      <figcaption className="text-secondary text-muted">
+      <figcaption className="text-secondary text-faint">
         {data.oldest_at ? `The oldest history kept is from ${date(data.oldest_at)}.` : 'Nothing is stored yet.'} Older than the window is removed by a regular sweep.
       </figcaption>
     </figure>
@@ -82,40 +83,39 @@ function Export({ org, computer }: { org: string; computer: boolean }) {
         start: range === 'all' ? undefined : new Date(Date.now() - Number(range) * DAY).toISOString(),
         workspace: workspace === 'all' ? undefined : workspace,
       },
-      { onSuccess: ({ blob, filename }) => save(blob, filename ?? `agentos-activity-${org}.${format}`) },
+      { onSuccess: ({ blob, filename }) => save(blob, filename ?? `openajar-activity-${org}.${format}`) },
     );
   return (
-    <FormCard
-      title="Export history"
-      description={exportNote}
-      footnote={
-        run.isError && !isCancelled(run.error) ? (
-          <span role="alert" className="text-bad">
-            {describeError(run.error)}
+    <FormCard title="Export history" description={exportNote} onSubmit={start}>
+      <div className="grid gap-3">
+        <RadioRow label="Format" value={format} options={FORMATS} onValueChange={setFormat} />
+        <RadioRow label="How far" value={range} options={RANGES} onValueChange={setRange} />
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,6rem)_minmax(0,1fr)] sm:items-center sm:gap-4">
+          <span id="export-where" className="text-label text-muted">
+            Where
           </span>
-        ) : run.isSuccess ? (
-          'Downloaded. The export is in the audit log.'
-        ) : (
-          'In a spreadsheet, a cell that could run as a formula starts with an apostrophe.'
-        )
-      }
-      action={
-        <Button variant="primary" size="sm" icon={<Download className="size-4" />} loading={run.isPending} onClick={start}>
+          <Select
+            className="sm:w-64"
+            aria-label="Workspace"
+            aria-describedby="export-where"
+            value={workspace}
+            onValueChange={setWorkspace}
+            options={[{ value: 'all', label: 'Every workspace' }, ...workspaces.map((item) => ({ value: item.id, label: item.name }))]}
+          />
+        </div>
+      </div>
+      <p className="text-secondary text-faint">In a spreadsheet, a cell that could run as a formula starts with an apostrophe.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="primary" icon={<Download className="size-4" />} loading={run.isPending}>
           Export
         </Button>
-      }
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedControl label="Format" value={format} options={[...FORMATS]} onValueChange={setFormat} />
-        <SegmentedControl label="Range" value={range} options={[...RANGES]} onValueChange={setRange} />
-        <Select
-          size="sm"
-          className="w-44"
-          aria-label="Workspace"
-          value={workspace}
-          onValueChange={setWorkspace}
-          options={[{ value: 'all', label: 'Every workspace' }, ...workspaces.map((item) => ({ value: item.id, label: item.name }))]}
-        />
+        {run.isError && !isCancelled(run.error) ? <InlineError>{describeError(run.error)}</InlineError> : null}
+        {run.isSuccess ? (
+          <span role="status" className="flex items-center gap-1 text-secondary text-ok">
+            <Check aria-hidden className="size-4" />
+            Downloaded. The export is listed under Who changed what.
+          </span>
+        ) : null}
       </div>
     </FormCard>
   );
@@ -124,7 +124,7 @@ function Export({ org, computer }: { org: string; computer: boolean }) {
 function Body({ org, data }: { org: string; data: Retention }) {
   const computer = data.plan === undefined;
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <FormCard
         title="History"
         description={
@@ -141,7 +141,7 @@ function Body({ org, data }: { org: string; data: Retention }) {
         }
       >
         <div className="flex items-baseline gap-2">
-          <span className="mono tabular text-heading">{data.kept_days}</span>
+          <span className="tabular text-page-title-compact">{data.kept_days}</span>
           <span className="text-body text-muted">days kept now</span>
         </div>
         <Window data={data} />
@@ -155,14 +155,14 @@ function Body({ org, data }: { org: string; data: Retention }) {
       )}
       {computer ? (
         <FormCard title="What the window does not touch" description="Two things are kept whatever the window says.">
-          <ul className="grid gap-2 text-body text-muted">
+          <ul className="grid list-disc gap-2 pl-5 text-body text-muted marker:text-faint">
             <li>Runs. Their records stay on this computer.</li>
             <li>An approval still waiting for a person. It is never deleted.</li>
           </ul>
         </FormCard>
       ) : (
-        <FormCard title="What is never kept" description="agentos only keeps what it needs to show you history.">
-          <ul className="grid gap-2 text-body text-muted">
+        <FormCard title="What is never kept" description="openajar only keeps what it needs to show you history.">
+          <ul className="grid list-disc gap-2 pl-5 text-body text-muted marker:text-faint">
             <li>Computer logs are passed through to your screen and never stored.</li>
             <li>Passwords, cookies and vault secrets stay on your computers. They are never part of history.</li>
             <li>An approval still waiting for a person is never deleted.</li>

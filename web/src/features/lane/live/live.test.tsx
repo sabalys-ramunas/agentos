@@ -38,7 +38,7 @@ describe('the lane window', () => {
     Object.assign(lane('personal/shell'), { state: 'warm' });
     renderApp('/northwind-group/lanes/personal/shell');
     expect(await screen.findByTestId('terminal-screen')).toBeInTheDocument();
-    expect(screen.queryByText(/agentos status/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/openajar status/)).not.toBeInTheDocument();
   });
 
   it('shows a viewer of a terminal lane what it is, without connecting', async () => {

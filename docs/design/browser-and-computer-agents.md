@@ -4,8 +4,8 @@ Status: research and design, 2026-11-04. Owner's ask: "we also need [a] browser 
 computer control agent, need research on it too." Related: [connectors.md](connectors.md)
 (deterministic flows, "no model improvises a commit step"), [egress-guard.md](egress-guard.md),
 [desktop-nodes.md](desktop-nodes.md), [always-on-agents.md](always-on-agents.md), the brains
-plugin (`src/agentos/brains/`, docs/ARCHITECTURE.md section 4), human input
-(`src/agentos/node/human.py`).
+plugin (`src/openajar/brains/`, docs/ARCHITECTURE.md section 4), human input
+(`src/openajar/node/human.py`).
 
 Benchmark numbers below are mostly self-reported by vendors, on different harnesses, judges
 and task versions. They are useful for ranking families of approach, not as promises. Where a
@@ -15,7 +15,7 @@ claim comes from a secondary source it says so.
 
 ## 1. One-page summary for the owner
 
-**What you asked for.** agentos should finish its own jobs (a login, a post, a like, a
+**What you asked for.** openajar should finish its own jobs (a login, a post, a like, a
 reply) without your agent clicking through them, even when a site shows a surprise screen or
 moves a button. Later, the same on desktop apps on a Mac.
 
@@ -41,8 +41,8 @@ moves a button. Later, the same on desktop apps on a Mac.
    Holo run on one GPU and are good at "find the button on this screenshot", weaker at
    planning a whole task. They fit a private, local "finder", later.
 
-**Recommendation.** Build a small agentos executor of our own (working name: **the pilot**)
-that thinks with a model and acts only through agentos's existing tools, under a narrowed
+**Recommendation.** Build a small openajar executor of our own (working name: **the pilot**)
+that thinks with a model and acts only through openajar's existing tools, under a narrowed
 grant. Three ways to use it, in order:
 
 - **Repair:** when a connector step fails, the pilot finds the moved button on the live page
@@ -82,7 +82,7 @@ The owner's steps, and what each one actually requires:
 | Repairing a connector locator | A step fails with `connector_contract_broken` | Produce a new structural locator, test it up to the preflight, propose it for review; never post |
 | Desktop apps on future macOS nodes | An app with no web version | The same loop over the AX tree (desktop-nodes.md section 4.2), screenshots and points when the tree is poor |
 
-Constraints that come from agentos and not from the model:
+Constraints that come from openajar and not from the model:
 
 - **We own the browser.** Fingerprint, proxy, profile, Camoufox build. An agent must never
   launch its own browser, and must not add a CDP endpoint or an extension to a lane.
@@ -198,7 +198,7 @@ independent runs consistently land lower. The ordering (frontier API models well
 ### 4.2 The pattern that fits: planner plus grounder, our hands
 
 Agent S3 and Surfer-H both separate "decide what to do" (a strong model) from "find exactly
-where on the screen" (a grounding model, often small and local). That split fits agentos:
+where on the screen" (a grounding model, often small and local). That split fits openajar:
 
 - The **planner** sees the goal, the outline (or the AX tree on a desk) and, only when
   needed, a screenshot. It answers with a ref, or "the 'Not now' button in the dialog".
@@ -228,8 +228,8 @@ where on the screen" (a grounding model, often small and local). That split fits
 
 ### 5.1 The pilot
 
-A node-side package, `agentos.pilot`, that runs a bounded model loop on **one lane** for
-**one goal** and acts only by calling agentos's own tools in-process, through the same
+A node-side package, `openajar.pilot`, that runs a bounded model loop on **one lane** for
+**one goal** and acts only by calling openajar's own tools in-process, through the same
 policy path an MCP call takes. It is not a new engine and not a new input layer.
 
 ```
@@ -400,7 +400,7 @@ baseline; the pilot has to beat it on cost or reliability to earn its place.
 ### 6.1 Builder briefs
 
 Builders read this document, connectors.md sections 4.4 to 4.9, egress-guard.md,
-`src/agentos/node/human.py`, `src/agentos/node/snapshot.py`, `src/agentos/brains/README.md`,
+`src/openajar/node/human.py`, `src/openajar/node/snapshot.py`, `src/openajar/brains/README.md`,
 docs/TOOLS.md first. Run only the tests a change touches; the full
 suite is CI's job.
 
@@ -427,7 +427,7 @@ suite is CI's job.
     itself: no instant moves over 40 px between consecutive `mousemove` events, clicks not at
     the exact element center in more than 2 of 20 runs, wheel events for every scroll, key
     intervals with spread), `patch_valid` for repair tasks.
-  - `agentos lanebench run [--executor mcp-agent|pilot|replay] [--tasks ...]` printing a
+  - `openajar lanebench run [--executor mcp-agent|pilot|replay] [--tasks ...]` printing a
     table and writing `lanebench-<date>.json`.
 - A `replay` executor that drives the tasks with hand-written structural steps through the
   existing flow driver, to prove the fixtures and checkers are correct before any model runs.
@@ -435,13 +435,13 @@ suite is CI's job.
   executor without mutations and fails on a deliberately wrong replay; `input_conformance`
   fails on a Playwright `page.mouse.click` at the center and passes on `human.click`.
 - Never: point any task at a real site; put the checker port in a lane's site list.
-- Done: `agentos lanebench run --executor replay` green on 15 or more tasks, gates verified
+- Done: `openajar lanebench run --executor replay` green on 15 or more tasks, gates verified
   to fail on the planted bad runs, docs in `tests/lanebench/README.md`.
 
 **Brief P1: pilot core, `resolve` and `repair` (M to L).**
-- Goal: `agentos.pilot` runs a bounded loop on one claimed lane through in-process tool
+- Goal: `openajar.pilot` runs a bounded loop on one claimed lane through in-process tool
   calls under a child grant, with `resolve` and `repair` modes, scored on lanebench.
-- Build: `src/agentos/pilot/` with `models.py` (PilotRequest: lane, mode, goal, limits;
+- Build: `src/openajar/pilot/` with `models.py` (PilotRequest: lane, mode, goal, limits;
   PilotAction as a closed JSON schema per mode; PilotResult with honest status),
   `modes.py` (tool allowlist and effect ceiling per mode, as data), `loop.py` (planner turn,
   policy-checked act, observe by delta, validator turn, budgets, no-progress stop),

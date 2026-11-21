@@ -9,12 +9,12 @@ import httpx
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.errors import Conflict, Denied
-from agentos.policy.notifier import LINK_TTL_S, generate_topic, weak_topic, webhook_signature
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.errors import Conflict, Denied
+from openajar.policy.notifier import LINK_TTL_S, generate_topic, weak_topic, webhook_signature
 
-TOPIC = "agentos-test-k3Jx9QmZ2vR7tB5nW8yL"  # long and random, as an enabled ntfy channel needs
+TOPIC = "openajar-test-k3Jx9QmZ2vR7tB5nW8yL"  # long and random, as an enabled ntfy channel needs
 
 
 class FakeNet:
@@ -42,7 +42,7 @@ def env(tmp_path):
     net = FakeNet()
     svc, _rt = make_service(tmp_path, clock=clock, transport=net.transport)
     svc.notifier.update_config({"ntfy": {"topic": TOPIC, "token": "tk_ntfy_secret_value"},
-                                "webhook": {"url": "https://hooks.example/agentos",
+                                "webhook": {"url": "https://hooks.example/openajar",
                                             "secret": "whsec_0123456789abcdef"},
                                 "panel_url": "http://localhost:7400"})
     yield svc, net, clock
@@ -84,13 +84,13 @@ async def test_approval_push_with_deep_link_only(env):
 
 async def test_buttons_review_in_the_panel_or_deny_and_never_approve(env):
     svc, net, clock = env
-    svc.notifier.update_config({"public_base_url": "https://agentos.example.com"})
+    svc.notifier.update_config({"public_base_url": "https://openajar.example.com"})
     ap, _ = await make_pending(svc)
     await svc.notifier.flush()
     body = next(b for b in net.bodies() if "topic" in b)
     assert [a["label"] for a in body["actions"]] == ["Review", "Deny"]  # no Approve button (SEC-8)
     review, deny = body["actions"]
-    assert review["action"] == "view" and review["url"].startswith("https://agentos.example.com/local/needs-you?")
+    assert review["action"] == "view" and review["url"].startswith("https://openajar.example.com/local/needs-you?")
     r = httpx.URL(review["url"]).params
     assert svc.approvals.check_review_link(ap, r["e"], r["s"]).id == ap  # opens it; decides nothing
     assert int(r["e"]) <= clock.t + LINK_TTL_S
@@ -114,21 +114,21 @@ async def test_buttons_review_in_the_panel_or_deny_and_never_approve(env):
 
 async def test_a_code_request_links_to_its_card_and_carries_no_code(env):
     svc, net, _ = env
-    svc.notifier.update_config({"public_base_url": "https://agentos.example.com"})
+    svc.notifier.update_config({"public_base_url": "https://openajar.example.com"})
     svc.notifier.send({"type": "code.requested", "title": "Login code for instagram.com",
                        "body": "biz-a / instagram is at the code step on instagram.com.",
                        "code_request_id": "cr_01JC0DE", "lane": "biz-a/instagram", "site": "instagram.com",
                        "expires_ts": 1e12, "urgent": True})
     await svc.notifier.flush()
     body = next(b for b in net.bodies() if "topic" in b)
-    assert body["click"] == "https://agentos.example.com/local/needs-you#cr_01JC0DE"
+    assert body["click"] == "https://openajar.example.com/local/needs-you#cr_01JC0DE"
     assert body["priority"] == 5  # the login waits for it
     assert [a["label"] for a in body["actions"]] == ["Open"]  # no Review or Deny: it is not an approval
     hook = next(b for b in net.bodies() if "data" in b)
     assert hook["type"] == "code.requested" and hook["data"]["code_request_id"] == "cr_01JC0DE"
 
 
-@pytest.mark.parametrize("topic", ["agentos", "my-phone", "a" * 40, "agentos-approvals-topic-for-my-phone"])
+@pytest.mark.parametrize("topic", ["openajar", "my-phone", "a" * 40, "openajar-approvals-topic-for-my-phone"])
 def test_guessable_topics_are_refused(env, topic):
     svc, _, _ = env
     assert weak_topic(topic) is not None
@@ -146,7 +146,7 @@ def test_a_topic_left_out_is_generated(env):
 
 def test_a_saved_weak_topic_turns_ntfy_off_instead_of_failing(tmp_path):
     (tmp_path / "secrets").mkdir(parents=True)
-    (tmp_path / "secrets" / "notifier.json").write_text(json.dumps({"ntfy": {"topic": "agentos"}}))
+    (tmp_path / "secrets" / "notifier.json").write_text(json.dumps({"ntfy": {"topic": "openajar"}}))
     svc, _ = make_service(tmp_path)
     try:
         assert svc.notifier.config.ntfy.enabled is False and "ntfy" not in svc.notifier.enabled_channels()

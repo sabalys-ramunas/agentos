@@ -1,4 +1,4 @@
-"""Pins the anchor check (agentos.policy.anchors.check): a synthetic signed log, the anchors held
+"""Pins the anchor check (openajar.policy.anchors.check): a synthetic signed log, the anchors held
 off the node for its checkpoints and retention marks, then one way the log or the anchors differ
 per case. Each case pins the findings in order and the summary."""
 
@@ -7,7 +7,7 @@ from __future__ import annotations
 from pinned import check, outcome
 from pinned_log import KID, Log
 
-from agentos.policy import anchors
+from openajar.policy import anchors
 
 H = "sha256:" + "9" * 64
 

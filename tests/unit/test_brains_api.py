@@ -7,8 +7,8 @@ from starlette.applications import Starlette
 from starlette.testclient import TestClient
 from testkit.brains import OAUTH, add, make_service, wait_status
 
-from agentos.brains.api import routes
-from agentos.core.models import Principal
+from openajar.brains.api import routes
+from openajar.core.models import Principal
 
 
 @pytest.fixture

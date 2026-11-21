@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" role="img" aria-label="How agentos works: you ask your agent, agentos gives it its own cloud computer, and it comes back with proof and a pull request.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" role="img" aria-label="How openajar works: you ask your agent, openajar gives it its own cloud computer, and it comes back with proof and a pull request.">
   <defs>
     <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#98a2b3"/></marker>
   </defs>
@@ -10,7 +10,7 @@
     <text x="58" y="41" font-size="17" font-weight="650" fill="#101828">You ask your agent</text>
     <rect x="20" y="70" width="230" height="150" rx="12" fill="#f2f4f7"/>
     <rect x="62" y="86" width="176" height="52" rx="12" fill="#4f46e5"/>
-    <text x="76" y="107" font-size="13" fill="#ffffff">In agentos: fix the</text>
+    <text x="76" y="107" font-size="13" fill="#ffffff">In openajar: fix the</text>
     <text x="76" y="125" font-size="13" fill="#ffffff">checkout bug, show me.</text>
     <rect x="32" y="152" width="150" height="52" rx="12" fill="#ffffff" stroke="#e4e7ec"/>
     <text x="46" y="173" font-size="13" fill="#101828">On it. Opening a</text>

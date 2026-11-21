@@ -92,7 +92,7 @@ is live), Add a machine with a copyable command, the live test count and streami
 | "Add shadows, gradients or tinted cards: do not" | The board has a dotted background; a live lane tile is tinted pink at 12 to 15% | The dots are the canvas. The pink tint is the one place "acting now" needs to be found across a rack of lanes at a glance. |
 | Status colour "never a panel" | The proposal card has a 3 px amber top edge | It is the one thing on the brand page waiting for a yes. An edge, not a fill. |
 | `text-32` is "rare" | Home's headline is 46 px | The headline is the screen's summary, read first by everyone. It is the one big moment per screen. |
-| Rail words: Home, Needs you, Accounts, Computers, History | Home, Needs you, Runs, Checks, Machines, Brand | The centre moved to dev and design work. "Runs" and "Checks" are what the tools call them (`agentos run`, `ui_check`). "Machines" over "Computers" because the owner and the docs say machines and nodes; open question below. |
+| Rail words: Home, Needs you, Accounts, Computers, History | Home, Needs you, Runs, Checks, Machines, Brand | The centre moved to dev and design work. "Runs" and "Checks" are what the tools call them (`openajar run`, `ui_check`). "Machines" over "Computers" because the owner and the docs say machines and nodes; open question below. |
 | Agent marks are official artwork | Initials on a muted colour (CC, Cx, T3) | Placeholders in a prototype. The real app should use `AgentMark`. |
 | Primary button once per view | Needs you cards each carry Approve | Each card is its own decision; this already holds in the current app's Needs you. |
 
@@ -105,7 +105,7 @@ the radius steps, sentence case, no em dash.
 - **Images:** every screen at 375, 768 and 1440, light and dark, full page, plus the first
   phone screen with the tab bar where it sits (`<screen>-screen@375-<theme>.png`), plus the
   loading, error, empty and many states.
-- **Studio** from a scratch HOME (`agentos studio up --port 7491`): `ui_check` on Home, a run,
+- **Studio** from a scratch HOME (`openajar studio up --port 7491`): `ui_check` on Home, a run,
   the checkout check, Machines and Brand (6 screens each), `ui_check` again with `since` on
   Home (27 fixed), `system_check tokens="page"` on Home and Machines, and `ui_image` on one
   finding.

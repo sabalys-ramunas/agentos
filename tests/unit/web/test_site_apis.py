@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import copy
 
-from agentos.api.web.site_apis import try_answer
-from agentos.runner.siteapis.models import SAMPLE
+from openajar.api.web.site_apis import try_answer
+from openajar.runner.siteapis.models import SAMPLE
 
 API = "harbor-supplier"
 LANE = "biz-a/shop"

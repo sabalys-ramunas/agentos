@@ -146,7 +146,7 @@ export function CopyDemo() {
   return (
     <Card className="grid gap-4 p-5">
       <Example label="CodeBlock: a command to run, with its copy button. It wraps on a phone">
-        <CodeBlock code="agentos environments setup --pull" label="Copy the command" />
+        <CodeBlock code="openajar environments setup --pull" label="Copy the command" />
       </Example>
       <Example label="CopyButton: beside an id">
         <Row>

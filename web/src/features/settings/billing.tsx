@@ -1,28 +1,33 @@
+import { InlineError } from '@/components/ui/states';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
-import { Receipt } from 'lucide-react';
+import { ExternalLink, Star } from 'lucide-react';
 import { fleet } from '@/api/client';
 import { ApiError } from '@/api/http';
 import { useAccess, useStatus } from '@/api/hooks';
 import type { Status } from '@/api/types';
 import { useRunsAlone } from '@/features/nodes/add-node';
 import { Button } from '@/components/ui/button';
-import { Card, FormCard } from '@/components/ui/card';
+import { FormCard } from '@/components/ui/card';
+import { AppTile } from '@/components/ui/tile';
 import { Meter } from '@/components/ui/misc';
-import { EmptyState, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
+import { NoAccess, QueryView, Skeleton } from '@/components/ui/states';
 import { describeError } from '@/lib/errors';
 import { safeRedirect } from '@/lib/format';
 import { SettingsHeader } from './page';
 
 /** A count, with its plan's limit when there is one. A machine has no plan caps, so it shows the count alone. */
 function Usage({ label, value, max }: { label: string; value: number; max?: number }) {
+  const full = max !== undefined && value >= max;
   return (
-    <div>
-      <div className="mb-2 flex items-baseline justify-between text-body">
-        <span>{label}</span>
-        <span className="mono tabular text-secondary text-muted">{max === undefined ? value : `${value} of ${max}`}</span>
-      </div>
-      {max === undefined ? null : <Meter value={value} max={max} label={label} />}
+    <div className="grid content-start gap-2">
+      <span className="text-secondary text-muted">{label}</span>
+      <span className="flex items-baseline gap-1">
+        <span className="tabular text-page-title-compact">{value}</span>
+        {max === undefined ? null : <span className="tabular text-secondary text-faint">of {max}</span>}
+      </span>
+      {max === undefined ? null : <Meter value={value} max={max} label={`${label}: ${value} of ${max}`} />}
+      {full ? <span className="text-caption text-warn">At the limit. New ones wait for a bigger plan.</span> : null}
     </div>
   );
 }
@@ -51,34 +56,29 @@ function Body({ org, status }: { org: string; status: Status }) {
   if (!status.plan) return <NoPlan />;
   const plan = status.plan;
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <FormCard
+        tile={<AppTile tone="violet" icon={Star} size="md" />}
+        tileAlign="center"
         title={`${plan.charAt(0).toUpperCase()}${plan.slice(1)} plan`}
         description={
           alone
-            ? 'This machine is your own, so agentos does not bill it. Nothing is paid per run.'
-            : 'agentos never bills per run. A watcher that fires a thousand times costs the same as one that fires twice.'
+            ? 'This machine is your own, so openajar does not bill it. Nothing is paid per run.'
+            : 'Over a limit after a downgrade, things go read-only. Nothing is deleted.'
         }
-        footnote={
-          portal.isError ? (
-            <span role="alert" className="text-bad">
-              {describeError(portal.error)}
-            </span>
-          ) : alone ? undefined : (
-            'Over a limit after a downgrade, resources go read-only. Nothing is deleted.'
-          )
-        }
-        action={
+        aside={
           canManage ? (
-            <Button variant="primary" size="sm" loading={portal.isPending} onClick={() => portal.mutate()}>
+            <Button icon={<ExternalLink className="size-4" />} loading={portal.isPending} onClick={() => portal.mutate()}>
               Manage billing
             </Button>
           ) : undefined
         }
-      />
+      >
+        {portal.isError ? <InlineError>{describeError(portal.error)}</InlineError> : null}
+      </FormCard>
       {status.usage ? (
         <FormCard title="Usage" description={alone ? 'What this machine holds now.' : 'This billing period.'}>
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             <Usage label="Active accounts" value={status.usage.active_lanes} max={status.limits?.active_lanes} />
             <Usage label="Machines" value={status.usage.nodes} max={status.limits?.nodes} />
             <Usage label="Workspaces" value={status.usage.workspaces} max={status.limits?.workspaces} />
@@ -88,9 +88,7 @@ function Body({ org, status }: { org: string; status: Status }) {
         </FormCard>
       ) : null}
       {alone ? null : (
-        <Card>
-          <EmptyState icon={<Receipt />} title="No invoices yet" description="Invoices appear here after your first payment." className="py-10" />
-        </Card>
+        <FormCard title="Invoices" description="No invoices yet. They show here after your first payment." />
       )}
     </div>
   );
@@ -100,10 +98,14 @@ export function BillingSettings() {
   const { org } = useParams({ from: '/$org/settings/billing' });
   const status = useStatus(org);
   const access = useAccess(org);
+  const alone = useRunsAlone(org);
   if (!access.can('org.update')) return <NoAccess />;
   return (
     <>
-      <SettingsHeader title="Billing and plan" />
+      <SettingsHeader
+        title="Billing and plan"
+        description={alone ? undefined : 'openajar never bills per run. A watcher that fires a thousand times costs the same as one that fires twice.'}
+      />
       <QueryView card query={status} skeleton={<Skeleton className="h-64 rounded-xl" />}>
         {(data) => <Body org={org} status={data} />}
       </QueryView>

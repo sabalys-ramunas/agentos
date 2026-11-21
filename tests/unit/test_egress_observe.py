@@ -1,4 +1,4 @@
-"""Observing a lane's requests by shape (agentos.node.egress: request_shape, the observe file),
+"""Observing a lane's requests by shape (openajar.node.egress: request_shape, the observe file),
 the way effect rules are checked against a throwaway account's real publish requests."""
 
 from __future__ import annotations
@@ -10,9 +10,9 @@ from urllib.parse import urlencode
 import pytest
 from test_egress import COMMITTER, FakeRequest, make_guard
 
-from agentos.core.errors import InvalidRequest
-from agentos.node import egress
-from agentos.node.egress import read_observe, request_shape, write_observe
+from openajar.core.errors import InvalidRequest
+from openajar.node import egress
+from openajar.node.egress import read_observe, request_shape, write_observe
 
 SECRET = "my private caption 42"
 

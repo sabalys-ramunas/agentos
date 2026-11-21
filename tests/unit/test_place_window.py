@@ -10,8 +10,8 @@ import time
 
 import pytest
 
-from agentos.node.camoufox import window as ec  # _xlib is patched where place_window reads it
-from agentos.node.display import _write_xauthority, read_xauthority
+from openajar.node.camoufox import window as ec  # _xlib is patched where place_window reads it
+from openajar.node.display import _write_xauthority, read_xauthority
 
 
 class Attributes(ctypes.Structure):  # the fields place_window reads

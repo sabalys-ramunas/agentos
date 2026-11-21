@@ -1,4 +1,4 @@
-"""The files, upload, tab and dialog tools (agentos.node.io_tools) over fakes."""
+"""The files, upload, tab and dialog tools (openajar.node.io_tools) over fakes."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from typing import Any
 import pytest
 from test_io_tabs_dialogs import FakeContext, open_dialog
 
-from agentos.core.config import NodeConfig, save_proxies
-from agentos.core.errors import (
+from openajar.core.config import NodeConfig, save_proxies
+from openajar.core.errors import (
     AgentPaused,
     ApprovalPending,
     InvalidRequest,
@@ -23,7 +23,7 @@ from agentos.core.errors import (
     PolicyDenied,
     ServiceUnavailable,
 )
-from agentos.core.models import (
+from openajar.core.models import (
     ControlState,
     Effect,
     LaneControl,
@@ -34,12 +34,12 @@ from agentos.core.models import (
     ProxyConfig,
     Signal,
 )
-from agentos.core.runtime import Runtime
-from agentos.core.tools import TOOL_NAME_RE, ToolImage
-from agentos.node import io_tools
-from agentos.node.camoufox.engine import PageTracker
-from agentos.node.files import MB, FileStatus, LaneFiles
-from agentos.node.interaction import UploadResult
+from openajar.core.runtime import Runtime
+from openajar.core.tools import TOOL_NAME_RE, ToolImage
+from openajar.node import io_tools
+from openajar.node.camoufox.engine import PageTracker
+from openajar.node.files import MB, FileStatus, LaneFiles
+from openajar.node.interaction import UploadResult
 
 PNG = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"

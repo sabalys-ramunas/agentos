@@ -1,5 +1,5 @@
 
- Usage: agentos controller [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar controller [OPTIONS] COMMAND [ARGS]...
 
  The controller: one MCP URL for every node.
 

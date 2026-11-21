@@ -11,9 +11,9 @@ FAKE_UV = """#!/bin/sh
 echo "uv $*" >> "$FAKE_LOG"
 if [ "$1 $2" = "tool install" ]; then
   mkdir -p "$HOME/.local/bin"
-  printf '#!/bin/sh\\necho "agentos $*" >> "$FAKE_LOG"\\n[ "$1" = --version ] && echo 0.0.0-test\\nexit 0\\n' \\
-    > "$HOME/.local/bin/agentos"
-  chmod +x "$HOME/.local/bin/agentos"
+  printf '#!/bin/sh\\necho "openajar $*" >> "$FAKE_LOG"\\n[ "$1" = --version ] && echo 0.0.0-test\\nexit 0\\n' \\
+    > "$HOME/.local/bin/openajar"
+  chmod +x "$HOME/.local/bin/openajar"
 fi
 """
 
@@ -49,21 +49,21 @@ def run(tmp_path: Path, bin_dir: Path, log: Path, **env: str) -> subprocess.Comp
                           env={"HOME": str(home), "PATH": f"{bin_dir}:/usr/bin:/bin", "FAKE_LOG": str(log), **env})
 
 
-def test_installs_uv_then_agentos_from_git_and_prints_the_next_step(tmp_path):
+def test_installs_uv_then_openajar_from_git_and_prints_the_next_step(tmp_path):
     bin_dir, log = fake_bin(tmp_path, with_uv=False)
-    proc = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git")
+    proc = run(tmp_path, bin_dir, log, OPENAJAR_GIT_URL="https://git.example.test/openajar.git")
     assert proc.returncode == 0, proc.stderr + proc.stdout
     calls = log.read_text()
     assert "curl -LsSf https://astral.sh/uv/install.sh" in calls
-    assert "uv tool install --force --python 3.12 agentos[local] @ git+https://git.example.test/agentos.git@main" in calls
+    assert "uv tool install --force --python 3.12 openajar[local] @ git+https://git.example.test/openajar.git@main" in calls
     assert "sudo" not in calls  # never on the person's computer
-    assert "Next step: agentos setup" in proc.stdout
-    assert "agentos setup" not in calls  # no terminal attached: it prints the step instead of running it
+    assert "Next step: openajar setup" in proc.stdout
+    assert "openajar setup" not in calls  # no terminal attached: it prints the step instead of running it
 
-    again = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git", AGENTOS_GIT_REF="v1")
+    again = run(tmp_path, bin_dir, log, OPENAJAR_GIT_URL="https://git.example.test/openajar.git", OPENAJAR_GIT_REF="v1")
     assert again.returncode == 0, again.stderr
     assert log.read_text().count("curl ") == 1  # uv is there now
-    assert "agentos[local] @ git+https://git.example.test/agentos.git@v1" in log.read_text()
+    assert "openajar[local] @ git+https://git.example.test/openajar.git@v1" in log.read_text()
     assert "—" not in SCRIPT.read_text()
 
 
@@ -71,7 +71,7 @@ def test_installs_from_the_public_repository_by_default(tmp_path):
     bin_dir, log = fake_bin(tmp_path, with_uv=True)
     proc = run(tmp_path, bin_dir, log)
     assert proc.returncode == 0, proc.stderr
-    assert "agentos[local] @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()
+    assert "openajar[local] @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()
 
 
 def test_installs_the_newest_release_when_there_are_tags(tmp_path):
@@ -82,15 +82,15 @@ def test_installs_the_newest_release_when_there_are_tags(tmp_path):
         '#!/bin/sh\necho "git $*" >> "$FAKE_LOG"\n'
         'printf "aaa\\trefs/tags/v0.2.0\\nbbb\\trefs/tags/v0.10.0\\nccc\\trefs/tags/v0.9.1\\n'
         'ddd\\trefs/tags/v0.11.0-rc1\\neee\\trefs/tags/vnext\\n"\n')
-    proc = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git")
+    proc = run(tmp_path, bin_dir, log, OPENAJAR_GIT_URL="https://git.example.test/openajar.git")
     assert proc.returncode == 0, proc.stderr
     calls = log.read_text()
-    assert "git ls-remote --tags --refs https://git.example.test/agentos.git v*" in calls
-    assert "agentos[local] @ git+https://git.example.test/agentos.git@v0.10.0" in calls
+    assert "git ls-remote --tags --refs https://git.example.test/openajar.git v*" in calls
+    assert "openajar[local] @ git+https://git.example.test/openajar.git@v0.10.0" in calls
     assert "(v0.10.0)" in proc.stdout
 
     # a ref that is given wins, and no tags are looked up
     log.write_text("")
-    again = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git", AGENTOS_GIT_REF="main")
+    again = run(tmp_path, bin_dir, log, OPENAJAR_GIT_URL="https://git.example.test/openajar.git", OPENAJAR_GIT_REF="main")
     assert again.returncode == 0, again.stderr
-    assert "ls-remote" not in log.read_text() and "agentos.git@main" in log.read_text()
+    assert "ls-remote" not in log.read_text() and "openajar.git@main" in log.read_text()

@@ -3,10 +3,10 @@ real browser driving a real Camoufox lane.
 
 Run on the node:  scripts/node-test.sh control tests/node/test_control_node.py -q
 Uses the ranges scripts/node-test.sh exports for its slot (displays, VNC ports and HTTP ports
-from AGENTOS_TEST_DISPLAY_BASE, AGENTOS_TEST_VNC_BASE and AGENTOS_TEST_MCP_PORT_BASE; by default
-the control builder's :140-:149, 5840-5849 and 7440-7449), and an AGENTOS_HOME under .node-home/
+from OPENAJAR_TEST_DISPLAY_BASE, OPENAJAR_TEST_VNC_BASE and OPENAJAR_TEST_MCP_PORT_BASE; by default
+the control builder's :140-:149, 5840-5849 and 7440-7449), and an OPENAJAR_HOME under .node-home/
 in this checkout. Needs xdotool.
-Set AGENTOS_TEST_SHOTS=/some/dir to keep screenshots of the viewer page.
+Set OPENAJAR_TEST_SHOTS=/some/dir to keep screenshots of the viewer page.
 """
 
 from __future__ import annotations
@@ -25,13 +25,13 @@ import pytest
 import uvicorn
 from websockets.asyncio.client import connect
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import ControlState, LaneSpec, ViewerInfo
-from agentos.node.camoufox.engine import browser_pids_under
-from agentos.node.display import DisplayManagerImpl, iter_processes, kill_processes, port_free, tcp_ports_of
-from agentos.node.lanes import LaneManagerImpl, build_lane_manager
-from agentos.node.store import LaneStore
-from agentos.node.viewer_app import build_viewer_app
+from openajar.core.config import NodeConfig
+from openajar.core.models import ControlState, LaneSpec, ViewerInfo
+from openajar.node.camoufox.engine import browser_pids_under
+from openajar.node.display import DisplayManagerImpl, iter_processes, kill_processes, port_free, tcp_ports_of
+from openajar.node.lanes import LaneManagerImpl, build_lane_manager
+from openajar.node.store import LaneStore
+from openajar.node.viewer_app import build_viewer_app
 
 pytestmark = [
     pytest.mark.node,
@@ -39,15 +39,15 @@ pytestmark = [
     pytest.mark.skipif(shutil.which("xdotool") is None, reason="needs xdotool (apt install xdotool)"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "140"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6140"))
-RANGES = {"display_base": DISPLAY_BASE, "vnc_base": int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5840")),
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "140"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6140"))
+RANGES = {"display_base": DISPLAY_BASE, "vnc_base": int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5840")),
           "viewer_base": VIEWER_BASE, "max_slots": 10}
-HTTP_BASE = int(os.environ.get("AGENTOS_TEST_MCP_PORT_BASE", "0")) or 7440
+HTTP_BASE = int(os.environ.get("OPENAJAR_TEST_MCP_PORT_BASE", "0")) or 7440
 HTTP_PORTS = range(HTTP_BASE, HTTP_BASE + 10)
 LANE = "test/control"
-SHOTS = os.environ.get("AGENTOS_TEST_SHOTS")
+SHOTS = os.environ.get("OPENAJAR_TEST_SHOTS")
 
 
 # ---- helpers ------------------------------------------------------------------------------
@@ -257,7 +257,7 @@ async def test_relay_bypasses_websockify_and_x11vnc_stays_local(relay_node):
 PAGE = """<!doctype html><html><head><title>control test</title>
 <style>html,body{margin:0;height:100%;background:#f3f5fa;font:28px sans-serif}
 #zone{position:fixed;inset:0;display:grid;place-items:center}</style></head>
-<body><div id="zone"><div>agentos take-over test<br><input id="field" autofocus></div></div>
+<body><div id="zone"><div>openajar take-over test<br><input id="field" autofocus></div></div>
 <script>
 document.addEventListener('mousedown', e => {
   document.body.dataset.clicks = String(Number(document.body.dataset.clicks || 0) + 1);

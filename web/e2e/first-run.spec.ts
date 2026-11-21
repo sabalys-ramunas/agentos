@@ -52,7 +52,7 @@ test('first run: the goal, a computer, accounts, an AI, a real first request, an
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page.getByRole('heading', { name: 'Give it its first job' })).toBeVisible();
-  await expect(page.getByText(/Using agentos, write an Instagram post for Kiln Bakery/)).toBeVisible();
+  await expect(page.getByText(/Using openajar, write an Instagram post for Kiln Bakery/)).toBeVisible();
   const card = page.getByRole('main').getByRole('article').first();
   await expect(card).toBeVisible({ timeout: 20_000 });
   await card.getByRole('button').last().click();

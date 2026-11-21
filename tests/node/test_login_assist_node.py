@@ -15,7 +15,7 @@ vault's typist types, and the test plays the owner through /api/lanes/{ws}/{name
 Every value the owner typed reached the site (the recorded form posts), and none is in a log line,
 a trace or a published event.
 
-Run on the node:  AGENTOS_TEST_SLOT=48 scripts/node-test.sh loginassist tests/node/test_login_assist_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=48 scripts/node-test.sh loginassist tests/node/test_login_assist_node.py -q
 """
 
 from __future__ import annotations
@@ -36,16 +36,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "unit"))
 from test_lanes import Clock, FakeDisplays
 from test_vault_support import make_vault, private_home
 
-from agentos.api import ApiSettings, build_api
-from agentos.core.config import NodeConfig
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node.camoufox.engine import PageTracker
-from agentos.node.daemon import build_services, node_runtime
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.login_page import REDACT_RGBA
-from agentos.node.store import LaneStore
-from agentos.node.typist import typist_factory
+from openajar.api import ApiSettings, build_api
+from openajar.core.config import NodeConfig
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node.camoufox.engine import PageTracker
+from openajar.node.daemon import build_services, node_runtime
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.login_page import REDACT_RGBA
+from openajar.node.store import LaneStore
+from openajar.node.typist import typist_factory
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
@@ -55,7 +55,7 @@ EMAIL = "ada.lovelace@example.org"
 PASSWORD = "Tr0ub4dor&3 é-correct#horse"
 GPASSWORD = "an0ther-Gpass word!"
 CODE = "424242"
-SERVICES = ["agentos.api.events", "agentos.policy.service", "agentos.vault.service"]
+SERVICES = ["openajar.api.events", "openajar.policy.service", "openajar.vault.service"]
 
 
 class Site:

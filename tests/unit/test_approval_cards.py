@@ -1,4 +1,4 @@
-"""Approval cards that show the diff (agentos.policy.cards): the post as it will appear, inline edit
+"""Approval cards that show the diff (openajar.policy.cards): the post as it will appear, inline edit
 bound to the edited content and used by the run, "always allow this shape", and the form a
 browser_act submit sends."""
 
@@ -9,13 +9,13 @@ import pytest
 from connector_samples import POST_PARAMS as PARAMS
 from test_connector_approvals import LANE, PHOTO, _harness, _no_pace, _policy, _post
 
-from agentos.api.bridge import ApprovalsAdapter
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Principal, RunStatus
-from agentos.core.runtime import Runtime
-from agentos.node.files import NodeFiles
-from agentos.policy import cards
+from openajar.api.bridge import ApprovalsAdapter
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Principal, RunStatus
+from openajar.core.runtime import Runtime
+from openajar.node.files import NodeFiles
+from openajar.policy import cards
 
 OWNER = Principal(kind="owner", id="owner")
 
@@ -154,10 +154,10 @@ async def test_a_form_approval_never_carries_a_vault_value_to_the_panel_a_push_o
     from test_policy_support import make_service
     from test_vault_support import PASSWORD, USERNAME, make_vault, private_home
 
-    from agentos.core.errors import ApprovalPending
-    from agentos.core.models import Effect
-    from agentos.node.channel import bridge
-    from agentos.policy.scrub import runtime_scrub
+    from openajar.core.errors import ApprovalPending
+    from openajar.core.models import Effect
+    from openajar.node.channel import bridge
+    from openajar.policy.scrub import runtime_scrub
 
     svc, rt = make_service(tmp_path / "policy")
     vault = make_vault(private_home(tmp_path))
@@ -194,7 +194,7 @@ def test_a_read_only_param_is_shown_but_never_editable():
     from pathlib import Path
     from types import SimpleNamespace
 
-    from agentos.runner.connectors.compile import compile_path
+    from openajar.runner.connectors.compile import compile_path
 
     root = Path(__file__).resolve().parents[2] / "connectors" / "linkedin"
     flow = compile_path(root).operations["profile_headline"].flow
@@ -212,7 +212,7 @@ def test_a_flow_cards_upload_param_is_a_file_and_the_approval_binds_its_bytes(tm
     """QA-2 #14: a flow's `image` param (an upload step's, with no `format: agentos-file` in its schema)
     was marked editable on the card, and the approval bound only its name, so another file saved under
     that name would have gone out. It is a file row now, never editable, and the approval binds its sha256."""
-    from agentos.runner.fakes import Harness, post_flow
+    from openajar.runner.fakes import Harness, post_flow
 
     lane = "biz-a/social"
     config = NodeConfig(home=tmp_path / "node")

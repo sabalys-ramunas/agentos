@@ -13,16 +13,16 @@ import pytest
 from fakes import FakeInteraction, FakeLaneManager
 from mcp import Client
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import ControlState, LaneControl, LaneSpec, Signal, SnapshotResult
-from agentos.core.runtime import Runtime
-from agentos.core.tools import PromptSpec
-from agentos.mcp.registry import build_mcp
-from agentos.node import control_tools, devtools_tools, interaction, io_tools
-from agentos.node import tools as node_tools
-from agentos.node.interaction import WaitResult
-from agentos.node.tools import INSTRUCTIONS, RECIPES, UNTRUSTED, render_snapshot, tool_specs
-from agentos.node.tools import outline as outline_mod
+from openajar.core.config import NodeConfig
+from openajar.core.models import ControlState, LaneControl, LaneSpec, Signal, SnapshotResult
+from openajar.core.runtime import Runtime
+from openajar.core.tools import PromptSpec
+from openajar.mcp.registry import build_mcp
+from openajar.node import control_tools, devtools_tools, interaction, io_tools
+from openajar.node import tools as node_tools
+from openajar.node.interaction import WaitResult
+from openajar.node.tools import INSTRUCTIONS, RECIPES, UNTRUSTED, render_snapshot, tool_specs
+from openajar.node.tools import outline as outline_mod
 
 EM_DASH = "—"
 LANE = "personal/reddit"
@@ -393,12 +393,12 @@ def test_the_ref_states_agents_see_are_the_ones_the_wait_knows():
 # ---- howto and prompts --------------------------------------------------------------------------
 
 def all_tool_names() -> set[str]:
-    from agentos.agenda import tools as agenda_tools
-    from agentos.node import vault_tools
-    from agentos.policy import tools as policy_tools
-    from agentos.profiles import tools as profiles_tools
-    from agentos.runner import tools as runner_tools
-    from agentos.studio import tools as studio_tools
+    from openajar.agenda import tools as agenda_tools
+    from openajar.node import vault_tools
+    from openajar.policy import tools as policy_tools
+    from openajar.profiles import tools as profiles_tools
+    from openajar.runner import tools as runner_tools
+    from openajar.studio import tools as studio_tools
 
     runtime = Runtime()
     names = set()
@@ -458,8 +458,8 @@ async def test_every_tool_says_its_effect_and_uses_no_em_dash(manager):
     specs = [*[s for s in tool_specs(Runtime()) if not isinstance(s, PromptSpec)],
              *io_tools.tool_specs(Runtime()), *control_tools.tool_specs(Runtime()),
              *devtools_tools.tool_specs(Runtime())]
-    from agentos.core.toolsets import TOOLSETS
-    from agentos.mcp.registry import tool_description, tool_params
+    from openajar.core.toolsets import TOOLSETS
+    from openajar.mcp.registry import tool_description, tool_params
 
     core = next(t for t in TOOLSETS if t.name == "core").tools
     for spec in specs:
@@ -490,7 +490,7 @@ async def test_an_outline_after_an_action_is_of_the_tab_the_lane_acts_in_now():
 
     from test_io_tabs_dialogs import FakeContext
 
-    from agentos.node.camoufox.engine import PageTracker
+    from openajar.node.camoufox.engine import PageTracker
 
     ctx = FakeContext()
     tracker = PageTracker(ctx)

@@ -20,14 +20,14 @@ from channel_support import (
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from websockets.asyncio.client import connect
 
-from agentos.controller import routing
-from agentos.controller.routing import NodeView, RouteError, ToolDef
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.node.channel import enroll as enrolling
-from agentos.node.channel import wire
-from agentos.node.channel.identity import NodeKey
+from openajar.controller import routing
+from openajar.controller.routing import NodeView, RouteError, ToolDef
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.node.channel import enroll as enrolling
+from openajar.node.channel import wire
+from openajar.node.channel.identity import NodeKey
 
 
 @pytest.fixture
@@ -312,7 +312,7 @@ async def test_owner_sign_in_with_a_one_time_code_and_csrf(ctl):
         assert (await web.get("/api/nodes")).status_code == 200
         assert (await web.post("/api/join-tokens", json={})).status_code == 403  # no CSRF header
         made = await web.post("/api/join-tokens", json={"name": "box-9"}, headers={"X-Agentos-CSRF": csrf})
-        assert made.status_code == 201 and made.json()["join_command"].startswith("agentos node join --self-hosted ws://")
+        assert made.status_code == 201 and made.json()["join_command"].startswith("openajar node join --self-hosted ws://")
         cross = await web.post("/api/join-tokens", json={},
                                headers={"X-Agentos-CSRF": csrf, "Origin": "https://evil.example"})
         assert cross.status_code == 403

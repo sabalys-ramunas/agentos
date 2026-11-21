@@ -24,14 +24,14 @@ describe('Runs', () => {
     expect(rows[0]).toHaveAccessibleName(/^Tests in harbor-shop, (Running|Passed)$/);
     const failed = rowOf(t, /^Tests in harbor-shop, Failed$/);
     expect(within(failed).getByText('pnpm vitest run')).toBeInTheDocument();
-    expect(within(failed).getByText('feature/cart-rounding')).toBeInTheDocument();
-    expect(within(failed).getByText('9f86d08')).toBeInTheDocument();
+    expect(within(failed).getByText(/^feature\/cart-rounding/)).toBeInTheDocument();
+    expect(within(failed).getByText(/· 9f86d08/)).toBeInTheDocument();
     expect(within(failed).getByText('116')).toBeInTheDocument();
     expect(within(failed).getByText('2')).toHaveClass('text-bad');
-    expect(within(failed).getByText('harbor/run-shop')).toBeInTheDocument();
+    expect(within(failed).getByTitle(/lane harbor\/run-shop$/)).toBeInTheDocument();
     // An older client sent no branch, and the command printed no test summary: said, not guessed.
     const old = rowOf(t, /^Command in shell, Passed$/);
-    expect(within(old).getByText('Not recorded')).toBeInTheDocument();
+    expect(within(old).getByText('No branch recorded')).toBeInTheDocument();
     expect(within(old).getAllByLabelText('None')).toHaveLength(2);
     expect(within(rowOf(t, /^Build in harbor-shop/)).getByText('Cancelled')).toBeInTheDocument();
     expect(within(rowOf(t, /^Tests in meridian-site/)).getByText('Timed out')).toBeInTheDocument();
@@ -48,13 +48,14 @@ describe('Runs', () => {
   it('filters by state, kind and words, and offers to clear when nothing matches', async () => {
     const { user } = renderApp(`/${ORG}/runs`);
     let t = await table();
-    await user.click(screen.getByRole('button', { name: /^Failed\s?\d+$/ }));
+    await user.click(screen.getByRole('radio', { name: /^Failed\s?\d+$/ }));
     t = await table();
     await waitFor(() => expect(t.getAllByRole('row')).toHaveLength(2));
     expect(rowOf(t, /Failed$/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^Stopped early\s?\d+$/ }));
+    await user.click(screen.getByRole('radio', { name: /^Stopped early\s?\d+$/ }));
     await waitFor(() => expect(t.getAllByRole('row')).toHaveLength(4));
-    await user.click(screen.getByRole('button', { name: /^Build\s?\d+$/ }));
+    await user.click(screen.getByRole('combobox', { name: 'Kind of work' }));
+    await user.click(await screen.findByRole('option', { name: /^Build/ }));
     await waitFor(() => expect(t.getAllByRole('row')).toHaveLength(2));
     expect(rowOf(t, /^Build in harbor-shop, Cancelled$/)).toBeInTheDocument();
     await user.type(screen.getByRole('searchbox', { name: 'Search runs' }), 'nothing-like-this');

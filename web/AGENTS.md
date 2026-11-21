@@ -1,6 +1,6 @@
 # Working in web/
 
-The agentos web app (React 19, TanStack Router and Query, Tailwind 4, Vite). Most of its UI is written by
+The openajar web app (React 19, TanStack Router and Query, Tailwind 4, Vite). Most of its UI is written by
 coding agents, and its design system is built so that the right way is the easy way.
 
 ## Read first
@@ -26,7 +26,7 @@ coding agents, and its design system is built so that the right way is the easy 
 
 ```bash
 pnpm install --frozen-lockfile
-AGENTOS_API_TARGET=http://127.0.0.1:9 pnpm dev --port <yours>   # the mock; the catalog is /northwind-group/design
+OPENAJAR_API_TARGET=http://127.0.0.1:9 pnpm dev --port <yours>   # the mock; the catalog is /northwind-group/design
 pnpm design:check                                            # the design rules, in seconds
 pnpm typecheck && pnpm lint && pnpm knip && pnpm test         # before you commit
 pnpm test:e2e                                                # real browser flows and the catalog screenshots

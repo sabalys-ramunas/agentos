@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 from test_lanes import PROXY, FakeEngine, make
 
-from agentos.core.errors import ConfirmRequired, InvalidRequest, NotFound
-from agentos.core.models import DeviceSpec, LaneSpec, ProxyConfig
+from openajar.core.errors import ConfirmRequired, InvalidRequest, NotFound
+from openajar.core.models import DeviceSpec, LaneSpec, ProxyConfig
 
 LT2 = ProxyConfig(label="lt2", host="198.51.100.20", port=12323, username="u", password="p")
 PROXIES = {"lt1": PROXY, "lt2": LT2}
@@ -304,7 +304,7 @@ def test_two_lanes_on_one_device_launch_with_identical_fingerprints_and_their_ow
     pytest.importorskip("camoufox.fingerprints")
     from test_lanes_pin import FakeCamoufox, FakeGeo
 
-    from agentos.node.camoufox import engine as ec
+    from openajar.node.camoufox import engine as ec
 
     running: dict = {}
     monkeypatch.setattr(ec, "read_browser_config", lambda pid: running["config"])
@@ -345,7 +345,7 @@ def _levels(findings, check="device"):
 
 
 def test_the_audit_flags_two_companies_on_one_device_and_a_lane_on_another_exit():
-    from agentos.stealth.stealth import device_findings
+    from openajar.stealth.stealth import device_findings
 
     found = device_findings({"biz-a-pc": "lt1"},
                             {"biz-a/instagram": ("biz-a-pc", "lt1"), "biz-b/instagram": ("biz-a-pc", "lt1"),
@@ -356,7 +356,7 @@ def test_the_audit_flags_two_companies_on_one_device_and_a_lane_on_another_exit(
 
 
 def test_the_audit_flags_two_devices_on_one_proxy_or_one_exit_ip():
-    from agentos.stealth.stealth import device_findings
+    from openajar.stealth.stealth import device_findings
 
     same_label = device_findings({"biz-a-pc": "lt1", "biz-b-pc": "lt1"},
                                  {"biz-a/x": ("biz-a-pc", "lt1"), "biz-b/x": ("biz-b-pc", "lt1")}, {})
@@ -376,7 +376,7 @@ def test_the_audit_flags_two_devices_on_one_proxy_or_one_exit_ip():
 def test_the_audit_flags_a_pin_whose_timezone_or_locale_is_not_where_the_proxy_exits():
     from datetime import UTC, datetime
 
-    from agentos.stealth.stealth import device_findings
+    from openajar.stealth.stealth import device_findings
 
     pin = {"timezone": "America/New_York", "locale:language": "en", "locale:region": "US",
            "agentos:pin": {"version": 2, "geo": {"ip": "203.0.113.5", "country": "US"}}}
@@ -389,7 +389,7 @@ def test_the_audit_flags_a_pin_whose_timezone_or_locale_is_not_where_the_proxy_e
 
 
 async def test_lane_audit_reads_a_device_once_and_its_lanes_as_one_computer(tmp_path):
-    from agentos.stealth.stealth import audit_pins
+    from openajar.stealth.stealth import audit_pins
 
     engine = PinningEngine()
     mgr, *_ = device_mgr(tmp_path, engine=engine)
@@ -585,7 +585,7 @@ async def test_a_lane_joining_a_device_waits_for_a_first_launch_on_it(tmp_path):
 
 
 def test_the_engine_never_writes_a_first_pin_over_one_written_meanwhile(tmp_path):
-    from agentos.node.camoufox import engine as ec
+    from openajar.node.camoufox import engine as ec
 
     path = tmp_path / "fingerprint.json"
     ec.write_private_json(path, {"a": 1}, exclusive=True)
@@ -599,8 +599,8 @@ def test_a_first_launch_whose_pin_appeared_meanwhile_fails_instead_of_overwritin
     pytest.importorskip("camoufox.fingerprints")
     from test_lanes_pin import FakeCamoufox, FakeGeo
 
-    from agentos.core.errors import EngineError
-    from agentos.node.camoufox import engine as ec
+    from openajar.core.errors import EngineError
+    from openajar.node.camoufox import engine as ec
 
     running: dict = {}
     monkeypatch.setattr(ec, "read_browser_config", lambda pid: running["config"])
@@ -690,7 +690,7 @@ async def test_the_start_up_repair_keeps_a_newer_copy_and_never_overwrites_silen
 
 
 async def test_lane_audit_lists_a_pin_the_repair_replaced(tmp_path):
-    from agentos.stealth.stealth import audit_pins
+    from openajar.stealth.stealth import audit_pins
 
     engine = PinningEngine()
     mgr, *_ = device_mgr(tmp_path, engine=engine)
@@ -719,7 +719,7 @@ async def test_none_is_not_a_device_name(tmp_path):
 
 
 async def test_lane_audit_reads_a_device_without_its_pin_file_from_its_lanes_copies(tmp_path):
-    from agentos.stealth.stealth import audit_pins
+    from openajar.stealth.stealth import audit_pins
 
     engine = PinningEngine()
     mgr, *_ = device_mgr(tmp_path, engine=engine)

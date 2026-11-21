@@ -1,6 +1,6 @@
-$ agentos workspace import <TMP>/personal.agentos --as copy --dry-run --passphrase-file <TMP>/pw
+$ openajar workspace import <TMP>/personal.openajar --as copy --dry-run --passphrase-file <TMP>/pw
 exit 0
-Import workspace personal from node test-node (host <HOST>), exported <TS> by agentos <VER>
+Import workspace personal from node test-node (host <HOST>), exported <TS> by openajar <VER>
   as workspace copy
 
 LANE         PROXY  FINGERPRINT  FILES  READINESS

@@ -17,11 +17,11 @@ import pytest
 from edge_lanes import make_manager
 from fakes import FakeInteraction
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentosError
-from agentos.core.models import LaneSpec, NavigateResult, Signal
-from agentos.node import daemon
-from agentos.node.daemon import node_runtime, serve
+from openajar.core.config import NodeConfig
+from openajar.core.errors import OpenajarError
+from openajar.core.models import LaneSpec, NavigateResult, Signal
+from openajar.node import daemon
+from openajar.node.daemon import node_runtime, serve
 
 TOKEN = "tok"
 URL = "http://127.0.0.1:{port}/mcp"
@@ -200,7 +200,7 @@ async def test_a_lane_shutdown_that_hangs_is_abandoned_after_the_timeout(tmp_pat
     stop = asyncio.Event()
     stop.set()
     started = time.monotonic()
-    with caplog.at_level(logging.ERROR, logger="agentos.node.daemon"):
+    with caplog.at_level(logging.ERROR, logger="openajar.node.daemon"):
         config = NodeConfig(home=tmp_path, mcp_token=TOKEN)
         await asyncio.wait_for(serve(config, node_runtime(config, manager, FakeInteraction()), stop=stop), 15)
     assert time.monotonic() - started < 5
@@ -212,7 +212,7 @@ async def test_no_browser_starts_after_the_lanes_have_shut_down(tmp_path):
     await manager.create(LaneSpec(id="personal/reddit"))
     await manager.open("personal/reddit")
     await manager.shutdown()
-    with pytest.raises(AgentosError):
+    with pytest.raises(OpenajarError):
         async with manager.using("personal/reddit"):
             pass
     assert engine.launches == ["personal/reddit"], engine.launches
@@ -227,7 +227,7 @@ async def test_mcp_host_must_be_loopback(tmp_path):
 
 
 def test_mcp_bind_any_is_an_explicit_opt_in():
-    from agentos.core.config import check_mcp_bind
+    from openajar.core.config import check_mcp_bind
 
     for host in ("127.0.0.1", "::1", "localhost", "127.0.0.2"):
         check_mcp_bind(NodeConfig(mcp_host=host))

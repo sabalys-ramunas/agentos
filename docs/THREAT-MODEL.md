@@ -1,6 +1,6 @@
 # Threat model: credentials, and what "a person is present" means
 
-agentos runs a person's real accounts for their agents. The agent is the threat it is built against: a model
+openajar runs a person's real accounts for their agents. The agent is the threat it is built against: a model
 that read a page, an email or a webhook can be talked into anything, and an agent with a shell can read any file
 its user can. So the question every protection asks is the same: **did a person make this request, or could an
 agent have?** This page lists every credential, where it lives, what it can do, and the one rule that answers
@@ -8,15 +8,15 @@ that question.
 
 ## A person is present
 
-Every request to the node's HTTP API carries a presence level (`agentos.core.presence.Presence`), worked out
+Every request to the node's HTTP API carries a presence level (`openajar.core.presence.Presence`), worked out
 from the credential it arrived with and from nothing the caller sends:
 
 | Level | What it is |
 |---|---|
 | `agent` | a grant's bearer token: an agent's, an app's, an admin grant |
 | `node_token` | the node's own token (`mcp_token` in `node.toml`) as a bearer |
-| `device` | the owner's device credential, the session `agentos connect` keeps on the owner's computer |
-| `person` | a panel session from a one-time code (`agentos panel login`) or a passkey, or the node's own CLI |
+| `device` | the owner's device credential, the session `openajar connect` keeps on the owner's computer |
+| `person` | a panel session from a one-time code (`openajar panel login`) or a passkey, or the node's own CLI |
 | `verified` | `person`, with a passkey check inside the step-up window (15 minutes) |
 
 The line is `person`. **Everything below it is a credential an agent can hold**: its grant, the node token
@@ -33,7 +33,7 @@ and are refused below it with `presence_required` (403):
 - adding a passkey, inviting a member, changing a member's roles;
 - a lane's worker controls, and the lead lists with addresses in them;
 - handing a lane back, taking over a lane that is held, stopped or quarantined, and the assisted login
-  (`/api/lanes/{ws}/{name}/login`, which hands a held lane back once signed in; `agentos lane login` sends
+  (`/api/lanes/{ws}/{name}/login`, which hands a held lane back once signed in; `openajar lane login` sends
   the CLI's one-time code);
 - what an account looks like to its site: pointing a proxy label that exists at another host, port or login,
   moving a lane to another device, a device beside lanes that already use its proxy, a new lane (alone, from a
@@ -44,19 +44,19 @@ and are refused below it with `presence_required` (403):
 Below `person` a caller can still read what its scope covers, deny, start things (which are routed like an agent's
 call, Ask me first and approvals included) and freeze. A route declares its minimum in `endpoint(..., presence=...)`;
 a handler whose need depends on the body (Ask me first on or off, batch approve or deny) asks
-`Access.require_presence`. The node's lane routes outside the panel (`agentos.node.viewer_app`) read the same level.
+`Access.require_presence`. The node's lane routes outside the panel (`openajar.node.viewer_app`) read the same level.
 
 The node's CLI is a person because it runs where `panel.db` can be written: it writes a one-time code there and
 sends it beside the node token (`X-Agentos-Presence`), and the daemon spends it for that one request. Whoever can
 write `panel.db` can already mint a panel sign-in link, so this gives the CLI nothing a sign-in would not.
-`agentos dash` run on the node with the token from `node.toml` does the same for its writes, so it still approves.
+`openajar dash` run on the node with the token from `node.toml` does the same for its writes, so it still approves.
 
 A grant's subject id is a name, not an identity: two grants may share one. Every check of who asked for
 something (self-approval, a brain task's owner) is keyed on the grant family (the
 root grant id), and the subject ids the node's own issuers use (`site-key:...`) are refused to every other.
 
 The device credential is routed exactly as the node token that made it: its actions go through the policy like a
-token's (pacing, taint, the trifecta, Ask me first), never as the owner in person. `agentos node rotate-token` ends
+token's (pacing, taint, the trifecta, Ask me first), never as the owner in person. `openajar node rotate-token` ends
 every device credential, since whoever held the old token could have made one.
 
 ## Sweep: identity, network and protections below a person
@@ -68,7 +68,7 @@ network or a protection, and why it is gated or safe (2026-11-07):
 |---|---|
 | `POST /api/proxies` on a label that exists, any field changed | gated: a new IP or login for every account on it |
 | `POST /api/proxies` with a new label | open: no lane uses it, so no account changes |
-| `POST /api/lanes/{ws}/{name}/device` (`agentos lane set-device`) | gated: a new exit or a new computer to the site |
+| `POST /api/lanes/{ws}/{name}/device` (`openajar lane set-device`) | gated: a new exit or a new computer to the site |
 | `POST /api/browser-devices` with `confirm` | gated: a second computer on accounts' exit; without `confirm` it is refused when others share the proxy, and `from_lane` keeps that lane's pin and proxy |
 | `POST /api/lanes`, `POST /api/templates/apply` behind a proxy another lane uses (also through a device) | gated; on a label nothing uses: open, since the lane is no account until the owner logs in |
 | `POST /api/workspaces/import` (apply; also `enable_schedules`, `reissue_grants`) | gated: it brings copies of logged-in browsers. A dry run is open |
@@ -83,7 +83,7 @@ network or a protection, and why it is gated or safe (2026-11-07):
 | sites, egress, Ask me first, confirmation, unfreeze, hand back, pace, meters, gate log, standing approvals | gated (above) |
 | workflow on, triggers | a person turns on or approves each |
 | controller `config_update` | applies the heartbeat only; a confirmation layer can only add. The controller key is no agent credential |
-| `agentos proxy add`, `lane set-proxy`, `lane create`, `backup restore` | the node's CLI, in its own process: root on the node, which is the owner (below) |
+| `openajar proxy add`, `lane set-proxy`, `lane create`, `backup restore` | the node's CLI, in its own process: root on the node, which is the owner (below) |
 
 Still open, for the owner to decide:
 
@@ -105,7 +105,7 @@ quarantine and a person's stop; take over a lane that is held, stopped or quaran
 adding a site) needs one of two things on top of the link, the same two the rest of the node trusts:
 
 - an **owner link**, made in person (the view-link route from the owner's panel session, or
-  `agentos lane view --control` on the node with its one-time code). `browser_view`, grants, the node token and
+  `openajar lane view --control` on the node with its one-time code). `browser_view`, grants, the node token and
   the device credential never get one;
 - the **owner's panel session in the same browser**. The viewer is served at the panel's own address, so the
   session cookie (SameSite strict) comes with the page's requests, and an agent's `curl` has no such cookie.
@@ -123,7 +123,10 @@ no account of the owner's but the logins the owner bound to that computer
 ([Logins in an environment's browser](#logins-in-an-environments-browser)), and its traffic leaves from the
 environment's own VM, so there is nothing behind it that a person must guard beyond what the owner chose to
 put there. A control link to a browser signed in to a bound login reaches that account as the agent does:
-share it as you would the account. There, a control link alone may take over (also a held lane),
+share it as you would the account. With the desktop on, the screen is more than that browser (its dock
+opens a root terminal on the machine, see "An environment's desktop" below), so on a server node the
+exception no longer holds there and such a link gets the rules above; in local mode it still does (the
+viewer is on 127.0.0.1). There, a control link alone may take over (also a held lane),
 type, copy and hand back; the page says so and the relay passes its input while control is `human`. What it
 does is recorded as `link holder`, never as the owner. The node decides which lane that is (the environments
 service: an open environment whose browser lane is exactly this one), never the link or the page: a lane of an
@@ -158,7 +161,7 @@ the app printed, a token in a dev page, what a person typed in the live view). T
 open environment's own browser (`env/<id>-browser`, decided by the environments service, never by the caller),
 never of an account lane. Frames stay on the node (`environments/<id>/replay/`, the folder 0700) for
 `replay_days` after the close, within a cap per environment and on the node. Only the owner reads them: the
-owner-only web routes (a member's role and an agent's grant get `denied`), `agentos environments replay` on the
+owner-only web routes (a member's role and an agent's grant get `denied`), `openajar environments replay` on the
 node, and the links those routes sign with the viewer key (purpose `replay`, one environment, 15 minutes;
 replacing the key revokes them, a live-view or proof token does not open them). An agent gets only a count
 (`environment()`'s `replay`: frames, since, bytes), never a frame or a link. `replay = false` in
@@ -172,7 +175,7 @@ takes at most 512 MB, removes the temp file in every case, and checks every memb
 no absolute path, no `..`, no link out of the folder, no device or fifo (tarfile's data filter, run on an
 empty folder so it never reads the node's own files). It never extracts anything on the node itself.
 
-A **download link** (`/view/env/<id>/download?t=...`, from `environment_download` or the owner's `agentos
+A **download link** (`/view/env/<id>/download?t=...`, from `environment_download` or the owner's `openajar
 environments download`) gives one archive of a file or a folder under the environment's `/work`, off a
 machine the agent can already read with `terminal_exec`. It is signed with the viewer key under its own purpose
 (`download`, 15 minutes), so it never opens an upload and an upload link never opens it; it is spent on its
@@ -200,7 +203,7 @@ at most 30 times a minute, and over 1 MB is refused whole.
 ## Over MCP
 
 Nothing that arrives on `/mcp` is a person. A grant's token is `agent` and the node token is `node_token`
-(`agentos.policy.wrap` sets it on every call's context), so every lane gate (a takeover, Stop agent, a freeze,
+(`openajar.policy.wrap` sets it on every call's context), so every lane gate (a takeover, Stop agent, a freeze,
 another caller's claim, the lane's site list) holds every MCP caller, and no MCP tool approves or answers on the
 caller's word. (`approval_confirm` asks the person in their own chat client, for an approval that needs no more than
 chat and came before any untrusted text: docs/CONFIRMATIONS.md.) Every
@@ -231,20 +234,20 @@ really do (routing, Ask me first, approvals, budget) before it acts. What each t
 | Credential | Where it lives | Presence | Can | Cannot |
 |---|---|---|---|---|
 | **Node token** | `node.toml` on the node (root, mode 600); on old connections also the agent's Keychain item | `node_token`, on the API and on `/mcp` | everything the owner can on the API and over MCP that does not need a person: lanes, grants, settings, freezing, minting a device credential, a new proxy label; a lane a person paused or took over holds it back | approve or answer (also `self_approval` for its own family), standing approvals, Ask me first off, confirmation, sites, unfreeze, passkeys, invites, an account's exit or device, an import, a schedule that runs as the owner |
-| **Agent grant** | the agent's MCP config: on a Mac, Keychain service `agentos`, read by the headers helper | `agent` | MCP tools inside its workspaces and ceiling; on the API, the routes its scope covers | decide anything (`not_approver`), widen itself, read the owner's credential item |
+| **Agent grant** | the agent's MCP config: on a Mac, Keychain service `openajar`, read by the headers helper | `agent` | MCP tools inside its workspaces and ceiling; on the API, the routes its scope covers | decide anything (`not_approver`), widen itself, read the owner's credential item |
 | **Admin grant** | wherever its holder keeps it | `agent` | what the node token can on owner-only routes; issue grants no wider than itself | everything that needs `person` (a share link included), deciding its own family's asks, and a grant wider than itself in lanes, effects, specials, budget or expiry |
 | **Member session** | the member's browser (cookie, 12 h idle, 7 days at most), from their passkey | `person`, `verified` after a check | what their roles allow in their workspaces; a decision needs a passkey check in the last 15 minutes, `pay` and `irreversible` a fresh one for that approval | other workspaces; four-eyes keeps them from deciding their own agent's request |
-| **Owner panel session** | the owner's browser (cookie, 7 days), from `agentos panel login` or the owner's passkey | `person` | everything | nothing is held back from the owner in person |
-| **Device credential** | the owner's computer, Keychain service `agentos-owner` (made by `agentos connect` with the node token) | `device` | `agentos dash`, `agentos approvals list` and `deny`, `agentos open` (a control link that is not an owner link), `agentos expose` and `agentos lane forward` (see Exposes and forwards), revoking the connection's grant; issuing a grant only within `policy.device_grants` (by default every workspace, up to commit, no specials, 90 days at most) | approve or answer (the CLI says to open Needs you in the panel through the tunnel), a grant wider than `policy.device_grants`, reissuing an import's grants, and everything else that needs `person`; MCP refuses it |
-| **Controller key** | the controller's own key files; the node pins its public key at `agentos node join` (`controller_pubkey`) | not on this API: the node channel | signed `config_update` and revoke; decisions it relays count up to `controller_max_level`, and a relayed decision with no proof reaches at most `signed_in` | lower anything the node's owner set (its confirmation layer can only add), report a `chat` answer, exceed the controller ceiling in `node.toml` |
+| **Owner panel session** | the owner's browser (cookie, 7 days), from `openajar panel login` or the owner's passkey | `person` | everything | nothing is held back from the owner in person |
+| **Device credential** | the owner's computer, Keychain service `agentos-owner` (made by `openajar connect` with the node token) | `device` | `openajar dash`, `openajar approvals list` and `deny`, `openajar open` (a control link that is not an owner link), `openajar expose` and `openajar lane forward` (see Exposes and forwards), revoking the connection's grant; issuing a grant only within `policy.device_grants` (by default every workspace, up to commit, no specials, 90 days at most) | approve or answer (the CLI says to open Needs you in the panel through the tunnel), a grant wider than `policy.device_grants`, reissuing an import's grants, and everything else that needs `person`; MCP refuses it |
+| **Controller key** | the controller's own key files; the node pins its public key at `openajar node join` (`controller_pubkey`) | not on this API: the node channel | signed `config_update` and revoke; decisions it relays count up to `controller_max_level`, and a relayed decision with no proof reaches at most `signed_in` | lower anything the node's owner set (its confirmation layer can only add), report a `chat` answer, exceed the controller ceiling in `node.toml` |
 | **Phone link** | a push notification (signed, one approval, expiring) | not a session | deny that one approval; a freeze link freezes | approve: a link never approves, it opens the panel |
-| **One-time login code** | `panel.db` on the node (hash only), printed once by `agentos panel login` | becomes a `person` session | one sign-in, within 10 minutes | anything a second time |
+| **One-time login code** | `panel.db` on the node (hash only), printed once by `openajar panel login` | becomes a `person` session | one sign-in, within 10 minutes | anything a second time |
 
 ## Exposes and forwards
 
-`agentos expose 5173 --lane ws/name` opens the owner's laptop dev server in one browser lane at
-`https://<name>.expose.agentos.invalid`; `agentos lane forward ws/name:PORT` puts a terminal or service lane's
-port on the laptop's localhost (docs/DEVELOPING.md, "Your dev server in a lane"; `agentos.node.expose`).
+`openajar expose 5173 --lane ws/name` opens the owner's laptop dev server in one browser lane at
+`https://<name>.expose.openajar.invalid`; `openajar lane forward ws/name:PORT` puts a terminal or service lane's
+port on the laptop's localhost (docs/DEVELOPING.md, "Your dev server in a lane"; `openajar.node.expose`).
 
 **Who may.** `/api/exposes` needs the owner at `device` or above: the device credential, a person's panel
 session or the node's CLI. A grant (an admin grant too) and the node token get `presence_required`, and no MCP
@@ -255,8 +258,8 @@ An agent with only MCP cannot make one. The SSH half needs the owner's SSH key a
 
 **What it opens.**
 
-- In the named lane's browser, one origin: `https://<name>.expose.agentos.invalid`, port 443. Requests to
-  it are answered inside the browser's driver from a unix socket in `<AGENTOS_HOME>/run/expose/` (a
+- In the named lane's browser, one origin: `https://<name>.expose.openajar.invalid`, port 443. Requests to
+  it are answered inside the browser's driver from a unix socket in `<OPENAJAR_HOME>/run/expose/` (a
   directory of mode 700; the socket is sshd's for `ssh -R`, handed to agentosd's user, mode 600, and the
   node checks owner and type before it routes). The URL picks the socket, never an address: no other host,
   port or path on the node or its network is dialled. Another port on that name, an unknown name and a
@@ -303,7 +306,7 @@ length. WebSockets to the exposed host are not routed (they fail), and nothing p
 
 A deploy key or a token for a git host is a credential the agent must be able to use overnight and
 must never hold. It is a vault machine secret (`git:<name>`), bound to a host and its repositories;
-a deploy key is made on the node by `agentos git key add` and only its public half is ever printed.
+a deploy key is made on the node by `openajar git key add` and only its public half is ever printed.
 Git in a lane or a brain task talks plain HTTP to the node's git gateway (a listener inside the
 lane's own network namespace, or the node's loopback for brains), with a gateway token that names
 the lane or task and the grant behind the command; the token is no credential for the remote.
@@ -313,7 +316,7 @@ the lane or task and the grant behind the command; the token is no credential fo
 | Who opens the credential | agentosd only, for one fetch or push, with the purpose recorded in the vault |
 | Where the key is while it is used | in agentosd's memory; a one-operation SSH agent on a 0700 socket of agentosd's signs an SSH login as the expected user (never a commit or file signature, at most four times); no key file is ever written |
 | Where a token is while it is used | in the `GIT_CONFIG_*` environment of agentosd's own git process (no file, no argv), sent as HTTP auth to the declared host only |
-| What a lane can reach | only declared remotes (`agentos git remote allow`, the node's CLI, so the owner); an undeclared host or repository is refused at the gateway whatever the vault holds; the lane needs no allowlist entry for the git host |
+| What a lane can reach | only declared remotes (`openajar git remote allow`, the node's CLI, so the owner); an undeclared host or repository is refused at the gateway whatever the vault holds; the lane needs no allowlist entry for the git host |
 | What a push is | `commit` on the lane (Ask me first, the untrusted-content downgrade, freezes and limits apply); `irreversible` for a force-push (checked on the mirror with the pushed objects), a deletion, a moved tag or a protected branch (the default branch unless allowed): always a person, never a standing approval, and above the ceiling of most grants |
 | What is recorded | `git_fetch`, `git_push` (pushed, approval_pending, denied, failed) and `git_refused`, with the remote, the refs and the grant; the vault's use count and last purpose of the credential |
 | What a lane sees on a refusal | the gateway's own sentence, scrubbed of vault values; never the remote's raw output |
@@ -321,10 +324,29 @@ the lane or task and the grant behind the command; the token is no credential fo
 Below a person, an agent can use a declared remote through a grant that covers the lane, and no
 further: it cannot declare a remote, add or read a credential, or approve its own push. Not covered:
 a workbench (env0) lane or one that shares the node's filesystem, processes or network (it is the
-owner's shell, and can read AGENTOS_HOME); two grants' commands in one lane with shared processes
+owner's shell, and can read OPENAJAR_HOME); two grants' commands in one lane with shared processes
 (one can read the other's gateway token and push as it, within the declaration and the policy);
 what the pushed commits contain; and a lane whose own egress allowlist lists the git host, which
 can reach it directly with a credential the agent brought itself (never the node's).
+
+## An environment's desktop
+
+With `browser = "vm"` and `desktop = true` (the default), an environment's screen is a whole desktop on the
+agent's machine: the browser as a window, a dock with Terminal and Files, any app the agent or a person
+starts, and the agent's commands window, which shows every `terminal_exec` and its output as the node reads it
+(openajar.environments.desklink, desktop/desk.py). The live view shows all of it. What follows is what that
+means for each party.
+
+| Who | What they get |
+|---|---|
+| A **control link** to the environment's screen | Everything a person at that screen has. The dock's Terminal is a root shell on the machine, which holds the repository, uploaded code and the gateway token that pushes that one repository (see the ssh table below). In local mode the viewer listens on 127.0.0.1 only, so only this computer's processes reach the link, and the agent there is root on the machine already. On a server node the link is reachable from wherever the panel is, so with the desktop on, a control link alone does not take input there: it needs the owner's panel session in the same browser or an owner link (openajar.node.viewer_app `_holder`). Give a control link only to someone you would give a root shell on that machine |
+| A **view link** | Watches the whole screen: every command the agent runs and its output (a token in a command line, a secret a command prints), what a person types on that screen (a password field shows dots, other fields do not), every window. It cannot type, click or take over. Anyone who can watch can also record a clip (below). Treat a view link as a read of everything the agent does there |
+| **The record button** | Records what this page already draws into a video in the watcher's own browser and saves it on their computer. Nothing is uploaded and the node is asked for nothing new (viewer/assets/record.js); a clip stops by itself after three minutes |
+| **The agent, while it has control** | Its screen tools (`screen_snapshot`, `screen_act`, `screen_open`: real X input through XTEST, audited like browser actions, the text it types on stdin only) and its commands get the screen (`DISPLAY` and the screen's cookie) |
+| **The agent, while a person has control** | No openajar tool shows it the screen or types on it: every screen tool is refused, as every browser tool is, and an action that was running is stopped on the machine within about a second with every key and button let go. Its commands are not handed `DISPLAY` or the cookie. Its terminal tools keep working (the take over is of the screen) |
+| **What stays true by construction** | The agent's commands run as root on its own machine. Root can read the screen's cookie (`/run/agentos-browser/xauth`) and reach its socket, read the browser's profile and every file, and so watch the screen or read what a person types there, with ten lines of python-xlib, outside the tools and outside the audit trail. There is no cheap barrier: putting the screen under a user the agent cannot become needs an agent that is not root, and the agent is root there by design (`apt-get install`, services, the whole machine). So the take over keeps the agent's tools out of a person's way; it does not keep a hostile agent out of its own machine. The live view says so under Take over ("This is the agent's computer: what you type here, the agent could read"). Sign in on that screen only to accounts the agent is meant to use |
+| **What the machine sends the node** | The machine is the agent's, so all of it is untrusted. On `desk.sock` the helper sends two kinds of line, each under 4 KB: where the browser window is (whole numbers inside the screen, or the agent's pointer is not drawn) and "open the browser" from the dock, which the node acts on at most once every 10 seconds and never past a stop or a freeze (the ask is never taken as a person's). Nothing else it sends is acted on. The screen tools' answers (window titles, a PNG) are bounded and checked before use, and titles are data, never instructions. The control scripts are sent by the node with each call; the copies on the machine are never run by the node |
+| **What the node sends the machine** | The commands window's text and the top bar's status, over the environment's SSH tunnel to unix sockets in a folder only root opens. The commands window draws output only after a gutter and only with the colours its design uses: output cannot move the cursor, clear the window or draw a fake command or exit line, also when an escape sequence is split across reads (desktop/deskterm.py). Nothing listens on TCP: no X, VNC or helper port, and the screen's cookie is new each time the screen starts |
 
 ## An environment's network and its app's secrets (docs/ENVIRONMENTS.md)
 
@@ -337,7 +359,7 @@ VM holds a placeholder, and the node's TLS swap puts the value in for the bound 
 
 | Question | Answer |
 |---|---|
-| Who sets the network and the bindings | the owner, at the node (`environments.toml`, `agentos environments allow --network/--host`, `agentos environments secret add`). An agent may only narrow the network on `environment_open`; no tool, page, repository file or command widens it or binds a secret |
+| Who sets the network and the bindings | the owner, at the node (`environments.toml`, `openajar environments allow --network/--host`, `openajar environments secret add`). An agent may only narrow the network on `environment_open`; no tool, page, repository file or command widens it or binds a secret |
 | What a closed machine reaches | the node's proxy (registries and code hosts for `limited`, the owner's hosts, bound hosts), the git gateway, its own loopback. Names are resolved on the node, and private, loopback and link-local addresses are refused there |
 | Where a secret's value is | in the vault, and in agentosd's memory while requests use it (read from the vault again each minute). Never on the VM, in a tool result, a log line, the record or the web app: they hold the variable's name only |
 | When the value is put in | a request on a TLS connection whose server name is a bound host, and whose Host header is that same host, with a target that names no other host (a full URL naming another host gets nothing, one naming the bound host is sent as a path): headers (a Basic credential included) and the URL's query. Not bodies, not plain HTTP, not another host. A placeholder sent anywhere else goes out as it is and is listed under `blocked` |
@@ -370,7 +392,7 @@ What this does not stop:
 
 ## Logins in an environment's browser
 
-[ENVIRONMENTS.md, Signing in](ENVIRONMENTS.md#signing-in) is how it works. The owner binds a vault login to environments (`agentos environments login add <site> --title/--repo/--all`),
+[ENVIRONMENTS.md, Signing in](ENVIRONMENTS.md#signing-in) is how it works. The owner binds a vault login to environments (`openajar environments login add <site> --title/--repo/--all`),
 and the agent's `login` signs the environment's browser in with it. A bound login reaches the browser of the
 computers it is bound to, its session cookies stay in that browser and in its saves (encrypted,
 `encrypt_saves`), the agent (the model) never sees the value, and anything running as root on that machine
@@ -379,11 +401,11 @@ could read what the browser holds, so bind only what that computer's work needs.
 | Question | Answer |
 |---|---|
 | Who binds | the owner, at the node: the CLI writes the vault entry with the vault's key (its metadata, the bindings included, is sealed with it). No tool, page, repository file or command adds or widens one; an agent names a login only by the name `environment()` gives it |
-| Which computers | the ones the binding covers, read from the node's own records each time a field is filled (agentos.vault.policy.entry_bound). `--title`: the computer of the one agent (grant family) that had a computer of that title, open or saved, when you bound it, across its saves and resumes; another agent that picks the same title gets nothing, since a title is the agent's own choice (bind refuses when no computer or several agents' computers have the title, and names the fix). `--repo`: every environment opened with that repository, by any agent you connected; the repository is also the agent's choice, so bind by repository only an account every such agent may use. `--all`: every environment of every agent. An environment the node does not know as open covers nothing |
+| Which computers | the ones the binding covers, read from the node's own records each time a field is filled (openajar.vault.policy.entry_bound). `--title`: the computer of the one agent (grant family) that had a computer of that title, open or saved, when you bound it, across its saves and resumes; another agent that picks the same title gets nothing, since a title is the agent's own choice (bind refuses when no computer or several agents' computers have the title, and names the fix). `--repo`: every environment opened with that repository, by any agent you connected; the repository is also the agent's choice, so bind by repository only an account every such agent may use. `--all`: every environment of every agent. An environment the node does not know as open covers nothing |
 | Where the value goes | where the browser runs. With `browser = "vm"` (a laptop) the node types it into the VM's browser over the connection it drives (Playwright through the environment's SSH tunnel), so it passes through that browser's process on the VM; with `browser = "node"` it stays on the node. Never on a command line (the CLI reads a hidden prompt or stdin), in a log, a trace, a tool result, a replay caption or the record |
 | Which fields | the vault's rules, as on any lane: the page's site is the login's (https, or the machine's own `localhost` over http), no frame from another origin, and the password only into a password input (the page masks it). A TOTP code from the stored seed; an emailed or texted code, a CAPTCHA or a device approval stays with the person, in the live view |
 | What a picture shows | no replay frame is taken while a fill runs. A frame or a video proof can show the page after it, and before the submit a username as typed into a visible field (as the live view does) |
-| What stays after | the site's session cookies and storage, in the browser and in the saves (`save_signins`, sealed with the saves key). A resumed environment is signed in; `agentos environments login remove` stops new sign-ins, and the session lasts until the site ends it |
+| What stays after | the site's session cookies and storage, in the browser and in the saves (`save_signins`, sealed with the saves key). A resumed environment is signed in; `openajar environments login remove` stops new sign-ins, and the session lasts until the site ends it |
 
 What this does not stop:
 
@@ -406,7 +428,7 @@ An environment saves when idle unless the agent asks for single use (`keep="none
 | Where a save lives | the disk snapshot (or, on Morph, the paused machine) in the owner's own provider account; the file part on the node, sealed with the saves key the vault holds (`encrypt_saves`) |
 | What it holds | the machine's disk as the agent left it (code, installs, anything the agent wrote, a secret the app printed included), and the browser's storage state: cookies and local storage of the environment's own browser, never an account lane's or the vault's (`signins=false` or `save_signins = false`: none) |
 | What it never holds | the git gateway's token and `~/.git-credentials` (removed before the snapshot; a resume mints a new token), the machine's SSH keys, process memory, swap |
-| Who brings it back | an agent of the same grant family by its title, or the owner (`agentos environments resume`); within the node's limits |
+| Who brings it back | an agent of the same grant family by its title, or the owner (`openajar environments resume`); within the node's limits |
 | How it ends | `environment_forget`, `environment_close(forget=true)`, the owner, or retention (`saved_days`, `keep_last`), which deletes the snapshot or the paused machine too |
 
 A sign-in kept in a save is a session on that site: anyone who can read the owner's provider account can
@@ -414,32 +436,32 @@ read the snapshot. Single use keeps nothing once the work is pushed (a rescue sa
 
 ## The agent's own ssh to its environment (local mode)
 
-In local mode (docs/LOCAL.md) the agent runs on the same laptop as agentos, and each ready environment
-gets a host entry `agentos-<id>` in `~/.agentos/ssh/config` (agentos.environments.sshaccess), so the
+In local mode (docs/LOCAL.md) the agent runs on the same laptop as openajar, and each ready environment
+gets a host entry `openajar-<id>` in `~/.openajar/ssh/config` (openajar.environments.sshaccess), so the
 agent's own shell reaches the VM: `ssh`, `scp`, `rsync`, git.
 
 | Question | Answer |
 |---|---|
-| Which key | one made for that environment (`~/.agentos/ssh/<id>/id_ed25519`, 0600), not the node's VM key; deleted when the environment closes, fails or is saved, and a new one on resume |
-| Which host | the VM's host key that agentos made and gave the VM, pinned (`StrictHostKeyChecking yes`, a known_hosts file of one line under the entry's own alias): a reused IP after the VM is deleted is refused, and the entry is removed first anyway |
-| What the key may do on the VM | `restrict,pty` and a forced command (`/usr/local/lib/agentos-env/agent-ssh`) in root's authorized_keys: a terminal and the asked command, sftp for scp; no port forwarding either way (a `-R` would let code on the VM reach the laptop's loopback, where agentos and the git gateway listen), no ssh agent (the person's keys never reach the VM), no X11. The entry also sets `ForwardAgent no` and `IdentityAgent none` |
-| What is logged | only that a session ran (its start, and whether it is running, for the idle rule, read over the node's own connection). The commands are **not** in agentos's call log, and policy (effects, Ask me first, taint) does not see them. The VM's git gateway still applies the push rules to every push, ssh or not |
-| Does it widen what the agent reaches | no. The agent already runs as the person on the laptop, and `terminal_exec` already runs any command as root on the VM. The VM holds no key or token of the person: its one credential is the gateway token for the environment's own repository (`agentos.git.service.vm_token`: bound to that VM's lane and its listener, `repos=(that repo,)`, revoked by `vm_down` at close), in `~/.config/agentos/gitconfig` on the VM. The person's GitHub token stays sealed in the vault on the laptop |
+| Which key | one made for that environment (`~/.openajar/ssh/<id>/id_ed25519`, 0600), not the node's VM key; deleted when the environment closes, fails or is saved, and a new one on resume |
+| Which host | the VM's host key that openajar made and gave the VM, pinned (`StrictHostKeyChecking yes`, a known_hosts file of one line under the entry's own alias): a reused IP after the VM is deleted is refused, and the entry is removed first anyway |
+| What the key may do on the VM | `restrict,pty` and a forced command (`/usr/local/lib/agentos-env/agent-ssh`) in root's authorized_keys: a terminal and the asked command, sftp for scp; no port forwarding either way (a `-R` would let code on the VM reach the laptop's loopback, where openajar and the git gateway listen), no ssh agent (the person's keys never reach the VM), no X11. The entry also sets `ForwardAgent no` and `IdentityAgent none` |
+| What is logged | only that a session ran (its start, and whether it is running, for the idle rule, read over the node's own connection). The commands are **not** in openajar's call log, and policy (effects, Ask me first, taint) does not see them. The VM's git gateway still applies the push rules to every push, ssh or not |
+| Does it widen what the agent reaches | no. The agent already runs as the person on the laptop, and `terminal_exec` already runs any command as root on the VM. The VM holds no key or token of the person: its one credential is the gateway token for the environment's own repository (`openajar.git.service.vm_token`: bound to that VM's lane and its listener, `repos=(that repo,)`, revoked by `vm_down` at close), in `~/.config/agentos/gitconfig` on the VM. The person's GitHub token stays sealed in the vault on the laptop |
 | Server nodes | no entry and no `ssh` field: the agent is on another computer, and works through the tools only |
 
 What this gives up: a person who reads the call log to see what an agent did on its machine sees the ssh
 sessions' times, not their commands. Pushes and pull requests are still recorded by the gateway.
 
-## The web app's download (docs/LOCAL.md, `agentos web install`)
+## The web app's download (docs/LOCAL.md, `openajar web install`)
 
 The prebuilt web app is JavaScript the owner's browser runs against the node's API with the owner's
 session, so whoever can change the archive can act as the owner in the panel. Where its trust comes from:
 
 | Question | Answer |
 |---|---|
-| Where it comes from | the GitHub release of the agentos version installed (`v<version>`, never "latest"), the same repository the installer takes the code from |
+| Where it comes from | the GitHub release of the openajar version installed (`v<version>`, never "latest"), the same repository the installer takes the code from |
 | What it is checked against | GitHub's own digest of the archive on that release, read from GitHub's API, and only when GitHub keeps the release immutable (once published, no file or tag of it can change). The `.sha256` beside the archive must agree, but alone it proves nothing: the same release serves it |
-| What is refused | a release that is not immutable, a digest that differs, any other source (`AGENTOS_WEB_RELEASE_URL`: a fork, a mirror) unless the owner pins the archive's sha256 with `AGENTOS_WEB_SHA256`, and an archive with a link, an absolute path or a `..` |
+| What is refused | a release that is not immutable, a digest that differs, any other source (`OPENAJAR_WEB_RELEASE_URL`: a fork, a mirror) unless the owner pins the archive's sha256 with `OPENAJAR_WEB_SHA256`, and an archive with a link, an absolute path or a `..` |
 | How a release gets it | the `web-release` workflow builds it on the release's draft and attaches it, never replacing a file that is there (no `--clobber`); the release is published after, immutable (docs/DEVELOPING.md, "Releases") |
 
 What this does not stop: whoever can publish a release of the repository (its maintainers, a stolen token
@@ -453,8 +475,8 @@ trusts them as it trusts the code. The check stops a file swapped on a published
 - **The node token over MCP, as the owner's authority.** On `/mcp` the node token is `node_token`, never a person:
   a lane a person paused or took over holds it back like any grant, and it cannot approve. It still has the
   owner's scope (every lane, every effect, the whole vault), so an agent holding it can do whatever needs no
-  person. Give agents their own grant (`agentos connect --upgrade`) and rotate the node token.
-- **An agent with the owner's SSH key.** It can do what the owner does on the node, including `agentos panel login`.
+  person. Give agents their own grant (`openajar connect --upgrade`) and rotate the node token.
+- **An agent with the owner's SSH key.** It can do what the owner does on the node, including `openajar panel login`.
   The device credential being below `person` keeps a Keychain read from approving, but not an SSH session.
 - **Chat answers.** A chat client is the agent's own: an agent with a shell can open an MCP session with its token
   and answer its own prompt. Chat therefore never carries `pay`, `irreversible`, a question or anything after
@@ -463,5 +485,5 @@ trusts them as it trusts the code. The check stops a file swapped on a published
 - **A person tricked into approving.** The card shows what will leave, bound to the content, and that is all the
   node can do for a person who approves without reading.
 
-See also docs/CONFIRMATIONS.md (levels and methods), src/agentos/policy/TOKENS.md (grants) and
-src/agentos/client/README.md (the two credentials on the owner's computer).
+See also docs/CONFIRMATIONS.md (levels and methods), src/openajar/policy/TOKENS.md (grants) and
+src/openajar/client/README.md (the two credentials on the owner's computer).

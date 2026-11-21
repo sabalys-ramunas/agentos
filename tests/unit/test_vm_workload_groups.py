@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.env.models import RemoteHost
-from agentos.env.sandbox import Workload
-from agentos.vms import ssh
+from openajar.env.models import RemoteHost
+from openajar.env.sandbox import Workload
+from openajar.vms import ssh
 
 SETSID = '''#!{py}
 import os, sys

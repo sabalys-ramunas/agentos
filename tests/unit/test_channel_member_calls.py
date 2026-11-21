@@ -9,12 +9,12 @@ import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 from test_channel_node import invoke_body
 
-from agentos.core.tools import bind_request_token
-from agentos.policy import tokens
-from agentos.policy.errors import TokenInvalid
-from agentos.policy.grants import GrantBlock, Subject
-from agentos.policy.members import MEMBER_CALL_MAX_TTL_S
-from agentos.policy.util import new_id
+from openajar.core.tools import bind_request_token
+from openajar.policy import tokens
+from openajar.policy.errors import TokenInvalid
+from openajar.policy.grants import GrantBlock, Subject
+from openajar.policy.members import MEMBER_CALL_MAX_TTL_S
+from openajar.policy.util import new_id
 
 MEMBER = "u_0123456789abcdef"
 LANE = "personal/reddit"

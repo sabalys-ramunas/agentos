@@ -1,6 +1,6 @@
 /** The rows of the Needs you queue, how they group by what is at stake, and the words for a batch. */
 import { Link } from '@tanstack/react-router';
-import { Fingerprint, GitBranch, MessageCircleQuestion } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
 import type { Approval, Lane, Question } from '@/api/types';
 import { AgentMark, BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
@@ -8,7 +8,6 @@ import { Count } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IfYes } from '@/components/ui/if-yes';
-import { KindTile } from '@/components/ui/kind';
 import { StateGlyph } from '@/components/ui/state-badge';
 import { Skeleton } from '@/components/ui/states';
 import { Checkbox } from '@/components/ui/toggle';
@@ -21,7 +20,7 @@ import type { usePrincipalName } from '@/lib/use-principal';
 import { useMe } from '@/lib/use-principal';
 import { STAKE_ORDER, batchKind, kindOf, stakeOf } from './kinds';
 import { handOf, rowTitleOf, whereOf } from './words';
-import { IfYesValue, ifYesWords, tileOf } from './if-yes';
+import { IfYesValue, ifYesWords } from './if-yes';
 import { queueRow, waitedShort } from './queue-words';
 
 interface Group {
@@ -111,7 +110,6 @@ export function Row({ approval, business, color, focused, changed, selecting, se
           .join(', ')}
         className={queueRow(focused)}
       >
-        <KindTile kind={tileOf(approval)} size="sm" />
         <span className="grid min-w-0 flex-1 gap-1">
           <span className="flex min-w-0 items-center gap-2">
             <span title={title} className="truncate text-label">
@@ -138,9 +136,6 @@ export function Row({ approval, business, color, focused, changed, selecting, se
 export function QuestionRow({ question, business, askedBy, focused, onFocus }: { question: Question; business: string; askedBy: string; focused: boolean; onFocus: () => void }) {
   return (
     <button type="button" onClick={onFocus} aria-current={focused || undefined} className={queueRow(focused)}>
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-line bg-card text-muted shadow-lift">
-        {question.repo_connect ? <GitBranch aria-hidden="true" className="size-3.5" /> : <MessageCircleQuestion aria-hidden="true" className="size-3.5" />}
-      </span>
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex min-w-0 items-center gap-2">
           <span title={question.question} className="truncate text-label">
@@ -189,9 +184,9 @@ export function HandCard({ org, lane, business, nameOf }: { org: string; lane: L
 
 export function GroupHeader({ name, why, count, action }: { name: string; why?: string; count: number; action?: React.ReactNode }) {
   return (
-    <div className="px-4 pt-4 pb-1">
+    <div className="px-5 pt-5 pb-1">
       <div className="flex min-h-7 items-center gap-2">
-        <h2 className="text-secondary font-medium text-fg">{name}</h2>
+        <h2 className="text-label font-semibold text-fg">{name}</h2>
         <Count value={count} />
         {action ? <span className="ml-auto">{action}</span> : null}
       </div>

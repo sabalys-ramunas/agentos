@@ -9,9 +9,9 @@ from contextlib import contextmanager
 import pytest
 from siteapi_http_support import API, COMMIT_PATH, OWNER, READ_PATH, SURFACE, Node, definition, poll
 
-from agentos.core.models import LaneSpec, RunStatus
-from agentos.policy.taint import family_key
-from agentos.runner.siteapis.models import web_surface
+from openajar.core.models import LaneSpec, RunStatus
+from openajar.policy.taint import family_key
+from openajar.runner.siteapis.models import web_surface
 
 DAY = 86400
 LOGIN = "harbor/login"

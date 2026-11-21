@@ -1,10 +1,10 @@
 # Confirmations
 
-The contract for how a person says yes: when agentos asks, how strong the yes must be, and where it can be
-given. It is additive under `docs/PROTOCOL.md` v1 and sits on `src/agentos/policy/ROUTING.md`, which still
+The contract for how a person says yes: when openajar asks, how strong the yes must be, and where it can be
+given. It is additive under `docs/PROTOCOL.md` v1 and sits on `src/openajar/policy/ROUTING.md`, which still
 decides whether a call asks. The core wins, and the hosted edition's contract mirrors this file.
 
-The goal of agentos is automation, so most things never ask. This file is about the few that do, and about
+The goal of openajar is automation, so most things never ask. This file is about the few that do, and about
 adding a new place to say yes (an iPhone, a watch, an authenticator) without touching the rules.
 
 ## Three separate questions
@@ -30,7 +30,7 @@ Ordered, weakest first. A yes counts when its level is at or above what the appr
 | Level | Means | Reached by |
 |---|---|---|
 | `chat` | the person answered a prompt their chat client showed them. The model did not answer it, but the proof is only as good as that client | MCP elicitation |
-| `signed_in` | a person in a signed-in session | the panel, the node's CLI, a member with a recent check. Not the device credential `agentos connect` keeps on the owner's computer: an agent there can read it (docs/THREAT-MODEL.md) |
+| `signed_in` | a person in a signed-in session | the panel, the node's CLI, a member with a recent check. Not the device credential `openajar connect` keeps on the owner's computer: an agent there can read it (docs/THREAT-MODEL.md) |
 | `present` | a person proved they are here, just now, for this approval | a fresh passkey check; later a device password or Touch ID behind a device key, or an authenticator code |
 | `device_key` | a key held on a device signed this exact content | later: Secure Enclave on a Mac or iPhone, Android keystore, a watch |
 
@@ -93,7 +93,7 @@ controller_max_level = "present"
   raised. The cost is why it is off: the chat client is the agent's own, and an agent with a shell can open an MCP
   session of its own with its token and answer its own prompt (see Chat). Binding the answer to the session that
   asked does not help, because such an agent can ask from that session too. So with it on, what a page talked such
-  an agent into can go out with no person. Turn it on (`agentos confirmation set publish_in_chat on`, or the panel)
+  an agent into can go out with no person. Turn it on (`openajar confirmation set publish_in_chat on`, or the panel)
   only when no agent of yours has a shell on the machine that holds its token.
 - **Standing approvals hold to what a decision holds to.** Making one needs a person (`signed_in` in the panel, and
   a member's recent passkey check), never a token or the device credential. Made from approvals ("the same again"),
@@ -218,11 +218,11 @@ proof to the same rule and to `chat`, so a forged or replayed tap approves nothi
 **Pairing, on the node, as the owner:**
 
 ```sh
-agentos policy notify telegram set-token      # the token from @BotFather, asked for hidden (or --token-from -)
-agentos policy notify telegram pair           # prints https://t.me/<bot>?start=<code>: once, for 10 minutes
-agentos policy notify telegram status
-agentos policy notify telegram remove
-agentos confirmation set telegram off         # sends nothing more and takes no tap; "on" turns it back on
+openajar policy notify telegram set-token      # the token from @BotFather, asked for hidden (or --token-from -)
+openajar policy notify telegram pair           # prints https://t.me/<bot>?start=<code>: once, for 10 minutes
+openajar policy notify telegram status
+openajar policy notify telegram remove
+openajar confirmation set telegram off         # sends nothing more and takes no tap; "on" turns it back on
 ```
 
 The node accepts `/start <code>` only in a private chat, from the account that chat belongs to, and keeps only a
@@ -273,7 +273,7 @@ Additive fields, on the node and over the channel:
   `self_approval` comes first, as ever.
 - An approval made before this keeps what it needed then, and never takes `chat`.
 - **A later change.** `requires` is fixed when an approval is made, so a setting changed later cannot lower one that
-  waits. There is one exception: a person, signed in, on purpose. `agentos confirmation set ... --apply-to-waiting`, or
+  waits. There is one exception: a person, signed in, on purpose. `openajar confirmation set ... --apply-to-waiting`, or
   `apply_to_waiting: true` on `PUT /api/confirmation`, works out `requires` and `methods` again for what waits, from
   the setting then in force. It never goes below a floor: a `pay` never takes `chat`, and what followed untrusted text
   or was held up by its creator stays held up, because the approval keeps those facts. An approval from before they

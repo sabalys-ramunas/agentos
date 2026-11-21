@@ -5,10 +5,10 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from agentos.core.driver import DriverTimeout
-from agentos.core.errors import InvalidRequest, LaneBusy, PolicyDenied
-from agentos.core.models import Effect, LaneState, RunStatus
-from agentos.runner.fakes import (
+from openajar.core.driver import DriverTimeout
+from openajar.core.errors import InvalidRequest, LaneBusy, PolicyDenied
+from openajar.core.models import Effect, LaneState, RunStatus
+from openajar.runner.fakes import (
     BASE,
     FakeApprovals,
     FakeDriver,

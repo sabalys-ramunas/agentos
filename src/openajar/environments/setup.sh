@@ -1,0 +1,70 @@
+#!/bin/sh
+# What an environment's machine has before an agent works on it: git, curl, build tools, Node 22
+# with npm and pnpm (through corepack), Python with uv, and the /work folder. The one copy of this list: cloud-init runs it on a fresh
+# Ubuntu VM (openajar.environments.machine), and the docker provider's image runs it at build time
+# (deploy/environments/Dockerfile). A machine that has run it has /var/lib/agentos-env/ready, so a
+# second run (a `dev` snapshot made from such a machine) does nothing.
+set -eu
+READY=/var/lib/agentos-env/ready
+if [ -f "$READY" ]; then
+  exit 0
+fi
+export DEBIAN_FRONTEND=noninteractive
+# A fresh VM's unattended-upgrades may hold the dpkg lock for its first minutes (where openajar did not turn
+# it off before it started): wait for it (up to 10 minutes) instead of failing on "Could not get lock".
+# A config file, not a flag, so every apt-get here waits, also the one playwright install-deps runs.
+# Updates never run on their own in a session (openajar.environments.machine.UPDATES_OFF, written by
+# cloud-init's bootcmd and at every bring-up): the security updates are applied below, once, before an
+# agent works on the machine, and a `dev` snapshot gets them when it is built.
+mkdir -p /etc/apt/apt.conf.d
+echo 'DPkg::Lock::Timeout "600";' > /etc/apt/apt.conf.d/90agentos-lock-timeout
+PKGS="ca-certificates curl git build-essential pkg-config python3 python3-venv iproute2 procps jq unzip rsync less"
+# apt only when a package is missing: a snapshot that has them all (the `dev` one) skips the package
+# lists (it has none, and on a fresh VM apt waits for the dpkg lock), which took most of a boot.
+MISSING=""
+for p in $PKGS; do
+  dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null | grep -qx installed || MISSING="$MISSING $p"
+done
+if [ -n "$MISSING" ]; then
+  apt-get update -q
+  # shellcheck disable=SC2086
+  apt-get install -y -q --no-install-recommends $PKGS
+fi
+if ! command -v node >/dev/null 2>&1 || ! node --version | grep -q '^v22\.'; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  apt-get install -y -q nodejs
+  MISSING="$MISSING nodejs"
+fi
+# pnpm through corepack (it comes with Node): enabled, with a pnpm already downloaded, so `pnpm install`
+# works at once. A project's packageManager field still picks its own version; never a prompt for it.
+grep -q '^COREPACK_ENABLE_DOWNLOAD_PROMPT=' /etc/environment 2>/dev/null || \
+  echo 'COREPACK_ENABLE_DOWNLOAD_PROMPT=0' >> /etc/environment
+if ! command -v pnpm >/dev/null 2>&1; then
+  corepack enable
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install -g pnpm@latest || true
+fi
+if ! command -v uv >/dev/null 2>&1; then
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+fi
+# The security updates, once, while nobody works on the machine yet (a fresh VM, or the build of the `dev`
+# snapshot). needrestart only lists what it would restart. A failure (another apt run held the lock past
+# its wait, no network) does not stop the setup: the machine works, unpatched as its image was.
+# Three tries: Ubuntu's own run may still hold the lock on a VM that booted before the policy was written.
+if command -v unattended-upgrade >/dev/null 2>&1; then
+  for try in 1 2 3; do
+    if NEEDRESTART_MODE=l unattended-upgrade; then
+      mkdir -p /var/lib/agentos-env
+      date -u +%Y-%m-%dT%H:%M:%SZ > /var/lib/agentos-env/upgraded
+      break
+    fi
+    [ "$try" = 3 ] || sleep 20
+  done
+fi
+# The package lists stay, so the agent's first `apt-get install` works (the .deb cache goes). A machine
+# from a snapshot fetches them again in the background (openajar.environments.machine.apt_ready).
+if [ -n "$MISSING" ]; then
+  apt-get clean
+fi
+mkdir -p /work
+mkdir -p "$(dirname "$READY")"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$READY"

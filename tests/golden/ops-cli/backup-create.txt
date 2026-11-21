@@ -1,6 +1,6 @@
-$ agentos backup create --to <TMP>/backups --passphrase-file <TMP>/pw --keep 0
+$ openajar backup create --to <TMP>/backups --passphrase-file <TMP>/pw --keep 0
 exit 0
-Backup written: <TMP>/backups/agentos-test-node-<TS>.tar.gz.age
+Backup written: <TMP>/backups/openajar-test-node-<TS>.tar.gz.age
   10 files, <SIZE> before compression, <SIZE> encrypted
   lanes: personal/reddit (cold), work/site (cold)
 Keep the passphrase safe: without it this backup cannot be opened.

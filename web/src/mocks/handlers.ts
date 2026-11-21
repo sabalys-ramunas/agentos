@@ -634,7 +634,7 @@ export const handlers = [
     mockAuth.signedIn = true;
     return HttpResponse.json(session());
   }),
-  http.post('/api/auth/passkey/register/options', () => HttpResponse.json({ ...passkeyOptions(), rp: { name: 'agentos' } })),
+  http.post('/api/auth/passkey/register/options', () => HttpResponse.json({ ...passkeyOptions(), rp: { name: 'openajar' } })),
   http.post('/api/auth/passkey/register/verify', async () => {
     await delay(200);
     const passkey = { id: newId('pk'), name: 'New passkey', created_at: iso(), last_used_at: null };
@@ -699,7 +699,7 @@ export const handlers = [
       inviter_first_name: 'Mara',
       business: 'Aster Coffee',
       workspaces: ['Aster Coffee'],
-      email_hint: 'de***@agentos.local',
+      email_hint: 'de***@openajar.local',
       // The link signs a new person in; someone already signed in accepts as before.
       one_click: !isAuthed(),
       expires_at: iso(6 * 86_400_000),
@@ -1209,7 +1209,7 @@ export const handlers = [
     }),
   ),
 
-  // Repository cards: an agent asks the owner to connect a private repository (agentos.environments.connect). The
+  // Repository cards: an agent asks the owner to connect a private repository (openajar.environments.connect). The
   // token is typed on the computer's own page, so the mock only opens a trip for it: the trip settles as the node's
   // would (mocks/access.ts), closing the card. No token is ever sent here.
   http.post(
@@ -1237,7 +1237,7 @@ export const handlers = [
       return HttpResponse.json({
         repo,
         name: 'github-key-ssh',
-        public_key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMockMockMockMockMockMockMockMockMockMockMock agentos-github-key-ssh',
+        public_key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMockMockMockMockMockMockMockMockMockMockMock openajar-github-key-ssh',
         fingerprint: 'SHA256:mockmockmockmockmockmockmockmockmockmockmo',
         settings_url: `https://github.com/${repo.split('/').slice(1).join('/')}/settings/keys/new`,
       });
@@ -1560,7 +1560,7 @@ export const handlers = [
       data.joinTokens.push(record);
       enrollAfterDelay(data, record.id, body.name);
       return HttpResponse.json(
-        { ...record, token, install_command: 'curl -fsSL https://cloud.agentos.example/install.sh -o agentos-install.sh && sh agentos-install.sh' },
+        { ...record, token, install_command: 'curl -fsSL https://cloud.openajar.example/install.sh -o openajar-install.sh && sh openajar-install.sh' },
         { status: 201 },
       );
     }),

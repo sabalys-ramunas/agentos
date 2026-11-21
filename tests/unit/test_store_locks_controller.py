@@ -1,12 +1,12 @@
 """controller.db: a node's heartbeat touch never waits for a lock another process holds, and a
 mesh freeze waits for it off the event loop and is saved before the call returns
-(agentos.core.sqlite)."""
+(openajar.core.sqlite)."""
 
 from __future__ import annotations
 
 from lockheld import loop_stays_free
 
-from agentos.controller.store import ControllerStore
+from openajar.controller.store import ControllerStore
 
 
 async def test_a_mesh_freeze_and_a_heartbeat_touch_leave_the_loop_free(tmp_path):

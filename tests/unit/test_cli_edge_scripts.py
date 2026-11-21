@@ -2,7 +2,7 @@
 
 The installer runs with --dev --skip-apt --skip-browser. Its uv, chmod and realpath are PATH shims
 (edge_shell.py), ssh is logged rather than run, and rsync is logged for sync-node.sh. The installer
-uses real rsync to copy the checkout into a temp prefix, and runs the real agentos CLI for
+uses real rsync to copy the checkout into a temp prefix, and runs the real openajar CLI for
 `node init` unless the test sets cli="log". Nothing outside the test's temp dir is written.
 """
 
@@ -31,11 +31,11 @@ from edge_shell import (
 
 INSTALL_SHIMS = ("realpath", "uv", "chmod")
 NOT_ROOT = not (hasattr(os, "geteuid") and os.geteuid() == 0)
-WIPE_BUG = "BUG-1: a trailing slash on AGENTOS_HOME or INSTALL_PREFIX makes rsync --delete wipe node data"
+WIPE_BUG = "BUG-1: a trailing slash on OPENAJAR_HOME or INSTALL_PREFIX makes rsync --delete wipe node data"
 
 
 def fresh_prefix(root: Path) -> Path:
-    """A prefix that already holds an agentos checkout, so the installer treats it as its own."""
+    """A prefix that already holds an openajar checkout, so the installer treats it as its own."""
     prefix = root / "prefix"
     prefix.mkdir(parents=True)
     shutil.copy(REPO / "pyproject.toml", prefix / "pyproject.toml")
@@ -75,14 +75,14 @@ def test_system_prefixes_are_refused(tmp_path, prefix):
 def test_system_homes_without_a_trailing_slash_are_refused(tmp_path, home):
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS)
     result = installer(env, tmp_path, prefix=str(tmp_path / "prefix"), home=home)
-    assert result.returncode == 1 and f"refusing AGENTOS_HOME={home}" in result.stderr
+    assert result.returncode == 1 and f"refusing OPENAJAR_HOME={home}" in result.stderr
     assert shim_calls(env) == []
 
 
 def test_system_home_with_a_trailing_slash_is_refused(tmp_path):
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS, cli="log")
     result = installer(env, tmp_path, prefix=str(tmp_path / "prefix"), home="/etc/")
-    assert result.returncode != 0 and "refusing AGENTOS_HOME" in result.stderr
+    assert result.returncode != 0 and "refusing OPENAJAR_HOME" in result.stderr
     assert not [c for c in shim_calls(env) if c.startswith("chmod") and "/etc" in c]
 
 
@@ -99,17 +99,17 @@ def test_prefix_holding_foreign_files_is_left_alone(tmp_path):
     (prefix / "notes.txt").write_text("mine")
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS)
     result = installer(env, tmp_path, prefix=str(prefix), home=str(tmp_path / "home"))
-    assert result.returncode == 1 and "not an agentos install" in result.stderr
+    assert result.returncode == 1 and "not an openajar install" in result.stderr
     assert (prefix / "notes.txt").read_text() == "mine"
 
 
 @pytest.mark.skipif(not has_rsync(), reason="needs rsync")
 def test_dev_install_works_with_spaces_in_both_paths(tmp_path):
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS, cli="run")
-    prefix, home = tmp_path / "my agentos", tmp_path / "my home"
+    prefix, home = tmp_path / "my openajar", tmp_path / "my home"
     result = installer(env, tmp_path, prefix=str(prefix), home=str(home))
     assert result.returncode == 0, result.stderr
-    assert (prefix / ".venv" / "bin" / "agentos").exists()
+    assert (prefix / ".venv" / "bin" / "openajar").exists()
     assert "mcp_token" in tomllib.loads((home / "node.toml").read_text())
 
 
@@ -135,7 +135,7 @@ def test_rerun_keeps_the_token_and_the_node_data(tmp_path):
     ("prefix_slash", "home_slash"),
     [
         pytest.param("", "", id="no-trailing-slash"),
-        pytest.param("", "/", id="agentos-home-trailing-slash"),
+        pytest.param("", "/", id="openajar-home-trailing-slash"),
         pytest.param("/", "", id="install-prefix-trailing-slash"),
     ],
 )
@@ -157,8 +157,8 @@ def test_init_args_keep_a_quoted_value_together(tmp_path):
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS, cli="run")
     home = tmp_path / "home"
     result = run_script(INSTALLER, ["--dev", "--skip-apt", "--skip-browser"], env, tmp_path,
-                        INSTALL_PREFIX=str(tmp_path / "prefix"), AGENTOS_HOME=str(home),
-                        AGENTOS_INIT_ARGS="--name 'my node'")
+                        INSTALL_PREFIX=str(tmp_path / "prefix"), OPENAJAR_HOME=str(home),
+                        OPENAJAR_INIT_ARGS="--name 'my node'")
     assert result.returncode == 0, result.stderr
     assert tomllib.loads((home / "node.toml").read_text())["name"] == "my node"
 
@@ -172,8 +172,8 @@ def test_init_args_do_not_glob_expand(tmp_path):
     env = sandbox_env(tmp_path, shims=INSTALL_SHIMS, cli="run")
     home = tmp_path / "home"
     result = run_script(INSTALLER, ["--dev", "--skip-apt", "--skip-browser"], env, cwd,
-                        INSTALL_PREFIX=str(tmp_path / "prefix"), AGENTOS_HOME=str(home),
-                        AGENTOS_INIT_ARGS="--ssh-host *")
+                        INSTALL_PREFIX=str(tmp_path / "prefix"), OPENAJAR_HOME=str(home),
+                        OPENAJAR_INIT_ARGS="--ssh-host *")
     assert result.returncode == 0, result.stderr
     assert tomllib.loads((home / "node.toml").read_text())["ssh_host"] == "*"
 
@@ -184,15 +184,15 @@ def test_systemd_without_root_refuses_before_touching_node_data(tmp_path):
     result = installer(env, tmp_path, prefix=str(tmp_path / "prefix"), home=str(tmp_path / "home"),
                        flags=("--systemd", "--skip-apt", "--skip-browser"))
     assert result.returncode != 0 and "need root" in result.stderr
-    assert not any(call.startswith("agentos node init") for call in shim_calls(env))
+    assert not any(call.startswith("openajar node init") for call in shim_calls(env))
 
 
 def test_unit_file_keeps_a_prefix_with_spaces_in_one_argument():
     template = (REPO / "deploy" / "agentosd.service").read_text()
     # The same substitution as deploy/install-node.sh (its sed on the unit file, around line 158).
-    rendered = template.replace("/opt/agentos", "/root/my agentos")
+    rendered = template.replace("/opt/agentos", "/root/my openajar")
     exec_start = next(line for line in rendered.splitlines() if line.startswith("ExecStart="))
-    assert shlex.split(exec_start.removeprefix("ExecStart="))[0] == "/root/my agentos/.venv/bin/agentos"
+    assert shlex.split(exec_start.removeprefix("ExecStart="))[0] == "/root/my openajar/.venv/bin/openajar"
 
 
 def test_unit_keeps_the_graceful_stop_contract():
@@ -203,7 +203,7 @@ def test_unit_keeps_the_graceful_stop_contract():
 
 def test_the_runas_unit_renders_its_users_and_prefix():
     """install-node.sh's render_runas_unit: the same sed, run on the real template."""
-    sed = ["sed", "-e", "s#/opt/agentos#/srv/ag#g", "-e", "s#--caller agentos #--caller svc #g",
+    sed = ["sed", "-e", "s#/opt/agentos#/srv/ag#g", "-e", "s#--caller openajar #--caller svc #g",
            "-e", "s#--brain-user agentos-brain$#--brain-user brainy#", str(REPO / "deploy" / "agentos-runas.service")]
     rendered = subprocess.run(sed, capture_output=True, text=True, check=True).stdout
     execs = [line for line in rendered.splitlines() if line.startswith(("ExecStart=", "ExecStartPre=", "ExecStopPost="))]
@@ -211,7 +211,7 @@ def test_the_runas_unit_renders_its_users_and_prefix():
     for line in execs:
         argv = shlex.split(line.split("=", 1)[1].removeprefix("-"))
         # a script, without site: nothing of site-packages (or a .pth file) runs as root
-        assert argv[:5] == ["/srv/ag/.venv/bin/python", "-I", "-S", "-B", "/srv/ag/src/agentos/runas.py"]
+        assert argv[:5] == ["/srv/ag/.venv/bin/python", "-I", "-S", "-B", "/srv/ag/src/openajar/runas.py"]
         assert argv[-4:] == ["--caller", "svc", "--brain-user", "brainy"]
     assert "agentos-brain" not in "".join(execs)
     assert not any(line.startswith("User=") for line in rendered.splitlines())  # root; see the unit
@@ -228,14 +228,14 @@ def test_the_runas_unit_renders_its_users_and_prefix():
     ["/root/agentos", "/root/agentos/poc", "/srv/agentos-dev", "/srv/agentos-dev/",
      "/srv/agentos-devil/x", "/home/x", "relative/dir"],
 )
-def test_sync_refuses_targets_outside_agentos_dev(tmp_path, target):
+def test_sync_refuses_targets_outside_openajar_dev(tmp_path, target):
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
     result = run_script(SYNC, [target], env, tmp_path)
     assert result.returncode == 2
     assert not any(call.startswith("rsync") for call in shim_calls(env))
 
 
-def test_sync_copies_into_a_directory_under_agentos_dev(tmp_path):
+def test_sync_copies_into_a_directory_under_openajar_dev(tmp_path):
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
     result = run_script(SYNC, ["/srv/agentos-dev/qa"], env, tmp_path)
     assert result.returncode == 0, result.stderr
@@ -253,23 +253,23 @@ def test_node_scripts_say_which_setting_is_missing(tmp_path, script):
     (tree / "deploy").mkdir()
     shutil.copy(REPO / "deploy" / "web-build.sh", tree / "deploy" / "web-build.sh")  # sync-node.sh sources it
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
-    for var in ("AGENTOS_NODE", "AGENTOS_DEV_ROOT", "NODE_HOST"):
+    for var in ("OPENAJAR_NODE", "OPENAJAR_DEV_ROOT", "NODE_HOST"):
         env.pop(var, None)
     args = ["qa"] if script == NODE_TEST else ["/srv/agentos-dev/qa"]
     result = run_script(tree / "scripts" / script.name, args, env, tmp_path)
     assert result.returncode == 2 and ".agentos-node.env" in result.stderr, result.stderr
     assert shim_calls(env) == []
     # one line in the gitignored file sets the host and the dev root
-    (tree / ".agentos-node.env").write_text("AGENTOS_NODE=boxy:/srv/agentos-dev\n")
+    (tree / ".agentos-node.env").write_text("OPENAJAR_NODE=boxy:/srv/agentos-dev\n")
     result = run_script(tree / "scripts" / script.name, args, env, tmp_path)
     assert result.returncode == 0, result.stderr
     assert "boxy:/srv/agentos-dev/qa/" in shim_text(env)
 
 
 @pytest.mark.parametrize(
-    "target", ["/srv/agentos-dev/../agentos", "/srv/agentos-dev/qa/../lanes", "/srv/agentos-dev/."],
+    "target", ["/srv/agentos-dev/../openajar", "/srv/agentos-dev/qa/../lanes", "/srv/agentos-dev/."],
 )
-def test_sync_refuses_dot_segments_that_escape_agentos_dev(tmp_path, target):
+def test_sync_refuses_dot_segments_that_escape_openajar_dev(tmp_path, target):
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
     result = run_script(SYNC, [target], env, tmp_path)
     assert result.returncode == 2
@@ -318,12 +318,12 @@ def test_sync_watch_refuses_restarts_that_touch_production_or_the_poc(tmp_path, 
 
 
 def test_sync_watch_restarts_only_when_code_changed(tmp_path):
-    script, env = _watch_tree(tmp_path, "'src/agentos/x.py' 'uv.lock'")
+    script, env = _watch_tree(tmp_path, "'src/openajar/x.py' 'uv.lock'")
     result = run_script(script, ["--watch", "/srv/agentos-dev/qa", "--restart", "systemctl restart agentosd-qa"],
                         env, tmp_path, SYNC_WATCH_ROUNDS="1")
     assert result.returncode == 0, result.stderr
     log = shim_text(env)
-    assert "ControlPath=/tmp/agentos-sync-%C" in log and "mynode:/srv/agentos-dev/qa/" in log
+    assert "ControlPath=/tmp/openajar-sync-%C" in log and "mynode:/srv/agentos-dev/qa/" in log
     assert "cd '/srv/agentos-dev/qa' && uv sync --frozen --extra node" in log
     assert "cd '/srv/agentos-dev/qa' && systemctl restart agentosd-qa" in log
     assert "synced 2 change(s)" in result.stdout
@@ -347,12 +347,12 @@ def test_installer_builds_the_web_app_once_and_keeps_its_build_on_a_rerun(tmp_pa
     builds = [c for c in shim_calls(env) if c.startswith("npx") and c.endswith(" build")]
     assert builds == ["npx --yes pnpm@10.33.0 build"]
     built = prefix / "web" / "dist"
-    assert (built / "index.html").is_file() and (built / ".agentos-build").is_file()
+    assert (built / "index.html").is_file() and (built / ".openajar-build").is_file()
 
     second = installer(env, tmp_path, prefix=str(prefix), home=str(home))
     assert second.returncode == 0, second.stderr
     assert [c for c in shim_calls(env) if c.startswith("npx") and c.endswith(" build")] == builds  # not built again
-    assert (built / ".agentos-build").is_file()
+    assert (built / ".openajar-build").is_file()
 
 
 # ---- the web build: rebuilt when its sources changed, the last good build kept on failure ----
@@ -472,10 +472,10 @@ def test_named_agents_get_their_documented_ranges(tmp_path, name, display, viewe
     result = run_script(NODE_TEST, [name], env, tmp_path)
     assert result.returncode == 0, result.stderr
     text = shim_text(env)
-    assert f"AGENTOS_TEST_DISPLAY_BASE={display}" in text
-    assert f"AGENTOS_TEST_VIEWER_BASE={viewer}" in text
-    assert f"AGENTOS_TEST_VNC_BASE={vnc}" in text
-    assert f"AGENTOS_TEST_MCP_PORT_BASE={mcp}" in text
+    assert f"OPENAJAR_TEST_DISPLAY_BASE={display}" in text
+    assert f"OPENAJAR_TEST_VIEWER_BASE={viewer}" in text
+    assert f"OPENAJAR_TEST_VNC_BASE={vnc}" in text
+    assert f"OPENAJAR_TEST_MCP_PORT_BASE={mcp}" in text
 
 
 RESERVED_PORTS = {5900, 6080, 7400, *range(5910, 5920), *range(6100, 6110)}
@@ -485,17 +485,17 @@ RESERVED_PORTS = {5900, 6080, 7400, *range(5910, 5920), *range(6100, 6110)}
 def test_custom_slots_never_use_the_poc_or_production_ports(tmp_path, slot):
     """BUG-5: slots 10 and 20 once mapped VNC to 5900 and MCP to 7400, the PoC's ports."""
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
-    result = run_script(NODE_TEST, ["qa"], env, tmp_path, AGENTOS_TEST_SLOT=slot)
+    result = run_script(NODE_TEST, ["qa"], env, tmp_path, OPENAJAR_TEST_SLOT=slot)
     assert result.returncode == 0, result.stderr
     text = shim_text(env)
     for var in ("VIEWER_BASE", "VNC_BASE", "MCP_PORT_BASE"):
-        base = int(re.search(rf"AGENTOS_TEST_{var}=(\d+)", text).group(1))
+        base = int(re.search(rf"OPENAJAR_TEST_{var}=(\d+)", text).group(1))
         assert not RESERVED_PORTS & set(range(base, base + 10)), (var, base)
 
 
 @pytest.mark.parametrize("slot", ["10", "60", "9", "1x", "011"])
 def test_slots_that_would_reach_reserved_ports_are_refused(tmp_path, slot):
     env = sandbox_env(tmp_path, shims=("rsync", "ssh"))
-    result = run_script(NODE_TEST, ["qa"], env, tmp_path, AGENTOS_TEST_SLOT=slot)
-    assert result.returncode == 2 and "AGENTOS_TEST_SLOT" in result.stderr
+    result = run_script(NODE_TEST, ["qa"], env, tmp_path, OPENAJAR_TEST_SLOT=slot)
+    assert result.returncode == 2 and "OPENAJAR_TEST_SLOT" in result.stderr
     assert not any(call.startswith("rsync") for call in shim_calls(env))

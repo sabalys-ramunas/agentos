@@ -130,7 +130,7 @@ export function TryStep({ ctx }: { ctx: StepContext }) {
     ai?.done
       ? { title: `${agent} is connected`, detail: 'Ready when you paste the message.', state: 'done' }
       : setup?.agent
-        ? { title: `Connection made for ${agent}`, detail: 'It counts as connected once it first uses agentos.', state: 'done' }
+        ? { title: `Connection made for ${agent}`, detail: 'It counts as connected once it first uses openajar.', state: 'done' }
         : { title: 'Connect your AI', detail: 'Do the step before this one first.', state: 'later' },
     {
       title: arrived ? `${agent} did the work` : `Waiting for ${agent}`,

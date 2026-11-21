@@ -12,14 +12,14 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-from agentos.core.errors import RefNotFound
-from agentos.core.models import LaneInfo, LaneKind, LaneSpec, Principal, Signal
-from agentos.core.runtime import Runtime
-from agentos.vault import crypto
-from agentos.vault.errors import TypistAborted
-from agentos.vault.service import VaultService, keyfile_path
-from agentos.vault.store import VaultStore
-from agentos.vault.typist import FieldInfo
+from openajar.core.errors import RefNotFound
+from openajar.core.models import LaneInfo, LaneKind, LaneSpec, Principal, Signal
+from openajar.core.runtime import Runtime
+from openajar.vault import crypto
+from openajar.vault.errors import TypistAborted
+from openajar.vault.service import VaultService, keyfile_path
+from openajar.vault.store import VaultStore
+from openajar.vault.typist import FieldInfo
 
 FAST_KDF = {"alg": "argon2id", "m": 64, "t": 1, "p": 1}
 
@@ -162,7 +162,7 @@ class FakeLanes:
         self.used: list[str] = []
 
     def get(self, lane_id: str) -> LaneInfo:
-        from agentos.core.errors import LaneNotFound
+        from openajar.core.errors import LaneNotFound
 
         if lane_id not in self.infos:
             raise LaneNotFound(f"no lane {lane_id}")

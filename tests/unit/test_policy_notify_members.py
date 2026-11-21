@@ -14,11 +14,11 @@ from test_policy_notifier import TOPIC, FakeNet
 from test_policy_notify_recipients import human
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import ControlState, Effect, LaneControl
-from agentos.policy.grants import Grant
-from agentos.policy.notifier import generate_topic
-from agentos.policy.recipients import could_control, could_decide
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import ControlState, Effect, LaneControl
+from openajar.policy.grants import Grant
+from openajar.policy.notifier import generate_topic
+from openajar.policy.recipients import could_control, could_decide
 
 VILNIUS = ZoneInfo("Europe/Vilnius")
 
@@ -28,7 +28,7 @@ def at(s: str) -> float:
 
 
 class Directory:
-    """Members and their grants; the checks are the real ones from agentos.policy.recipients."""
+    """Members and their grants; the checks are the real ones from openajar.policy.recipients."""
 
     def __init__(self, members: dict[str, list[Grant]] | None = None):
         self.members = members or {}
@@ -43,8 +43,8 @@ class Directory:
         return any(could_control(g, lane) for g in self.members.get(member_id, []))
 
 
-VA_TOPIC = "agentos-va-Q8w2Lm4Zp7Rt1Xc9Vb3Nk6"
-OP_TOPIC = "agentos-op-H5j8Kd2Sf6Gq9Wz3Yx7Pm1"
+VA_TOPIC = "openajar-va-Q8w2Lm4Zp7Rt1Xc9Vb3Nk6"
+OP_TOPIC = "openajar-op-H5j8Kd2Sf6Gq9Wz3Yx7Pm1"
 
 
 @pytest.fixture
@@ -287,7 +287,7 @@ async def test_rows_for_a_member_whose_settings_vanished_are_dropped(env):
 def test_member_settings_generate_a_topic_and_hide_it_from_others(env):
     svc, _, _ = env
     s = svc.notifier.update_member("m_new", {})
-    assert s["channel"] == "ntfy" and s["topic"].startswith("agentos-") and s["quiet_hours"] == ["21:00", "08:00"]
+    assert s["channel"] == "ntfy" and s["topic"].startswith("openajar-") and s["quiet_hours"] == ["21:00", "08:00"]
     assert s["urgent_breaks_quiet"] is False and s["batch_window_s"] == 600
     pub = json.dumps(svc.notifier.config.public())
     assert s["topic"] not in pub and VA_TOPIC not in pub and s["topic"][-4:] in pub
@@ -415,8 +415,8 @@ async def test_notify_is_what_the_runner_and_brains_call(env):
 def test_no_em_dash_in_any_push_text():
     from pathlib import Path
 
-    import agentos.policy.notifier as mod
-    import agentos.policy.recipients as rec
+    import openajar.policy.notifier as mod
+    import openajar.policy.recipients as rec
     for m in (mod, rec):
         src = Path(m.__file__).read_text()
         strings = [line for line in src.splitlines() if "—" in line and not line.strip().startswith("#")]
@@ -425,7 +425,7 @@ def test_no_em_dash_in_any_push_text():
 
 def test_link_buttons_for_members_never_approve(env):
     svc, _, _ = env
-    svc.notifier.update_config({"public_base_url": "https://agentos.example.com"})
+    svc.notifier.update_config({"public_base_url": "https://openajar.example.com"})
     ev = {"approval_id": "ap_1", "actionable": True, "title": "t", "body": "b", "expires_ts": 2e9}
     payload = svc.notifier.ntfy_payload([ev], member="m_va")
     assert payload["topic"] == VA_TOPIC and [a["label"] for a in payload["actions"]] == ["Review", "Deny"]
@@ -445,7 +445,7 @@ async def test_rows_on_a_channel_the_member_left_are_dropped(env):
 
 
 async def test_an_outbox_from_before_members_is_migrated_and_delivered(tmp_path):
-    from agentos.policy.store import DB
+    from openajar.policy.store import DB
     old = DB(tmp_path / "policy.db", """CREATE TABLE outbox (id INTEGER PRIMARY KEY AUTOINCREMENT,
         channel TEXT NOT NULL, event TEXT NOT NULL, created_at REAL NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
         next_attempt_at REAL NOT NULL, last_error TEXT, delivered_at REAL, dead_at REAL);""")

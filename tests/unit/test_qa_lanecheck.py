@@ -1,4 +1,4 @@
-"""QA bug hunt: the lane check (agentos.stealth.lanecheck).
+"""QA bug hunt: the lane check (openajar.stealth.lanecheck).
 
 Every test here runs fully offline: a fake Host answers the geo lookup, the proxy probe and the node's
 own IP (the autouse fixture below makes any real socket or subprocess raise, so a test cannot reach the
@@ -22,7 +22,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_ops_support import FakeHost, fingerprint, make_home
 
-from agentos.core.models import (
+from openajar.core.models import (
     AccountRef,
     ControlState,
     LaneControl,
@@ -31,12 +31,12 @@ from agentos.core.models import (
     LaneState,
     ProxyConfig,
 )
-from agentos.node.store import LaneStore
-from agentos.stealth import lanecheck as lc
-from agentos.stealth import lanefacts as lc_facts
-from agentos.stealth import lanereport as lc_report
-from agentos.stealth import lanerules as lc_rules
-from agentos.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
+from openajar.node.store import LaneStore
+from openajar.stealth import lanecheck as lc
+from openajar.stealth import lanefacts as lc_facts
+from openajar.stealth import lanereport as lc_report
+from openajar.stealth import lanerules as lc_rules
+from openajar.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 CFG = """// camoufox.cfg as shipped (the parts the check reads)
@@ -65,7 +65,7 @@ def offline(monkeypatch):
 
 
 class Rig:
-    """An AGENTOS_HOME with a real lane store, a fake host where everything is healthy, and a clock."""
+    """An OPENAJAR_HOME with a real lane store, a fake host where everything is healthy, and a clock."""
 
     def __init__(self, tmp_path: Path):
         self.cfg = make_home(tmp_path, lanes={})
@@ -143,7 +143,7 @@ class StateManager:
 
 def test_the_offline_guard_stops_the_real_host():
     """Held: if a check ever used the real Host, the first socket would raise instead of connecting."""
-    from agentos.core.system import Host
+    from openajar.core.system import Host
 
     with pytest.raises(AssertionError, match="reached the network"):
         Host().tcp_connect("203.0.113.7", 80, timeout=0.1)
@@ -288,7 +288,7 @@ async def test_a_failed_node_ip_read_is_retried_soon(rig):
 
 
 async def test_an_unreadable_exit_pin_is_not_a_pass(rig, monkeypatch):
-    """agentosd is down (the CLI reads agentos.db itself). The pin says the gateway exits from .1; it now
+    """agentosd is down (the CLI reads openajar.db itself). The pin says the gateway exits from .1; it now
     exits from .9. If the pin cannot be read, the check must not say OK."""
     rig.lane(cookies=False)
     rig.store.pin_proxy_exit("gw", "198.51.100.1")
@@ -405,8 +405,8 @@ def test_the_summary_does_not_say_every_check_passed_when_some_could_not_run():
 async def test_the_registered_checker_knows_the_lane_manager_before_the_first_round(rig):
     """The tool and the panel route call the registered LaneChecker directly. HealthService hands it the
     lane manager only when a round or its own lane_check() starts (first_delay, 30 s by default)."""
-    from agentos.core.runtime import Runtime
-    from agentos.ops.service import HealthService
+    from openajar.core.runtime import Runtime
+    from openajar.ops.service import HealthService
 
     profile = rig.lane(proxy="lt1")
     rig.host.browsers[str(profile)] = [77]          # the lane's own browser
@@ -481,13 +481,13 @@ async def test_the_check_writes_nothing_into_the_profile(rig):
     conn.close()
     assert by_id(report)["session"].level == OK
     assert after == before
-    assert not list(rig.cfg.home.rglob("agentos-cookies-*"))
+    assert not list(rig.cfg.home.rglob("openajar-cookies-*"))
 
 
 async def test_reading_launch_prefs_from_the_real_engine_writes_no_file(rig):
     """Held: the check asks the real engine for its network prefs; for an unproxied lane the engine would
     write network-guard.pac next to the profile, and the check must never get there."""
-    from agentos.node.camoufox.engine import CamoufoxEngine
+    from openajar.node.camoufox.engine import CamoufoxEngine
 
     rig.lane(cookies=False)
     rig.lane("biz/direct", proxy=None, cookies=False)

@@ -21,7 +21,7 @@ const overflow = (page: Page) => page.evaluate(() => document.documentElement.sc
 test('the app is installable: manifest, icons and an offline page that caches nothing else', async ({ page, request }) => {
   await start(page, ORG);
   const manifest = await (await request.get('/manifest.webmanifest')).json();
-  expect(manifest).toMatchObject({ name: 'agentos', start_url: '/', display: 'standalone' });
+  expect(manifest).toMatchObject({ name: 'openajar', start_url: '/', display: 'standalone' });
   const sizes = manifest.icons.map((icon: { sizes: string; purpose: string }) => `${icon.sizes} ${icon.purpose}`);
   expect(sizes).toEqual(expect.arrayContaining(['192x192 any', '512x512 any', '512x512 maskable']));
   for (const icon of manifest.icons) expect((await request.get(icon.src)).ok()).toBe(true);
@@ -71,7 +71,7 @@ test('push: on for this device, a test arrives through the service worker, and a
   const actions = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
     registration.active?.postMessage({
-      type: 'agentos-mock-push',
+      type: 'openajar-mock-push',
       payload: {
         v: 1,
         type: 'approval',
@@ -108,14 +108,14 @@ test('a notification tap moves the open panel to the exact approval', async ({ p
   const e = Math.floor(Date.now() / 1000) + 1800;
   // What the worker sends the panel when Review is tapped.
   await page.evaluate(
-    ([path]) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'agentos-open', path } })),
+    ([path]) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'openajar-open', path } })),
     [`/northwind-group/review/${id}?e=${e}&s=mock`],
   );
   await expect(page).toHaveURL(new RegExp(`/review/${id}`));
   await expect(page.getByRole('heading', { name: 'Review', level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Post it' })).toBeVisible();
   // Never somewhere else, whatever the message says.
-  await page.evaluate(() => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'agentos-open', path: '//evil.example' } })));
+  await page.evaluate(() => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'openajar-open', path: '//evil.example' } })));
   await page.waitForTimeout(200);
   expect(new URL(page.url()).host).toBe(new URL(page.url()).host);
   await expect(page).toHaveURL(new RegExp(`/review/${id}`));

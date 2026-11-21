@@ -6,10 +6,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from events_support import NOON, OWNER, World, no_quiet
 
-from agentos.agents.models import AgentState
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.events.dispatcher import EventSettings
-from agentos.events.models import DeliveryState, QuietHours
+from openajar.agents.models import AgentState
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.events.dispatcher import EventSettings
+from openajar.events.models import DeliveryState, QuietHours
 
 S = DeliveryState
 
@@ -398,7 +398,7 @@ async def test_brain_target_gets_a_narrowed_grant_seeded_with_taint(tmp_path):
     assert sub["turn_grant"]["grant_id"] == "gr_child0001" and sub["lanes"] == ["biz-a/instagram"]
     assert sub["context_bundle"].taint == ["untrusted"]
     assert sub["budget"].max_turns == 8 and sub["budget"].max_minutes == 10
-    assert sub["prompt"].startswith("[agentos event ev_") and "<<<untrusted" in sub["prompt"]
+    assert sub["prompt"].startswith("[openajar event ev_") and "<<<untrusted" in sub["prompt"]
     assert ("brain", None) in [(p[1], p[2]) for p in w.policy.prechecks]
     d = w.deliveries(r.id)[0]
     assert d.state == S.DELIVERED and d.grant_id == "gr_child0001"
@@ -465,7 +465,7 @@ async def test_priority_orders_what_is_due(tmp_path):
 
 async def test_agents_propose_and_the_owner_approves(tmp_path):
     w = World(tmp_path, settings=no_quiet())
-    from agentos.core.models import Principal
+    from openajar.core.models import Principal
 
     agent = Principal(kind="agent", id="claude-code", grant_id="gr_agent0001")
     out = w.events.propose_route({"name": "IG comments", "match": {"source": "watch", "workspace": "biz-a"},

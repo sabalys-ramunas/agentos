@@ -13,9 +13,9 @@ from channel_support import start_controller, wait_for
 from test_workflow_access import full_node
 from workflow_support import OWNER, action, make_node, read_flow, workflow
 
-from agentos.controller.hooks import HookGate
-from agentos.node.channel.workflows import NodeHookGate, relay_hook
-from agentos.runner.schedules import sign_webhook
+from openajar.controller.hooks import HookGate
+from openajar.node.channel.workflows import NodeHookGate, relay_hook
+from openajar.runner.schedules import sign_webhook
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 TOKEN = "a" * 32
@@ -177,7 +177,7 @@ async def test_an_offline_node_says_when_to_come_back(live):
 
 async def test_a_node_that_does_not_answer_gives_the_place_back(live, monkeypatch):
     hub = live.ctl.controller.hub
-    monkeypatch.setattr("agentos.controller.hub.HOOK_TIMEOUT", 0.05)
+    monkeypatch.setattr("openajar.controller.hub.HOOK_TIMEOUT", 0.05)
     live.node.channel._handlers = lambda real=live.node.channel._handlers: {
         **real(), "hook_relay": lambda conn, message: asyncio.sleep(0)}
     async with client(live) as web:

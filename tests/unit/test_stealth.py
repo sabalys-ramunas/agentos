@@ -1,4 +1,4 @@
-"""Stealth findings (agentos.stealth.stealth) and the stealth check's flow (agentos.stealth.stealthcheck),
+"""Stealth findings (openajar.stealth.stealth) and the stealth check's flow (openajar.stealth.stealthcheck),
 against two real probe dumps (a Windows and a Linux identity on Camoufox 158.0.1 beta.41 in the
 Docker node, tests/fixtures/stealth) and a fake lab."""
 
@@ -13,8 +13,8 @@ from typing import Any, ClassVar
 
 import pytest
 
-from agentos.stealth import stealth, stealthcheck
-from agentos.stealth.stealth import FAIL, OK, WARN
+from openajar.stealth import stealth, stealthcheck
+from openajar.stealth.stealth import FAIL, OK, WARN
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "stealth"
 WIN_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
@@ -388,7 +388,7 @@ def test_slots_never_touch_the_poc_or_the_production_node():
 
 
 def test_a_slot_that_overlaps_a_node_on_this_machine_is_refused(tmp_path):
-    from agentos.core.config import NodeConfig
+    from openajar.core.config import NodeConfig
 
     # a production node.toml with more slots: displays :110 to :129, viewer ports 6100 to 6119
     big = NodeConfig(home=tmp_path / "prod", max_slots=20, display_base=110)
@@ -418,8 +418,8 @@ def test_node_configs_reads_every_home_and_refuses_one_it_cannot_read(tmp_path):
 
 
 async def test_the_checks_display_sweep_kills_only_its_own_homes_processes(tmp_path, monkeypatch):
-    from agentos.core.config import NodeConfig
-    from agentos.node import display
+    from openajar.core.config import NodeConfig
+    from openajar.node import display
 
     config = NodeConfig(home=tmp_path / "scratch", display_base=110, max_slots=9)
     own = str(config.home / "vnc" / "display-111.xauth")
@@ -440,16 +440,16 @@ async def test_the_checks_display_sweep_kills_only_its_own_homes_processes(tmp_p
 
 
 async def test_the_next_check_stops_what_a_killed_one_left(tmp_path, monkeypatch):
-    from agentos.node import display
-    from agentos.node.camoufox import engine as engine_camoufox
+    from openajar.node import display
+    from openajar.node.camoufox import engine as engine_camoufox
 
-    dead, live, mine = (tmp_path / f"agentos-stealth-{n}" for n in ("dead0001", "live0001", "mine0001"))
+    dead, live, mine = (tmp_path / f"openajar-stealth-{n}" for n in ("dead0001", "live0001", "mine0001"))
     for home in (dead, live, mine):
         (home / "vnc").mkdir(parents=True)
     (dead / stealthcheck.OWNER_FILE).write_text("999999999 1\n")  # no such process
     stealthcheck.claim_home(live)  # this test's own pid stands in for a check that still runs
-    gone = tmp_path / "agentos-stealth-gone0001"  # removed, but its browser was left running
-    unrelated = tmp_path / "agentos-stealth-notes"  # not a scratch home's name
+    gone = tmp_path / "openajar-stealth-gone0001"  # removed, but its browser was left running
+    unrelated = tmp_path / "openajar-stealth-notes"  # not a scratch home's name
     unrelated.mkdir()
     procs = [(601, ["Xvfb", ":330", "-auth", f"{dead}/vnc/display-330.xauth"]),
              (602, [engine_camoufox.BROWSER_BIN, "-profile", f"{dead}/lanes/stealth/l1/profile"]),

@@ -11,13 +11,13 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.profiles import mapping, tools
-from agentos.profiles.errors import OwnerOnly, ProfileInvalid
-from agentos.profiles.models import Attachment, Profile
-from agentos.profiles.service import ProfilesService, account_changes, build, merge, parse_profile
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.profiles import mapping, tools
+from openajar.profiles.errors import OwnerOnly, ProfileInvalid
+from openajar.profiles.models import Attachment, Profile
+from openajar.profiles.service import ProfilesService, account_changes, build, merge, parse_profile
 
 LI = "biz-a/linkedin"
 OWNER = {"kind": "human", "id": "owner", "owner": "owner"}
@@ -293,6 +293,6 @@ def test_the_sections_import_on_their_own():
     import subprocess
     import sys
 
-    for module in ("agentos.profiles.sections", "agentos.profiles.models", "agentos.profiles.fields"):
+    for module in ("openajar.profiles.sections", "openajar.profiles.models", "openajar.profiles.fields"):
         done = subprocess.run([sys.executable, "-c", f"import {module}"], capture_output=True, text=True, check=False)
         assert done.returncode == 0, done.stderr

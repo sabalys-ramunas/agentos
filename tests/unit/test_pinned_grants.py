@@ -1,4 +1,4 @@
-"""Pins the narrowing check (agentos.policy.grants): widening_problems and _cap_widening for each
+"""Pins the narrowing check (openajar.policy.grants): widening_problems and _cap_widening for each
 special's caps, each field varied on its own against a few parents, and some all at once."""
 
 from __future__ import annotations
@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 from pinned import check, outcome
 
-from agentos.core.models import Effect
-from agentos.policy.grants import (
+from openajar.core.models import Effect
+from openajar.policy.grants import (
     BrainCap,
     Budget,
     Grant,
@@ -20,7 +20,7 @@ from agentos.policy.grants import (
     owner_block,
     widening_problems,
 )
-from agentos.policy.memory_rules import MemoryCap
+from openajar.policy.memory_rules import MemoryCap
 
 TIERS, ALIASES = ["small", "large"], {"big": "large"}
 H1, H2 = "sha256:" + "1" * 64, "sha256:" + "2" * 64

@@ -5,7 +5,7 @@ accounts that share an IP look linked to the platforms, and that hurts their rep
 package makes the set-up a template you apply to each company, and it refuses the mistakes
 that link accounts by IP. It then keeps a queue of the accounts you still have to log into.
 
-Code: `src/agentos/workspaces/`. Runtime service: `workspaces`. Storage: `$AGENTOS_HOME/workspaces.db`.
+Code: `src/openajar/workspaces/`. Runtime service: `workspaces`. Storage: `$OPENAJAR_HOME/workspaces.db`.
 
 ## The model
 
@@ -30,11 +30,11 @@ characters and a surface or lane name is 1 to 41, so any valid pair makes a vali
 ## Quick start
 
 ```
-agentos workspace create acme --name "Acme" --proxy lt1
-agentos workspace plan social-6 -w acme            # shows six lanes, creates nothing
-agentos workspace apply social-6 -w acme           # asks, then creates them
-agentos workspace queue                            # who still needs to log in, with login URLs
-agentos workspace ready acme/instagram             # after the owner has logged in
+openajar workspace create acme --name "Acme" --proxy lt1
+openajar workspace plan social-6 -w acme            # shows six lanes, creates nothing
+openajar workspace apply social-6 -w acme           # asks, then creates them
+openajar workspace queue                            # who still needs to log in, with login URLs
+openajar workspace ready acme/instagram             # after the owner has logged in
 ```
 
 Lanes from `apply` start as `needs_login`. Log in through the lane's live view, then mark it
@@ -47,7 +47,7 @@ Built in:
 - `social-6`: instagram, facebook, reddit, medium, blog and linkedin, for one company.
 - `personal`: instagram, facebook, reddit and linkedin, for your own accounts.
 
-A user template is a TOML file in `$AGENTOS_HOME/templates/<id>.toml`. The file name is the
+A user template is a TOML file in `$OPENAJAR_HOME/templates/<id>.toml`. The file name is the
 template id (1 to 41 characters, lowercase letters, digits and dashes). A user file may not
 reuse a built-in name.
 
@@ -77,7 +77,7 @@ Rules:
   unset. Set them in your own template if the blog address is fixed.
 - At most 50 surfaces per template.
 
-A bad file never stops listing. `agentos workspace templates` (and `GET /api/templates`)
+A bad file never stops listing. `openajar workspace templates` (and `GET /api/templates`)
 shows the valid templates and, under "Not usable", each problem with its file name. Asking for
 a broken template by name says why it cannot be used.
 
@@ -134,7 +134,7 @@ Other points:
 - **Overrides are explicit and recorded.** `--override-proxy-rules` (or `override_proxy_rules`
   in the API and tools) bypasses rules (a) and (b) for one call, and needs a `--reason`. Each
   overridden lane is recorded with its rules, the reason, who did it and when. List them with
-  `agentos workspace overrides` or `GET /api/overrides`.
+  `openajar workspace overrides` or `GET /api/overrides`.
 
 Changing a workspace's default proxy only affects future plans. It never moves an existing lane.
 
@@ -162,22 +162,22 @@ copy you control.
 
 ```bash
 # on the old node
-agentos workspace export acme --to /root/acme.agentos          # asks for a passphrase twice
-agentos workspace export acme --to /root/ -r age1...   # your key from age-keygen; a dated name
+openajar workspace export acme --to /root/acme.agentos          # asks for a passphrase twice
+openajar workspace export acme --to /root/ -r age1...   # your key from age-keygen; a dated name
 scp mynode:/root/acme.agentos .                                  # or keep it on the laptop
 
 # on the new node
-agentos workspace import acme.agentos --dry-run                 # verify every checksum, print the plan
-agentos workspace import acme.agentos                           # plan, ask, import as one unit
-agentos workspace import acme.agentos --as acme-eu --map-proxy lt1=de1 --reissue-grants
+openajar workspace import acme.openajar --dry-run                 # verify every checksum, print the plan
+openajar workspace import acme.openajar                           # plan, ask, import as one unit
+openajar workspace import acme.openajar --as acme-eu --map-proxy lt1=de1 --reissue-grants
 ```
 
 The file is age v1 (a passphrase, or one or more `age1...` recipients from `age-keygen`), so
-`age -d acme.agentos | tar -tz` lists it without agentos. Inside (agentos.workspaces.transfer.export):
+`age -d acme.openajar | tar -tz` lists it without openajar. Inside (openajar.workspaces.transfer.export):
 
 | Member | Holds |
 |---|---|
-| `agentos-export/format.json` | format `agentos-workspace-export` version 1, the workspace, the source node and host, when, which agentos |
+| `agentos-export/format.json` | format `agentos-workspace-export` version 1, the workspace, the source node and host, when, which openajar |
 | `workspace/workspace.json` | the workspace record (null for a workspace that only exists as a lane-id prefix) and, per lane, its spec (engine, proxy label, locale, account) and readiness row |
 | `workspace/vault.json` | the vault entries bound inside the workspace (`acme/<lane>` or `acme/*`), values included; bindings to other workspaces are left off |
 | `workspace/flows.json` | flows on the workspace's lanes, every saved version and which one is current; plus a cross-workspace flow (`*/reddit`) when one of these schedules runs it |
@@ -195,7 +195,7 @@ daemon to pause it the export refuses, and a browser that starts during the copy
 
 **No plaintext on disk.** The only file an export writes is the encrypted one (as
 `.partial-<name>` until it is complete). Vault values exist in plaintext only in memory and inside
-the encrypted stream. An import stages profiles under `AGENTOS_HOME/tmp` (700, removed afterwards)
+the encrypted stream. An import stages profiles under `OPENAJAR_HOME/tmp` (700, removed afterwards)
 and keeps `vault.json` in memory until it is sealed into this node's vault.
 
 **Never exported:** grant tokens (re-issue with `--reissue-grants`; the new tokens are printed
@@ -204,7 +204,7 @@ unless `--with-proxies`, machine secrets (they belong to the node), runs, journa
 screenshots and recordings, override records, browser caches, each lane's `shots/` and `files/`,
 and terminal and service lanes (only browser lanes move for now), approvals of agenda entries.
 
-**Import rules** (agentos.workspaces.transfer.import_):
+**Import rules** (openajar.workspaces.transfer.import_):
 
 - The whole file is decrypted and every checksum compared with the manifest before anything
   else. A wrong passphrase, a damaged, cut or altered file is refused with nothing left behind.
@@ -213,7 +213,7 @@ and terminal and service lanes (only browser lanes move for now), approvals of a
   with the workspace id (`acme.instagram.post` becomes `acme-eu.instagram.post`), vault bindings,
   grant scopes and schedule lanes all follow.
 - A lane is never created without its proxy, because it would then use this node's own IP. A
-  label this node lacks must be added first (`agentos proxy add`), mapped (`--map-proxy OLD=NEW`),
+  label this node lacks must be added first (`openajar proxy add`), mapped (`--map-proxy OLD=NEW`),
   carried in the file (`--with-proxies` on export), or, with `--allow-missing-proxy`, created as a
   placeholder that points at `proxy-missing.invalid`, so the lane fails closed until you set the
   real one. A label that exists here but points at a different proxy is a warning: the account
@@ -227,7 +227,7 @@ and terminal and service lanes (only browser lanes move for now), approvals of a
   them as they were. A schedule whose grant is not re-issued here stays off either way.
 - Agenda entries come in as drafts, whatever they were on the source: an approval binds to the
   source node's grants and is used up there, so approvals never travel. The plan and the import's
-  output say so; propose each again (`agentos agenda propose <id>`) once the source copy is
+  output say so; propose each again (`openajar agenda propose <id>`) once the source copy is
   cancelled. An entry on a connector operation this node has not installed is left out, with a note.
 - Profiles come in cold. Then, everything is added as one unit: proxies, lanes, the workspace
   record and readiness, vault entries, grants, flows, schedules, agenda entries. If one step fails, everything the
@@ -236,22 +236,22 @@ and terminal and service lanes (only browser lanes move for now), approvals of a
 **One device, two places.** The export records where it came from, and never deletes anything
 there. The import warns, loudly, when the lanes still exist on another node: running both copies
 at once looks to the sites like one device in two places and can trigger checkpoints. Delete or
-archive the source lanes (`agentos lane delete` once it exists), or at least keep them cold. An
+archive the source lanes (`openajar lane delete` once it exists), or at least keep them cold. An
 import under `--as` on the same node gets the same warning: it makes a second copy of the same
 devices.
 
 ## Storage
 
-`$AGENTOS_HOME/workspaces.db` (SQLite, WAL, `synchronous=FULL`, mode 600). It holds workspace
+`$OPENAJAR_HOME/workspaces.db` (SQLite, WAL, `synchronous=FULL`, mode 600). It holds workspace
 records, one row per lane this package has seen (platform, surface, template, login URL,
 readiness and note, and who last changed readiness) and the override record. It holds no
-credentials. The schema version is in a `schema_version` table. A file from a newer agentos is
+credentials. The schema version is in a `schema_version` table. A file from a newer openajar is
 refused, and a damaged file gives a clean `unavailable` error that says the lanes are fine. Lanes
 live in the node's own store and are not affected by a damaged workspaces file.
 
 ## CLI
 
-`agentos workspace` (mounted by the node CLI):
+`openajar workspace` (mounted by the node CLI):
 
 | Command | Does |
 |---|---|

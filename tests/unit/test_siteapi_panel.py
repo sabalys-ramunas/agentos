@@ -9,11 +9,11 @@ import copy
 import pytest
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.core.errors import PolicyDenied
-from agentos.runner.models import TRY_SOURCE
-from agentos.runner.siteapis import tools as site_tools
-from agentos.runner.siteapis.models import SAMPLE
-from agentos.runner.siteapis.service import ACTIVATE, LEAVE
+from openajar.core.errors import PolicyDenied
+from openajar.runner.models import TRY_SOURCE
+from openajar.runner.siteapis import tools as site_tools
+from openajar.runner.siteapis.models import SAMPLE
+from openajar.runner.siteapis.service import ACTIVATE, LEAVE
 
 API, LANE = "harbor-supplier", "biz-a/instagram"
 FLOW = f"connector.{API}.open_orders"
@@ -68,7 +68,7 @@ def test_the_node_token_does_not_activate_another_agents_card(node):
     card = propose(node, node.grant(subject={"id": "asker"}, ceiling="draft"))
     with node.client() as client:
         r = answer(client, card, bearer(TOKEN))
-    # a token is never a person (agentos.core.presence): refused before the card is touched
+    # a token is never a person (openajar.core.presence): refused before the card is touched
     assert r.status_code == 403 and r.json()["error"]["code"] == "presence_required"
     assert not is_live(node) and node.svc.state_of(API) == "proposed"
     assert node.policy.approvals.get(card).state == "pending"
@@ -85,7 +85,7 @@ def test_an_admin_grant_does_not_activate_another_agents_card(node):
     card = propose(node, node.grant(subject={"id": "asker"}, ceiling="draft"))
     with node.client() as client:
         r = answer(client, card, bearer(node.grant(subject={"id": "admin-agent"}, admin=True, ceiling="draft")))
-    # a token is never a person (agentos.core.presence): refused before the card is touched
+    # a token is never a person (openajar.core.presence): refused before the card is touched
     assert r.status_code == 403 and r.json()["error"]["code"] == "presence_required"
     assert not is_live(node) and node.svc.state_of(API) == "proposed"
     assert node.policy.approvals.get(card).state == "pending"

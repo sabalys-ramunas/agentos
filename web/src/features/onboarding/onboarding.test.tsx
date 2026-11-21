@@ -34,7 +34,7 @@ describe('first run: the first job', () => {
   it('offers six jobs, and only one of them is about posting', async () => {
     renderApp('/onboarding');
     const jobs = await screen.findAllByRole('radio', { name: /./ });
-    const titles = jobs.map((item) => item.textContent ?? '').filter((text) => /"|own words/.test(text));
+    const titles = jobs.map((item) => item.textContent ?? '').filter((text) => /["\u201c]|own words/.test(text));
     expect(titles).toHaveLength(6);
     expect(titles.filter((text) => /post/i.test(text))).toHaveLength(1);
   });
@@ -81,7 +81,7 @@ describe('first run: the steps', { timeout: 20_000 }, () => {
     data.approvals = [fresh];
     const { user } = renderApp('/onboarding/northwind-group/try');
     expect(await screen.findByRole('heading', { name: 'Give it its first job' })).toBeInTheDocument();
-    expect(await screen.findByText(/Using agentos, write an Instagram post for Aster Coffee/)).toBeInTheDocument();
+    expect(await screen.findByText(/Using openajar, write an Instagram post for Aster Coffee/)).toBeInTheDocument();
     const [card] = await screen.findAllByRole('article', { name: /Instagram/ });
     await user.click(within(card!).getAllByRole('button').at(-1)!);
     expect(await screen.findByText(/Approved\. It goes ahead now\./)).toBeInTheDocument();

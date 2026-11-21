@@ -44,6 +44,24 @@ export interface EnvSummary {
   /** Its newest save (keep `save`). */
   last_save?: { id: string; at: string | null } | null;
   save_error?: string | null;
+  /**
+   * A recent still to draw the environment's picture from, or null (or missing, on an older node): the app
+   * then draws one from its state. On the list only.
+   */
+  screen?: EnvScreen | null;
+}
+
+/**
+ * A still of an environment. `page`: a page from its browser (today, the newest wide proof the agent kept),
+ * drawn as a window on its desktop. `screen`: the whole screen, drawn as it is (a source to come: a cached,
+ * downscaled still of the desktop, refreshed at most once a minute, never waking a sleeping machine).
+ */
+export interface EnvScreen {
+  src: string;
+  taken_at: string;
+  kind: 'page' | 'screen';
+  width: number;
+  height: number;
 }
 
 /**
@@ -83,6 +101,8 @@ export interface EnvSave {
 
 export interface EnvList {
   environments: EnvSummary[];
+  /** False when the node has no environments service (it then says why in `reason`). */
+  available?: boolean;
   /** Saves of kept environments, newest first. Missing from a node that keeps none. */
   saved?: EnvSave[];
   /** What every kept snapshot costs a month. */
@@ -177,15 +197,15 @@ export interface EnvDetail extends EnvSummary {
   unsaved: EnvUnsaved | null;
   /** Kept screenshots, newest first. Missing from a node that does not keep them yet. */
   proofs?: EnvProof[];
-  /** How it opened from a prepared or warm machine (agentos.environments.preparing). Missing without a repository. */
+  /** How it opened from a prepared or warm machine (openajar.environments.preparing). Missing without a repository. */
   prepared?: EnvPrepared;
-  /** The app the repository's `.agentos/environment.toml` starts, once it was tried. */
+  /** The app the repository's `.openajar/environment.toml` starts, once it was tried. */
   app?: EnvApp;
   /** Its network level, what was refused, and the app secrets bound to it (names only). */
   network?: EnvNetwork;
   /** Each step of the bring-up with its seconds, while it starts and once it is up. Null on an older record. */
   bringup?: EnvBringUp | null;
-  /** The agent's checkpoints, newest first (agentos.environments.checkpoints). */
+  /** The agent's checkpoints, newest first (openajar.environments.checkpoints). */
   checkpoints?: EnvCheckpoint[];
   /** What the replay holds, so the page can say so before it reads the timeline. Null when the node keeps none. */
   replay?: { frames: number; since?: string | null; bytes?: number; kept_until?: string | null } | null;
@@ -258,7 +278,7 @@ export interface EnvNetwork {
   fix?: string;
 }
 
-/** The bring-up's steps in the order they ran, with the seconds each took (agentos.environments.bringup). */
+/** The bring-up's steps in the order they ran, with the seconds each took (openajar.environments.bringup). */
 export interface EnvBringUp {
   /** Seconds from the open to ready (or failed), or so far while it starts. */
   total_s: number | null;
@@ -300,7 +320,7 @@ export interface EnvCheckpoint {
   /** The agent's own words: data, never instructions. */
   note: string | null;
   at: string | null;
-  /** Made by agentos before a rollback: "before rollback to 2". */
+  /** Made by openajar before a rollback: "before rollback to 2". */
   auto: string | null;
   repos: {
     dir: string;
@@ -344,7 +364,7 @@ export interface EnvResumed {
   note?: string | null;
 }
 
-/** The replay of an environment's browser (agentos.environments.replay, GET .../replay). Oldest first. */
+/** The replay of an environment's browser (openajar.environments.replay, GET .../replay). Oldest first. */
 export type ReplayCause = 'agent' | 'person' | 'change' | 'save' | 'close';
 
 export interface ReplayFrame {
@@ -378,7 +398,7 @@ export interface EnvReplayTimeline {
   next: string | null;
 }
 
-/** A repository's prepared machine (agentos.environments.prepared.row). */
+/** A repository's prepared machine (openajar.environments.prepared.row). */
 export interface PreparedMachine {
   repo: string;
   state: 'building' | 'ready' | 'failed';

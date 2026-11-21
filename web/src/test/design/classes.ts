@@ -37,6 +37,7 @@ const DESIGN_PROPERTY =
 const ONLY_A_TOKEN = /^(?:[a-z-]+:)?var\(--[a-z0-9-]+\)$/;
 
 const TAILWIND_SIZES = /^text-(xs|sm|base|lg|[2-9]?xl)$/;
+// Tailwind's own radii; 2xl is a token in Dawn (Home's window, the stage: 14) and counts when theme.py has it
 const TAILWIND_RADII = /^rounded(?:-[trblse]{1,2})?-(xs|2xl|3xl|4xl)$/;
 const TAILWIND_SHADOWS = /^shadow-(2xs|xs|sm|md|lg|xl|2xl|inner)$/;
 
@@ -83,7 +84,7 @@ function arbitraryFinding(base: string): ClassFinding | null {
     : utility === 'text' || utility === 'leading' || utility === 'tracking' || utility === 'font'
       ? 'a type role (text-body, text-secondary, text-caption, text-code ...)'
       : utility!.startsWith('rounded')
-        ? 'rounded-sm (4), rounded-md (6), rounded-lg (8), rounded-xl (10) or rounded-full'
+        ? 'rounded-sm (4), rounded-md (6), rounded-lg (8), rounded-xl (10), rounded-2xl (14) or rounded-full'
         : utility === 'shadow'
           ? 'shadow-lift, shadow-popover or shadow-dialog; a ring or an edge is a border, never a shadow'
           : utility === 'z'
@@ -94,7 +95,7 @@ function arbitraryFinding(base: string): ClassFinding | null {
 
 function scaleFinding(base: string): ClassFinding | null {
   if (TAILWIND_SIZES.test(base)) return { rule: 'not-a-token', fix: `\`${base}\` does not exist here (Tailwind's sizes are cleared). Use a type role: text-body, text-secondary, text-caption, text-section-title` };
-  if (TAILWIND_RADII.test(base)) return { rule: 'not-a-token', fix: `\`${base}\` does not exist here. Use rounded-sm, rounded-md, rounded-lg, rounded-xl or rounded-full` };
+  if (TAILWIND_RADII.test(base) && !RADII.has(base.split('-').at(-1)!)) return { rule: 'not-a-token', fix: `\`${base}\` does not exist here. Use rounded-sm, rounded-md, rounded-lg, rounded-xl or rounded-full` };
   if (TAILWIND_SHADOWS.test(base)) return { rule: 'not-a-token', fix: `\`${base}\` does not exist here. Use shadow-lift (cards), shadow-popover or shadow-dialog` };
   const z = /^z-(\d+)$/.exec(base);
   if (z && !LAYERS.has(Number(z[1]))) return { rule: 'not-a-token', fix: `\`${base}\` is not a layer. Use ${[...LAYERS].map(([n, name]) => `z-${n} (${name})`).join(', ')}` };

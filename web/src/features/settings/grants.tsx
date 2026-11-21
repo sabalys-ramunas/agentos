@@ -8,12 +8,13 @@ import type { Effect, Grant } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
-import { Field, Input } from '@/components/ui/field';
-import { CodeBlock } from '@/components/ui/misc';
+import { CopyField, Field, Input } from '@/components/ui/field';
+import { describeError } from '@/lib/errors';
 import { Select } from '@/components/ui/select';
-import { Status } from '@/components/ui/status';
-import { EmptyState, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
-import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/cn';
+import { EmptyState, NoAccess, QueryView } from '@/components/ui/states';
+import { mainCell, Table, TableScroll, TableSkeleton, Td, Th, Tr } from '@/components/ui/table';
 import { date, slugify } from '@/lib/format';
 import { effectLabel } from '@/lib/labels';
 import { useRunsAlone } from '@/features/nodes/add-node';
@@ -41,13 +42,15 @@ function NewGrantDialog({ org, open, onOpenChange }: { org: string; open: boolea
     if (!next) {
       setToken(null);
       setSubject('');
+      create.reset();
     }
   };
 
+  const slug = slugify(subject);
   const submit = () => {
     create.mutate(
       {
-        subject: slugify(subject),
+        subject: slug,
         workspaces: workspace === 'all' ? workspaces.map((item) => item.id) : [workspace],
         ceiling,
         specials: [],
@@ -63,14 +66,14 @@ function NewGrantDialog({ org, open, onOpenChange }: { org: string; open: boolea
         open={open}
         onOpenChange={close}
         title="Copy your token"
-        description="This is the only time it is shown. agentos keeps only a scrambled copy, so it cannot be recovered."
+        description="This is the only time it is shown. openajar keeps only a scrambled copy, so it cannot be recovered."
         footer={
           <Button variant="primary" onClick={() => close(false)}>
             Done
           </Button>
         }
       >
-        <CodeBlock code={token} label="Copy token" />
+        <CopyField label="Token" value={token} />
       </Dialog>
     );
   }
@@ -84,15 +87,27 @@ function NewGrantDialog({ org, open, onOpenChange }: { org: string; open: boolea
       footer={
         <>
           <Button onClick={() => close(false)}>Cancel</Button>
-          <Button variant="primary" disabled={!slugify(subject)} loading={create.isPending} onClick={submit}>
+          <Button type="submit" form="new-grant" variant="primary" disabled={!slug} loading={create.isPending}>
             Create grant
           </Button>
         </>
       }
     >
-      <div className="grid gap-4">
-        <Field label="Subject" hint="Who this token is for.">
-          <Input mono autoFocus placeholder="claude-code-aster" value={subject} onChange={(event) => setSubject(event.target.value)} autoComplete="off" />
+      <form
+        id="new-grant"
+        className="grid gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (slug) submit();
+        }}
+      >
+        <Field
+          label="App"
+          required
+          hint={slug && slug !== subject.trim() ? <>It is saved as <span className="mono text-fg">{slug}</span>.</> : 'Which app this access is for, so you know it again in this list.'}
+          error={create.isError ? describeError(create.error) : null}
+        >
+          <Input mono autoFocus placeholder="claude-code-aster" value={subject} onChange={(event) => setSubject(event.target.value)} autoComplete="off" spellCheck={false} />
         </Field>
         <Field label="Workspaces">
           <Select
@@ -101,7 +116,7 @@ function NewGrantDialog({ org, open, onOpenChange }: { org: string; open: boolea
             options={[{ value: 'all', label: 'All workspaces' }, ...workspaces.map((item) => ({ value: item.id, label: item.name }))]}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Highest effect" hint={ceiling === 'pay' || ceiling === 'irreversible' ? 'Asks you to confirm it is you.' : undefined}>
             <Select
               value={ceiling}
@@ -113,7 +128,7 @@ function NewGrantDialog({ org, open, onOpenChange }: { org: string; open: boolea
             <Select value={ttl} onValueChange={setTtl} options={TTLS} />
           </Field>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }
@@ -134,73 +149,75 @@ export function GrantsSettings() {
     <>
       <SettingsHeader
         title="Grants"
-        description={alone ? 'Which AI apps can use agentos here. This computer checks their access offline, and revoking is immediate.' : 'Which AI apps can use agentos. Computers check their access offline, and revoking is immediate.'}
+        description={alone ? 'Which AI apps can use openajar here. This computer checks their access offline, and revoking is immediate.' : 'Which AI apps can use openajar. Computers check their access offline, and revoking is immediate.'}
         action={
           isNotServed(grants.error) ? undefined : (
-            <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
               New grant
             </Button>
           )
         }
       />
       <Card className="overflow-hidden">
-        <QueryView
-          query={grants}
-          skeleton={
-            <div className="grid gap-4 p-6">
-              <Skeleton />
-              <Skeleton />
-              <Skeleton className="w-2/3" />
-            </div>
-          }
-        >
+        <QueryView query={grants} skeleton={<TableSkeleton columns={['App', 'Up to', 'Expires', '']} rows={4} />}>
           {(items) =>
             items.length ? (
-              <Table>
-                <thead className="hidden md:table-header-group">
-                  <tr>
-                    <Th>Subject</Th>
-                    <Th className="w-28">Up to</Th>
-                    <Th className="w-32">Expires</Th>
-                    <Th className="w-24">
-                      <span className="sr-only">Actions</span>
-                    </Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((grant) => (
-                    <Tr key={grant.id}>
-                      <Td className={mainCell}>
-                        <p className="mono truncate text-secondary">{grant.subject}</p>
-                        <p className="text-secondary whitespace-normal text-faint">
-                          <span className="md:hidden">{effectLabel[grant.ceiling]} · </span>
-                          {grant.workspaces.map((id) => workspaceWords(id, workspaces.find((item) => item.id === id)?.name)).join(', ')}
-                          {grant.budget ? ` · ${grant.budget}` : ''}
-                        </p>
-                      </Td>
-                      <Td className="hidden text-secondary text-muted md:table-cell">{effectLabel[grant.ceiling]}</Td>
-                      <Td className="tabular hidden text-secondary text-faint md:table-cell">
-                        {grant.expires_at ? date(grant.expires_at) : 'Never'}
-                      </Td>
-                      <Td className="pr-4 text-right md:pr-6">
-                        {grant.revoked ? (
-                          <Status status={{ label: 'Revoked', tone: 'idle' }} className="pr-2" />
-                        ) : (
-                          <Button size="sm" variant="ghost" onClick={() => setRevoking(grant)}>
-                            Revoke
-                          </Button>
-                        )}
-                      </Td>
-                    </Tr>
-                  ))}
-                </tbody>
-              </Table>
+              <TableScroll>
+                <Table>
+                  <thead className="hidden md:table-header-group">
+                    <tr>
+                      <Th>App</Th>
+                      <Th className="w-36">Up to</Th>
+                      <Th className="w-32">Expires</Th>
+                      <Th className="w-28">
+                        <span className="sr-only">Actions</span>
+                      </Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((grant) => {
+                      const where = grant.workspaces.map((id) => workspaceWords(id, workspaces.find((item) => item.id === id)?.name)).join(', ');
+                      return (
+                        <Tr key={grant.id}>
+                          <Td className={mainCell}>
+                            <p title={grant.subject} className={cn('mono truncate text-code font-medium', grant.revoked ? 'text-faint' : 'text-fg')}>
+                              {grant.subject}
+                            </p>
+                            <p className="text-secondary whitespace-normal text-faint">
+                              <span className="md:hidden">{effectLabel[grant.ceiling]} · </span>
+                              {where}
+                              {grant.budget ? ` · ${grant.budget}` : ''}
+                            </p>
+                          </Td>
+                          <Td className={cn('hidden md:table-cell', grant.revoked && 'text-muted')}>{effectLabel[grant.ceiling]}</Td>
+                          <Td className={cn('tabular hidden md:table-cell', grant.revoked && 'text-muted')}>
+                            {grant.expires_at ? date(grant.expires_at) : 'Never'}
+                          </Td>
+                          <Td className="pr-4 text-right md:pr-5">
+                            {grant.revoked ? (
+                              <Badge>Revoked</Badge>
+                            ) : (
+                              <Button size="sm" variant="ghost" onClick={() => setRevoking(grant)}>
+                                Revoke
+                              </Button>
+                            )}
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+              </TableScroll>
             ) : (
               <EmptyState
                 icon={<KeyRound />}
                 title="No grants yet"
                 description="Give an AI app access to connect it. Its key is shown only once."
-                action={<Button onClick={() => setCreating(true)}>New grant</Button>}
+                action={
+                  <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+                    New grant
+                  </Button>
+                }
               />
             )
           }

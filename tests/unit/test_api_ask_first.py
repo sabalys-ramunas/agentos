@@ -1,4 +1,4 @@
-""""Ask me first" on the panel API (`GET`/`POST /api/ask-first`) and the CLI (`agentos flows ask-first`):
+""""Ask me first" on the panel API (`GET`/`POST /api/ask-first`) and the CLI (`openajar flows ask-first`):
 anyone who reaches the lane turns it on; only a person signed in (the owner, or an admin member of the
 workspace) or the CLI turns it off; a bearer token, the owner token included, never does."""
 
@@ -11,9 +11,9 @@ from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.core.ratelimit import RateLimiter
-from agentos.policy.ask_first import open_store
-from agentos.runner.cli import app as runner_app
+from openajar.core.ratelimit import RateLimiter
+from openajar.policy.ask_first import open_store
+from openajar.runner.cli import app as runner_app
 
 LANE = "biz-a/instagram"
 
@@ -99,7 +99,7 @@ def test_flows_list_shows_the_switch(node):
 # ---------------------------------------------------------------- the CLI
 
 def test_cli_sets_lists_and_shows(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     run = CliRunner().invoke
     empty = run(runner_app, ["flows", "ask-first"])
     assert empty.exit_code == 0 and "runs on its own" in empty.output
@@ -121,9 +121,9 @@ def test_cli_sets_lists_and_shows(tmp_path, monkeypatch):
         assert "—" not in res.output
 
 
-@pytest.mark.parametrize("variable", ["AGENTOS_LANE", "AGENTOS_BRAIN_TASK"])
+@pytest.mark.parametrize("variable", ["OPENAJAR_LANE", "OPENAJAR_BRAIN_TASK"])
 def test_a_process_an_agent_runs_turns_an_account_on_and_never_off(tmp_path, monkeypatch, variable):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     monkeypatch.setenv(variable, "biz-a/shell")
     run = CliRunner().invoke
     off = run(runner_app, ["flows", "ask-first", "--account", LANE, "off"])
@@ -137,9 +137,9 @@ def test_a_process_an_agent_runs_turns_an_account_on_and_never_off(tmp_path, mon
 
 
 def test_the_cli_says_when_nobody_has_chosen(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
-    monkeypatch.delenv("AGENTOS_LANE", raising=False)
-    monkeypatch.delenv("AGENTOS_BRAIN_TASK", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
+    monkeypatch.delenv("OPENAJAR_LANE", raising=False)
+    monkeypatch.delenv("OPENAJAR_BRAIN_TASK", raising=False)
     run = CliRunner().invoke
     unset = run(runner_app, ["flows", "ask-first", "--account", LANE])
     assert unset.exit_code == 0 and "no choice made yet" in unset.output and "still ask you" in unset.output

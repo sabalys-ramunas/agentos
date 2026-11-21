@@ -1,4 +1,4 @@
-"""QA bug hunt on the break-glass freeze (agentos.freeze). Every test asserts the behaviour the spec
+"""QA bug hunt on the break-glass freeze (openajar.freeze). Every test asserts the behaviour the spec
 (the module docstrings) promises and is marked xfail(strict) while the bug
 stands, so a fix turns it into a failure that says "remove the xfail"."""
 
@@ -11,12 +11,12 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from freeze_support import close, make_node, started
 
-from agentos.core import signing
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy import bind_request_token, wrap_tool
-from agentos.policy.errors import Denied
-from agentos.policy.freeze_store import FreezeStore, scope_key
+from openajar.core import signing
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy import bind_request_token, wrap_tool
+from openajar.policy.errors import Denied
+from openajar.policy.freeze_store import FreezeStore, scope_key
 
 
 @pytest.fixture
@@ -53,10 +53,10 @@ async def test_a_node_freeze_revokes_every_agent_grant_even_one_without_lanes(no
 
 
 async def test_a_local_freeze_revokes_a_controller_grant_that_reaches_only_the_lane(tmp_path):
-    from agentos.policy import tokens
-    from agentos.policy.grants import GrantBlock
-    from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
-    from agentos.policy.util import new_id
+    from openajar.policy import tokens
+    from openajar.policy.grants import GrantBlock
+    from openajar.policy.issuers import SERVICE_NAME, TrustedIssuers
+    from openajar.policy.util import new_id
 
     org = Ed25519PrivateKey.generate()
     issuers = TrustedIssuers(tmp_path)
@@ -151,7 +151,7 @@ async def test_a_cli_unfreeze_during_the_sweep_is_not_undone(tmp_path):
         cli = FreezeStore(tmp_path)
         key = scope_key("lane", "biz-a/one")
         assert cli.path(key).exists()
-        cli.remove(key)  # what `agentos unfreeze lane biz-a/one` does on the node's shell
+        cli.remove(key)  # what `openajar unfreeze lane biz-a/one` does on the node's shell
         await sweep
         n.freeze.reload()  # the daemon's next poll
         release.set()
@@ -178,8 +178,8 @@ async def test_unfreeze_never_reports_success_for_a_freeze_that_comes_back(node)
 async def test_a_freeze_cancels_an_open_brain_task_behind_500_finished_ones(tmp_path):
     from types import SimpleNamespace
 
-    from agentos.brains.models import TaskRecord, TaskStatus
-    from agentos.brains.store import Store
+    from openajar.brains.models import TaskRecord, TaskStatus
+    from openajar.brains.store import Store
 
     store = Store(tmp_path / "brains" / "brains.db")
     store.insert_task(TaskRecord(id="bt_old_queued", workspace="biz-a", principal_id="agent-1",
@@ -207,7 +207,7 @@ async def test_a_freeze_cancels_an_open_brain_task_behind_500_finished_ones(tmp_
 
 
 async def test_lane_control_on_a_frozen_lane_does_not_say_you_may_act(node):
-    from agentos.node.control_tools import tool_specs as control_specs
+    from openajar.node.control_tools import tool_specs as control_specs
 
     fns = {s.name: wrap_tool(s, node.runtime) for s in control_specs(node.runtime)}
     await node.freeze.freeze("lane", "biz-a/one", reason="stop", by="owner")

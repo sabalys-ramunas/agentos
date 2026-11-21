@@ -1,4 +1,4 @@
-"""`agentos config example`: a commented node.toml that never falls behind NodeConfig."""
+"""`openajar config example`: a commented node.toml that never falls behind NodeConfig."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import tomllib
 
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.config import NodeConfig
-from agentos.core.config_report import DESCRIPTIONS, SECRET_FIELDS, UNSET_EXAMPLES, example
+from openajar.cli import app
+from openajar.core.config import NodeConfig
+from openajar.core.config_report import DESCRIPTIONS, SECRET_FIELDS, UNSET_EXAMPLES, example
 
 
 def test_every_setting_has_a_plain_description():
@@ -36,14 +36,14 @@ def test_uncommenting_every_default_line_changes_nothing():
 def test_cli_prints_the_example_with_no_secret():
     result = CliRunner().invoke(app, ["config", "example"])
     assert result.exit_code == 0, result.output
-    assert '# mcp_token = "..."' in result.output and "AGENTOS_HOME" in result.output
+    assert '# mcp_token = "..."' in result.output and "OPENAJAR_HOME" in result.output
     assert "—" not in result.output
 
 
 def test_an_old_node_toml_with_the_engagement_settings_still_loads(tmp_path):
     """The engagement engine was removed. A node whose node.toml still holds its settings starts as
     before: the old keys are ignored, every other setting is read, and nothing writes them back."""
-    from agentos.core.config import load_config, save_config
+    from openajar.core.config import load_config, save_config
 
     (tmp_path / "node.toml").write_text(
         'name = "old-node"\nmcp_port = 7499\nkeepalive = true\nengage_sessions = true\nengage_draft_provider = "http"\n'

@@ -1,5 +1,5 @@
-"""The bring-up's steps and seconds (agentos.environments.timings) and the owner's view of the node's own
-machines (agentos.environments.fleet): prepared machines, the warm pool's price and worst month, and
+"""The bring-up's steps and seconds (openajar.environments.timings) and the owner's view of the node's own
+machines (openajar.environments.fleet): prepared machines, the warm pool's price and worst month, and
 this month's opens. The machines are test_environments_prepared's fakes (FakeProvider, a fake shell)."""
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ from datetime import timedelta
 import pytest
 from test_environments_prepared import REPO, _warm, builds_done, node  # noqa: F401
 
-from agentos.core.models import utcnow
-from agentos.environments import bringup, timings
-from agentos.environments.errors import EnvironmentFailed
-from agentos.environments.fleet import MONTH_HOURS, worst_eur_month
-from agentos.environments.models import Environment, EnvSettings
+from openajar.core.models import utcnow
+from openajar.environments import bringup, timings
+from openajar.environments.errors import EnvironmentFailed
+from openajar.environments.fleet import MONTH_HOURS, worst_eur_month
+from openajar.environments.models import Environment, EnvSettings
 
 STEP_KEYS = {"step", "at_s", "seconds", "ok"}
 

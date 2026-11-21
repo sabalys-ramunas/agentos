@@ -1,8 +1,8 @@
-"""A real Camoufox's own output (agentos.node.browser_output): the browser's stdout and stderr
+"""A real Camoufox's own output (openajar.node.browser_output): the browser's stdout and stderr
 reach the log through the Playwright driver, scrubbed, masked and with the lane's id, and none
 of it is written anywhere else.
 
-Run on the node:  AGENTOS_TEST_SLOT=51 scripts/node-test.sh devbatch tests/node/test_browser_output_node.py
+Run on the node:  OPENAJAR_TEST_SLOT=51 scripts/node-test.sh devbatch tests/node/test_browser_output_node.py
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ import sys
 import pytest
 from test_lanes_node import home, managers, node_config  # noqa: F401
 
-from agentos.core import logs
-from agentos.core.models import LaneSpec
+from openajar.core import logs
+from openajar.core.models import LaneSpec
 
 pytestmark = [
     pytest.mark.node,

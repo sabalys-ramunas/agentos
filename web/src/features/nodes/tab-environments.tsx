@@ -13,7 +13,7 @@ import { useTechnical } from '@/lib/technical';
 import { NotReported, Panel } from './parts';
 
 /** The commands for what the app does not do here. Each on its own line, as it is typed. */
-const COMMANDS = ['agentos env create <workspace>/<name>', 'agentos env remove <workspace>/<name>', 'agentos env images build dev-box'];
+const COMMANDS = ['openajar env create <workspace>/<name>', 'openajar env remove <workspace>/<name>', 'openajar env images build dev-box'];
 
 /** The one sentence a person reads first: how many services run, or that none are set up. */
 export function environmentsAnswer(data: NodeEnvironments): string {

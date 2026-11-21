@@ -14,15 +14,15 @@ from test_node_panel import Node, bearer
 from testkit.workspaces import Harness as WorkspaceHarness
 from workflow_support import LIST, OWNER, action, make_node, read_flow, workflow
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.policy.grants import Grant, GrantBlock, Subject
-from agentos.runner import tools as runner_tools
-from agentos.runner.fakes import BASE, Harness
-from agentos.runner.workflows import tools as wf_tools
-from agentos.workspaces import tools as ws_tools
-from agentos.workspaces.rules import LaneFact, proxy_conflicts
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.policy.grants import Grant, GrantBlock, Subject
+from openajar.runner import tools as runner_tools
+from openajar.runner.fakes import BASE, Harness
+from openajar.runner.workflows import tools as wf_tools
+from openajar.workspaces import tools as ws_tools
+from openajar.workspaces.rules import LaneFact, proxy_conflicts
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 READ = "biz-a.social.read"
@@ -98,7 +98,7 @@ def api_node(tmp_path):
 
 def test_core_helpers_answer_from_the_grant_lane_patterns():
     """A grant for biz-a/* covers biz-a and nothing else; one lane is not its workspace."""
-    from agentos.core.tools import covers_workspace, pattern_reaches, pattern_within, require_lane_patterns
+    from openajar.core.tools import covers_workspace, pattern_reaches, pattern_within, require_lane_patterns
 
     ctx = GrantCtx(Runtime(), grant_for("biz-a/*"))
     assert covers_workspace(ctx, "biz-a") is True
@@ -328,8 +328,8 @@ async def test_a_site_api_key_outside_the_grant_is_neither_replaced_nor_read(sa)
     """A draft whose surfaces the grant does not reach keeps its definition, and its key answers not_found."""
     from test_siteapi_service import API, LANE, doc
 
-    from agentos.runner.fakes import FakeCtx
-    from agentos.runner.siteapis import tools as site_tools
+    from openajar.runner.fakes import FakeCtx
+    from openajar.runner.siteapis import tools as site_tools
 
     sa.svc.save(doc(), by={"kind": "agent", "id": "agent-b", "owner": "owner"})
 
@@ -349,7 +349,7 @@ async def test_a_site_api_key_outside_the_grant_is_neither_replaced_nor_read(sa)
 def sa(tmp_path):
     from test_siteapi_service import LANE, Approvals, FakeLanes, FakeNotifier, portal
 
-    from agentos.runner.siteapis.service import SERVICE_NAME
+    from openajar.runner.siteapis.service import SERVICE_NAME
 
     harness = Harness(tmp_path, site=portal(), services={"lanes": FakeLanes([LANE]), "notifier": FakeNotifier(),
                                                          "approvals": Approvals()})

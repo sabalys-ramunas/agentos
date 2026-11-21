@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.policy.confirm import ConfirmLevel, Proof
-from agentos.policy.service import PolicyService
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.policy.confirm import ConfirmLevel, Proof
+from openajar.policy.service import PolicyService
 
 T0 = 1_800_000_000.0  # 2027-01-15, a fixed "now"
 OWNER = "owner-token-0123456789abcdef"
@@ -76,8 +76,8 @@ def issue_v1(svc: PolicyService, *, subject: dict | None = None, workspaces: lis
              ceiling: Effect = Effect.COMMIT, ttl_s: int = 3600, **fields):
     """A version 1 grant, as nodes issued before token v2 (still accepted in the migration
     window). Returns (Grant, token)."""
-    from agentos.policy import tokens
-    from agentos.policy.grants import Grant, Subject
+    from openajar.policy import tokens
+    from openajar.policy.grants import Grant, Subject
 
     block = svc._block(parent=None, version=1, sub=Subject(**(subject or {"id": "claude-code"})),
                        workspaces=workspaces or ["biz-a"], ceiling=ceiling, exp=int(svc.clock()) + ttl_s,

@@ -1,5 +1,5 @@
 title = "Hetzner Cloud server"
-summary = "An Ubuntu 24.04 server on Hetzner Cloud. cloud-init makes an admin user with your key, turns SSH to keys only, turns on unattended security upgrades, installs agentos from a git ref and writes a doctor report."
+summary = "An Ubuntu 24.04 server on Hetzner Cloud. cloud-init makes an admin user with your key, turns SSH to keys only, turns on unattended security upgrades, installs openajar from a git ref and writes a doctor report."
 file = "cloud-init.yaml"
 create = "deploy/templates/hetzner/create.sh --name NAME --type TYPE --location LOCATION --image IMAGE --ssh-key KEY_NAME --user-data FILE"
 
@@ -17,21 +17,21 @@ example = "ssh-ed25519 AAAA... you@laptop"
 
 [[variables]]
 name = "NODE_NAME"
-description = "the node's name in agentos"
+description = "the node's name in openajar"
 example = "hetzner-1"
 required = false
 default = "the server's hostname"
 
 [[variables]]
 name = "AGENTOS_GIT_URL"
-description = "the repository to install agentos from: the public repository or your fork"
-example = "https://github.com/your-org/agentos.git"
+description = "the repository to install openajar from: the public repository or your fork"
+example = "https://github.com/your-org/openajar.git"
 required = true
 
 [[variables]]
 name = "AGENTOS_GIT_REF"
 description = "the branch, tag or commit to install"
-example = "v0.3.0"
+example = "v0.5.0"
 required = false
 default = "main"
 
@@ -43,6 +43,6 @@ required = false
 
 [[variables]]
 name = "JOIN_TOKEN"
-description = "a single-use join token from `agentos controller join-token`, valid one hour (empty: join over SSH later)"
+description = "a single-use join token from `openajar controller join-token`, valid one hour (empty: join over SSH later)"
 example = "ajt_..."
 required = false

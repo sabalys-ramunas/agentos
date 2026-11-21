@@ -1,4 +1,4 @@
-"""The owner's gate log (agentos.node.gateshapes, docs/design/egress-guard.md 8.9): the shapes the
+"""The owner's gate log (openajar.node.gateshapes, docs/design/egress-guard.md 8.9): the shapes the
 commit gate classified without a rule, grouped with counts; the owner promotes one to the node's
 read allowlist or to a named commit rule, every lane's guard reads the change, an audit row is
 written, and only the owner may (members and grants are refused). Fake requests (test_egress)."""
@@ -15,14 +15,14 @@ from starlette.testclient import TestClient
 from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, Clock, FakeContext, FakeRequest, FakeRoute
 
-from agentos.api.auth import PRESENCE_HEADER, PanelStore
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest, LaneNotFound, NotFound
-from agentos.core.presence import Presence
-from agentos.node import egress, gateshapes
-from agentos.node.egress import EgressTrace, LaneGuard
-from agentos.node.routes import RouteDispatcher
-from agentos.node.viewer_routes import gate_log_api_routes
+from openajar.api.auth import PRESENCE_HEADER, PanelStore
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest, LaneNotFound, NotFound
+from openajar.core.presence import Presence
+from openajar.node import egress, gateshapes
+from openajar.node.egress import EgressTrace, LaneGuard
+from openajar.node.routes import RouteDispatcher
+from openajar.node.viewer_routes import gate_log_api_routes
 
 LANE = "biz-a/reddit"
 GQL = "https://www.reddit.com/svc/shreddit/graphql"

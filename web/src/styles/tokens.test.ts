@@ -17,7 +17,7 @@ interface Tree {
 interface Token {
   $type: string;
   $value: unknown;
-  $extensions?: { agentos?: { cssVar?: string } };
+  $extensions?: { openajar?: { cssVar?: string } };
 }
 
 /** The declarations of one block of tokens.css, as name to value. */
@@ -68,7 +68,7 @@ describe('the Mono tokens: tokens.json and tokens.css agree', () => {
       const colours = leaves(json[theme] as Tree).filter(([, token]) => token.$type === 'color');
       expect(colours.length).toBeGreaterThan(80);
       for (const [path, token] of colours) {
-        const name = token.$extensions?.agentos?.cssVar ?? `--${path.slice(1).join('-')}`;
+        const name = token.$extensions?.openajar?.cssVar ?? `--${path.slice(1).join('-')}`;
         expect([theme, name, declared.get(name)]).toEqual([theme, name, cssColour(token.$value)]);
       }
     }
@@ -78,7 +78,7 @@ describe('the Mono tokens: tokens.json and tokens.css agree', () => {
     for (const [path, token] of leaves(json.base as Tree)) {
       const [group] = path;
       if (token.$type === 'color') {
-        const name = token.$extensions?.agentos?.cssVar ?? '';
+        const name = token.$extensions?.openajar?.cssVar ?? '';
         expect([name, light.get(name)]).toEqual([name, cssColour(token.$value)]);
       } else if (token.$type === 'dimension' && ['space', 'radius', 'control-height', 'row-height'].includes(group!)) {
         const name = `--${path.join('-')}`;

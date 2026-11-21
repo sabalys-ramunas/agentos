@@ -1,7 +1,7 @@
-"""Effect rule health (agentos.node.rulehealth, docs/design/egress-guard.md 8.12): the trace rows a
+"""Effect rule health (openajar.node.rulehealth, docs/design/egress-guard.md 8.12): the trace rows a
 lane's guard writes for it (rule_hit, unruled_request), the report built from the traces (when each
-rule last matched, the shapes no rule names, the drift flags), and where the owner sees it (agentos
-lane rules, agentos doctor, GET /api/rules/health, the site list's note)."""
+rule last matched, the shapes no rule names, the drift flags), and where the owner sees it (openajar
+lane rules, openajar doctor, GET /api/rules/health, the site list's note)."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from starlette.routing import Mount
 from starlette.testclient import TestClient
 from test_egress import COMMITTER, OWNER, FakeRequest, make_guard
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node import egress, gateshapes, rulehealth
-from agentos.node.viewer_routes import rule_health_api_routes
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node import egress, gateshapes, rulehealth
+from openajar.node.viewer_routes import rule_health_api_routes
 
 SECRET = "my private words 42"
 EM_DASH = "—"
@@ -113,7 +113,7 @@ def test_a_verified_rule_quiet_since_a_shape_of_its_kind_appeared_is_flagged():
     sid = gateshapes.shape_id("www.reddit.com", "/svc/shreddit/graphql", "POST", "CreateCommentV2")
     assert flag["kind"] == "stale_rule" and flag["rule"] == "reddit.comment" and flag["shapes"] == [sid]
     assert "CreateCommentV2" in flag["message"] and "a comment" in flag["message"]
-    assert f"agentos lane gate-log biz-a/reddit --as-commit comment.new --shape {sid}" in flag["message"]
+    assert f"openajar lane gate-log biz-a/reddit --as-commit comment.new --shape {sid}" in flag["message"]
     gold = next(e for e in done["unknown"] if e["op"] == "FetchGoldBalance")
     assert gold["write_like"] is False and gold["kind"] is None  # a read no rule names: listed, never a flag
     assert EM_DASH not in json.dumps(done)
@@ -232,8 +232,8 @@ class _Owner(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
         if self.kind is not None:
-            # a grant: an agent's credential, not the owner (agentos.core.presence)
-            from agentos.core.presence import Presence
+            # a grant: an agent's credential, not the owner (openajar.core.presence)
+            from openajar.core.presence import Presence
 
             request.state.principal = type("P", (), {"kind": self.kind})()
             access = type("A", (), {"owner": False, "member": None, "presence": Presence.AGENT,
@@ -266,7 +266,7 @@ def test_the_api_serves_the_owner_and_refuses_a_grant(tmp_path):
 
 
 def test_the_doctor_warns_on_drift(tmp_path):
-    from agentos.ops import doctor
+    from openajar.ops import doctor
 
     _node_with_trace(tmp_path, [blocked(T0, "reddit.comment"), classified(T0 + DAY, "CreateCommentV2")])
     [result] = doctor.check_effect_rules(doctor.DoctorContext(home=tmp_path))

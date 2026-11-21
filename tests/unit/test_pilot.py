@@ -7,13 +7,13 @@ from typing import Any
 import pytest
 from testkit.pilot import FakeTools, ScriptedDecider, ScriptedRescue, ScriptedWriter, pick, step
 
-from agentos.brains.decisions import DecisionRejected
-from agentos.core.models import ActionKind, Principal
-from agentos.pilot import Limits, Pilot, Request, State, Status, Value
-from agentos.pilot.deciders import BLOCKED, BUDGET, UNAVAILABLE, BrainRescue, DeciderFailed
-from agentos.pilot.hands import ToolFailed
-from agentos.pilot.page import lean, offered, parse_page
-from agentos.pilot.questions import build_questions, noul
+from openajar.brains.decisions import DecisionRejected
+from openajar.core.models import ActionKind, Principal
+from openajar.pilot import Limits, Pilot, Request, State, Status, Value
+from openajar.pilot.deciders import BLOCKED, BUDGET, UNAVAILABLE, BrainRescue, DeciderFailed
+from openajar.pilot.hands import ToolFailed
+from openajar.pilot.page import lean, offered, parse_page
+from openajar.pilot.questions import build_questions, noul
 
 FEED = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 6 refs
@@ -529,19 +529,19 @@ class CostlyRescue:
 
     async def pick(self, question: str, options: dict[str, str], state: Any, *, must_not_send: Any,
                    max_usd: float | None = None) -> Any:
-        from agentos.pilot.deciders import UNAVAILABLE, DeciderFailed
+        from openajar.pilot.deciders import UNAVAILABLE, DeciderFailed
 
         self.budgets.append(max_usd)
         raise DeciderFailed(UNAVAILABLE, "no usable answer", usd=0.03, tokens=900)
 
 
 def test_a_rescue_gets_what_is_left_of_the_budget_and_a_bad_answer_still_counts():
-    from agentos.pilot import deciders
-    from agentos.pilot.deciders import DeciderFailed
+    from openajar.pilot import deciders
+    from openajar.pilot.deciders import DeciderFailed
 
     failed = DeciderFailed(deciders.UNAVAILABLE, "x", usd=0.03, tokens=900)
     assert (failed.usd, failed.tokens) == (0.03, 900)
-    assert deciders._failed(type("E", (deciders.AgentosError,), {"cost_usd": 0.02, "tokens": 5})("x")).usd == 0.02
+    assert deciders._failed(type("E", (deciders.OpenajarError,), {"cost_usd": 0.02, "tokens": 5})("x")).usd == 0.02
 
 
 # ---- what the decision lab measured ---------------------------------------------------------------

@@ -1,14 +1,14 @@
 """A CLI write holding the lane or env store's write lock never freezes the daemon: control,
 quarantine, exit pins and env states wait for it off the event loop, and still land before
-the call returns (agentos.core.sqlite)."""
+the call returns (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
 from lockheld import loop_stays_free
 from test_lanes_holds import build
 
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node.store import LaneStore
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node.store import LaneStore
 
 
 async def test_a_hold_waits_for_the_lock_off_the_loop_and_is_saved(tmp_path):
@@ -54,7 +54,7 @@ async def test_a_proxy_change_and_a_site_change_at_once_both_stick(tmp_path):
 async def test_env_warm_exec_and_reset_wait_off_the_loop_and_are_saved(tmp_path):
     from test_env_manager import make
 
-    from agentos.env.store import EnvStore
+    from openajar.env.store import EnvStore
 
     mgr = make(tmp_path)
     try:

@@ -12,10 +12,10 @@ import sqlite3
 import pytest
 from test_policy_support import Clock
 
-from agentos.core import signing
-from agentos.policy import anchors, auditlog
-from agentos.policy.auditlog import SIG_CTX, canonical, mark_hash, row_hash, sign
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.core import signing
+from openajar.policy import anchors, auditlog
+from openajar.policy.auditlog import SIG_CTX, canonical, mark_hash, row_hash, sign
+from openajar.policy.traces import TraceEvent, TraceStore
 
 
 def ev(i: int = 0, **kw) -> TraceEvent:
@@ -250,10 +250,10 @@ NODE = "node_01ANCHORCLI0000000000000000"
 
 
 def export_doc(tmp_path, held_anchors: list[dict]) -> dict:
-    """What `agentos controller anchors NODE -o` writes: each head with a controller receipt."""
+    """What `openajar controller anchors NODE -o` writes: each head with a controller receipt."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from agentos.core.config import NodeConfig, save_config
+    from openajar.core.config import NodeConfig, save_config
 
     key = Ed25519PrivateKey.generate()
     save_config(NodeConfig(home=tmp_path, controller_url="ws://localhost:1/v1/node/connect", node_id=NODE,
@@ -267,10 +267,10 @@ def export_doc(tmp_path, held_anchors: list[dict]) -> dict:
 def test_cli_verify_with_an_anchors_file(tmp_path, monkeypatch, clock):
     from typer.testing import CliRunner
 
-    from agentos.audit.cli import app
-    from agentos.policy.auditlog import EXIT_OK, EXIT_TAMPERED, EXIT_UNVERIFIABLE
+    from openajar.audit.cli import app
+    from openajar.policy.auditlog import EXIT_OK, EXIT_TAMPERED, EXIT_UNVERIFIABLE
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     s = TraceStore(tmp_path / "traces.db", secrets_dir=tmp_path / "secrets", clock=clock, checkpoint_rows=10_000)
     a = held(s)
     fill(s, clock, 4)
@@ -300,10 +300,10 @@ def test_cli_verify_with_an_anchors_file(tmp_path, monkeypatch, clock):
 def test_cli_verify_anchors_on_a_node_that_anchors_nowhere(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.audit.cli import app
-    from agentos.core.config import NodeConfig, save_config
+    from openajar.audit.cli import app
+    from openajar.core.config import NodeConfig, save_config
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path, audit_anchors=[]))
     TraceStore(tmp_path / "traces.db", secrets_dir=tmp_path / "secrets").close()
     out = CliRunner().invoke(app, ["verify", "--anchors"])
@@ -313,9 +313,9 @@ def test_cli_verify_anchors_on_a_node_that_anchors_nowhere(tmp_path, monkeypatch
 def test_cli_verify_anchors_refuses_since_and_until(tmp_path, monkeypatch, clock):
     from typer.testing import CliRunner
 
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     s = TraceStore(tmp_path / "traces.db", secrets_dir=tmp_path / "secrets", clock=clock, checkpoint_rows=10_000)
     a = held(s)
     fill(s, clock, 4)
@@ -330,11 +330,11 @@ def test_cli_verify_anchors_refuses_since_and_until(tmp_path, monkeypatch, clock
 def test_cli_receipts_need_a_controller_key_and_bare_anchors_never_make_ok(tmp_path, monkeypatch, clock):
     from typer.testing import CliRunner
 
-    from agentos.audit.cli import app
-    from agentos.core.config import load_config, save_config
-    from agentos.policy.auditlog import EXIT_OK, EXIT_UNVERIFIABLE
+    from openajar.audit.cli import app
+    from openajar.core.config import load_config, save_config
+    from openajar.policy.auditlog import EXIT_OK, EXIT_UNVERIFIABLE
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     s = TraceStore(tmp_path / "traces.db", secrets_dir=tmp_path / "secrets", clock=clock, checkpoint_rows=10_000)
     a = held(s)
     fill(s, clock, 4)

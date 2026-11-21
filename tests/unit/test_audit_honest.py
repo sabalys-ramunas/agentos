@@ -8,8 +8,8 @@ import pytest
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.errors import EngineError
+from openajar.cli import app
+from openajar.core.errors import EngineError
 
 runner = CliRunner()
 
@@ -40,7 +40,7 @@ def test_a_panel_action_that_fails_is_traced_error(node, monkeypatch):
 
 
 def test_audit_verify_on_a_damaged_log_exits_4(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     (tmp_path / "traces.db").write_bytes(b"this is not sqlite at all" * 200)
     result = runner.invoke(app, ["audit", "verify"])
     assert result.exit_code == 4, result.output
@@ -48,13 +48,13 @@ def test_audit_verify_on_a_damaged_log_exits_4(tmp_path, monkeypatch):
 
 
 def test_a_fresh_node_has_no_pending_migrations(tmp_path, monkeypatch):
-    from agentos.core import migrate
+    from openajar.core import migrate
 
     home = tmp_path / "h"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     assert runner.invoke(app, ["node", "init", "--mcp-port", "7690"]).exit_code == 0
-    from agentos.node.store import LaneStore
+    from openajar.node.store import LaneStore
 
-    LaneStore(home / "agentos.db")  # what agentosd opens first
+    LaneStore(home / "openajar.db")  # what agentosd opens first
     node_set = next(s for s in migrate.status(home) if s.package == "node")
     assert node_set.current == node_set.latest and node_set.pending == []

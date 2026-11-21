@@ -1,10 +1,11 @@
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { Dialog as Primitive } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { Button, IconButton } from './button';
 import { Input } from './field';
+import { AppTile } from './tile';
 
 /**
  * Radix returns focus to a Dialog.Trigger, and these dialogs open from state, so without this
@@ -63,10 +64,14 @@ interface DialogProps {
   className?: string;
   /** Marks the one dialog that may sit above another. See app.css. */
   stepUp?: boolean;
+  /** A wrapper tile before the title: amber for a careful question, red for one that deletes for good. */
+  tile?: ReactNode;
+  /** The dialog that cannot be undone: a red edge. */
+  tone?: 'danger';
 }
 
 /** Centered on desktop, a bottom sheet on a phone. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, stepUp }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, stepUp, tile, tone }: DialogProps) {
   const returnFocus = useReturnFocus(open);
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
@@ -77,27 +82,33 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
           onOpenAutoFocus={focusFirst}
           onCloseAutoFocus={returnFocus}
           className={cn(
-            'fixed z-50 flex max-h-[calc(100dvh-32px)] flex-col border border-line bg-raised shadow-dialog outline-none sm:max-h-[calc(88dvh-32px)]',
-            'inset-x-0 bottom-0 rounded-t-xl data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in',
-            'sm:top-[12vh] sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-[480px] sm:-translate-x-1/2 sm:rounded-xl',
+            'fixed z-50 flex max-h-[calc(100dvh-32px)] flex-col border bg-raised shadow-dialog outline-none sm:max-h-[calc(88dvh-32px)]',
+            tone === 'danger' ? 'border-bad-line' : 'border-line',
+            'inset-x-0 bottom-0 rounded-t-2xl data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in',
+            'sm:top-[12vh] sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-[460px] sm:-translate-x-1/2 sm:rounded-[12px]',
             'sm:data-[state=closed]:animate-fade-out sm:data-[state=open]:animate-fade-in',
             className,
           )}
         >
-          <div className="px-6 pt-6 pr-12">
-            <Primitive.Title className="text-section-title">{title}</Primitive.Title>
-            {description ? (
-              <Primitive.Description className="mt-1 text-body text-muted">{description}</Primitive.Description>
-            ) : (
-              <Primitive.Description className="sr-only">{title}</Primitive.Description>
-            )}
-          </div>
-          {children ? <div className="min-h-0 overflow-y-auto px-6 pt-4 pb-6">{children}</div> : <div className="h-6" />}
-          {footer ? (
-            <div className="safe-bottom rounded-b-xl border-t border-line bg-inset">
-              <div className="flex justify-end gap-2 px-6 py-3">{footer}</div>
+          <div className={cn('flex gap-3 px-6 pt-6 pr-14', tile && 'items-start')}>
+            {tile ? <span className="shrink-0">{tile}</span> : null}
+            <div className="min-w-0">
+              <Primitive.Title className={cn('text-section-title', tile && 'flex min-h-7 items-center')}>{title}</Primitive.Title>
+              {description ? (
+                <Primitive.Description className="mt-2 text-body text-muted">{description}</Primitive.Description>
+              ) : (
+                <Primitive.Description className="sr-only">{title}</Primitive.Description>
+              )}
             </div>
-          ) : null}
+          </div>
+          {children ? <div className="min-h-0 overflow-y-auto px-6 pt-5 pb-2">{children}</div> : null}
+          {footer ? (
+            <div className="safe-bottom">
+              <div className="flex flex-wrap items-center justify-end gap-2 px-6 pt-5 pb-6">{footer}</div>
+            </div>
+          ) : (
+            <div className="h-6" />
+          )}
           <CloseButton />
         </Primitive.Content>
       </Primitive.Portal>
@@ -223,6 +234,10 @@ interface ConfirmDialogProps {
   typeToConfirm?: string;
   /** Holds the confirm button until what the dialog asks for is there, such as a required reason. */
   confirmDisabled?: boolean;
+  /** The word on the way out, when "Cancel" would be unclear ("Stay", "Keep it going"). */
+  cancelLabel?: string;
+  /** A wrapper tile before the title. A dangerous confirm with `typeToConfirm` gets the red one by itself. */
+  tile?: ReactNode;
   /** Anything a decision needs beside its words: a list of what happens, an optional reason. */
   children?: ReactNode;
 }
@@ -238,10 +253,17 @@ export function ConfirmDialog({
   danger,
   typeToConfirm,
   confirmDisabled = false,
+  cancelLabel = 'Cancel',
+  tile,
   children,
 }: ConfirmDialogProps) {
   const [typed, setTyped] = useState('');
-  const blocked = confirmDisabled || (typeToConfirm !== undefined && typed !== typeToConfirm);
+  const fieldId = useId();
+  const typing = typeToConfirm !== undefined;
+  const matched = !typing || typed.trim() === typeToConfirm;
+  const blocked = confirmDisabled || !matched;
+  // Deleting for good: the red tile, the red edge, and the one red fill in the product, only once the name matches.
+  const forGood = danger && typing;
   return (
     <Dialog
       open={open}
@@ -251,22 +273,33 @@ export function ConfirmDialog({
       }}
       title={title}
       description={description}
+      tone={forGood ? 'danger' : undefined}
+      tile={tile ?? (forGood ? <AppTile tone="red" icon={Trash2} size="sm" /> : undefined)}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant={danger ? 'danger' : 'primary'} loading={loading} disabled={blocked} onClick={onConfirm}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            {cancelLabel}
+          </Button>
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            loading={loading}
+            disabled={blocked}
+            onClick={onConfirm}
+            className={cn(forGood && 'border-transparent bg-(--status-bad-text) text-on-inverse shadow-none hover:border-transparent hover:bg-(--status-bad-text) hover:opacity-90 off:border-transparent off:bg-(--status-bad-text) off:text-on-inverse off:opacity-45')}
+          >
             {confirmLabel}
           </Button>
+          {typing && !matched ? <p className="w-full text-right text-secondary text-faint">The button wakes up when the name matches.</p> : null}
         </>
       }
     >
-      {children}
-      {typeToConfirm !== undefined ? (
+      {children ? <div className={cn(typing && 'mb-4')}>{children}</div> : null}
+      {typing ? (
         <div className="grid gap-2">
-          <label htmlFor="confirm-text" className="text-secondary text-muted">
-            Type <span className="mono text-fg">{typeToConfirm}</span> to confirm
+          <label htmlFor={fieldId} className="text-label text-fg">
+            Type <span className="font-semibold">{typeToConfirm}</span> to confirm
           </label>
-          <Input id="confirm-text" mono value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" />
+          <Input id={fieldId} value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" />
         </div>
       ) : null}
     </Dialog>

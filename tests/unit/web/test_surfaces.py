@@ -1,6 +1,6 @@
-"""Surfaces and connectors, as the app reads them (agentos.api.web.surfaces).
+"""Surfaces and connectors, as the app reads them (openajar.api.web.surfaces).
 
-The seeded dev node (agentos.dev.node.seed_surfaces) connects two accounts: biz-a/social (Instagram,
+The seeded dev node (openajar.dev.node.seed_surfaces) connects two accounts: biz-a/social (Instagram,
 as a business account) and biz-b/forum (Reddit). Every write is the owner's, in person: a bearer
 token, the owner's included, and a member are refused before anything changes.
 """

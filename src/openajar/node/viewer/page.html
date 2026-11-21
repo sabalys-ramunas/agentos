@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0a0a0c">
+<meta name="robots" content="noindex, nofollow">
+<title>{{TITLE}}</title>
+<link rel="icon" href="{{ASSETS}}/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{ASSETS}}/viewer.css">
+<link rel="stylesheet" href="{{ASSETS}}/login.css">
+<script type="application/json" id="openajar-boot">{{BOOT}}</script>
+<script type="module" src="{{ASSETS}}/viewer.js"></script>
+<script type="module" src="{{ASSETS}}/login.js"></script>
+</head>
+<body>
+<div class="app" id="app" data-control="agent" data-mode="view" data-activity="closed" data-phase="connecting">
+
+  <div class="messages">
+    <div class="banner" id="request-banner" role="alert" hidden>
+      <svg class="banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <p class="banner-text"><strong>The agent wants control back:</strong> <span id="request-reason"></span></p>
+      <div class="banner-actions" id="request-actions">
+        <button type="button" class="btn btn-primary" id="btn-request-handback">Hand back</button>
+        <button type="button" class="btn" id="btn-request-keep">Keep control</button>
+      </div>
+    </div>
+    <section class="notices" id="notices" aria-label="Blocked by the site list" aria-live="polite" hidden></section>
+  </div>
+
+  <main class="stage" id="stage" aria-label="Live view">
+    <div class="frame" id="frame">
+      <div class="card" id="screen-wrap">
+        <div class="screen" id="screen" role="application" aria-roledescription="remote screen" aria-label="Live view of the agent's screen"></div>
+        <!-- where the agent acts in its browser, drawn over the screen (the node sends the positions) -->
+        <div class="agent-cursor" id="agent-cursor" aria-hidden="true">
+          <div class="agent-cursor-body">
+            <svg class="agent-cursor-arrow" viewBox="0 0 34 40"><path d="M3 2.5 V31 L10.4 24.2 L15.4 35.6 L20.6 33.4 L15.7 22.2 H26 Z"/></svg>
+            <span class="agent-cursor-tag" id="agent-cursor-tag"></span>
+          </div>
+        </div>
+        <div class="overlay" id="overlay" role="status" aria-live="polite">
+          <div class="overlay-card">
+            <div class="overlay-mark" aria-hidden="true"></div>
+            <div class="spinner" id="overlay-spinner" aria-hidden="true"></div>
+            <p class="overlay-title" id="overlay-title">Connecting</p>
+            <p class="overlay-text" id="overlay-text"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dock" id="actionbar">
+        <div class="dock-row">
+          <div class="pill" id="pill">
+            <div class="who" id="who" role="status" aria-live="polite">
+              <span class="who-dot" aria-hidden="true"></span>
+              <span class="who-text" id="who-text">The agent has control</span>
+              <span class="who-since" id="who-since"></span>
+              <span class="who-tag" id="who-tag" hidden>View only</span>
+              <span class="sr-only" id="mode-status"></span>
+            </div>
+            <div class="actions" id="actions">
+              <button type="button" class="btn btn-icon" id="btn-copy-out" title="Copy from the screen: puts what was copied there on this computer's clipboard" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="btn-label">Copy from the screen</span>
+              </button>
+              <button type="button" class="btn btn-icon" id="btn-paste" title="Paste text into the screen" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="4" width="10" height="4" rx="1"/><path d="M8 6H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-2"/></svg><span class="btn-label">Paste text</span>
+              </button>
+              <button type="button" class="btn btn-icon" id="btn-keyboard" title="Keyboard: type on the screen" aria-pressed="false" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/></svg><span class="btn-label">Keyboard</span>
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-take" aria-keyshortcuts="Alt+Shift+T" hidden><span>Take over</span></button>
+              <button type="button" class="btn btn-primary" id="btn-handback" aria-keyshortcuts="Alt+Shift+H" hidden><span>Hand back</span></button>
+            </div>
+          </div>
+          <!-- records what this page shows of the screen, in this browser, and saves it on this computer -->
+          <button type="button" class="round-btn record-btn" id="btn-record" aria-label="Record a clip" title="Record a clip of the screen (R)" aria-keyshortcuts="Alt+Shift+R" aria-pressed="false" hidden>
+            <svg class="record-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle class="record-core" cx="12" cy="12" r="4"/></svg>
+            <span class="record-dot" aria-hidden="true"></span><span class="record-time" id="record-time" aria-hidden="true">0:00</span>
+          </button>
+          <button type="button" class="round-btn" id="btn-fullscreen" aria-label="Full screen" title="Full screen (F)" aria-keyshortcuts="F Alt+Shift+F">
+            <svg class="when-normal" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            <svg class="when-full" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+          </button>
+          <div class="menu-wrap">
+            <button type="button" class="round-btn" id="btn-menu" aria-label="More" title="More" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+            </button>
+            <div class="menu" id="menu" hidden>
+              <!-- what the page showed above the screen before: the screen's name and state, its signal, its exit -->
+              <div class="menu-head">
+                <div class="identity">
+                  <span class="mark" aria-hidden="true"></span>
+                  <h1 class="lane-id" id="lane-id"><span class="ws" id="lane-ws"></span><span class="slash" aria-hidden="true">/</span><span class="name" id="lane-name"></span></h1>
+                </div>
+                <div class="chips">
+                  <span class="chip" id="state-chip" data-tone="muted"><span class="chip-dot" aria-hidden="true"></span><span class="chip-label" id="state-label">Connecting</span></span>
+                  <span class="chip" id="signal-chip" data-tone="muted" hidden><span class="chip-dot" aria-hidden="true"></span><span class="chip-label" id="signal-label"></span></span>
+                  <span class="chip chip-exit" id="exit-chip" data-tone="muted"><span class="chip-label" id="exit-label"></span></span>
+                </div>
+              </div>
+              <button type="button" class="menu-item menu-danger" id="btn-stop" aria-keyshortcuts="Alt+Shift+S" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span>Stop agent</span>
+              </button>
+              <button type="button" class="menu-item" id="btn-activity" aria-keyshortcuts="Alt+Shift+A" aria-controls="activity" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg><span>Agent activity</span>
+              </button>
+              <button type="button" class="menu-item" id="btn-theme">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="theme-half" d="M12 4a8 8 0 0 1 0 16z"/></svg><span id="theme-label">Theme: automatic</span>
+              </button>
+              <button type="button" class="menu-item" id="btn-help" aria-keyshortcuts="Alt+Shift+/">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg><span>Keyboard shortcuts</span>
+              </button>
+              <p class="menu-info" id="exit-info"></p>
+              <p class="menu-info" id="link-info"></p>
+            </div>
+          </div>
+        </div>
+        <p class="hint" id="hint"></p>
+      </div>
+    </div>
+
+    <aside class="activity" id="activity" aria-labelledby="activity-title">
+      <div class="activity-head">
+        <h2 id="activity-title">Agent activity</h2>
+        <button type="button" class="round-btn round-btn-small" id="btn-activity-close" aria-label="Hide agent activity">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <ol class="activity-list" id="activity-list" aria-live="polite"></ol>
+      <p class="activity-empty" id="activity-empty">No agent actions here yet.</p>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
+
+<!-- a phone's on-screen keyboard: a field it types into, whose letters go to the screen as keys -->
+<textarea id="kbd-input" class="kbd-input" aria-label="Type on the screen" autocapitalize="off" autocomplete="off"
+  autocorrect="off" spellcheck="false" enterkeyhint="enter" tabindex="-1"></textarea>
+<dialog class="dialog" id="dlg-stop" aria-labelledby="dlg-stop-title" aria-describedby="dlg-stop-text">
+  <h2 id="dlg-stop-title">Stop the agent?</h2>
+  <p id="dlg-stop-text">The agent finishes the step it is on and then stops. What it runs here is cancelled, and nothing runs until you take control or hand it back.</p>
+  <div class="dialog-actions">
+    <button type="button" class="btn" id="btn-stop-cancel">Cancel</button>
+    <button type="button" class="btn btn-danger" id="btn-stop-confirm">Stop agent</button>
+  </div>
+</dialog>
+
+<dialog class="dialog" id="dlg-paste" aria-labelledby="dlg-paste-title">
+  <h2 id="dlg-paste-title">Paste text into the screen</h2>
+  <p>The text is typed in where the cursor is on the screen, so click that place first. Pasting with the keyboard does the same without this window.</p>
+  <label class="field-label" for="paste-text">Text</label>
+  <textarea id="paste-text" rows="4" spellcheck="false" autocomplete="off"></textarea>
+  <div class="dialog-actions">
+    <button type="button" class="btn" id="btn-paste-cancel">Cancel</button>
+    <button type="button" class="btn btn-primary" id="btn-paste-send">Paste into the screen</button>
+  </div>
+</dialog>
+
+<dialog class="dialog" id="dlg-help" aria-labelledby="dlg-help-title">
+  <h2 id="dlg-help-title">Keyboard shortcuts</h2>
+  <p>They work even while your keys go to the screen.</p>
+  <dl class="shortcuts" id="shortcut-list">
+    <div><dt><kbd data-mod></kbd><kbd>T</kbd></dt><dd>Take over</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>H</kbd></dt><dd>Hand back to the agent</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>S</kbd></dt><dd>Stop agent</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>A</kbd></dt><dd>Show or hide agent activity</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>F</kbd></dt><dd>Full screen (also F while you watch)</dd></div>
+    <div id="shortcut-record" hidden><dt><kbd data-mod></kbd><kbd>R</kbd></dt><dd>Record a clip, and stop it (also R while you watch)</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>/</kbd></dt><dd>This list</dd></div>
+  </dl>
+  <p id="help-clipboard"></p>
+  <div class="dialog-actions">
+    <button type="button" class="btn btn-primary" id="btn-help-close">Done</button>
+  </div>
+</dialog>
+</body>
+</html>

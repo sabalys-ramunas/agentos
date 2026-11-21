@@ -6,7 +6,7 @@ what the engine asks Camoufox for and the plan (the Playwright options, the conf
 in tests/unit/golden/engine_launch. Values that differ per run (times, temporary paths, the
 machine's environment, the installed Camoufox version) are replaced by a marker first.
 
-Record them again (only after a deliberate change): AGENTOS_RECORD_GOLDEN=1 pytest this file.
+Record them again (only after a deliberate change): OPENAJAR_RECORD_GOLDEN=1 pytest this file.
 """
 
 from __future__ import annotations
@@ -20,9 +20,9 @@ from typing import Any
 import pytest
 from test_lanes_pin import FakeCamoufox, FakeGeo, v1_pin
 
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.camoufox import engine as ec
-from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, load_pin
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.node.camoufox import engine as ec
+from openajar.node.camoufox.engine import PIN_META, CamoufoxEngine, load_pin
 
 GOLDEN = Path(__file__).parent / "golden" / "engine_launch"
 TIME_KEYS = {"pinned_at", "completed_at", "at"}
@@ -88,7 +88,7 @@ CASES = {
 def test_a_launch_plan_matches_its_golden_file(case, tmp_path, monkeypatch):
     got = _plan(tmp_path, monkeypatch, **CASES[case])
     path = GOLDEN / f"{case}.json"
-    if os.environ.get("AGENTOS_RECORD_GOLDEN") == "1":
+    if os.environ.get("OPENAJAR_RECORD_GOLDEN") == "1":
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(got, indent=1, sort_keys=True) + "\n")
     assert got == json.loads(path.read_text())

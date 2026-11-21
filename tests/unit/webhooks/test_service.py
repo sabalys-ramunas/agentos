@@ -14,10 +14,10 @@ from typing import Any
 
 import pytest
 
-from agentos.api.events import EventBus
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.webhooks.outbound import OutboundRefused, OutboundUnresolved, Reply
-from agentos.webhooks.service import (
+from openajar.api.events import EventBus
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.webhooks.outbound import OutboundRefused, OutboundUnresolved, Reply
+from openajar.webhooks.service import (
     MAX_ATTEMPTS,
     RETRY_DELAYS,
     WebhookService,
@@ -27,7 +27,7 @@ from agentos.webhooks.service import (
 )
 
 PUBLIC = "93.184.216.34"
-URL = "https://hooks.example.com/agentos/receive?token=abc123"
+URL = "https://hooks.example.com/openajar/receive?token=abc123"
 
 
 class Clock:
@@ -366,7 +366,7 @@ def test_an_error_in_a_listener_never_reaches_the_publisher() -> None:
 
 
 def _event(kind: str, data: dict[str, Any]):
-    from agentos.api.events import Event
-    from agentos.core.models import utcnow
+    from openajar.api.events import Event
+    from openajar.core.models import utcnow
 
     return Event(id=1, kind=kind, data=data, at=utcnow())

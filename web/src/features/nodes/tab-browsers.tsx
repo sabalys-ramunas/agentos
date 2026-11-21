@@ -120,7 +120,7 @@ function AddConnectionDialog({ org, open, onOpenChange }: { org: string; open: b
           onOpenChange(next);
         }}
         title={`Add ${fields.label}`}
-        description="The password, if the connection has one, is typed on this machine. agentos Cloud never sees it."
+        description="The password, if the connection has one, is typed on this machine. openajar Cloud never sees it."
         kind="proxy"
         fields={fields}
         confirmLabel="Continue on this machine"

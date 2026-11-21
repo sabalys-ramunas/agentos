@@ -8,8 +8,8 @@
 - A flow run claims its lane implicitly (the runner's log context names the run); the brain's read
   passes, its act waits for the end of the run, and a claim over the run fails busy naming it.
 
-Run on the node:  AGENTOS_TEST_SLOT=46 scripts/node-test.sh sharedlanes tests/node/test_sharedlanes_node.py -q
-Uses the slot's display and port ranges (AGENTOS_TEST_*), a throwaway profile under .node-home/ and a
+Run on the node:  OPENAJAR_TEST_SLOT=46 scripts/node-test.sh sharedlanes tests/node/test_sharedlanes_node.py -q
+Uses the slot's display and port ranges (OPENAJAR_TEST_*), a throwaway profile under .node-home/ and a
 local page (file://), never a real site or account.
 """
 
@@ -25,27 +25,27 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core import logs
-from agentos.core.config import NodeConfig
-from agentos.core.errors import LaneBusy
-from agentos.core.models import LaneSpec, LaneState, Principal
-from agentos.node import human
-from agentos.node.camoufox.engine import browser_pids_under
-from agentos.node.claims import READ, Holder
-from agentos.node.display import kill_processes
-from agentos.node.flow_driver import _using
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.lanes import build_lane_manager
+from openajar.core import logs
+from openajar.core.config import NodeConfig
+from openajar.core.errors import LaneBusy
+from openajar.core.models import LaneSpec, LaneState, Principal
+from openajar.node import human
+from openajar.node.camoufox.engine import browser_pids_under
+from openajar.node.claims import READ, Holder
+from openajar.node.display import kill_processes
+from openajar.node.flow_driver import _using
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.lanes import build_lane_manager
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-RANGES = {"display_base": int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "460")),
-          "vnc_base": int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5460")),
-          "viewer_base": int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6460")), "max_slots": 10}
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+RANGES = {"display_base": int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "460")),
+          "vnc_base": int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5460")),
+          "viewer_base": int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6460")), "max_slots": 10}
 LANE = "shared/one"
 
 COMPOSER = """<!doctype html><html><head><title>composer</title></head><body style="background:#fff">
@@ -126,11 +126,11 @@ async def test_a_claimed_multi_step_post_is_never_interleaved(node):
     assert "New post" in snap.text and png[:8] == b"\x89PNG\r\n\x1a\n"
 
     await step("focus", lambda page: page.focus("#t"))
-    await step("type", lambda page: human.type_text(page, "hello from agentos"))
+    await step("type", lambda page: human.type_text(page, "hello from openajar"))
     await step("click", lambda page: human.click(page, page.locator("#b")))
 
     async def read_back(page):
-        assert await page.locator("#s").text_content() == "Posted: hello from agentos"
+        assert await page.locator("#s").text_content() == "Posted: hello from openajar"
         assert page.url == pages["composer"]
 
     await step("read back", read_back)

@@ -4,8 +4,8 @@ Each refused run is checked by the runner right before it executes (Runner._appr
 it fails with approval_mismatch and the fake site records no post.
 """
 
-from agentos.core.models import RunStatus
-from agentos.runner.fakes import FakeApprovals, FakePolicy, Harness, post_flow
+from openajar.core.models import RunStatus
+from openajar.runner.fakes import FakeApprovals, FakePolicy, Harness, post_flow
 
 LANE = "biz-a/social"
 
@@ -130,7 +130,7 @@ async def test_an_authorized_run_without_an_approval_and_an_auto_run_skip_the_ch
 
 async def test_a_run_released_by_a_steps_own_card_is_not_held_to_the_runs_content(tmp_path):
     """A card a step asked for (a fill, an upload) names no flow, so releasing the run with it is not refused."""
-    from agentos.policy.approval_binding import BINDING_CALL, content_digest
+    from openajar.policy.approval_binding import BINDING_CALL, content_digest
 
     approvals = FakeApprovals()
     h = Harness(tmp_path, services={"approvals": approvals})

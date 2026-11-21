@@ -190,7 +190,7 @@ async function send<T>(path: string, options: RequestOptions & { raw?: boolean }
     });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
-    throw new ApiError(0, 'network', 'Could not reach agentos. Check your connection.');
+    throw new ApiError(0, 'network', 'Could not reach openajar. Check your connection.');
   }
 
   if (response.ok && options.raw) {

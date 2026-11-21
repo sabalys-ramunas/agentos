@@ -1,9 +1,9 @@
-"""A repository with .agentos/environment.toml, opened three times: cold, from its prepared machine, warm.
+"""A repository with .openajar/environment.toml, opened three times: cold, from its prepared machine, warm.
 
 The same small question three times, as three chats would ask it. Between them the harness waits
 for what the node does on its own: after the first open it builds the prepared machine in the
 background (the harness waits for the build), and before the third it turns the warm pool on
-(`warm = 1` in environments.toml, as `agentos environments allow --warm 1` writes it) and waits
+(`warm = 1` in environments.toml, as `openajar environments allow --warm 1` writes it) and waits
 until a warm machine is booted. The three open times are the result to watch (open1_s, open2_s and
 open3_s in the history); the checker asks that the app listened at each open, that the second
 came from the prepared machine and the third from the warm pool.
@@ -14,7 +14,7 @@ from __future__ import annotations
 from env_eval.tasks import Agent, Check, Ctx, Session, Task, done, until
 
 PRICE = "12.50"
-PROMPT = "In agentos, open the storefront ({repo}) and tell me the first price on its home page. Close it when done."
+PROMPT = "In openajar, open the storefront ({repo}) and tell me the first price on its home page. Close it when done."
 BUILD_S = 420
 WARM_S = 300
 
@@ -25,7 +25,7 @@ async def build_done(ctx: Ctx) -> None:
 
 
 async def pool_on(ctx: Ctx) -> None:
-    from agentos.dev.slotnode import mcp_client
+    from openajar.dev.slotnode import mcp_client
 
     ctx.node.set_settings(warm=1)
     async with mcp_client(ctx.node.mcp_url, ctx.node.token, timeout=60) as c:  # a chat connects: the pool fills

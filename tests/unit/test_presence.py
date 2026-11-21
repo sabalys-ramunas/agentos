@@ -1,7 +1,7 @@
-"""One "is a person present" decision (agentos.core.presence, docs/THREAT-MODEL.md).
+"""One "is a person present" decision (openajar.core.presence, docs/THREAT-MODEL.md).
 
 Every credential an agent can hold (a grant, an admin grant, the node token, the owner's device
-credential that `agentos connect` keeps in the Mac's login Keychain) stops below Presence.PERSON, so
+credential that `openajar connect` keeps in the Mac's login Keychain) stops below Presence.PERSON, so
 none of them approves, answers, makes a standing approval, turns Ask me first or a confirmation
 setting off, widens a lane's sites, enrolls a passkey, invites a member or unfreezes. A person signed
 in to the panel, and the node's own CLI (a one-time code it writes into panel.db), still do.
@@ -18,15 +18,15 @@ from starlette.testclient import TestClient
 from test_api_members import owner, pending
 from test_node_panel import TOKEN, Node, _ask, bearer
 
-from agentos.api.access import Access, PolicyAccess
-from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE
-from agentos.api.errors import ApiError
-from agentos.core import globs
-from agentos.core.presence import Presence
-from agentos.core.ratelimit import RateLimiter
-from agentos.core.tools import gate_kind, in_person
-from agentos.policy.confirm import ConfirmLevel, arrival
-from agentos.policy.confirmation import ConfirmationConfig
+from openajar.api.access import Access, PolicyAccess
+from openajar.api.auth import PRESENCE_HEADER, SESSION_COOKIE
+from openajar.api.errors import ApiError
+from openajar.core import globs
+from openajar.core.presence import Presence
+from openajar.core.ratelimit import RateLimiter
+from openajar.core.tools import gate_kind, in_person
+from openajar.policy.confirm import ConfirmLevel, arrival
+from openajar.policy.confirmation import ConfirmationConfig
 
 LANE = "biz-a/instagram"
 EM_DASH = "—"
@@ -41,7 +41,7 @@ def node(tmp_path):
 
 
 class Device:
-    """The owner's device credential, as `agentos dash` and `agentos approvals` send it: the session
+    """The owner's device credential, as `openajar dash` and `openajar approvals` send it: the session
     cookie and the CSRF header, no Origin."""
 
     def __init__(self, node: Node):
@@ -158,7 +158,7 @@ def test_the_owner_signed_in_still_does_all_of_it(node):
 
 
 def test_the_nodes_cli_is_a_person_with_a_one_time_code_from_panel_db(node):
-    """`agentos lane sites` on the node: the node token plus a code it wrote into panel.db. The code
+    """`openajar lane sites` on the node: the node token plus a code it wrote into panel.db. The code
     works once, and only beside the node token."""
     url = f"/api/lanes/{LANE}/sites"
     with node.client() as c:
@@ -197,9 +197,9 @@ def test_a_standing_approval_is_made_only_from_approved_approvals_on_its_own_lan
 
 def test_a_member_never_makes_a_standing_approval_from_what_four_eyes_keeps_from_them(node):
     """A member standing in for their own agent's approval: decision_problem holds for each one."""
-    from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
-    from agentos.policy.approvals import ApprovalStore
-    from agentos.policy.errors import Denied
+    from openajar.policy.approval_models import ApprovalPolicy, FourEyesRule
+    from openajar.policy.approvals import ApprovalStore
+    from openajar.policy.errors import Denied
 
     store: ApprovalStore = node.policy.approvals
     node.policy.ask_first.set("lane", LANE, True, by="owner", person=True)
@@ -302,11 +302,11 @@ def test_x_forwarded_proto_counts_only_from_a_local_proxy(node):
 
 
 def test_the_owner_computer_learns_how_to_approve():
-    """`agentos approvals approve` with the device credential: the node's refusal becomes a hint
+    """`openajar approvals approve` with the device credential: the node's refusal becomes a hint
     that names the panel through the tunnel."""
-    from agentos.client.errors import ClientError
-    from agentos.client.ops import Client
-    from agentos.client.owner import PanelError
+    from openajar.client.errors import ClientError
+    from openajar.client.ops import Client
+    from openajar.client.owner import PanelError
 
     class Conn:
         name, ssh_host, local_port, credential, token_store = "mynode", "mynode", 7400, "agent_grant", "file"
@@ -331,11 +331,11 @@ def test_the_bare_node_token_api_gives_an_owner_link_and_sites_only_to_the_nodes
     from starlette.applications import Starlette
     from starlette.routing import Mount
 
-    from agentos.api.auth import PanelStore
-    from agentos.core.config import NodeConfig
-    from agentos.core.models import LaneSpec
-    from agentos.node.viewer_routes import control_api_routes
-    from agentos.node.viewer_tokens import ViewTokens
+    from openajar.api.auth import PanelStore
+    from openajar.core.config import NodeConfig
+    from openajar.core.models import LaneSpec
+    from openajar.node.viewer_routes import control_api_routes
+    from openajar.node.viewer_tokens import ViewTokens
 
     config = NodeConfig(home=tmp_path / "home", mcp_token=TOKEN)
     lanes = FakeLaneManager(config)
@@ -380,10 +380,10 @@ def test_rotating_the_node_token_ends_the_device_credentials_it_made(node):
 
 
 def test_the_dash_on_the_node_decides_as_a_person(node):
-    """`agentos dash` on the node, with the node token from node.toml: each write carries a fresh code."""
+    """`openajar dash` on the node, with the node token from node.toml: each write carries a fresh code."""
     import httpx
 
-    from agentos.tui.client import ApiClient
+    from openajar.tui.client import ApiClient
 
     approval, _ = _setup(node)
     seen: list[dict] = []

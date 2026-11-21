@@ -19,7 +19,7 @@ year (SpAIware against ChatGPT memory, MINJA against agent memory banks; see the
 references). So the design is built around one idea: **trust is computed by the node, never
 claimed by the writer, and it travels with the data.**
 
-Recommendation, in one paragraph: build `agentos.memory` as a node-side package with one
+Recommendation, in one paragraph: build `openajar.memory` as a node-side package with one
 SQLite file per workspace (append-only versions, FTS5 keyword search, no model in the
 core). The node assigns each version a trust level from who wrote it and the writer's
 grant family taint (`owner` only from the owner in person, `node` for deterministic
@@ -65,7 +65,7 @@ controller. Phase 1 is three builders, about two weeks of work together.
 - **Not an agent, and not a model in the core.** The node does not decide what to remember,
   does not run an LLM to merge or rewrite entries, and does not "reflect". Agents (or an
   owner-scheduled brain task) write memory; the node stores, labels, scopes and serves it.
-  This keeps the VISION boundary ("agentos gives agents a computer; it never becomes the
+  This keeps the VISION boundary ("openajar gives agents a computer; it never becomes the
   agent").
 - **Not a vector database product.** Keyword search is the default; embeddings are an
   optional local add-on.
@@ -159,7 +159,7 @@ a decision for biz-a: No discounts in posts. ..."). The owner approves it in the
 decision is stored with `owner` trust and `confirmed_by: approval apv_...`.
 
 From then on: every `memory_context` for biz-a lists it under `rules`; every brain task
-started for biz-a carries it in `AGENTOS_MEMORY.md`; every commit approval card on biz-a
+started for biz-a carries it in `OPENAJAR_MEMORY.md`; every commit approval card on biz-a
 lanes shows it; and every commit trace records whether the calling family had loaded the
 current decisions (a **context receipt**), so the panel can say "this agent posted without
 reading the workspace's decisions". If the owner later links the decision to an enforceable
@@ -175,12 +175,12 @@ lanes on Sundays), the decision page shows "enforced by policy rule ..."; otherw
   agents (MCP)            panel / CLI (owner)        runner, brains (node-internal)
        |                         |                              |
        v                         v                              v
-  +---------------- agentos.memory.MemoryService (node) ----------------+
+  +---------------- openajar.memory.MemoryService (node) ----------------+
   |  trust + labels (from policy: principal, family taint "ever")       |
   |  scrub (vault.scrub, credential patterns)  limits  provenance check |
   +---------+-----------------------------------------------+-----------+
             |                                               |
-   $AGENTOS_HOME/memory/biz-a.db                 $AGENTOS_HOME/memory/biz-b.db
+   $OPENAJAR_HOME/memory/biz-a.db                 $OPENAJAR_HOME/memory/biz-b.db
    (WAL, 600, FTS5, append-only versions)        (one file per workspace)
             |
    policy.traces (evidence, pins)   policy.taint (labels in and out)
@@ -195,8 +195,8 @@ lanes on Sundays), the decision page shows "enforced by policy rule ..."; otherw
   (the node holding most of its lanes, or set explicitly); the controller routes memory
   tools there the way it routes lane calls. In degraded mode, reads and writes on the home
   node keep working.
-- **Backups** include `memory/` (the backup already covers `$AGENTOS_HOME` databases).
-  `agentos doctor` gains a check: every memory file opens, passes `PRAGMA quick_check` and
+- **Backups** include `memory/` (the backup already covers `$OPENAJAR_HOME` databases).
+  `openajar doctor` gains a check: every memory file opens, passes `PRAGMA quick_check` and
   its schema version is known.
 
 ### 4.2 Entry types
@@ -279,9 +279,9 @@ Rules:
 - **Write traces.** Every write produces a trace event (kind `memory_write`) carrying the
   entry id, version and `version_hash`, so the action log and memory cross-reference each
   other. When the signed audit log exists, the version hash is part of that signed, chained
-  event; `agentos audit verify` then also proves memory history was not rewritten.
+  event; `openajar audit verify` then also proves memory history was not rewritten.
 - **A per-workspace chain.** `prev_hash` chains versions inside a workspace file, so a
-  version removed or altered on disk breaks `agentos memory verify <ws>` even before
+  version removed or altered on disk breaks `openajar memory verify <ws>` even before
   signing exists.
 
 ### 4.4 Trust levels
@@ -290,7 +290,7 @@ Four levels, computed by the node at write time. A writer cannot choose its trus
 
 | Trust | Set when | Shown to agents as | Can supersede |
 |---|---|---|---|
-| `owner` | written by the owner in person (signed-in panel session, or `agentos memory` on the node), or an agent's write the owner approved against its exact content | `rules` (decisions, owner preferences), `briefs` (pinned documents), facts of record | anything |
+| `owner` | written by the owner in person (signed-in panel session, or `openajar memory` on the node), or an agent's write the owner approved against its exact content | `rules` (decisions, owner preferences), `briefs` (pinned documents), facts of record | anything |
 | `node` | written by the node itself from structured records (run summaries) | facts of record | `node` and below |
 | `agent` | written by an agent (or a VA's agent) whose grant family has never seen `untrusted` input | `notes`: unconfirmed, attributed | `agent` and `untrusted` |
 | `untrusted` | the writer's family has seen untrusted input (web pages, terminal or program output, model output of another brain), or any evidence or `derived_from` source is untrusted | `notes`, quoted as data with a warning, after everything else | `untrusted` only |
@@ -475,7 +475,7 @@ is inside the egress allowlist") and is the reason section 4.5 is mandatory, not
   the version is stored with `owner` trust and `confirmed_by` set to the approval id. No new
   queue is needed.
 - **Facts are bi-temporal.** `valid_from` and `valid_to` say when the fact was true in the
-  world; `recorded_at` on the version says when agentos learned it (the Zep model). Writing
+  world; `recorded_at` on the version says when openajar learned it (the Zep model). Writing
   "followers 4,300 from 2026-11-08" supersedes the earlier reading and closes its
   `valid_to`; queries `as_of` a date return what was true then.
 - **Contradiction detection is not automatic in phase 1.** The panel lists entries that
@@ -528,7 +528,7 @@ is inside the egress allowlist") and is the reason section 4.5 is mandatory, not
   | `full-cloud` | full | full | full, within the grant |
 
   Brain tasks for a `local-only` workspace are already routed local, so their
-  `AGENTOS_MEMORY.md` is complete.
+  `OPENAJAR_MEMORY.md` is complete.
 
 ### 4.11 Size limits
 
@@ -544,7 +544,7 @@ is inside the egress allowlist") and is the reason section 4.5 is mandatory, not
 | `memory_context` budget | 1,500 tokens default, 8,000 max | the pack never floods a context window |
 | `memory_search` limit | 20 default, 100 max | |
 
-All are in `$AGENTOS_HOME/memory.toml`; the panel shows usage per workspace.
+All are in `$OPENAJAR_HOME/memory.toml`; the panel shows usage per workspace.
 
 ### 4.12 Getting the right context without flooding
 
@@ -585,7 +585,7 @@ summarizing (the open question in ARCHITECTURE.md section 12 is answered "no dec
 memory).
 
 **Brain tasks** started with `brain_run` for a workspace get the same pack written to
-`AGENTOS_MEMORY.md` next to `AGENTOS_HANDOFF.md` in the task directory, with rules and notes
+`OPENAJAR_MEMORY.md` next to `OPENAJAR_HANDOFF.md` in the task directory, with rules and notes
 in separate, clearly headed sections, and the child token can call the memory tools for
 more.
 
@@ -606,16 +606,16 @@ never read the rules" visible in Activity and on the approval card.
   kept: the file is encrypted to the owner, so an owner entry stays owner, and each version
   gains `imported_from`. Trace ids in provenance point at traces that were never exported;
   the evidence snapshots keep their meaning, and the panel shows "trace on the source node".
-- **A readable export.** `agentos memory export <ws> --md` (owner, on the node) writes one
+- **A readable export.** `openajar memory export <ws> --md` (owner, on the node) writes one
   Markdown file per type with provenance footnotes, for an owner who wants to read or leave.
   It is plaintext, so it warns and writes with mode 600.
-- **Import from elsewhere.** `agentos memory import <ws> <file.md|jsonl>` from the owner on
+- **Import from elsewhere.** `openajar memory import <ws> <file.md|jsonl>` from the owner on
   the node creates owner-trust documents (the owner is vouching for the file). There is no
   import path for agents beyond `memory_write`.
 
 ### 4.14 What must never enter memory
 
-From src/agentos/vault and PRINCIPLES.md #3:
+From src/openajar/vault and PRINCIPLES.md #3:
 
 - Vault values (passwords, API keys, TOTP seeds), recent one-time codes, cookies and
   session tokens, grant tokens, subscription credentials, webhook secrets, proxy
@@ -634,7 +634,7 @@ From src/agentos/vault and PRINCIPLES.md #3:
 
 ### 4.15 Data model (schema sketch)
 
-One file per workspace, `$AGENTOS_HOME/memory/<ws>.db`, WAL, `synchronous=FULL`, mode 600.
+One file per workspace, `$OPENAJAR_HOME/memory/<ws>.db`, WAL, `synchronous=FULL`, mode 600.
 
 ```sql
 CREATE TABLE schema_version (version INTEGER NOT NULL);
@@ -692,7 +692,7 @@ workspace, digest, at)`. Trace store addition: `trace_pins (trace_id, entry_id)`
 | **Flooding the context** | an agent dumps 4,000 notes | budgeted pack, caps, untrusted last |
 | **Decisions ignored** | an agent posts on a Sunday | decisions on approval cards, context receipts, and enforcement links for what policy can express; the panel labels advisory decisions honestly |
 | **Stale facts** | old follower count served as current | `valid_to`, `as_of`, expiry, run summary status always honest (`succeeded-unverified` stays unverified) |
-| **History rewritten on disk** | an attacker with node root edits a file | per-workspace hash chain now (`agentos memory verify`), node signatures with the signed audit log later; root on the node can still destroy data, which backups answer |
+| **History rewritten on disk** | an attacker with node root edits a file | per-workspace hash chain now (`openajar memory verify`), node signatures with the signed audit log later; root on the node can still destroy data, which backups answer |
 | **Corruption or a locked database** | a write fails | a memory write failure is returned to the caller as `unavailable` (unlike traces, a lost memory write must not be silent); reads of one workspace never affect another; doctor check |
 | **Trace retention breaks provenance** | evidence trace purged | snapshots in provenance; pins for owner and decision entries |
 | **Erasure versus audit** | a contact must be forgotten | blobs deleted, hashes and tombstone kept |
@@ -701,16 +701,16 @@ workspace, digest, at)`. Trace store addition: `trace_pins (trace_id, entry_id)`
 
 | Package | Changes |
 |---|---|
-| `agentos.memory` (new) | models, per-workspace store (schema 4.15, migrations via ops' SQLite migration pattern), service (trust, labels, scrub, limits, provenance check, context pack, retention job), tools, API routes, CLI (`agentos memory list/show/search/write/confirm/forget/verify/export/import`), README |
+| `openajar.memory` (new) | models, per-workspace store (schema 4.15, migrations via ops' SQLite migration pattern), service (trust, labels, scrub, limits, provenance check, context pack, retention job), tools, API routes, CLI (`openajar memory list/show/search/write/confirm/forget/verify/export/import`), README |
 | `policy` | `memory` special in `Specials` with narrowing and the property test; routing facts `memory_owner_trust` and `internal`; the overlay rule that an internal destination is inside the egress allowlist; `taint_ever` and a `TaintLedger.ever(family)` view; `context_receipts`; `decisions_loaded` on commit traces; `trace_pins` honored by `TraceStore.purge`; ROUTING.md sections for all of it |
-| `brains` | child tokens carry `memory` for the task's workspace; `AGENTOS_MEMORY.md` in the task directory; a `run_summary` on task end; the privacy level read by the memory service (`privacy_for(workspace)` is already there) |
+| `brains` | child tokens carry `memory` for the task's workspace; `OPENAJAR_MEMORY.md` in the task directory; a `run_summary` on task end; the privacy level read by the memory service (`privacy_for(workspace)` is already there) |
 | `runner` | a `run_summary` on every final run state, from the run record and proof |
 | `workspaces` | delete refuses with memory (unless `--with-memory`); `memory_cloud_ok` and later `memory_node` on the workspace record |
 | `ops`, `workspaces.transfer` | export and import member `workspace/memory.jsonl`, format 2; backup covers `memory/`; doctor check |
 | `vault` | none in code; the memory service calls the existing `scrub()`; a `contains_secret(text)` helper is optional sugar |
 | `api` | routes and access rows (4.6), SSE `memory` event, docs/API.md |
 | panel | the workspace Memory tab, "What agents learned", Needs you cards for proposals and contests, decisions on approval cards, Cmd-K |
-| `mcp` / `node.tools` | one sentence in `INSTRUCTIONS`; tools registered from `agentos.memory.tools`; docs/TOOLS.md regenerated by `make tools-doc` |
+| `mcp` / `node.tools` | one sentence in `INSTRUCTIONS`; tools registered from `openajar.memory.tools`; docs/TOOLS.md regenerated by `make tools-doc` |
 | `controller` | phase 3: route memory tools to the workspace's memory home node; never store content |
 | docs | VISION (one bullet under Workspace), ARCHITECTURE (section 8 entities: MemoryEntry, MemoryVersion), WORKSPACES (export member), this design |
 
@@ -722,10 +722,10 @@ Sizes: S is up to a day for one builder, M is two to four days, L is one to two 
 
 Store, trust, labels, provenance, scrub, limits, the four agent tools, the `memory` grant
 special, CLI, export and import. Run summaries from the runner. No panel yet: the owner
-uses the CLI (`agentos memory write` is owner trust, `confirm` promotes).
+uses the CLI (`openajar memory write` is owner trust, `confirm` promotes).
 
 Acceptance: the four stories run end to end over MCP and the CLI on a dev node
-(`agentos dev up`), story 3.4 through a real approval; an untrusted note never appears
+(`openajar dev up`), story 3.4 through a real approval; an untrusted note never appears
 under `rules`; reading it taints a clean family and a subsequent off-list navigation waits
 for a co-sign; biz-b grants cannot see biz-a; a vault value in a write is refused; export
 and import round-trip with hashes intact.
@@ -733,13 +733,13 @@ and import round-trip with hashes intact.
 ### Phase 2: the owner's surfaces and brains (M + S + S)
 
 Panel Memory tab, "What agents learned", Needs you cards, decisions on approval cards,
-Cmd-K; API routes and SSE; brains `AGENTOS_MEMORY.md`, child-token memory and brain run
+Cmd-K; API routes and SSE; brains `OPENAJAR_MEMORY.md`, child-token memory and brain run
 summaries; context receipts and `decisions_loaded`; the suspicious heuristic tuned on real
 data; retention job and the readable Markdown export.
 
 ### Phase 3: trust at scale (L)
 
-Signatures through the signed audit log and `agentos audit verify` covering memory;
+Signatures through the signed audit log and `openajar audit verify` covering memory;
 decision enforcement links to policy primitives; local embeddings with `sqlite-vec`; the
 memory home node and controller routing; `member` trust for named people once Teams and
 roles land; owner-scheduled digests and contradiction listing by a local brain; an adapter
@@ -750,23 +750,23 @@ question 12).
 
 Builders A and B can run in parallel against the interfaces in this document; C starts
 when both have merged. Each builder: read this design, docs/ARCHITECTURE.md section 5,
-src/agentos/policy/ROUTING.md, and the package READMEs named below. Tests live under
+src/openajar/policy/ROUTING.md, and the package READMEs named below. Tests live under
 `tests/` beside the existing ones; `make check` must pass (lint, tests, em dash check).
 
-#### Brief A: `agentos.memory` store and service (M)
+#### Brief A: `openajar.memory` store and service (M)
 
 Goal: the package that stores, labels and serves memory, with no MCP or HTTP yet.
 
-- Create `src/agentos/memory/` with `models.py` (entry types, attributes per type,
+- Create `src/openajar/memory/` with `models.py` (entry types, attributes per type,
   `Trust`, `Prov`, the pack shape in 4.12, limits from 4.11 loaded from `memory.toml`),
-  `store.py` (schema 4.15, one file per workspace under `$AGENTOS_HOME/memory/`, WAL,
+  `store.py` (schema 4.15, one file per workspace under `$OPENAJAR_HOME/memory/`, WAL,
   mode 600, append-only trigger on `versions`, FTS5, schema version and a refusal of
   newer files, the per-workspace hash chain), `service.py` and `README.md`.
 - `MemoryService` takes ports, not concrete services: `policy` (principal, grant, family
   key, `taint_ever(family)`, `taint_add(family, labels)`, `trace_visible(trace_id,
   family, workspace)`, `trace_snapshot(trace_id)`, `lane_url_at(trace_id)`), `vault_scrub`,
   `privacy_for(workspace)` and a clock. Provide fakes in `tests/testkit/memory.py` so tests and
-  `agentos dev up` need no real policy.
+  `openajar dev up` need no real policy.
 - Implement: `write` (trust and labels per 4.4 and 4.5, scrub refusal per 4.14, evidence
   check, compare-and-set, trust-gated supersession, rate caps per family, size caps),
   `get` (with history; re-scrub; returns the labels the caller must add), `search`
@@ -802,7 +802,7 @@ Goal: the grant special, routing facts and ledger views memory needs.
 - `policy/traces.py`: a `trace_pins` table, `pin(trace_id, ref)`, `unpin(ref)`, and
   `purge` skipping pinned rows up to the cap; `visible(trace_id, viewer_path, workspace)`.
 - Update `policy/ROUTING.md` (new rows, facts, the internal-destination rule, the `memory`
-  special) and keep `agentos policy routing` output in step.
+  special) and keep `openajar policy routing` output in step.
 - Tests: narrowing property, a child cannot turn `private` on, internal writes skip the
   overlay while a browser navigation under the same taint still waits, `memory_owner_trust`
   creates an approval bound to content and refuses self-approval, pins survive purge, `ever`
@@ -818,7 +818,7 @@ Goal: memory reachable by agents and the owner, and portable. Starts after A and
   facts above and `ctx.taint(...)` with the labels the service returns before returning;
   `approval_pending` passes through the existing wrapper. Add the sentence to the node's
   `INSTRUCTIONS`. Regenerate docs/TOOLS.md with `make tools-doc`.
-- `memory/cli.py` mounted as `agentos memory` (owner on the node, owner trust):
+- `memory/cli.py` mounted as `openajar memory` (owner on the node, owner trust):
   `list`, `show`, `search`, `write` (from a file or stdin), `confirm`, `forget`,
   `verify`, `export --md`, `import`.
 - Runner: on a final run state call `memory.run_summary(...)` with the structured record
@@ -873,7 +873,7 @@ Goal: memory reachable by agents and the owner, and portable. Starts after A and
    never under rules until confirmed.
 7. **Auto-inject memory for attached agents.** Recommended: no injection (MCP has no clean
    way to force it); the instructions sentence plus an MCP prompt `workspace_brief` in phase
-   2. Brain tasks always get `AGENTOS_MEMORY.md`.
+   2. Brain tasks always get `OPENAJAR_MEMORY.md`.
 8. **Global memory across workspaces** (the owner's own preferences for every business).
    Recommended: no in this design; a `personal` workspace exists, and cross-workspace rules
    would break "nothing crosses between workspaces". Revisit with Teams.
@@ -887,7 +887,7 @@ Goal: memory reachable by agents and the owner, and portable. Starts after A and
     their agent are `agent` or `untrusted`.
 12. **An adapter for Anthropic's client-side memory tool** (its `view`, `create`,
     `str_replace` commands mapped onto a workspace's documents). Recommended: phase 3,
-    documents only, same trust and labels; it lets agents built on that tool use agentos
+    documents only, same trust and labels; it lets agents built on that tool use openajar
     memory unchanged.
 13. **Who may write contacts.** Recommended: any grant with `memory.private`; contacts are
     always `private`, so they taint readers and stay off cloud models for local-only
@@ -903,12 +903,12 @@ Systems and work this design compares with or borrows from:
   start. Plain, owner-written, no provenance or trust model; the model for "owner rules
   first". https://docs.claude.com/en/docs/claude-code/memory
 - Anthropic's memory tool (`memory_20250818`): a client-side directory of files the model
-  creates and edits, where the application owns storage. agentos could be such a backend
+  creates and edits, where the application owns storage. openajar could be such a backend
   (open question 12). https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool
 - MemGPT and Letta: always-in-context core memory blocks versus searchable archival memory;
   the split between `rules` and `briefs` and everything searchable. Packer et al., 2023,
   https://arxiv.org/abs/2310.08560
-- Mem0: a model extracts memories and decides add, update, delete or no-op. agentos
+- Mem0: a model extracts memories and decides add, update, delete or no-op. openajar
   deliberately does not let a model rewrite owner entries. Chhikara et al., 2025,
   https://arxiv.org/abs/2504.19413
 - Zep and Graphiti: a bi-temporal knowledge graph (when a fact was true, when it was

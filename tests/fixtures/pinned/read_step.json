@@ -24,7 +24,7 @@
    "heading": "",
    "message": "",
    "number": null,
-   "reason": "The page shows a captcha. agentos does not solve captchas: take control, solve it in the live view, then come back to the form."
+   "reason": "The page shows a captcha. openajar does not solve captchas: take control, solve it in the live view, then come back to the form."
   }
  },
  "captcha": {
@@ -38,7 +38,7 @@
    "heading": "",
    "message": "",
    "number": null,
-   "reason": "The page shows a captcha. agentos does not solve captchas: take control, solve it in the live view, then come back to the form."
+   "reason": "The page shows a captcha. openajar does not solve captchas: take control, solve it in the live view, then come back to the form."
   }
  },
  "blocked": {
@@ -80,7 +80,7 @@
    "heading": "",
    "message": "",
    "number": null,
-   "reason": "This page is not on https, so agentos does not type into it. Take control if you want to go on by hand."
+   "reason": "This page is not on https, so openajar does not type into it. Take control if you want to go on by hand."
   }
  },
  "http loopback": {
@@ -119,7 +119,7 @@
    "heading": "",
    "message": "",
    "number": null,
-   "reason": "The sign-in form is inside a frame from another site, so agentos does not type into it. Take control to sign in by hand."
+   "reason": "The sign-in form is inside a frame from another site, so openajar does not type into it. Take control to sign in by hand."
   }
  },
  "username and password with submit": {
@@ -569,7 +569,7 @@
    "heading": "",
    "message": "",
    "number": null,
-   "reason": "This step asks for something agentos does not fill (not an email, a password or a code). Take control to fill it in the live view."
+   "reason": "This step asks for something openajar does not fill (not an email, a password or a code). Take control to fill it in the live view."
   }
  },
  "unfillable field in another frame": {
@@ -610,7 +610,7 @@
    "heading": "Hmm",
    "message": "Something went wrong",
    "number": null,
-   "reason": "agentos cannot tell what this page wants. Take control and do this step in the live view."
+   "reason": "openajar cannot tell what this page wants. Take control and do this step in the live view."
   }
  },
  "one plain button": {

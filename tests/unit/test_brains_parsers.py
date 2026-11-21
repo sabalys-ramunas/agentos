@@ -3,7 +3,7 @@
 import json
 import time
 
-from agentos.brains.parsers import ClaudeStreamParser, CodexJsonParser, classify_text, parse_reset
+from openajar.brains.parsers import ClaudeStreamParser, CodexJsonParser, classify_text, parse_reset
 
 # claude 2.1.317, no credential at all (trimmed to the fields that matter, values verbatim)
 CLAUDE_NOT_LOGGED_IN = [

@@ -8,11 +8,11 @@ import pytest
 from openapi_spec_validator import OpenAPIV31SpecValidator
 from siteapi_http_support import API, OTHER, ROWS, SURFACE, Node, definition, search_endpoint
 
-from agentos.runner.fakes import FakeClock
-from agentos.runner.flows import FlowService
-from agentos.runner.siteapis import openapi as oas
-from agentos.runner.siteapis.models import install_for_test
-from agentos.runner.store import RunnerStore
+from openajar.runner.fakes import FakeClock
+from openajar.runner.flows import FlowService
+from openajar.runner.siteapis import openapi as oas
+from openajar.runner.siteapis.models import install_for_test
+from openajar.runner.store import RunnerStore
 
 DOC = f"/v1/sites/{API}/openapi.json"
 
@@ -132,8 +132,8 @@ async def test_a_catalog_connector_is_not_a_site_api(tmp_path):
     from connector_samples import SITES, connector
     from siteapi_http_support import OWNER
 
-    from agentos.runner.connectors.compile import compile_connector
-    from agentos.runner.connectors.service import ConnectorService
+    from openajar.runner.connectors.compile import compile_connector
+    from openajar.runner.connectors.service import ConnectorService
 
     async with Node(tmp_path) as n:
         ConnectorService(n.flows, sites=SITES).install(compile_connector(connector(), sites=SITES), by=OWNER)
@@ -188,7 +188,7 @@ def fv_with(tmp_path, **props):
 
 
 def test_on_is_already_reserved_at_save(tmp_path):
-    from agentos.runner.connectors.compile import ConnectorInvalid
+    from openajar.runner.connectors.compile import ConnectorInvalid
 
     with pytest.raises((ConnectorInvalid, ValueError)):
         fv_with(tmp_path, on={"type": "string"})

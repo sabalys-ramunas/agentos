@@ -1,4 +1,4 @@
-"""This computer's environments, Web Bot identity and settings, as the app reads them (agentos.api.routes_ops).
+"""This computer's environments, Web Bot identity and settings, as the app reads them (openajar.api.routes_ops).
 
 A service here is a harmless `sleep` in a fake host, the same setup the env tests use. Nothing here
 restarts the node or changes an account's real profile.
@@ -15,11 +15,11 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.webbotauth import keys, settings
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.webbotauth import keys, settings
 
 LOCAL = "/api/orgs/local/nodes/dev"
 TOKEN = "t" * 43
@@ -103,7 +103,7 @@ def first_account(client: TestClient) -> str:
 
 
 def make_identity(client: TestClient, lane: str) -> dict[str, Any]:
-    """An identity made the way `agentos identity init` makes one, for the seeded account."""
+    """An identity made the way `openajar identity init` makes one, for the seeded account."""
     cfg = client.app.state.api.config
     cfg.profile_dir(lane).mkdir(parents=True, exist_ok=True)
     key = keys.create_key(cfg.secrets_dir, lane)
@@ -122,7 +122,7 @@ def test_a_site_needs_an_identity_first(client: TestClient) -> None:
     lane = first_account(client)
     refused = client.post(f"{LOCAL}/identity/{lane}/sites", json={"origin": "https://example.com", "reason": "research"})
     assert refused.status_code == 400
-    assert "agentos identity init" in refused.json()["error"]["message"]
+    assert "openajar identity init" in refused.json()["error"]["message"]
 
 
 def test_the_owner_adds_and_removes_a_site_and_the_key_stays_here(client: TestClient) -> None:
@@ -169,7 +169,7 @@ def test_settings_show_every_value_and_never_a_secret(client: TestClient) -> Non
 
 
 def test_a_secret_named_setting_shows_only_whether_it_is_set(client: TestClient) -> None:
-    from agentos.api.routes_ops import _settings_rows
+    from openajar.api.routes_ops import _settings_rows
 
     cfg = client.app.state.api.config
     rows = {row["name"]: row["value"] for row in _settings_rows(cfg)}

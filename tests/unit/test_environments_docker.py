@@ -1,6 +1,6 @@
 """An environment on a real machine: the docker provider's container with sshd (deploy/environments).
 
-Skipped unless docker answers and the image is built (`agentos environments setup --build`). What it
+Skipped unless docker answers and the image is built (`openajar environments setup --build`). What it
 proves, for real: the machine comes up over SSH with the node's pinned keys; a declared repository
 is cloned and a branch pushed through the node's git gateway over the reverse tunnel, with the
 credential never on the machine; a test page served on the machine's localhost is read through
@@ -20,19 +20,19 @@ import pytest
 from test_policy_support import make_service
 from test_vault_support import make_vault, private_home
 
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import FakeLaneManager
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.git import keys
-from agentos.git.service import GitService
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmSettings
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import FakeLaneManager
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.git import keys
+from openajar.git.service import GitService
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmSettings
 
 IMAGE = "agentos-env:latest"
 HOST, REPO = "example.test", "me/shop"
@@ -51,7 +51,7 @@ def _docker_ready() -> bool:
 
 def containers(node_name: str) -> list[str]:
     """The containers of this test's node (its own label), running or not."""
-    return subprocess.run(["docker", "ps", "-aq", "--filter", f"label=agentos-node={node_name}"],
+    return subprocess.run(["docker", "ps", "-aq", "--filter", f"label=openajar-node={node_name}"],
                           capture_output=True, text=True, check=False).stdout.split()
 
 
@@ -129,7 +129,7 @@ async def test_the_whole_story_on_a_real_machine(node):
                                      "--bind 127.0.0.1")
     proxy = mgr.proxy_for(env)
     assert proxy is not None and proxy.server.startswith("socks5://127.0.0.1:")
-    from agentos.dev.proxied import FetchError, socks_fetch
+    from openajar.dev.proxied import FetchError, socks_fetch
 
     body = ""
     for _ in range(40):
@@ -160,7 +160,7 @@ async def test_the_whole_story_on_a_real_machine(node):
 
     # unsaved work stops a close; then close deletes the machine
     await envs.exec(lane, "cd /work/shop && echo dirty > new.txt")
-    from agentos.environments.errors import UnsavedWork
+    from openajar.environments.errors import UnsavedWork
 
     with pytest.raises(UnsavedWork, match="new.txt"):
         await mgr.close(env.id)
@@ -181,9 +181,9 @@ async def _review_browser_sees(mgr, env, marker: str) -> None:
         import playwright  # noqa: F401
     except ImportError:
         return
-    from agentos.environments import routing
-    from agentos.studio.browser.pool import ReviewPool
-    from agentos.studio.contracts import Screen, Target
+    from openajar.environments import routing
+    from openajar.studio.browser.pool import ReviewPool
+    from openajar.studio.contracts import Screen, Target
 
     pool = ReviewPool()
     try:

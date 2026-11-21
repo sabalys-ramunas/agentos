@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from agentos.runner.recorder import Recorder
+from openajar.runner.recorder import Recorder
 
 BASE = "https://x.test"
 LIKE = {"role": "button", "name": "Like", "within": {"role": "article", "name": "Post by mira"}}

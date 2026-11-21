@@ -1,5 +1,5 @@
 /**
- * The mock of Checks (`/studio`, agentos.api.web.studio): studio runs of Harbor Supply's web shop, one with
+ * The mock of Checks (`/studio`, openajar.api.web.studio): studio runs of Harbor Supply's web shop, one with
  * blockers and a failed screen, one clean, and a system check of the `harbor/shop` profile; screenshots and
  * crops as plain SVG wireframes; a baseline and a diff of the two checks. Studio missing: `?mock=no-studio`,
  * or `studioMissing` on the org (a test sets it).
@@ -34,7 +34,7 @@ const CAPTURE_LONG = 'cap_shopcheck001';
 
 export const STUDIO_MISSING: StudioMissing = {
   available: false,
-  reason: 'Studio is not installed on this computer, so it has no checks. Add it with the command below and restart agentos, or run `agentos studio up` on a laptop.',
+  reason: 'Studio is not installed on this computer, so it has no checks. Add it with the command below and restart openajar, or run `openajar studio up` on a laptop.',
   command: 'uv sync --extra studio',
 };
 
@@ -305,7 +305,7 @@ export function studioHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'
     return record.studioRuns;
   };
   const missing = (record: OrgData) => record.studioMissing === true || scenario.has('no-studio');
-  const unavailable = () => failure(503, 'unavailable', 'Studio is not installed on this computer. Add it with `uv sync --extra studio` and restart agentos.');
+  const unavailable = () => failure(503, 'unavailable', 'Studio is not installed on this computer. Add it with `uv sync --extra studio` and restart openajar.');
   const notFound = (what: string) => failure(404, 'not_found', what);
 
   return [

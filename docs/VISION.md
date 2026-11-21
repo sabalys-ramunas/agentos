@@ -5,15 +5,15 @@
 **Every agent gets its own computer, and it stays.**
 
 A computer for your agent, with a browser, a terminal and a disk that stay. You open a chat. When
-the agent needs a machine, or you tell it to work in agentos, it asks for its computer: a VM with
+the agent needs a machine, or you tell it to work in openajar, it asks for its computer: a VM with
 a terminal, a real browser and your repository. It works there and pushes a branch. You watch, and
 take over when you want to.
 
 When the work goes idle, the whole machine is saved and the VM deleted, so it costs cents a month.
-Tomorrow, in any chat, "continue the shop in agentos" brings it back as it was: the installs, the
+Tomorrow, in any chat, "continue the shop in openajar" brings it back as it was: the installs, the
 branch, the dev server and the browser still signed in. A one-off fix can use a machine once
 (`keep="none"`), and a machine can stay on when you ask for it. The agent's thinking stays on your
-laptop, in the client you already use (Claude Code, Codex, T3 Code). agentos runs next to it, on
+laptop, in the client you already use (Claude Code, Codex, T3 Code). openajar runs next to it, on
 the laptop first or on a server, and rents the machines in your own account.
 
 ## The problem
@@ -34,16 +34,16 @@ your laptop, as you:
   what it touched or what is still running.
 
 Hosted agent computers (xAI's Grok Bot, OpenAI's Dots) answer part of this with an always-on
-machine for their own agent, on their own computers. agentos is the same idea for the agent you
+machine for their own agent, on their own computers. openajar is the same idea for the agent you
 already use, on machines you own the account for, one per agent or chat.
 
-## What agentos is
+## What openajar is
 
 A computer that the agent you already use can ask for, over MCP: Claude Code, Codex, T3 Code, the
-Claude or ChatGPT app, or any other MCP client. agentos is **not** an agent, a chat or an IDE. It
+Claude or ChatGPT app, or any other MCP client. openajar is **not** an agent, a chat or an IDE. It
 gives whichever one you use:
 
-- **A computer of its own**: a VM rented by agentos in your account (Hetzner Cloud, Morph Cloud, or
+- **A computer of its own**: a VM rented by openajar in your account (Hetzner Cloud, Morph Cloud, or
   a Docker container), with the repository cloned, a terminal and a browser with tabs whose
   traffic leaves from the VM. The agent's tools reach it without naming it, and `localhost` is its
   dev server.
@@ -52,7 +52,7 @@ gives whichever one you use:
   any chat), single use for a one-off fix (deleted when the work is pushed), or kept running
   (always on, billed every hour, only when the owner allows it).
 - **A browser that can stay signed in**: the owner binds logins from the vault to a computer
-  (`agentos environments login add <site>`); the agent calls the login tool on a sign-in page, the
+  (`openajar environments login add <site>`); the agent calls the login tool on a sign-in page, the
   node types the stored login into that computer's browser, and signs it in again after a logout
   without asking. The model never sees the password. This is for opening the accounts the work
   needs when it needs them, not for automating them.
@@ -69,7 +69,7 @@ automation and routines.
 
 ## The building blocks
 
-- **Node.** The machine agentos runs on: your laptop, a VPS, a home box. It rents environments,
+- **Node.** The machine openajar runs on: your laptop, a VPS, a home box. It rents environments,
   keeps the vault and the log, and serves MCP and the web app. It only dials out.
 - **Environment.** The agent's computer: a VM with a title, its terminal and its browser, which the
   node makes, saves and deletes. Its `keep` says how it stays (`save` by default). In the technical
@@ -106,8 +106,8 @@ environment_close(note)             -> saved for the next chat; single use: dele
 environment_forget(title)           -> the saves of finished work deleted
 ```
 
-The MCP intro and the `agentos-environment` skill tell the agent when to take one: the human
-asks for agentos or a VM, or the work needs a machine (builds, tests, a dev server, a browser).
+The MCP intro and the `openajar-environment` skill tell the agent when to take one: the human
+asks for openajar or a VM, or the work needs a machine (builds, tests, a dev server, a browser).
 They also tell it how to keep it: the default saves when idle, `keep="none"` only for a one-off
 fix, and kept running only when the person asks for an always-on machine.
 
@@ -142,7 +142,7 @@ Short, because they are not the product's front door:
   brains (your own `claude -p` or `codex exec`) that keep working with your laptop closed
   ([WORKFLOWS.md](WORKFLOWS.md)).
 
-## What agentos is not
+## What openajar is not
 
 - **Not an agent, chat or IDE.** It gives agents a computer and never becomes the agent. Keep
   the one you like.
@@ -175,4 +175,4 @@ An open core under Apache-2.0 (the node, environments, lanes, the vault, grants,
 is fully useful to one person on their own node, plus a hosted cloud for what costs money or spans
 people: VMs without your own provider account, the hosted web app and phone approvals, teams and
 shared access. Comparable open-core products grew by being useful to a single self-hoster first.
-agentos should earn that before it sells anything.
+openajar should earn that before it sells anything.

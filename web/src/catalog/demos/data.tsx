@@ -141,7 +141,7 @@ export function TableStatesDemo() {
           </thead>
           <tbody>
             <TableEmpty colSpan={3}>
-              <EmptyState icon={<Inbox />} title="No runs yet" description="Runs show here when an agent starts one with agentos run." action={<Button size="sm">Run a command</Button>} />
+              <EmptyState icon={<Inbox />} title="No runs yet" description="Runs show here when an agent starts one with openajar run." action={<Button size="sm">Run a command</Button>} />
             </TableEmpty>
           </tbody>
         </Table>

@@ -1,6 +1,6 @@
-"""The signed-out check (AUD-22, agentos.node.signed_out) on a real Camoufox lane.
+"""The signed-out check (AUD-22, openajar.node.signed_out) on a real Camoufox lane.
 
-Run on the node:  AGENTOS_TEST_SLOT=51 scripts/node-test.sh devbatch tests/node/test_signed_out_node.py
+Run on the node:  OPENAJAR_TEST_SLOT=51 scripts/node-test.sh devbatch tests/node/test_signed_out_node.py
 
 Nothing leaves the node: the lane's proxy is a loopback stand-in that asks for credentials and
 answers http://social.example/ itself, so the lane and the throwaway browser can reach the site
@@ -31,24 +31,24 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from test_fingerprint_pin_node import comparable, differences
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.core.runtime import Runtime
-from agentos.node import flow_driver as fd
-from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.core.runtime import Runtime
+from openajar.node import flow_driver as fd
+from openajar.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "110"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5810"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6110"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "110"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5810"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6110"))
 FINGERPRINT_PAGE = (Path(__file__).resolve().parents[1] / "fixtures" / "site" / "fingerprint.html").read_text()
 
 LANE = "biz-a/social"
@@ -279,7 +279,7 @@ async def test_a_signed_out_visitor_sees_the_public_post_and_not_the_held_one(la
 
 
 async def test_a_cold_lane_cannot_lend_its_browser(lanes):
-    from agentos.core.errors import ServiceUnavailable
+    from openajar.core.errors import ServiceUnavailable
 
     await lanes.create(LaneSpec(id=LANE, proxy_label="stand-in"))
     with pytest.raises(ServiceUnavailable, match="not open"):
@@ -287,7 +287,7 @@ async def test_a_cold_lane_cannot_lend_its_browser(lanes):
 
 
 def test_the_snippet_survives_a_cut_caption():
-    from agentos.node.signed_out import snippet
+    from openajar.node.signed_out import snippet
 
     long = "Autumn  at the\nlake " + "and more words " * 10
     cut = snippet(long)

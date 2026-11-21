@@ -14,19 +14,19 @@ from starlette.testclient import TestClient
 from workflow_support import OWNER as WF_OWNER
 from workflow_support import action, make_node, workflow
 
-from agentos.api.mounts import MOUNTS
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, Principal, RunStatus
-from agentos.runner import tools as runner_tools
-from agentos.runner.api import routes as flow_routes
-from agentos.runner.fakes import El, FakeCtx, FakeDriver, FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.flows import FlowService
-from agentos.runner.siteapis import api as site_api
-from agentos.runner.siteapis import tools as site_tools
-from agentos.runner.siteapis.models import SAMPLE, compile_for_test
-from agentos.runner.siteapis.service import ACTIVATE
-from agentos.runner.store import RunnerStore
-from agentos.workspaces.transfer.import_ import ImportPlan, _plan_flows
+from openajar.api.mounts import MOUNTS
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, Principal, RunStatus
+from openajar.runner import tools as runner_tools
+from openajar.runner.api import routes as flow_routes
+from openajar.runner.fakes import El, FakeCtx, FakeDriver, FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.runner.flows import FlowService
+from openajar.runner.siteapis import api as site_api
+from openajar.runner.siteapis import tools as site_tools
+from openajar.runner.siteapis.models import SAMPLE, compile_for_test
+from openajar.runner.siteapis.service import ACTIVATE
+from openajar.runner.store import RunnerStore
+from openajar.workspaces.transfer.import_ import ImportPlan, _plan_flows
 
 API, EP, LANE = "harbor-supplier", "open_orders", "biz-a/supplier"
 FLOW = f"connector.{API}.{EP}"
@@ -190,7 +190,7 @@ def _flow():
 
 
 @pytest.mark.parametrize("claim", [{"kind": "local", "id": API, "installed_by": "owner", "owner": "owner"},
-                                   {"kind": "catalog", "id": "agentos", "installed_by": "owner", "owner": "owner"}])
+                                   {"kind": "catalog", "id": "openajar", "installed_by": "owner", "owner": "owner"}])
 def test_post_flows_never_saves_a_connector_flow(h, claim):
     client = TestClient(Starlette(routes=flow_routes(h.runtime)))
     for body in ({"definition": _flow(), "saved_by": claim}, {**_flow(), "saved_by": claim}, {"definition": {**_flow(), "saved_by": claim}},
@@ -245,7 +245,7 @@ def client_as(h, *, human: bool, owner: bool, pid: str = "owner"):
 
 def test_every_mounted_route_exists(h):
     served = {(r.path, m) for r in site_api.routes(h.runtime) for m in r.methods - {"HEAD"}}
-    assert set(MOUNTS["agentos.runner.siteapis.api"]) == served
+    assert set(MOUNTS["openajar.runner.siteapis.api"]) == served
 
 
 def test_a_bearer_token_is_never_a_person_even_the_owners(h):

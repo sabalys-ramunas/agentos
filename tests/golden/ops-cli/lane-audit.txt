@@ -1,4 +1,4 @@
-$ agentos lane audit
+$ openajar lane audit
 exit 0
 1 pinned lanes, installed Firefox 150: warn
   warn  pin         personal/reddit      WebGL: ANGLE (Intel) is a Windows renderer string

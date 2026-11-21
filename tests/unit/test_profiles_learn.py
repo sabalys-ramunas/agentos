@@ -1,5 +1,5 @@
 """Learning a profile field (docs/design/learn-a-site.md 1, 2, 7, 8): a recorded edit becomes a
-strictly linted connector (agentos.profiles.learn), the node installs it as `learned` (never the
+strictly linted connector (openajar.profiles.learn), the node installs it as `learned` (never the
 owner's vouch), and only the node's replays mark it verified, for learned operations alone."""
 
 from __future__ import annotations
@@ -12,15 +12,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import RunStatus
-from agentos.profiles.learn import LearnRefused, flow_ids, generate
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path, proof_hash
-from agentos.runner.connectors.marks import BY_REPLAY, MarkLedger, mark_replay
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.verify import mark_installed
-from agentos.runner.fakes import OWNER, El, FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.models import is_owner
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import RunStatus
+from openajar.profiles.learn import LearnRefused, flow_ids, generate
+from openajar.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path, proof_hash
+from openajar.runner.connectors.marks import BY_REPLAY, MarkLedger, mark_replay
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.verify import mark_installed
+from openajar.runner.fakes import OWNER, El, FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.runner.models import is_owner
 
 REPO = Path(__file__).resolve().parents[2]
 REDDIT = REPO / "connectors" / "reddit"
@@ -325,10 +325,10 @@ def test_mark_replay_wants_a_proof_hash_and_small_json_evidence(tmp_path):
 def test_connector_list_shows_a_learned_connector_and_whether_replays_verified_it(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.runner.cli import _service
-    from agentos.runner.connectors.cli import app
+    from openajar.runner.cli import _service
+    from openajar.runner.connectors.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     flows = _service().flows
     ids = ConnectorService(flows).install_learned(_doc(tmp_path))
     out = CliRunner().invoke(app, ["list"])
@@ -431,11 +431,11 @@ def instagram_site(me: str, bio: str = "old") -> FakeSite:
     return site
 
 
-SYNC = {"principal": {"kind": "flow", "id": "", "owner": "owner"}, "source": "profiles"}   # agentos.profiles.sync
+SYNC = {"principal": {"kind": "flow", "id": "", "owner": "owner"}, "source": "profiles"}   # openajar.profiles.sync
 
 
 class _Learner:
-    """The profile learner's verdict on the learned bio (agentos.profiles.learner.state)."""
+    """The profile learner's verdict on the learned bio (openajar.profiles.learner.state)."""
 
     def __init__(self, verified: bool = True, learned_on: str | None = None):
         self.verified, self.learned_on = verified, learned_on
@@ -472,7 +472,7 @@ async def test_one_learned_connector_edits_and_reads_each_accounts_own_profile(t
 
 
 def test_a_learned_operation_is_never_served_as_an_agent_tool(tmp_path):
-    from agentos.runner.connectors.tools import operation_specs
+    from openajar.runner.connectors.tools import operation_specs
 
     h = _instagram(tmp_path, "biza.coffee", _doc(tmp_path))
     names = {spec.name for spec in operation_specs(h.runtime)}
@@ -480,8 +480,8 @@ def test_a_learned_operation_is_never_served_as_an_agent_tool(tmp_path):
 
 
 async def test_connectors_list_names_no_tool_for_a_learned_operation(tmp_path):
-    from agentos.runner.connectors.tools import connectors_list
-    from agentos.runner.fakes import FakeCtx
+    from openajar.runner.connectors.tools import connectors_list
+    from openajar.runner.fakes import FakeCtx
 
     h = _instagram(tmp_path, "biza.coffee", _doc(tmp_path))
     rows = (await connectors_list(FakeCtx(h.runtime)))["operations"]

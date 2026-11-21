@@ -1,4 +1,4 @@
-$ agentos lane check --all --offline --json
+$ openajar lane check --all --offline --json
 exit 1
 {
   "lanes": [
@@ -54,7 +54,7 @@ exit 1
           "title": "WebRTC",
           "level": "unknown",
           "detail": "The browser's WebRTC settings could not be read (no camoufox.cfg found).",
-          "fix": "check that Camoufox is installed: agentos doctor",
+          "fix": "check that Camoufox is installed: openajar doctor",
           "data": {
             "media.peerconnection.enabled": true,
             "media.peerconnection.ice.proxy_only": true,
@@ -174,7 +174,7 @@ exit 1
           "title": "WebRTC",
           "level": "unknown",
           "detail": "The browser's WebRTC settings could not be read (no camoufox.cfg found).",
-          "fix": "check that Camoufox is installed: agentos doctor",
+          "fix": "check that Camoufox is installed: openajar doctor",
           "data": {
             "media.peerconnection.enabled": true,
             "media.peerconnection.ice.proxy_only": true,

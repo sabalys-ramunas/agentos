@@ -1,7 +1,7 @@
-agentos
+openajar
 Copyright 2026 Ramunas Sabalys
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
-It includes noVNC (src/agentos/node/viewer/assets/vendor/), which is licensed under its own
+It includes noVNC (src/openajar/node/viewer/assets/vendor/), which is licensed under its own
 terms: see the license files in that folder.

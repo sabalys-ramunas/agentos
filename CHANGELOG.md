@@ -1,10 +1,134 @@
 # Changelog
 
-All notable changes to agentos are recorded here. The format follows
+All notable changes to openajar are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/) (before 1.0, a minor version may break things).
 
 ## [Unreleased]
+
+## [0.5.0] - 2026-11-21
+
+The agent's computer has a desktop you can watch, a pointer that shows what the agent does, and a button
+that turns it into a clip you can share. The web app has a new design, agents can work desktop apps that are
+not web pages, and the product has a new name: openajar. Everything 0.4.0 brought stays, under the same
+tools and settings.
+
+### Changed
+
+<!-- legacy-name: begin (the old names below are history: scripts/rename_to_openajar.py keeps them) -->
+- **agentos is now openajar** (a door left ajar: the agent works in its own room, and the door is open for
+  you to look in and step in). The package, the command, the MCP servers (`openajar-local`), the skills
+  (`openajar-environment`, `openajar-lanes`, `openajar-offload`, `openajar-studio`), the variables
+  (`OPENAJAR_HOME`, ...) and the docs carry the new name. What you set up keeps working: the `agentos`
+  command runs openajar and says so on stderr, every `AGENTOS_*` variable is read when its `OPENAJAR_*` one
+  is not set, and an existing `~/.agentos` and `~/.config/agentos` are used where they are, with their
+  environments, saves, keys and grants. `openajar local start` replaces the old `dev.agentos.local` service
+  on the same home and port, and registering replaces the `agentos-local` entries in Claude Code and Codex
+  and the old skills. Environments, saves, the machine image (`agentos-env`, used without a rebuild),
+  backups, links, cookies and tokens made before still work: docs/LEGACY-NAMES.md lists every name that
+  stays, and why. To upgrade, run the installer again; it replaces the `agentos` tool with `openajar` and
+  leaves your files where they are. From 0.4.0 that is all: its grant, web app (updated to 0.5.0's),
+  checkpoints, replays, prepared machines and network settings carry over, and a repository's
+  `.agentos/environment.toml` is still read (`.openajar/environment.toml` first). From 0.3.0 the agent
+  grant is replaced by one with `secret` on `env/*` lanes, so `login` works with no `agentos connect`.
+<!-- legacy-name: end -->
+- **The web app's new design, Dawn.** The night sidebar with the sunrise at its foot and the organisation
+  switch on glass, one violet for the agent, what is selected and the primary button, every button a pill,
+  larger type, and the Dawn picture behind Home's window, sign-in and first run. Home opens on a window with
+  one sentence and what needs you on glass cards; Environments shows each open one as a picture of its
+  screen; one environment opens on a night band with its live screen and one pill for who has control.
+  Every screen follows (needs you, runs, checks, machines, history, routines, settings and their forms,
+  dialogs and the command palette), and web/DESIGN.md is its rule book. 0.4.0's environment screens are
+  drawn in it: a closed environment's replay in its screen's place on the night band, Live and Replay so far
+  on an open one, how it opened, checkpoints, the network and its refused hosts, Resume on a save, who is
+  watching, and the prepared machines. Dawn's values come through 0.4.0's generated theme and pass its
+  design rules.
+- **The live view page.** The screen is a card, as large as the window allows, with nothing above it. One
+  pill under it says who has control (the agent's violet dot and its name, or you, with a white ring round
+  the card and since when) and has one button, Take over or Hand back. The screen's
+  details, Stop agent, the activity list and the shortcuts are under More. On a phone the pill sits at the
+  thumb and a keyboard button types on the screen.
+- **A new mark.** The openajar mark is "Window a" everywhere: the README, the web app's logo, favicon and app
+  icons, and the Mac companion's app and menu bar.
+- **Commands start in the repository.** `terminal_exec` on an environment's machine starts in the repository's
+  folder, as the file tools do, and a relative `cwd` starts there too. A command that runs out of time says
+  so with the next step (`timeout_s` up to 200, or `terminal_job_start`), without the stray `setsid` line.
+- **Every argument of the everyday tools says what it is** (`terminal_exec`'s `cmd`, `file_edit`'s `old`
+  and `new`, `terminal_job_read`'s offsets and waits, and the rest), within 0.4.0's budget for the
+  default list (7,141 of 7,150 tokens).
+- The tool names 0.4.0 renamed (`lane_exec`, `lanes_list`, ...) still answer in 0.5.0, each result saying
+  the new name; they go in a later minor release.
+
+### Added
+
+- **A desktop on every machine.** From the moment an environment is ready until it closes, its screen is
+  a small desktop in the Dawn look: a top bar with the environment's title and what the agent is doing, a
+  dock with Browser, Terminal and Files, a terminal window where the agent's commands show as it runs them,
+  and the browser as a window that comes and goes on it. Apps the agent starts open there too.
+  `desktop = false` in `environments.toml` turns it off. A new machine's desktop is up in about half a
+  second.
+- **Screen tools** for desktop apps that are not web pages: `screen_snapshot` (a picture of the screen and
+  its windows), `screen_act` (click, drag, scroll, type and keys, paced like a person's hand) and
+  `screen_open` (start an app), in the `screen` toolset. A take over stops the agent's input on the machine
+  within about a second and lets go of every key and button, and `screen_snapshot` is refused while a person
+  has control, as the browser tools are.
+- **The agent's pointer.** A large violet pointer with the agent's name ("Claude Code") shows where the
+  agent clicks, types and scrolls, in its browser and with the screen tools, in the live view and on the web
+  app's environment page. It glides from point to point, fades after a few quiet seconds, and hides while
+  you have control. It adds no time to the agent's work.
+- **Record a clip.** A record button next to full screen in the live view (or **R**) saves what you see
+  as a video on your computer: the screen as a rounded card on a dark stage, the agent's pointer in it, a
+  small mark under it, 1920 by 1080 at 30 frames a second, MP4 where the browser can record it. It is made
+  in your browser and never uploaded, shows the time it has run, and stops by itself after three minutes.
+  View-only links have it too.
+- **Still pictures of each screen.** The environments list and Home show a small, real picture of each
+  desktop, taken only while someone looks at them, at most once a minute, never while a person has control
+  and never for a machine that sleeps. Taking one does not count as the agent using the machine.
+- **Screen recovery.** A screen that dies comes back at the node's next check (within about a minute) and
+  the live view follows by itself: when only the desktop's parts died (its helper, the window manager)
+  every window stays; when the display server died, the screen starts again empty. A desktop that
+  finishes installing late starts under the running browser.
+- **The eval suite grows** (`make eval`, docs/EVALS.md): `make eval-smoke` (`run.py smoke`) holds the error
+  catalog, the skill and the everyday tool list to budgets with no node or model, in CI too; a model's
+  repeats are compared with Fisher's test (real, likely or the same); and four tasks: probes for what
+  testers found, a build longer than the default wait, a checkout form with every kind of field read back
+  by the shop, and a command typed into the desktop's Terminal with the screen tools.
+
+### Fixed
+
+- **What the commands window shows is the agent's real record.** A command's output can no longer clear the
+  window or draw a fake command or exit line, also when an escape sequence is split across reads.
+- **On a server node a control link alone no longer drives a screen with a desktop.** The dock opens a root
+  terminal there, so a control link needs the owner's panel session in the same browser or an owner link. In
+  local mode the live view listens on 127.0.0.1 only, as before.
+- **Said plainly:** the agent's commands run as root on its own machine, so root can read that screen and
+  what a person types there. The take over keeps the agent's tools out of your way; it does not keep a
+  hostile agent out of its own machine. The live view says so under Take over, and docs/THREAT-MODEL.md has
+  a section on the desktop. Sign in on that screen only to accounts the agent is meant to use.
+- An environment with a desktop still closes, or saves, when it is idle: the node's own screen checks and
+  still pictures are not counted as use.
+- The dock's Browser never opens the browser past a stop or a freeze; after a node restart the desktop's top
+  bar and dock know the browser at once; a resumed save never signals a process from an old pid file; a
+  desktop installed late keeps apt's package lists for the agent's own `apt-get install`; closing an
+  environment whose machine does not answer waits once, not twice; a burst of pointer moves never pushes a
+  control change out of the live view's events.
+- A second home, or one started with `--no-register`, never writes into your Claude Code, Codex, skills or
+  launchd setup.
+- `browser_act` can choose an option of a dropdown in a form again, and type a line that ends in Enter: the
+  form's check before each key no longer reads the field the act itself fills as the page changing the form.
+- A second home's `openajar local start` and `stop` never touch the person's own service, nor the one an
+  install from before the rename left.
+- The installer no longer copies a checkout's `web/node_modules` into the install.
+- **A saved environment with a desktop goes idle again.** The node's own checks of the machine (its screen,
+  the agent's ssh, stills, updates) no longer count as its use; two of them at once put back each other's
+  time, so such an environment was never saved for idleness.
+- **A desktop's helper that dies comes back.** Starting again on a running screen it freed the old wallpaper
+  with a call Ubuntu's python3-xlib does not have, and the screen was left with the browser alone.
+- The desktop's top bar says what the agent does by the tool names of 0.4.0 (it knew only the old ones, so it
+  never said "is running a command"), and the screen tools' messages name `browser_wait_handback`.
+- Upgrading keeps what 0.4.0 left on machines and in repositories: a resumed save's network block in
+  `/etc/environment`, an open pull request's proof and network sections, and checkpoint refs keep their
+  names, so nothing is doubled or lost.
 
 ## [0.4.0] - 2026-11-19
 

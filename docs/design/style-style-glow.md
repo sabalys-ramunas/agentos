@@ -18,7 +18,7 @@ check page). It follows the system theme until you pick one with the switch or `
 
 | File | What it is |
 |---|---|
-| `style-glow/app.css` | The style. Every value in agentos's own interface is a token from `style-glow/tokens.css`. |
+| `style-glow/app.css` | The style. Every value in openajar's own interface is a token from `style-glow/tokens.css`. |
 | `style-glow/app.js` | app/'s screens, plus the kind device, the new Home blocks, the Needs you inbox, the table features and Brand's components. |
 | `style-glow/data.js` | app/'s Acme Shop workspace; each request now says what happens on yes. |
 | `style-glow/build-tokens.py` | A copy of the token builder with this take's values, the kind colours and a colour-blind check. The shared `../build-tokens.py` is untouched. |
@@ -80,9 +80,9 @@ states** are a quiet icon tile, one sentence, one action.
 
 | Kind | Where | Hue | Tokens (light / dark mark) |
 |---|---|---|---|
-| Tests | `agentos run` with a test runner | cyan | `kind.test.*` `#07799a` / `#19a9d1` |
+| Tests | `openajar run` with a test runner | cyan | `kind.test.*` `#07799a` / `#19a9d1` |
 | Build | builds, lint and types, CI, a push to main | blue | `kind.build.*` `#2148d0` / `#3d6dff` |
-| Dev server | `agentos expose`, a service lane | lilac | `kind.server.*` `#9b62f5` / `#cdb4ff` |
+| Dev server | `openajar expose`, a service lane | lilac | `kind.server.*` `#9b62f5` / `#cdb4ff` |
 | Design | `ui_check`, `ui_diff`, a brand proposal, Checks and Brand | pink | `kind.design.*` `#d42a82` / `#f569b0` |
 | Machine | nodes, VMs, new lanes, Machines | steel | `kind.machine.*` `#7d8899` / `#8e9db3` |
 | Outside | posts and payments | none (neutral) | `kind.outside.*` |
@@ -199,7 +199,7 @@ hand-rolled look-alikes on 4 pages, 1 proposal waiting), then a card per compone
   still "Approve version 5").
 
 The specimens are marked `data-studio="ignore"` with the reason, so studio does not judge Acme's
-brand as agentos's.
+brand as openajar's.
 
 ### Across the product
 
@@ -246,7 +246,7 @@ colour-blind cases; it exits 1 if any fails. What changed against the shared set
 
 ## 7. Studio, from a scratch HOME
 
-`agentos studio up --port 7494 --no-skill` with HOME in a scratch folder, the prototype over
+`openajar studio up --port 7494 --no-skill` with HOME in a scratch folder, the prototype over
 `python -m http.server`, the tools called over MCP. `ui_check` on Home, Runs, Checks, a check,
 Machines with a panel open, Brand and a request on Needs you (360, 768, 1280, light and dark), again
 with `since`; `system_check` against `style-glow/tokens.json` at 375 and 1440; `ui_image` and

@@ -14,7 +14,7 @@ from __future__ import annotations
 from env_eval.tasks import Agent, Check, Ctx, Session, Task, done
 
 HOST = "rates.example.com"
-FIX = f"agentos environments allow --host {HOST}"
+FIX = f"openajar environments allow --host {HOST}"
 MAX_RUNS = 2
 STARTED = "Fetching today's rates"
 
@@ -47,7 +47,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
         return done(f"npm run rates did not stop at a 403: {str(out)[:200]}", "blocked")
     net = out.get("network") or {}  # the command's own result names what was refused
     hosts = ", ".join(net.get("blocked_now") or [])
-    if not hosts:  # an agentos before network.blocked_now: environment() lists it
+    if not hosts:  # an openajar before network.blocked_now: environment() lists it
         net = (await a.on_call("environment")).get("network") or {}
         hosts = ", ".join(b["host"] for b in net.get("blocked") or [])
     await a.on_call("environment_close")
@@ -71,7 +71,7 @@ TASK = Task(
     repo="rates",
     settings={"network": "limited"},
     internet=True,
-    sessions=[Session("In agentos, install the dependencies of {repo} and run `npm run rates`. Tell me what it "
+    sessions=[Session("In openajar, install the dependencies of {repo} and run `npm run rates`. Tell me what it "
                       "prints.")],
     check=check, perfect=perfect, careless=careless,
 )

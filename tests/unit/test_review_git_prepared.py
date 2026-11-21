@@ -7,7 +7,7 @@ import asyncio
 from test_environments_prepared import REPO, FakeGit, builds_done, node  # noqa: F401  (node is a fixture)
 from test_environments_prproofs import ENV, PNG, GitHub, setup
 
-from agentos.environments import prepbuild, pulls
+from openajar.environments import prepbuild, pulls
 
 
 class RecordingGit(FakeGit):
@@ -71,7 +71,7 @@ async def test_review_G1_a_revoked_grant_stops_its_build(node, monkeypatch):  # 
 
 
 async def test_review_G2_prepared_key_is_per_commit(node):  # noqa: F811
-    # The agent's branch has the same .agentos/environment.toml and lockfile as main (config_probe answers
+    # The agent's branch has the same .openajar/environment.toml and lockfile as main (config_probe answers
     # the same for every ref), but its setup may run any script of that branch. The key ignores the commit.
     first = await node.call("environment_open", title="Agent branch", repo=REPO, ref="agent/tampered")
     await builds_done(node.mgr)
@@ -93,11 +93,11 @@ async def test_review_G2_prepared_key_is_per_commit(node):  # noqa: F811
 
 
 def test_review_G3_scrub_keeps_ssh_where_the_provider_keeps_it():
-    assert "AGENTOS_KEEP_SSH" in prepbuild.SCRUB
+    assert "OPENAJAR_KEEP_SSH" in prepbuild.SCRUB
 
 
 async def test_review_G3_the_build_runs_the_scrub_with_the_providers_prefix(node, monkeypatch):  # noqa: F811
-    monkeypatch.setattr(type(node.prov), "script_prefix", "export AGENTOS_KEEP_SSH=1\n", raising=False)
+    monkeypatch.setattr(type(node.prov), "script_prefix", "export OPENAJAR_KEEP_SSH=1\n", raising=False)
     real_exec, ran = node.machine.exec, []
 
     async def exec_(lane_id, cmd, **kw):
@@ -109,7 +109,7 @@ async def test_review_G3_the_build_runs_the_scrub_with_the_providers_prefix(node
     monkeypatch.setattr(node.envs, "exec", exec_)
     assert (await node.mgr.prepare_now(REPO))["started"]
     await builds_done(node.mgr)
-    assert ran == ["export AGENTOS_KEEP_SSH=1\n" + prepbuild.SCRUB]
+    assert ran == ["export OPENAJAR_KEEP_SSH=1\n" + prepbuild.SCRUB]
     assert node.mgr.prepared_store().all()[0].state == "ready"
 
 

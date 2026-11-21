@@ -14,11 +14,11 @@ import pytest
 from test_mail_tools import Ctx, Transport
 from workflow_support import MAIL, make_node
 
-from agentos.runner.mail import message as parsing
-from agentos.runner.mail import session
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.cursor import Cursor, MailCursors, Seen, _sent_on, compose, is_new
-from agentos.runner.workflows.mail import Mailbox, Received, TlsTransport, parse_message
+from openajar.runner.mail import message as parsing
+from openajar.runner.mail import session
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.cursor import Cursor, MailCursors, Seen, _sent_on, compose, is_new
+from openajar.runner.workflows.mail import Mailbox, Received, TlsTransport, parse_message
 
 BOX = Mailbox(id="biz-a/mail", address="hello@biz-a.example", imap_host="imap.invalid", smtp_host="smtp.invalid",
               username="hello@biz-a.example", secret_ref="mail/biz-a/mail")

@@ -7,9 +7,9 @@ import sqlite3
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.errors import InvalidRequest
-from agentos.policy.redact import REDACTED, redact, redact_text
-from agentos.policy.traces import EventBus, TraceEvent, TraceStore
+from openajar.core.errors import InvalidRequest
+from openajar.policy.redact import REDACTED, redact, redact_text
+from openajar.policy.traces import EventBus, TraceEvent, TraceStore
 
 
 @pytest.mark.parametrize("text,secret", [
@@ -42,7 +42,7 @@ def test_text_redaction(text, secret):
     "lane biz-a/instagram is warm",
     "content sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     "order 12345 shipped on 2026-11-04, 3 items, total 42.50",
-    "/Users/someone/.t3/worktrees/agentos/src/agentos/policy",
+    "/Users/someone/.t3/worktrees/openajar/src/openajar/policy",
     "a-very-long-descriptive-kebab-case-identifier",
     "approval ap_k3j4h5g6f7d8s9a0 and trace tr_abcdefgh12345678",
 ])

@@ -16,14 +16,14 @@ from test_commit_gate_digest import JSON, Ctx, Request
 from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FakeRequest, FakeRoute, make_guard
 
-from agentos.core.errors import ApprovalPending, PublishUnbound
-from agentos.core.models import AccountRef, LaneSpec
-from agentos.dev import net as dev_net
-from agentos.dev import web as dev_web
-from agentos.node import commitgate, egress
-from agentos.node import tools as node_tools
-from agentos.node.egress import EFFECT_RULES, Refusal, typed_in, unknown_rule
-from agentos.node.tools import browser as browser_tools
+from openajar.core.errors import ApprovalPending, PublishUnbound
+from openajar.core.models import AccountRef, LaneSpec
+from openajar.dev import net as dev_net
+from openajar.dev import web as dev_web
+from openajar.node import commitgate, egress
+from openajar.node import tools as node_tools
+from openajar.node.egress import EFFECT_RULES, Refusal, typed_in, unknown_rule
+from openajar.node.tools import browser as browser_tools
 
 RULES = {r.id: r for r in EFFECT_RULES}
 FORM = {"content-type": "application/x-www-form-urlencoded"}
@@ -317,14 +317,14 @@ async def test_a_publish_no_rule_names_that_carries_the_typed_words_asks_and_say
     ap_id = await pending(node)
     ap = node.approvals.get(ap_id)
     assert node.sent == [] and node.posts == []
-    assert ap.summary.startswith("Send a request agentos does not recognise to Social through biz-a/social")
+    assert ap.summary.startswith("Send a request openajar does not recognise to Social through biz-a/social")
     assert '"A brand new endpoint"' in ap.summary and ap.card["deny_safe"] is True
     assert "It carries text the agent typed as its text" in ap.card["explain"]
 
 
 async def test_a_like_that_left_is_reported_as_sent(node, monkeypatch):
     """A click whose own write rule left is ok, whatever background request was held with it."""
-    from agentos.dev.net import UPLOAD_URL
+    from openajar.dev.net import UPLOAD_URL
 
     original = dev_web.DevDriver.click
 

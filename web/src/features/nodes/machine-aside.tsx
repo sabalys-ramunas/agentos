@@ -48,7 +48,7 @@ export const TAB_WORDS: Record<NodeTab, { label: string; says: string }> = {
   installed: { label: 'Installed', says: 'Programs, services and tools' },
   environments: { label: 'Environments', says: 'Dev environments and their lanes' },
   resources: { label: 'Resources', says: 'CPU, memory and disk over time' },
-  connection: { label: 'Connection', says: 'How it reaches agentos' },
+  connection: { label: 'Connection', says: 'How it reaches openajar' },
   health: { label: 'Health', says: 'Its checks, and the fix for each' },
   backups: { label: 'Backups', says: 'Copies of its data, and their checks' },
   settings: { label: 'Settings', says: 'How this machine behaves' },
@@ -100,7 +100,7 @@ function Load({ node, metrics, quiet }: { node: NodeDetail; metrics: NodeMetrics
       <div className="grid gap-1">
         <div className="flex items-baseline justify-between text-secondary">
           <span className="text-muted">CPU</span>
-          <span className={cn('font-mono text-number tabular', node.cpu >= BUSY_CPU ? 'text-warn' : 'text-fg')}>{node.cpu}%</span>
+          <span className={cn('text-secondary tabular', node.cpu >= BUSY_CPU ? 'text-warn' : 'text-fg')}>{node.cpu}%</span>
         </div>
         {charts ? <TimeChart points={cpuPoints} label="CPU over the last hour" format={(value) => `${Math.round(value)}%`} bucketSeconds={metrics?.bucket_seconds ?? 60} height={56} max={100} axes={false} /> : null}
       </div>
@@ -108,7 +108,7 @@ function Load({ node, metrics, quiet }: { node: NodeDetail; metrics: NodeMetrics
         <div className="grid gap-1">
           <div className="flex items-baseline justify-between text-secondary">
             <span className="text-muted">Memory</span>
-            <span className="font-mono text-number text-fg tabular">
+            <span className="text-secondary text-fg tabular">
               {gbShort(node.mem.used_mb)} of {gbShort(node.mem.total_mb)}
             </span>
           </div>
@@ -169,7 +169,7 @@ function Lanes({ org, node }: { org: string; node: NodeDetail }) {
         return (
           <div key={group.title} className="grid gap-2">
             <p className="text-caption text-faint">
-              {group.title} <span className="font-mono tabular">{group.lanes.length}</span>
+              {group.title} <span className="tabular">{group.lanes.length}</span>
               {group.lanes.some((lane) => lane.state === 'active') ? `, ${group.lanes.filter((lane) => lane.state === 'active').length} in use` : ''}
             </p>
             <ul className="grid gap-3">
@@ -231,7 +231,7 @@ function Runs({ org, id, runs }: { org: string; id: string; runs: RunsInfo }) {
   const running = jobs.filter((job) => job.state === 'running');
   const recent = jobs.filter((job) => job.state !== 'running').slice(0, Math.max(0, 3 - running.length));
   const shown = [...running, ...recent];
-  if (!shown.length) return <p className="text-body text-muted">Nothing has run here yet. A run starts with <code className="font-mono text-code">agentos run</code>.</p>;
+  if (!shown.length) return <p className="text-body text-muted">Nothing has run here yet. A run starts with <code className="font-mono text-code">openajar run</code>.</p>;
   return (
     <ul className="grid gap-3" aria-label={`Runs on ${id}`}>
       {shown.map((job) => (
@@ -343,7 +343,7 @@ function Actions({ org, node }: { org: string; node: NodeDetail }) {
         open={confirming}
         onOpenChange={setConfirming}
         title={`Remove ${node.id}?`}
-        description={`Accounts on this machine stop and show as read-only here. agentos forgets ${node.id}, so adding it again needs a new install command. Profiles and logins stay on the machine.`}
+        description={`Accounts on this machine stop and show as read-only here. openajar forgets ${node.id}, so adding it again needs a new install command. Profiles and logins stay on the machine.`}
         confirmLabel="Remove machine"
         danger
         typeToConfirm={node.id}
@@ -415,7 +415,7 @@ function Facts({ org, node }: { org: string; node: NodeDetail }) {
       )}
       <Fact label="Size">{size || <span className="text-faint">Not reported</span>}</Fact>
       <Fact label="Runs">
-        <span title={`${node.os} on ${node.arch}, agentos ${node.version}`}>
+        <span title={`${node.os} on ${node.arch}, openajar ${node.version}`}>
           {node.os} · <span className="font-mono text-code">v{node.version}</span>
         </span>
       </Fact>
@@ -497,7 +497,7 @@ export function VmPanel({ org, vm, runs }: { org: string; vm: Vm; runs: RunsInfo
       </Block>
       <Block title="Delete it now">
         <p className="text-body text-muted">It deletes itself on time even if the agent forgets. To end it sooner, run this on the node:</p>
-        <CodeBlock code={`agentos vm destroy ${vm.id}`} label="Copy the delete command" />
+        <CodeBlock code={`openajar vm destroy ${vm.id}`} label="Copy the delete command" />
       </Block>
     </div>
   );

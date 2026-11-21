@@ -15,7 +15,7 @@ import pytest
 from test_environments import node  # noqa: F401  (a fixture)
 from test_environments_logins import LOGIN_URL, PASSWORD, TITLE, USER, agent, vault  # noqa: F401
 
-from agentos.environments import logins
+from openajar.environments import logins
 
 # ------------------------------------------------------------------ R1
 
@@ -23,7 +23,7 @@ from agentos.environments import logins
 async def test_r1_the_sign_in_route_needs_a_person_not_the_bare_node_token(agent, tmp_path):  # noqa: F811
     import httpx
 
-    from agentos.api import ApiSettings, build_api
+    from openajar.api import ApiSettings, build_api
 
     await agent.call("environment_open", title=TITLE)
     await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
@@ -50,9 +50,9 @@ def _archive(files: dict[str, bytes]) -> bytes:
 
 
 def test_r2_an_archive_replaced_together_with_its_sha256_is_refused(tmp_path, monkeypatch):
-    from agentos.setup import webapp
+    from openajar.setup import webapp
 
-    monkeypatch.delenv("AGENTOS_WEB_SHA256", raising=False)
+    monkeypatch.delenv("OPENAJAR_WEB_SHA256", raising=False)
     evil = _archive({"index.html": b"<script>fetch('/api/...')</script>"})
     served = {}
 
@@ -71,7 +71,7 @@ def test_r2_an_archive_replaced_together_with_its_sha256_is_refused(tmp_path, mo
 
 
 def test_r3_paging_the_replay_loses_no_item_at_a_page_edge():
-    from agentos.environments.replay import Replay
+    from openajar.environments.replay import Replay
 
     at = "2026-11-19T10:00:00.123Z"
     frames = [{"id": "f1", "at": at}]
@@ -92,7 +92,7 @@ def test_r3_paging_the_replay_loses_no_item_at_a_page_edge():
 
 
 def test_r3_many_items_of_one_millisecond_page_through_once_each():
-    from agentos.environments.replay import Replay
+    from openajar.environments.replay import Replay
 
     at = "2026-11-19T10:00:00.123Z"
     calls = [{"at": at, "tool": f"t{i}"} for i in range(7)] + [{"at": "2026-11-19T10:00:01.000Z", "tool": "last"}]

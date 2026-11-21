@@ -9,7 +9,7 @@ import signal
 import pytest
 from testkit.brains import OAUTH, FakeCtx, add, make_service
 
-from agentos.brains.models import (
+from openajar.brains.models import (
     BrainKind,
     BrainState,
     BrainView,
@@ -21,10 +21,10 @@ from agentos.brains.models import (
     Privacy,
     Requirements,
 )
-from agentos.brains.router import route
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
+from openajar.brains.router import route
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
 
 P = Principal(id="claude-code", thread="T-1")
 PRIVATE = ContextBundle(taint=["private"])
@@ -125,7 +125,7 @@ def test_a_private_data_co_sign_kept_from_before_names_no_brain():
 
 async def test_the_card_names_the_brain_the_router_would_pick(svc):
     """The first brain listed needs a sign-in, so the yes would run on the second: the card names it."""
-    from agentos.brains.credentials import brain_ref
+    from openajar.brains.credentials import brain_ref
 
     await add(svc, "claude-max", "subscription", "anthropic")
     await add(svc, "claude-team", "subscription", "anthropic", order=200)
@@ -151,7 +151,7 @@ async def test_a_codex_refresh_never_overwrites_a_newer_sign_in(tmp_path):
 
     from testkit.brains import FakeVault
 
-    from agentos.brains.credentials import brain_ref
+    from openajar.brains.credentials import brain_ref
 
     s = make_service(tmp_path, runtime=Runtime(vault=FakeVault()))
     auth = json.dumps({"tokens": {"access_token": "at-" + "A" * 30, "refresh_token": "rt-a"}})

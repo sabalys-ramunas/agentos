@@ -158,7 +158,7 @@
    "kwargs": {},
    "error": {
     "type": "RefNotFound",
-    "module": "agentos.core.errors",
+    "module": "openajar.core.errors",
     "message": "ref e99 is gone; take a new snapshot",
     "code": "ref_not_found"
    }

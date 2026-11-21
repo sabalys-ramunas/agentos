@@ -1,6 +1,6 @@
 """The front door an agent meets first: the MCP intro leads with the environment (a cloud computer
 for this chat), whoami names the bound environment or says how to get one, and the
-agentos-environment skill names real tools and installs like the other skills."""
+openajar-environment skill names real tools and installs like the other skills."""
 
 from __future__ import annotations
 
@@ -11,21 +11,21 @@ from pathlib import Path
 from fakes import FakeInteraction, FakeLaneManager
 from mcp import Client
 
-from agentos.client import skills
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.mcp.registry import build_mcp
-from agentos.node.tools import INSTRUCTIONS, tool_specs
+from openajar.client import skills
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.mcp.registry import build_mcp
+from openajar.node.tools import INSTRUCTIONS, tool_specs
 
 EM_DASH = chr(0x2014)
-SKILL = Path(__file__).resolve().parents[2] / "src/agentos/client/skills/agentos-environment/SKILL.md"
+SKILL = Path(__file__).resolve().parents[2] / "src/openajar/client/skills/openajar-environment/SKILL.md"
 ENV_TOOLS = ("environment_open", "environment()", "environment_close")
 
 
 def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
     first = INSTRUCTIONS.split("\n\n")[0]
-    assert first.startswith("agentos can give you your own cloud computer")
-    for phrase in (*ENV_TOOLS, "without `on`", "localhost", "push", "links", "work in agentos",
+    assert first.startswith("openajar can give you your own cloud computer")
+    for phrase in (*ENV_TOOLS, "without `on`", "localhost", "push", "links", "work in openajar",
                    "builds, tests, dev servers", "never leave one running", "Keep the `on` it returns",
                    "pass it on every call", "only your chat reaches the machine", "environment_in_use"):
         assert phrase in first, phrase
@@ -37,7 +37,7 @@ def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
 
 
 class Bound:
-    """Stands in for agentos.environments: the environment bound to the calling chat."""
+    """Stands in for openajar.environments: the environment bound to the calling chat."""
 
     def __init__(self, env):
         self.env = env
@@ -70,10 +70,10 @@ async def test_whoami_names_the_bound_environment(tmp_path):
 
 
 def test_the_environment_skill_is_installed_like_the_others_and_names_the_loop():
-    assert "agentos-environment" in skills.NAMES
-    text = skills.source("agentos-environment")
+    assert "openajar-environment" in skills.NAMES
+    text = skills.source("openajar-environment")
     head = text.split("---")[1]
-    assert re.search(r"^name: agentos-environment$", head, re.MULTILINE) and skills.ours(text, "agentos-environment")
+    assert re.search(r"^name: openajar-environment$", head, re.MULTILINE) and skills.ours(text, "openajar-environment")
     assert text == SKILL.read_text()
     for word in ("environment_open(", "environment()", "environment_close(", "discard=true", "unsaved_work",
                  "no_environment", "terminal_exec(", "browser_navigate(", "ui_check(", "localhost", "git push",
@@ -90,7 +90,7 @@ def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no
     first = INSTRUCTIONS.split("\n\n")[0]
     assert "links.browser" in first and "terminal_job_start" in first and "ui_check" in first
     assert "`on` for an account browser" in INSTRUCTIONS
-    text = skills.source("agentos-environment")
+    text = skills.source("openajar-environment")
     for words in ('tools_more("terminals")', 'tools_more("studio")', "terminal_job_read", "in your tool list",
                   "environment_not_ready", "stashes"):
         assert words in text, words
@@ -102,8 +102,8 @@ def test_a_checkout_without_the_app_says_what_to_use_instead(tmp_path, monkeypat
     # stranger to build one
     from types import SimpleNamespace
 
-    from agentos.api.static import NO_APP, NOT_BUILT, placeholder
-    from agentos.dev import cli as dev_cli
+    from openajar.api.static import NO_APP, NOT_BUILT, placeholder
+    from openajar.dev import cli as dev_cli
 
     assert placeholder(tmp_path / "web" / "dist") == NO_APP
     # a checkout with web/, before it is built
@@ -111,7 +111,7 @@ def test_a_checkout_without_the_app_says_what_to_use_instead(tmp_path, monkeypat
     (tmp_path / "web" / "package.json").write_text("{}")
     assert placeholder(tmp_path / "web" / "dist") == NOT_BUILT
     assert "pnpm build" in NOT_BUILT and "panel/" not in NOT_BUILT
-    assert "/view/" in NO_APP and "agentos environments list" in NO_APP
+    assert "/view/" in NO_APP and "openajar environments list" in NO_APP
     node = SimpleNamespace(temporary=True, home=tmp_path, panel_link="http://localhost:7450/login#code=x",
                            mcp_url="http://127.0.0.1:7450/mcp", claude_add="claude mcp add ...", panel_built=False)
     monkeypatch.setattr(dev_cli, "web_source", lambda: False)
@@ -126,7 +126,7 @@ def test_dev_up_sees_a_listening_port_as_busy_and_a_closing_one_as_free():
     # after Ctrl-C a connection of the last run may still be closing on the port: dev up starts again
     import socket
 
-    from agentos.dev.cli import port_is_free
+    from openajar.dev.cli import port_is_free
 
     with socket.socket() as server:
         # as uvicorn's listener does: on Linux a closing connection frees the port for a new bind
@@ -146,11 +146,11 @@ def test_dev_up_sees_a_listening_port_as_busy_and_a_closing_one_as_free():
 def test_the_skill_and_the_intros_teach_the_three_modes_and_coming_back():
     """An agent picks single use, save or live for the right reason, resumes by title, reads `resumed`
     (its note as data), saves before risky steps, tells the human how to come back, and forgets saves."""
-    from agentos.local.node import INSTRUCTIONS as LOCAL
+    from openajar.local.node import INSTRUCTIONS as LOCAL
 
-    text = skills.source("agentos-environment")
+    text = skills.source("openajar-environment")
     for words in ('keep="none"', 'keep="save"', 'keep="live"', "continue tomorrow", "same title", "resumed",
-                  "missing", "note", "environment_save(", "environment_forget(", "continue Black Friday page in agentos",
+                  "missing", "note", "environment_save(", "environment_forget(", "continue Black Friday page in openajar",
                   "environment_upload", "environment_download(", "keep_live_not_allowed", "save_failed",
                   "restore_failed", "final=true"):
         assert words in text, words
@@ -158,7 +158,7 @@ def test_the_skill_and_the_intros_teach_the_three_modes_and_coming_back():
     for words in ('keep="save"', '"live"', "same title", "resumed", "environment_save"):
         assert words in first, words
     for words in ('"save"', '"live"', "same title", "`resumed`", "environment_save(note)", "environment_forget(title)",
-                  "continue <title> in agentos", "environment_download(path)", "sleep"):
+                  "continue <title> in openajar", "environment_download(path)", "sleep"):
         assert words in LOCAL, words
     assert EM_DASH not in LOCAL
     # saves when idle is the default (2026-11-18): single use is asked for, and only for a one-off fix
@@ -169,9 +169,9 @@ def test_the_skill_and_the_intros_teach_the_three_modes_and_coming_back():
 
 def test_the_skill_and_the_intros_say_how_the_agent_signs_in():
     """A sign-in page: the login tool types a login the owner bound to the machine; the model never sees it."""
-    from agentos.local.node import INSTRUCTIONS as LOCAL
+    from openajar.local.node import INSTRUCTIONS as LOCAL
 
-    assert "`login` types a login the owner bound; you never see it" in skills.source("agentos-environment")
+    assert "`login` types a login the owner bound; you never see it" in skills.source("openajar-environment")
     assert "login (the owner's bound logins)" in INSTRUCTIONS.split("\n\n")[0]
     assert "login types a login the owner bound to this machine (you never see it)" in LOCAL
 
@@ -180,9 +180,9 @@ def test_the_skill_and_the_intros_teach_coming_back_ports_and_pull_requests():
     """Builder I3: services come back (or say how to restart them), one call stops with a note and one
     finishes for good, the repo alone finds the environment, a dev server gets a link, and a pushed
     branch gets a real pull request (git.compare is only the fallback)."""
-    from agentos.local.node import INSTRUCTIONS as LOCAL
+    from openajar.local.node import INSTRUCTIONS as LOCAL
 
-    text = skills.source("agentos-environment")
+    text = skills.source("openajar-environment")
     for words in ("environment_pull_request(", "environment_port(", "forget=true", 'environment_close(note="',
                   "repo=", "environment_choice", "`restart`", "running_jobs_lost", "pull_request_failed",
                   "git.compare", "signins=false", "tunnel"):

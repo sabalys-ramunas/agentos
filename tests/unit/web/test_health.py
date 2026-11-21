@@ -1,4 +1,4 @@
-"""This computer's health and backups, as the app reads them (agentos.api.routes_ops).
+"""This computer's health and backups, as the app reads them (openajar.api.routes_ops).
 
 No test here starts a real backup or check. The runners are replaced by fakes that say what they were
 asked, and the one real check reads a file that is not a backup, so it can only fail.
@@ -16,12 +16,12 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos import __version__
-from agentos.api import routes_ops
+from openajar import __version__
+from openajar.api import routes_ops
 
 LOCAL = "/api/orgs/local/nodes/dev"
 TOKEN = "t" * 43
-NAME = "agentos-dev-20260101T000000Z.tar.gz.age"
+NAME = "openajar-dev-20260101T000000Z.tar.gz.age"
 PASSPHRASE = "a passphrase of twelve or more"
 
 
@@ -118,7 +118,7 @@ def test_the_version_is_the_running_one_and_no_newer_one_is_claimed(client: Test
     body = client.get(f"{LOCAL}/upgrade").json()
     assert body["running"] == __version__
     assert body["newer"] is None, "this computer cannot see a newer release, so it must not say there is one"
-    assert body["command"].startswith("agentos upgrade")
+    assert body["command"].startswith("openajar upgrade")
 
 
 # ---- backups: who may start them, and the passphrase form -----------------------------------
@@ -252,7 +252,7 @@ def test_the_check_file_holds_names_and_times_only(client: TestClient) -> None:
 
 
 def test_a_message_from_a_failure_is_the_nodes_own_words(client: TestClient) -> None:
-    from agentos.core.errors import AgentosError
+    from openajar.core.errors import OpenajarError
 
-    assert routes_ops._said(AgentosError("the passphrase did not open it"), "fallback") == "the passphrase did not open it"
+    assert routes_ops._said(OpenajarError("the passphrase did not open it"), "fallback") == "the passphrase did not open it"
     assert routes_ops._said(ValueError("/home/secret/path"), "The backup could not be read.") == "The backup could not be read."

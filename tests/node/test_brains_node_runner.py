@@ -18,12 +18,12 @@ from pathlib import Path
 import pytest
 from testkit.brains import OAUTH, FakeConfig, add, wait_status
 
-from agentos.brains import cliprobe
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
-from agentos.dev import fakecli
+from openajar.brains import cliprobe
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
+from openajar.dev import fakecli
 
 pytestmark = [
     pytest.mark.node,
@@ -118,11 +118,11 @@ async def test_task_survives_the_daemon_process_exiting(env):
     script = f"""
 import asyncio, sys
 from pathlib import Path
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
 from testkit.brains import FakeConfig
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
 async def main():
     rt = Runtime(config=FakeConfig(Path({str(home)!r})))
     s = BrainsSettings(bin_dirs=[{str(bins)!r}], isolation="scope", run_as={user.pw_name!r})

@@ -6,7 +6,7 @@ note: URL, title and signal before and after, the tab the human opened, the fiel
 ref, label and role, and never a password or code value. Then the form diff of "Save address" lists
 what the form will send against what the page loaded with.
 
-Run on the node:  AGENTOS_TEST_SLOT=47 scripts/node-test.sh handback tests/node/test_handback_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=47 scripts/node-test.sh handback tests/node/test_handback_node.py -q
 """
 
 from __future__ import annotations
@@ -21,13 +21,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "unit"))
 from test_lanes import Clock, FakeDisplays
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox.engine import PageTracker
-from agentos.node.fields import read_form_diff
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox.engine import PageTracker
+from openajar.node.fields import read_form_diff
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 

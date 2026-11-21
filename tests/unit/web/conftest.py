@@ -1,6 +1,6 @@
 """A real node for the web contract: the daemon's own services, fake lanes, signed in as the owner.
 
-`client` is the same composition as `agentos dev up --seed`, so a contract route is tested against
+`client` is the same composition as `openajar dev up --seed`, so a contract route is tested against
 real policy, vault, runner, workspaces and brains, and against what a real node really answers.
 """
 
@@ -14,10 +14,10 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.api import create_login_code
-from agentos.api.app import ApiSettings, build_api
-from agentos.core.config import NodeConfig
-from agentos.dev.node import build_runtime, prepare_home, seed
+from openajar.api import create_login_code
+from openajar.api.app import ApiSettings, build_api
+from openajar.core.config import NodeConfig
+from openajar.dev.node import build_runtime, prepare_home, seed
 
 TOKEN = "t" * 43
 

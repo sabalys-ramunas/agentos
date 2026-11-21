@@ -7,12 +7,12 @@ browser-use/jev-ultrafast and Ying-Kai-Liao/jev-browser (both MIT); neither can 
 they bring their own browser and input, so nothing of theirs runs here. RULES and TARGET adapt the
 wording of jev-ultrafast's questions.py (MIT License, Copyright (c) 2026 Browser Use).
 
-What keeps this inside agentos's rules:
+What keeps this inside openajar's rules:
 
 - Every read and act is a node tool call under the task's stand-in grant (mcp_agent.bench_wrap), so
   human input, the effect ceiling, the egress guard and every lanebench gate apply unchanged.
 - Jev picks; it never moves anything. Pointer glides, wheel notches, key timing, the hand resting
-  between actions and each lane's own pace all come from agentos.node.human through those tools.
+  between actions and each lane's own pace all come from openajar.node.human through those tools.
   Two things have no browser tool, so Hands calls human.py for them: a look at a fresh page, at the
   flow driver's DWELL_MS (a 200 ms decision must not become a 200 ms glance), and wheel_down to move
   down a page, which browser_act's scroll cannot do since it only wheels a target into view.
@@ -49,15 +49,15 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from agentos.core.errors import AgentosError
-from agentos.core.models import ActionKind
-from agentos.node import human
-from agentos.node.egress import in_sites
-from agentos.node.flow_driver import DWELL_MS
-from agentos.node.snapshot import outline_delta, parse_line
 from lanebench.executors import ExecResult, RunContext
 from lanebench.executors.mcp_agent import agent_specs, bench_wrap
 from lanebench.tasks import Task
+from openajar.core.errors import OpenajarError
+from openajar.core.models import ActionKind
+from openajar.node import human
+from openajar.node.egress import in_sites
+from openajar.node.flow_driver import DWELL_MS
+from openajar.node.snapshot import outline_delta, parse_line
 
 API_URL = "https://api.typesafe.ai/v1/systemone"
 MODEL = "jev-1.14.0"          # pinned: a score belongs to one model
@@ -422,7 +422,7 @@ class JevExecutor:
         return {f["name"]: f["id"] for f in listed.get("inbox", []) if f.get("name") and f["name"] in task.goal}
 
     async def _settle(self, tools: dict[str, Tool], lane: str) -> None:
-        with contextlib.suppress(AgentosError):
+        with contextlib.suppress(OpenajarError):
             await tools["browser_wait"](on=lane, network_quiet_ms=300, timeout_s=3)
 
     async def _read(self, task: Task, page: Page, goal: str, secrets: list[str], metrics: Metrics) -> ExecResult:
@@ -536,7 +536,7 @@ class JevExecutor:
                     await hands.wheel_down()
                 else:  # WAIT
                     await asyncio.sleep(1.0)
-            except AgentosError as e:
+            except OpenajarError as e:
                 metrics.action_errors += 1
                 row["error"] = e.code
                 entry["refused"] = e.code

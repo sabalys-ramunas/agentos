@@ -4,15 +4,15 @@ ids, downgrades, and a sample read connector running end to end on the fake site
 import pytest
 from connector_samples import LANE, SITES, bind, commit_op, connector, read_op, write_dir
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, Principal, RunStatus
-from agentos.runner import tools
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.outputs import outputs_from_saved, saved_values
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.steps import runner_capabilities
-from agentos.runner.fakes import OWNER, FakeCtx, Harness
-from agentos.runner.models import NodeInstall, is_owner
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, Principal, RunStatus
+from openajar.runner import tools
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.outputs import outputs_from_saved, saved_values
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.steps import runner_capabilities
+from openajar.runner.fakes import OWNER, FakeCtx, Harness
+from openajar.runner.models import NodeInstall, is_owner
 
 AGENT = Principal(kind="agent", id="claude-code", owner="owner")
 
@@ -35,7 +35,7 @@ async def test_a_sample_read_connector_runs_end_to_end_on_the_fake_site(tmp_path
     assert [r["flow"] for r in rows] == ["connector.social.profile_summary"]
     fv = h.flows.get("connector.social.profile_summary")
     assert fv.version == rows[0]["version"] and fv.owner_saved
-    assert fv.saved_by == {"kind": "catalog", "id": "agentos", "owner": "owner", "signer": None,
+    assert fv.saved_by == {"kind": "catalog", "id": "openajar", "owner": "owner", "signer": None,
                            "installed_by": "owner"}
     assert h.flows.resolve_lane(fv, LANE) == LANE  # lane */*: the surface's binding picks the lane
 
@@ -133,10 +133,10 @@ def test_a_connector_cannot_take_a_tool_name_already_in_use(tmp_path):
         svc.install(compile_connector(other, sites={"social-post": SITES["social"]}), by=OWNER)
 
 
-def test_requires_agentos_is_checked_at_install(tmp_path):
+def test_requires_openajar_is_checked_at_install(tmp_path):
     h = Harness(tmp_path)
-    with pytest.raises(InvalidRequest, match="needs agentos >=99.0"):
-        _svc(h).install(_compiled(connector(requires={"agentos": ">=99.0"})), by=OWNER)
+    with pytest.raises(InvalidRequest, match="needs openajar >=99.0"):
+        _svc(h).install(_compiled(connector(requires={"openajar": ">=99.0"})), by=OWNER)
 
 
 def test_catalog_marks_count_as_owner_vouched(tmp_path):
@@ -148,9 +148,9 @@ def test_catalog_marks_count_as_owner_vouched(tmp_path):
     _svc(h).install(_compiled(connector({"profile_summary": op})), by=OWNER)
     fv = h.flows.get("connector.social.profile_summary")
     assert fv.effect == Effect.DRAFT and fv.effect_reason is None
-    assert is_owner({"kind": "catalog", "id": "agentos", "installed_by": "owner", "owner": "owner"})
-    assert not is_owner({"kind": "catalog", "id": "agentos", "owner": "owner"})
-    assert not is_owner({"kind": "catalog", "id": "agentos", "installed_by": "claude-code", "owner": "owner"})
+    assert is_owner({"kind": "catalog", "id": "openajar", "installed_by": "owner", "owner": "owner"})
+    assert not is_owner({"kind": "catalog", "id": "openajar", "owner": "owner"})
+    assert not is_owner({"kind": "catalog", "id": "openajar", "installed_by": "claude-code", "owner": "owner"})
 
 
 # ---------------------------------------------------------------- reserved ids
@@ -174,7 +174,7 @@ def test_connector_ids_are_reserved_for_installed_connectors(tmp_path):
         with pytest.raises(PolicyDenied, match="reserved for installed connectors"):
             h.flows.save(compiled, by=by)
     # and the catalog principal cannot save anything else
-    catalog = NodeInstall({"kind": "catalog", "id": "agentos", "installed_by": "owner", "owner": "owner"})
+    catalog = NodeInstall({"kind": "catalog", "id": "openajar", "installed_by": "owner", "owner": "owner"})
     with pytest.raises(PolicyDenied, match="only save connector"):
         h.flows.save({"id": "biz-a.x.y", "lane": "biz-a/x", "steps": [{"type": "navigate", "url": "https://x.test/"}]},
                      by=catalog)

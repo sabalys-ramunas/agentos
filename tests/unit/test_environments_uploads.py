@@ -1,4 +1,4 @@
-"""Uploads into an environment (agentos.environments.uploads): environment_upload's one-use link, the
+"""Uploads into an environment (openajar.environments.uploads): environment_upload's one-use link, the
 viewer's PUT route, the archive checks, the overlay on the machine, and the record of it.
 
 The machine is the fake of test_environments; its /work is a folder here, and put_archive runs this
@@ -17,16 +17,16 @@ import httpx
 import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import uploads
-from agentos.environments.uploads import tool_specs as upload_specs
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_tokens import ViewTokens
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ExecResult
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import uploads
+from openajar.environments.uploads import tool_specs as upload_specs
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_tokens import ViewTokens
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 GIT_ENV = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.test", "GIT_COMMITTER_NAME": "t",
@@ -100,8 +100,8 @@ def pack(checkout) -> bytes:
     tmp.mkdir(exist_ok=True)
     subprocess.run(["sh", "-c", uploads.PACK], cwd=checkout,
                    env={**GIT_ENV, "HOME": str(checkout), "TMPDIR": str(tmp)}, check=True, capture_output=True)
-    assert not (checkout / "agentos-work.tgz").exists()
-    return (tmp / "agentos-work.tgz").read_bytes()
+    assert not (checkout / "openajar-work.tgz").exists()
+    return (tmp / "openajar-work.tgz").read_bytes()
 
 
 def monorepo(root):
@@ -155,7 +155,7 @@ async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the
     assert link.get("status") != "approval_pending", link  # a link in its own environment never waits
     assert link["dest"] == "/work" and link["pack"] == uploads.PACK
     assert link["url"].startswith(f"http://localhost:{node['rt'].get('config').mcp_port}/view/env/{out['id']}/upload?t=")
-    assert link["send"] == f'curl --fail-with-body -T "${{TMPDIR:-/tmp}}/agentos-work.tgz" "{link["url"]}"'
+    assert link["send"] == f'curl --fail-with-body -T "${{TMPDIR:-/tmp}}/openajar-work.tgz" "{link["url"]}"'
 
     body = pack(monorepo(tmp_path / "mono"))
     res = await up["send"](link["url"], body)
@@ -172,7 +172,7 @@ async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the
     assert leftovers(node, out["id"]) == []  # the temp file is gone
 
     ran = await node["call"]("terminal_exec", cmd="pnpm install", cwd="/work")
-    assert ran["exit_code"] == 0 and ("cd '/work' && pnpm install", node["grant"].id) in node["machine"].ran
+    assert ran["exit_code"] == 0 and ("cd '/work' 2>/dev/null || { echo openajar-no-such-folder >&2; exit 97; }\npnpm install", node["grant"].id) in node["machine"].ran
     state = await node["call"]("environment")
     tools = [c["tool"] for c in state["calls"]]
     assert tools[:3] == ["terminal_exec", "upload", "environment_upload"], tools  # newest first

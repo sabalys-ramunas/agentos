@@ -4,7 +4,7 @@ leave every pinned output as it was, byte for byte: card text, error codes and m
 
 Write the file once, from the code before the change:
 
-    AGENTOS_PIN_WRITE=1 uv run pytest tests/unit/test_pinned_<name>.py
+    OPENAJAR_PIN_WRITE=1 uv run pytest tests/unit/test_pinned_<name>.py
 
 Never rewrite one to make a refactor pass. A deliberate change of behaviour rewrites it in its own
 commit, which says why.
@@ -43,17 +43,17 @@ def plain(value: Any) -> Any:
         return sorted(plain(v) for v in value)
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
-    if hasattr(value, "value") and type(value).__module__.startswith("agentos"):  # an Enum
+    if hasattr(value, "value") and type(value).__module__.startswith("openajar"):  # an Enum
         return value.value
     return repr(value)
 
 
 def check(name: str, results: dict[str, Any]) -> None:
     """Compare every case's outcome with the pinned one, keys in the same order (or write them, with
-    AGENTOS_PIN_WRITE=1)."""
+    OPENAJAR_PIN_WRITE=1)."""
     path = DIR / f"{name}.json"
     text = json.dumps(results, indent=1) + "\n"  # key order is pinned too (stored JSON)
-    if os.environ.get("AGENTOS_PIN_WRITE") == "1":
+    if os.environ.get("OPENAJAR_PIN_WRITE") == "1":
         DIR.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         return

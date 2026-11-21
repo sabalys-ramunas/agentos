@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from test_policy_support import Clock
 
-from agentos.audit.service import AuditService, verify_bundle
-from agentos.core.errors import InvalidRequest
-from agentos.policy.auditlog import Scope, canonical, row_digest
-from agentos.policy.traces import Cost, TraceEvent, TraceStore
+from openajar.audit.service import AuditService, verify_bundle
+from openajar.core.errors import InvalidRequest
+from openajar.policy.auditlog import Scope, canonical, row_digest
+from openajar.policy.traces import Cost, TraceEvent, TraceStore
 
 VECTORS = json.loads((Path(__file__).parents[1] / "fixtures" / "audit" / "vectors.json").read_text())
 LANE = "biz-a/instagram"
@@ -65,7 +65,7 @@ def test_qa_audit_1_verify_since_a_quiet_window_is_not_tampered(store, clock):
         store.write(ev(i))
     store.checkpoint()
     assert store.verify().status == "ok"
-    # `agentos audit verify --since 1h` (or GET /api/audit/verify?day=...) on a quiet hour or day
+    # `openajar audit verify --since 1h` (or GET /api/audit/verify?day=...) on a quiet hour or day
     report = store.verify(scope=Scope(since=clock.t + 3600))
     assert tampered(report) == []
 

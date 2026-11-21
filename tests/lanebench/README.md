@@ -11,16 +11,16 @@ On the node, in a builder slot (displays and ports come from the slot, as for ev
 
 ```bash
 # the node tests: the replay suite, the planted bad runs, the mcp-agent path
-AGENTOS_TEST_SLOT=50 scripts/node-test.sh lanebench tests/lanebench -q -s
+OPENAJAR_TEST_SLOT=50 scripts/node-test.sh lanebench tests/lanebench -q -s
 
 # the command, from the synced checkout on the node
-ssh mynode "cd $AGENTOS_DEV_ROOT/lanebench && ~/.local/bin/uv run agentos lanebench run --slot 50"
-uv run agentos lanebench run --slot 50 --tasks feed-like,login --seed 7 --out /tmp/lb/
-uv run agentos lanebench run --slot 50 --executor mcp-agent --tasks feed-like --out /tmp/lb/   # claude -p, stream-json
-uv run agentos lanebench run --slot 50 --executor mcp-agent --agent-cmd 'my-agent {config} {lane} {prompt} {transcript}'
-uv run agentos lanebench export-text /tmp/lb/base      # the agent-facing text, in the --variant format
-uv run agentos lanebench run --slot 50 --executor mcp-agent --variant /tmp/lb/edited --out /tmp/lb/
-uv run agentos lanebench list
+ssh mynode "cd $OPENAJAR_DEV_ROOT/lanebench && ~/.local/bin/uv run openajar lanebench run --slot 50"
+uv run openajar lanebench run --slot 50 --tasks feed-like,login --seed 7 --out /tmp/lb/
+uv run openajar lanebench run --slot 50 --executor mcp-agent --tasks feed-like --out /tmp/lb/   # claude -p, stream-json
+uv run openajar lanebench run --slot 50 --executor mcp-agent --agent-cmd 'my-agent {config} {lane} {prompt} {transcript}'
+uv run openajar lanebench export-text /tmp/lb/base      # the agent-facing text, in the --variant format
+uv run openajar lanebench run --slot 50 --executor mcp-agent --variant /tmp/lb/edited --out /tmp/lb/
+uv run openajar lanebench list
 ```
 
 `run` prints a table and writes `lanebench-<date>.json` (or `--out`). It exits 0 only when every task
@@ -43,7 +43,7 @@ on Ubuntu that is a small tmpfs, and two runs filled it past the node's free-spa
 | `checkers.py` | Success checks over the site's own state. |
 | `gates.py` | The safety gates (below). |
 | `harness.py` | The bench: site and checker, the node's lane composition in a throwaway home, one lane per task, traces, scoring. |
-| `executors/` | `replay` (the task's steps through the node's flow driver), `mcp-agent` (an agent command over the node's MCP tools), `jev` (the measured loop, pinned for scored runs), `pilot` (agentos.pilot's own loop; `LANEBENCH_RESCUE_CMD` turns rescue on), `planted` (bad runs for the tests), `scripted_agent.py` (a stand-in agent for testing the MCP path). |
+| `executors/` | `replay` (the task's steps through the node's flow driver), `mcp-agent` (an agent command over the node's MCP tools), `jev` (the measured loop, pinned for scored runs), `pilot` (openajar.pilot's own loop; `LANEBENCH_RESCUE_CMD` turns rescue on), `planted` (bad runs for the tests), `scripted_agent.py` (a stand-in agent for testing the MCP path). |
 | `report.py` | The JSON report and the table. |
 | `variant.py` | Other agent-facing text for a run (`--variant`, `export-text`). |
 | `lab/` | The decision lab: every decision of every task on many seeds as JSON, scored against real Jev through the pilot's own code in a minute or two. See `lab/README.md`. |
@@ -58,7 +58,7 @@ Attacker links point at `*.socia1-lanebench.test`: `.test` never resolves, and t
 
 ## Tasks
 
-`agentos lanebench list` shows them. Today: likes under every mutation, follows (moved button, a
+`openajar lanebench list` shows them. Today: likes under every mutation, follows (moved button, a
 modal over the feed), a comment, a draft and a publish with a photo, two settings changes, five
 logins (save-login screen, cookie wall, consent, Lithuanian with both, the fake device approval,
 which must end `held`), four injection pages, a decoy publish button, a read task, two repairs.
@@ -158,7 +158,7 @@ production lanes run their tabs this way is worth a look outside lanebench.
 
 ## Executors
 
-- **replay**: the task's `[[replay]]` steps through `agentos.node.flow_driver` (structural locators,
+- **replay**: the task's `[[replay]]` steps through `openajar.node.flow_driver` (structural locators,
   human input from `human.py`). Steps: `navigate`, `click`, `click_if`, `type`, `fill`, `press`,
   `upload`, `wait_for`, `wait_gone`, `scroll_until`, `expect`, `read`, `dwell`, `hold`, `patch`.
 - **mcp-agent**: the harness serves, over MCP on the slot's port, the tools an agent gets for a browser

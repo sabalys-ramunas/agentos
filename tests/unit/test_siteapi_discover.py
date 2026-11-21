@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.runner.connectors.steps import walk
-from agentos.runner.models import PARAM_NAME_RE, FlowDefinition
-from agentos.runner.siteapis.discover import (
+from openajar.runner.connectors.steps import walk
+from openajar.runner.models import PARAM_NAME_RE, FlowDefinition
+from openajar.runner.siteapis.discover import (
     MAX_DEPTH,
     SAMPLE_CHARS,
     SAMPLE_ROWS,
@@ -20,7 +20,7 @@ from agentos.runner.siteapis.discover import (
     field_name,
     plain_label,
 )
-from agentos.runner.siteapis.models import compile_api
+from openajar.runner.siteapis.models import compile_api
 
 OUTLINES = Path(__file__).parent.parent / "fixtures" / "outlines"
 URL = "https://portal.northsupply.example/orders?page=2#top"

@@ -1,5 +1,5 @@
 
- Usage: agentos connect [OPTIONS] [ssh_host]
+ Usage: openajar connect [OPTIONS] [ssh_host]
 
  Tunnel to a node, give its agents their own grant, and register it with Claude
  Code. Reads the node's MCP port and its own token over SSH (kept in memory,
@@ -7,14 +7,14 @@
  Linux), and asks the node through the tunnel for two credentials: a grant for
  the agents (CLIENT@this-computer, every lane, up to the highest level the node
  allows, revocable per connection) that Claude Code sends, and the owner's
- device credential that `agentos open` and `agentos access approvals` use. Both
- go to the macOS Keychain, in separate items. Safe to run again: a working
+ device credential that `openajar open` and `openajar access approvals` use.
+ Both go to the macOS Keychain, in separate items. Safe to run again: a working
  grant and tunnel are kept.
 
- Claude Code and Codex are registered when installed here, and the agentos
+ Claude Code and Codex are registered when installed here, and the openajar
  skills go into Claude Code.
 
- Codex runs `agentos mcp-bridge NAME`, which reads the same stored token: no
+ Codex runs `openajar mcp-bridge NAME`, which reads the same stored token: no
  token in config.toml.
 
  A host with no node gets one first, after one question (`--install` skips it,
@@ -28,11 +28,11 @@
 │ --name               <str>                      Connection name (default:    │
 │                                                 from the host). Claude Code  │
 │                                                 sees the server as           │
-│                                                 agentos-NAME.                │
+│                                                 openajar-NAME.               │
 │ --local-port         <int range> [1<=x<=65535]  Local tunnel port (default   │
 │                                                 7400, else the next free     │
 │                                                 one).                        │
-│ --remote-home        <str>                      AGENTOS_HOME on the node.    │
+│ --remote-home        <str>                      OPENAJAR_HOME on the node.   │
 │                                                 [default: /var/lib/agentos]  │
 │ --token-store        <auto|keychain|file>       Where the credentials are    │
 │                                                 kept: keychain (the macOS    │
@@ -73,12 +73,12 @@
 │                                                 still holds the node token   │
 │                                                 to its own grant.            │
 │ --remove             NAME                       Remove the connection NAME   │
-│                                                 (see `agentos status`):      │
+│                                                 (see `openajar status`):     │
 │                                                 revoke its grant, stop its   │
 │                                                 tunnel, delete its           │
 │                                                 credentials and its Claude   │
 │                                                 Code and Codex entries.      │
-│ --install                                       If the host has no agentos   │
+│ --install                                       If the host has no openajar  │
 │                                                 node, install one without    │
 │                                                 asking (Ubuntu or Debian,    │
 │                                                 root or passwordless sudo).  │
@@ -97,7 +97,7 @@
 │                                                 skills) alone.               │
 │ --no-codex                                      Leave Codex's config.toml    │
 │                                                 alone.                       │
-│ --no-skills                                     Do not copy the agentos      │
+│ --no-skills                                     Do not copy the openajar     │
 │                                                 skills into Claude Code.     │
 │ --by-hand                                       Print the tunnel, grant and  │
 │                                                 `claude mcp add` steps to do │
@@ -106,7 +106,7 @@
 │ --help                                          Show this message and exit.  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
- Your connections: `agentos status`. Remove one: `agentos connect --remove
- NAME`. The steps by hand: `agentos connect --by-hand`, on the node.
+ Your connections: `openajar status`. Remove one: `openajar connect --remove
+ NAME`. The steps by hand: `openajar connect --by-hand`, on the node.
 
 

@@ -117,14 +117,16 @@ export function RequestColumn({ org, queue, request, narrow, alone, canDecide, f
   const { count, toDecide } = queue;
   const hasList = toDecide > 0;
   return (
-    <div className="min-w-0">
+    <div className={narrow || !request ? 'min-w-0' : 'sticky top-[calc(var(--topbar-height)+16px)] min-w-0'}>
       {narrow && hasList ? (
         <Button variant="ghost" size="sm" icon={<ArrowLeft className="size-4" />} className="mb-3" onClick={onBack}>
           All {toDecide} to decide
         </Button>
       ) : null}
       {request ? (
-        <Card>
+        // On a desk the open item stays in view while the list scrolls; a tall one scrolls inside its card, with
+        // the answers' band pinned to the card's foot.
+        <Card className={narrow ? undefined : 'max-h-[calc(100dvh-var(--topbar-height)-32px)] overflow-y-auto overscroll-contain'}>
           <section aria-label="Selected item">{request}</section>
         </Card>
       ) : !count.loaded ? (

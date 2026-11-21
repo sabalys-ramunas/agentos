@@ -4,6 +4,7 @@
  * folded into one line a day, a line per account behind Show.
  */
 import { Link } from '@tanstack/react-router';
+import { Card } from '@/components/ui/card';
 import { Check, ChevronDown, CircleDashed, Eye, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import { useMemo, useState } from 'react';
@@ -12,6 +13,7 @@ import { AgentMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
 import { Button } from '@/components/ui/button';
 import { StateGlyph } from '@/components/ui/state-badge';
+import { StatusDot } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
 import { yesShort } from '@/lib/confirm';
 import { clock, plural, usd } from '@/lib/format';
@@ -23,7 +25,6 @@ import { laneParams } from './run-story';
 import type { Result } from './story';
 import type { StoryView } from './story-view';
 import { fromHistory, subjectOf } from './story-view';
-import { StatusDot } from '@/components/ui/status';
 
 const PILL: Record<Result, string> = {
   checked: 'bg-(--ok-soft) text-ok',
@@ -47,7 +48,7 @@ export function ResultPill({ view, className }: { view: Pick<StoryView, 'result'
       ) : view.result === 'failed' ? (
         <X aria-hidden="true" className="size-3" strokeWidth={2.5} />
       ) : view.result === 'working' ? (
-        <StatusDot tone="live" pulse />
+        <StatusDot tone="live" />
       ) : (
         <StateGlyph state="waiting" size={14} />
       )}
@@ -128,7 +129,11 @@ export function StoryRow({ org, entry, selected, onSelect }: StoryRowProps) {
   return (
     <li
       data-selected={selected || undefined}
-      className={cn('relative flex gap-3 border-b border-line px-4 py-3 [contain-intrinsic-size:auto_88px] [content-visibility:auto] last:border-b-0 hover:bg-hover md:gap-4', selected && 'bg-hover shadow-[inset_2px_0_0_var(--foreground)]')}
+      className={cn(
+        'relative flex gap-3 border-b border-l-2 border-b-line px-4 py-3 [contain-intrinsic-size:auto_88px] [content-visibility:auto] last:border-b-0 md:gap-4',
+        // The open story is selected: the violet tint with a 2 px violet edge, as a selected row everywhere.
+        selected ? 'border-l-accent bg-accent-soft [&_.text-faint]:text-muted' : 'border-l-transparent hover:bg-hover',
+      )}
     >
       <span className="tabular hidden w-11 shrink-0 pt-4 text-secondary text-faint md:block">{clock(view.at)}</span>
       <Thumb view={view} />
@@ -263,12 +268,13 @@ export function DaySection({ org, day, selected, onSelect, emptyNote, filtered =
   // The day's own totals are about everything; under a filter, say how many of this kind.
   const summary = filtered ? plural(day.stories.length, 'thing') : day.done > 0 ? day.summary : null;
   return (
-    <section aria-label={day.label} className="grid gap-2">
-      <h2 className="flex flex-wrap items-baseline gap-x-3 text-body font-semibold">
+    <Card role="region" aria-label={day.label} className="overflow-hidden">
+      {/* Each day is one card, its name and totals at its head (as drawn). */}
+      <h2 className="flex flex-wrap items-baseline gap-x-3 border-b border-line px-5 py-4 text-section-title">
         {day.label}
-        {summary ? <span className="text-secondary text-faint">{summary}</span> : null}
+        {summary ? <span className="text-secondary font-normal text-faint">{summary}</span> : null}
       </h2>
-      <div className="overflow-hidden rounded-xl border border-line bg-card">
+      <div>
         {entries.length > 0 ? (
           <ul>
             {shown.map((entry) => (
@@ -288,7 +294,7 @@ export function DaySection({ org, day, selected, onSelect, emptyNote, filtered =
         ) : null}
         <ReadsBlock day={day} />
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -298,14 +304,14 @@ export function WorkingNow({ org, stories }: { org: string; stories: HistoryStor
   if (!first) return null;
   const view = fromHistory(first);
   return (
-    <section aria-label="Working now" className="rounded-xl border border-(--current-line) bg-live-soft p-4">
+    <Card role="region" aria-label="Working now" className="border border-t-2 border-line border-t-accent p-4">
       <div className="flex flex-wrap items-start gap-3">
         <span className="hidden sm:block">
           <Thumb view={view} />
         </span>
         <div className="min-w-0 flex-1 basis-60">
           <p className="flex items-start gap-2 text-label">
-            <StatusDot tone="live" pulse className="mt-2 shrink-0" />
+            <StatusDot tone="live" className="mt-2 shrink-0" />
             <span>
               {subjectOf(view)} is {view.sentence.charAt(0).toLowerCase()}
               {view.sentence.slice(1)}
@@ -334,6 +340,6 @@ export function WorkingNow({ org, stories }: { org: string; stories: HistoryStor
           </Link>
         </Button>
       </div>
-    </section>
+    </Card>
   );
 }

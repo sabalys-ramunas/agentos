@@ -6,11 +6,11 @@ from __future__ import annotations
 import pytest
 from test_policy_support import OWNER, Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect, Principal
-from agentos.policy import tokens
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.grants import BrainCap, Budget, LaneCap, Specials
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect, Principal
+from openajar.policy import tokens
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.grants import BrainCap, Budget, LaneCap, Specials
 
 
 @pytest.fixture

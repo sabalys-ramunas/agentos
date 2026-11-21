@@ -1,4 +1,4 @@
-"""QA for the controller hub (agentos.controller.hub): live node sessions and what they carry.
+"""QA for the controller hub (openajar.controller.hub): live node sessions and what they carry.
 
 Driven without sockets: each NodeSession gets a fake websocket that records what the controller sends.
 The store is the real ControllerStore in a temp dir. Bugs are strict xfails pinned to their reason.
@@ -10,10 +10,10 @@ import asyncio
 
 import pytest
 
-from agentos.controller import hub as hub_module
-from agentos.controller.hub import Hub, NodeSession, clean_heartbeat, clean_lane
-from agentos.controller.store import ControllerStore
-from agentos.node.channel import wire
+from openajar.controller import hub as hub_module
+from openajar.controller.hub import Hub, NodeSession, clean_heartbeat, clean_lane
+from openajar.controller.store import ControllerStore
+from openajar.node.channel import wire
 
 ORG = "org_qa_one"
 NODE = "node_01QAONE000000000000000000"
@@ -105,7 +105,7 @@ async def test_a_decision_on_an_approval_of_another_node_is_not_found(hub):
     node = session()
     await hub.register(node)
     hub.store.put_approval(ORG, OTHER_NODE, {"id": "ap_qa_other", "state": "pending", "content_hash": HASH})
-    from agentos.core.errors import NotFound
+    from openajar.core.errors import NotFound
 
     with pytest.raises(NotFound):
         await hub.decide(ORG, NODE, "ap_qa_other", "denied", decided_by="owner")

@@ -1,10 +1,10 @@
-"""The order egress.judge decides in (agentos.node.egress.verdicts): which check answers first when
+"""The order egress.judge decides in (openajar.node.egress.verdicts): which check answers first when
 several could. Pinned when judge was split into steps, from the cases a comparison with the old
 function turned up."""
 
 from __future__ import annotations
 
-from agentos.node.egress import EFFECT_RULES, Driver, judge
+from openajar.node.egress import EFFECT_RULES, Driver, judge
 
 POST = next(r for r in EFFECT_RULES if r.id == "reddit.post")
 AGENT = Driver(kind="agent", id="agent-1", ceiling="commit")

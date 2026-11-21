@@ -67,7 +67,7 @@ RESEARCH = "https://http-message-signatures-example.research.cloudflare.com"
 RESEARCH_VERIFY = RESEARCH + "/v0/api/verify"
 CRAWLTEST = "https://crawltest.com/cdn-cgi/web-bot-auth"
 SIGNATURE_AGENT_URL = RESEARCH  # the directory the test key is published under
-USER_AGENT = "agentos-spike/0 (web-bot-auth phase 0; test key only)"
+USER_AGENT = "openajar-spike/0 (web-bot-auth phase 0; test key only)"
 
 
 def b64url_decode(s: str) -> bytes:
@@ -591,7 +591,7 @@ async () => {
   const c = document.createElement('canvas'); c.width = 240; c.height = 60;
   const x = c.getContext('2d'); x.textBaseline = 'top'; x.font = '16px Arial';
   x.fillStyle = '#f60'; x.fillRect(10, 10, 100, 30); x.fillStyle = '#069';
-  x.fillText('agentos spike ☺ 1.0', 4, 20);
+  x.fillText('openajar spike ☺ 1.0', 4, 20);
   o['canvas.dataURL'] = c.toDataURL();
   const fonts = ['Arial','Helvetica','Times New Roman','Courier New','Verdana','Georgia','DejaVu Sans',
                  'Liberation Sans','Segoe UI','Roboto','Ubuntu','Noto Sans','Menlo','Monaco','Calibri'];
@@ -790,8 +790,8 @@ def xvfb(display_num: int):
 
 async def launch_lane(work: Path, display: str, extra: dict[str, Any] | None = None) -> Any:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-    from agentos.core.models import LaneSpec
-    from agentos.node.camoufox.engine import CamoufoxEngine
+    from openajar.core.models import LaneSpec
+    from openajar.node.camoufox.engine import CamoufoxEngine
 
     engine = CamoufoxEngine(extra_options=extra or {})
     # Loopback test servers: lift the engine's private-network PAC for this throwaway lane only.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import gc
 
-from agentos.node.snapshot import (
+from openajar.node.snapshot import (
     DELTA_GONE_RUN,
     OutlineMemory,
     find_text,

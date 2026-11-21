@@ -1,4 +1,4 @@
-"""The error catalog (agentos.core.catalog): every code has an entry, one code is one meaning,
+"""The error catalog (openajar.core.catalog): every code has an entry, one code is one meaning,
 and the same entry reaches MCP results, the CLI and API bodies."""
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ from pathlib import Path
 import pytest
 from mcp.types import CallToolResult, TextContent
 
-from agentos.core import catalog
-from agentos.core.catalog import Entry, Scan
-from agentos.core.errors import AgentosError, LaneBusy, PolicyDenied
+from openajar.core import catalog
+from openajar.core.catalog import Entry, Scan
+from openajar.core.errors import LaneBusy, OpenajarError, PolicyDenied
 
-SRC = Path(__file__).resolve().parents[2] / "src" / "agentos"
+SRC = Path(__file__).resolve().parents[2] / "src" / "openajar"
 
 
 @pytest.fixture(scope="module")
@@ -34,8 +34,8 @@ def test_every_module_imports_so_no_error_class_is_missed(scanned):
 
 
 def test_every_error_class_code_has_a_catalog_entry(scanned):
-    """Fails when anyone adds an AgentosError subclass with a new code and no entry in
-    src/agentos/core/error_catalog.toml (then run `make errors-doc`)."""
+    """Fails when anyone adds an OpenajarError subclass with a new code and no entry in
+    src/openajar/core/error_catalog.toml (then run `make errors-doc`)."""
     missing = [p for p in catalog.problems(scanned) if "no entry" in p]
     assert missing == [], "\n".join(missing)
 
@@ -56,14 +56,14 @@ def test_the_catalog_is_complete_and_has_no_orphans(scanned):
 
 def test_every_run_failure_code_has_a_catalog_entry(scanned):
     """Fails when the runner sets a new run.error.code (a `{"code": ...}`, a StepFailure, a
-    `*_CODES` map) with no entry in src/agentos/core/error_catalog.toml (then `make errors-doc`)."""
+    `*_CODES` map) with no entry in src/openajar/core/error_catalog.toml (then `make errors-doc`)."""
     missing = [code for code in scanned.run_codes if catalog.entry(code) is None]
     assert missing == [], "\n".join(missing)
 
 
 def test_the_runner_builds_no_run_code_the_catalog_cannot_see():
     """A code made with an f-string matches no entry; build it from a `*_CODES` dict instead
-    (SIGNAL_CODES in agentos.runner.execution)."""
+    (SIGNAL_CODES in openajar.runner.execution)."""
     assert catalog.unseen_run_codes() == []
 
 
@@ -75,7 +75,7 @@ def test_run_codes_are_collected_from_every_way_the_runner_sets_them(scanned):
                          ("connector_contract_broken", "executor"), ("readback_failed", "executor"),
                          ("signal_captcha", "execution"), ("signal_logged_out", "execution"),  # SIGNAL_CODES
                          ("ambiguous_locator", "execution")):                             # code = a if c else b
-        assert f"agentos.runner.{module}" in runs.get(code, []), code
+        assert f"openajar.runner.{module}" in runs.get(code, []), code
     assert "code" not in runs  # `.get("code")` reads a code, it does not set one
     assert all(not m.endswith((".api", ".schedules")) for m in runs.get("not_found", []))  # HTTP bodies
 
@@ -99,10 +99,10 @@ def f(x, e):
 
 
 def test_the_run_code_collector_follows_a_table_from_core_signals():
-    """runner.executor takes SIGNAL_CODES from agentos.core.signals; its codes are still its own."""
+    """runner.executor takes SIGNAL_CODES from openajar.core.signals; its codes are still its own."""
     found, _ = catalog.source_run_codes('''
-from agentos.core.signals import RUN_SIGNAL_CODES
-from agentos.elsewhere import OTHER
+from openajar.core.signals import RUN_SIGNAL_CODES
+from openajar.elsewhere import OTHER
 SIGNAL_CODES = RUN_SIGNAL_CODES
 OTHER_CODES = OTHER
 ''')
@@ -112,7 +112,7 @@ OTHER_CODES = OTHER
 def test_the_markdown_says_where_a_run_fails_with_a_code(scanned):
     text = catalog.markdown(scanned)
     section = text.split("## wrong_surface", 1)[1].split("\n## ", 1)[0]
-    assert "- **Runs fail with it in:** `agentos.runner.connector_steps`" in section
+    assert "- **Runs fail with it in:** `openajar.runner.connector_steps`" in section
 
 
 def test_problems_catches_a_missing_entry_an_orphan_and_a_clash():
@@ -136,13 +136,13 @@ def test_problems_catches_bad_text():
 
 
 def test_a_class_raised_with_a_code_picked_at_the_raise_site_lists_its_codes(scanned):
-    """A class whose constructor takes the code (agentos.api.errors.ApiError) must say which codes
+    """A class whose constructor takes the code (openajar.api.errors.ApiError) must say which codes
     it introduces in `codes`, or the catalog cannot see them."""
-    from agentos.core.catalog import _subclasses
+    from openajar.core.catalog import _subclasses
 
     unlisted = []
-    for cls in _subclasses(AgentosError):
-        if not cls.__module__.startswith("agentos.") or "__init__" not in cls.__dict__:
+    for cls in _subclasses(OpenajarError):
+        if not cls.__module__.startswith("openajar.") or "__init__" not in cls.__dict__:
             continue
         if "code" in inspect.signature(cls.__init__).parameters and not getattr(cls, "codes", None):
             unlisted.append(catalog.class_name(cls))
@@ -185,9 +185,9 @@ def test_a_denial_reason_picks_its_own_agent_step():
 
 
 async def test_an_mcp_error_result_keeps_its_first_line_and_adds_the_catalog_lines():
-    from agentos.core.runtime import Runtime
-    from agentos.core.tools import ToolSpec
-    from agentos.mcp.registry import build_mcp
+    from openajar.core.runtime import Runtime
+    from openajar.core.tools import ToolSpec
+    from openajar.mcp.registry import build_mcp
 
     async def handler(ctx):
         raise LaneBusy("all 3 warm slots are active")
@@ -200,7 +200,7 @@ async def test_an_mcp_error_result_keeps_its_first_line_and_adds_the_catalog_lin
 
 
 def test_the_node_channel_relays_code_and_message_without_the_catalog_lines():
-    from agentos.node.channel.invoke import from_mcp_result
+    from openajar.node.channel.invoke import from_mcp_result
 
     text = "busy: all slots\nfix: wait\nretry_after: 30"
     result = CallToolResult(content=[TextContent(type="text", text=text)], is_error=True)
@@ -210,7 +210,7 @@ def test_the_node_channel_relays_code_and_message_without_the_catalog_lines():
 
 
 def test_the_controller_adds_the_lines_back():
-    from agentos.controller.mcp import to_result
+    from openajar.controller.mcp import to_result
 
     out = to_result("t", {"ok": False, "error": {"code": "busy", "message": "all slots"}}, [], "http://c")
     assert out.is_error and out.content[0].text.split("\n")[1:] == [f"fix: {catalog.entry('busy').agent}",
@@ -222,12 +222,12 @@ def test_cli_error_is_one_line_plus_the_fix():
     assert catalog.cli_error("no_such_code", "x") == "error: no_such_code: x"
 
 
-def test_cli_prints_the_fix_for_an_agentos_error(tmp_path, monkeypatch):
+def test_cli_prints_the_fix_for_an_openajar_error(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.cli import app
+    from openajar.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     out = CliRunner().invoke(app, ["errors", "nope"])
     assert out.exit_code == 1 and "no error code 'nope'" in out.output
     shown = CliRunner().invoke(app, ["errors", "busy"])
@@ -236,7 +236,7 @@ def test_cli_prints_the_fix_for_an_agentos_error(tmp_path, monkeypatch):
 
 
 def test_api_error_body_has_code_message_and_fix():
-    from agentos.api.errors import error_response
+    from openajar.api.errors import error_response
 
     response = error_response(PolicyDenied("out_of_scope: lane biz/x"))
     body = json.loads(response.body)
@@ -249,13 +249,13 @@ def test_api_error_body_has_code_message_and_fix():
 def test_a_members_fix_names_no_command_token_or_grant_and_the_owners_keeps_them():
     # The fix is for the person a refusal reaches. A member is told in words, never a command, token or grant;
     # the owner (and the CLI) still reads the catalog's fix, command and all.
-    words = re.compile(r"`|\bagentos\b|\btokens?\b|\bgrants?\b|node\.toml", re.IGNORECASE)
+    words = re.compile(r"`|\bopenajar\b|\btokens?\b|\bgrants?\b|node\.toml", re.IGNORECASE)
     for code in catalog.entries():
         fix = catalog.member_fix(code)
         assert fix is None or not words.search(fix), (code, fix)
         assert catalog.error_body(code, "x", member=True)["error"].get("fix") == fix, code
     assert catalog.member_fix("denied") is None
-    assert "agentos grants" in catalog.person_fix("denied")
+    assert "openajar grants" in catalog.person_fix("denied")
     assert catalog.error_body("denied", "x")["error"]["fix"] == catalog.person_fix("denied")
     assert "fix" not in catalog.error_body("denied", "x", member=True)["error"]
 
@@ -263,7 +263,7 @@ def test_a_members_fix_names_no_command_token_or_grant_and_the_owners_keeps_them
 def test_an_agent_step_that_names_a_tool_outside_core_says_its_toolset():
     """A fresh agent lists only core: a next step that names another tool says which toolset holds it, so
     the agent loads it (tools_more) instead of guessing. Light: the tools come from the toolsets table."""
-    from agentos.core.toolsets import CORE, TOOLSETS
+    from openajar.core.toolsets import CORE, TOOLSETS
 
     home = {tool: ts.name for ts in TOOLSETS for tool in ts.tools}
     for item in catalog.entries().values():

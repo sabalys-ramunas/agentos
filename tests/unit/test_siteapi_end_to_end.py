@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from siteapi_http_support import API, READ_PATH, SURFACE, TOKEN, Node, definition
 
-from agentos.runner.siteapis.models import compile_for_test
+from openajar.runner.siteapis.models import compile_for_test
 
 PORTAL_DOC = definition()
 del PORTAL_DOC["endpoints"]["send_note"]
@@ -76,7 +76,7 @@ async def test_a_grant_does_not_open_the_owner_routes(node):
 
 
 @pytest.mark.parametrize("saved_by", [{"kind": "local", "id": API, "installed_by": "owner", "owner": "owner"},
-                                      {"kind": "catalog", "id": "agentos", "installed_by": "owner", "owner": "owner"}])
+                                      {"kind": "catalog", "id": "openajar", "installed_by": "owner", "owner": "owner"}])
 async def test_post_flows_refuses_a_connector_flow_even_from_the_owner(node, saved_by):
     flow = compile_for_test(PORTAL_DOC).operations["open_orders"].definition
     async with node.client() as panel:

@@ -22,7 +22,7 @@ export function SettingsTab({ org, node }: { org: string; node: string }) {
   if (settings.data === null) return <NotReported node={node} what="its settings" />;
   const rows = settings.data;
   return (
-    <Panel title="Settings" description="Read-only. Change one in the settings file on this machine, then restart agentos there.">
+    <Panel title="Settings" description="Read-only. Change one in the settings file on this machine, then restart openajar there.">
       <p className="text-body">
         {rows.length} settings, read from the file on the machine and its defaults. Secret values are never shown.
       </p>

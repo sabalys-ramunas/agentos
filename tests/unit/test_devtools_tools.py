@@ -1,4 +1,4 @@
-"""browser_console and browser_network (agentos.node.devtools_tools) over the dev node's fake site:
+"""browser_console and browser_network (openajar.node.devtools_tools) over the dev node's fake site:
 what they show of a broken page, the egress check before a body is read, the grant and lane checks,
 the untrusted label, and the vault scrub on what reaches the agent."""
 
@@ -12,20 +12,20 @@ from test_devtools_capture import Context, Page
 from test_policy_support import Clock
 from test_vault_support import PASSWORD, make_vault, private_home
 
-from agentos.core.errors import HumanInControl, InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import AccountRef, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.net import DevRequest
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.mcp.registry import build_mcp
-from agentos.mcp.toolsets import toolset_of
-from agentos.node import devtools_tools, egress
-from agentos.node import tools as node_tools
-from agentos.node.devtools import MASKED
-from agentos.policy.scrub import REDACTED
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE
+from openajar.core.errors import HumanInControl, InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import AccountRef, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.net import DevRequest
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.mcp.registry import build_mcp
+from openajar.mcp.toolsets import toolset_of
+from openajar.node import devtools_tools, egress
+from openajar.node import tools as node_tools
+from openajar.node.devtools import MASKED
+from openajar.policy.scrub import REDACTED
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE
 
 LANE = "biz-a/social"
 

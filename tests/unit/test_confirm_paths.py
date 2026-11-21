@@ -14,12 +14,12 @@ from test_confirm_api import browser
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.api.auth import PRESENCE_HEADER
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.core.ratelimit import RateLimiter
-from agentos.policy.cli import approvals_app, confirmation_app
-from agentos.policy.confirm import ConfirmLevel
+from openajar.api.auth import PRESENCE_HEADER
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.core.ratelimit import RateLimiter
+from openajar.policy.cli import approvals_app, confirmation_app
+from openajar.policy.confirm import ConfirmLevel
 
 
 @pytest.fixture
@@ -154,7 +154,7 @@ def test_a_raised_commit_row_needs_a_fresh_check_from_the_member(node):
 
 @pytest.fixture
 def cli(node, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(node.config.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(node.config.home))
     return lambda *a: CliRunner().invoke(approvals_app, list(a))
 
 
@@ -168,7 +168,7 @@ def test_cli_is_signed_in(node, cli):
 def test_cli_is_below_what_a_payment_requires_and_says_how_to_go_on(node, cli):
     ap = pending(node, effect=Effect.PAY)
     res = cli("approve", ap)
-    assert res.exit_code == 1 and "proof_too_weak" in res.output and "agentos confirmation set" in res.output
+    assert res.exit_code == 1 and "proof_too_weak" in res.output and "openajar confirmation set" in res.output
     assert node.policy.approvals.get(ap).state == "pending"
 
 
@@ -592,7 +592,7 @@ def test_a_bearer_token_never_reaches_it(node):
 
 async def test_the_cli_applies_it_and_says_so_in_activity(node, monkeypatch):
     ap, _g = await pending_pay(node)
-    monkeypatch.setenv("AGENTOS_HOME", str(node.config.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(node.config.home))
     res = CliRunner().invoke(confirmation_app, ["set", "pay.level", "signed_in", "--apply-to-waiting"])
     assert res.exit_code == 0, res.output
     assert "1 waiting" in res.output
@@ -603,7 +603,7 @@ async def test_the_cli_applies_it_and_says_so_in_activity(node, monkeypatch):
 
 async def test_the_cli_says_nothing_of_what_waits_without_the_flag(node, monkeypatch):
     ap, _g = await pending_pay(node)
-    monkeypatch.setenv("AGENTOS_HOME", str(node.config.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(node.config.home))
     assert CliRunner().invoke(confirmation_app, ["set", "pay.level", "signed_in"]).exit_code == 0
     assert node.policy.approvals.get(ap).requires == "present"
 

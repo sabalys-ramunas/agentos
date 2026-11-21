@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# First boot of an agentos node template: the Hetzner server (deploy/templates/hetzner) and the
+# First boot of an openajar node template: the Hetzner server (deploy/templates/hetzner) and the
 # home box (deploy/templates/home-box). The first-boot script that cloud-init installs
 # (/usr/local/sbin/agentos-first-boot) clones AGENTOS_GIT_REF and runs this file from that clone,
 # as root. In order:
@@ -7,9 +7,9 @@
 #   1. check the variables in /etc/agentos/bootstrap.env (nothing is changed before this passes)
 #   2. create the admin user with its key, then turn off root and password logins over SSH
 #   3. turn on unattended security upgrades
-#   4. install agentos: deploy/install-node.sh --systemd --user agentos --hardened
+#   4. install openajar: deploy/install-node.sh --systemd --user agentos --hardened
 #   5. join the controller if CONTROLLER_URL and JOIN_TOKEN are set; blank the token either way
-#   6. run `agentos doctor` as the agentos user; the report goes to ~/agentos-doctor.txt
+#   6. run `openajar doctor` as the agentos user; the report goes to ~/openajar-doctor.txt
 #
 # The exit code is the doctor's: 0 when no check failed (warnings are still in the report).
 # Running it again is safe: every step looks at what is already there.
@@ -21,8 +21,8 @@ export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ENV_FILE=/etc/agentos/bootstrap.env
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PREFIX=/opt/agentos
-AGENTOS_HOME=/var/lib/agentos
-AGENTOS="$PREFIX/.venv/bin/agentos"
+OPENAJAR_HOME=/var/lib/agentos
+OPENAJAR="$PREFIX/.venv/bin/openajar"
 key_check="$(mktemp)"
 doctor_out="$(mktemp)"
 trap 'rm -f "$key_check" "$doctor_out"' EXIT
@@ -34,7 +34,7 @@ envval() { awk -F= -v k="$1" '$1 == k { sub(/^[^=]*=/, ""); print; exit }' "$ENV
 
 [ "$(id -u)" = 0 ] || die "run as root: sudo /usr/local/sbin/agentos-first-boot"
 [ -f "$ENV_FILE" ] || die "$ENV_FILE is missing"
-[ -f "$SRC/deploy/install-node.sh" ] || die "$SRC is not an agentos checkout"
+[ -f "$SRC/deploy/install-node.sh" ] || die "$SRC is not an openajar checkout"
 
 # ---- 1. the variables ----
 ADMIN_USER="$(envval ADMIN_USER)"
@@ -77,7 +77,7 @@ chmod 0600 "$keys"
 say "SSH: keys only, no root login"
 sshd_conf=/etc/ssh/sshd_config.d/01-agentos.conf
 cat > "$sshd_conf" <<'EOF'
-# agentos node template: sign in with a key as the admin user, never as root or with a password.
+# openajar node template: sign in with a key as the admin user, never as root or with a password.
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
@@ -97,36 +97,36 @@ APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
 
-# ---- 4. agentos, from the checkout of AGENTOS_GIT_REF ----
-say "Installing agentos${REF:+ from $REF} with deploy/install-node.sh"
-AGENTOS_INIT_ARGS="--name $NODE_NAME" bash "$SRC/deploy/install-node.sh" --systemd --user agentos --hardened
+# ---- 4. openajar, from the checkout of AGENTOS_GIT_REF ----
+say "Installing openajar${REF:+ from $REF} with deploy/install-node.sh"
+OPENAJAR_INIT_ARGS="--name $NODE_NAME" bash "$SRC/deploy/install-node.sh" --systemd --user agentos --hardened
 
 # ---- 5. the controller: the token is single use, so it is blanked whatever happens ----
 join="not asked"
 if [ -n "$CONTROLLER_URL" ] && [ -n "$JOIN_TOKEN" ]; then
   say "Joining $CONTROLLER_URL"
-  if runuser -u agentos -- env AGENTOS_HOME="$AGENTOS_HOME" "$AGENTOS" node join "$CONTROLLER_URL" "$JOIN_TOKEN"; then
+  if runuser -u agentos -- env OPENAJAR_HOME="$OPENAJAR_HOME" "$OPENAJAR" node join "$CONTROLLER_URL" "$JOIN_TOKEN"; then
     join="joined $CONTROLLER_URL"
   else
-    join="failed: make a new join token and run agentos node join by hand"
+    join="failed: make a new join token and run openajar node join by hand"
   fi
   sed -i 's/^JOIN_TOKEN=.*/JOIN_TOKEN=/' "$ENV_FILE"
   systemctl restart agentosd
 fi
 
 # ---- 6. the doctor, as the service user, for the admin user to read ----
-say "Waiting for agentosd, then agentos doctor"
+say "Waiting for agentosd, then openajar doctor"
 for _ in $(seq 1 60); do
   systemctl is-active --quiet agentosd && break
   sleep 2
 done
 sleep 10  # the MCP port opens a moment after the unit reports active
 doctor_rc=0
-(cd / && runuser -u agentos -- env AGENTOS_HOME="$AGENTOS_HOME" "$AGENTOS" doctor) > "$doctor_out" 2>&1 \
+(cd / && runuser -u agentos -- env OPENAJAR_HOME="$OPENAJAR_HOME" "$OPENAJAR" doctor) > "$doctor_out" 2>&1 \
   || doctor_rc=$?
-report="$home/agentos-doctor.txt"
+report="$home/openajar-doctor.txt"
 {
-  echo "agentos node $NODE_NAME, installed${REF:+ from $REF} at $(date -u +%Y-%m-%dT%H:%MZ)"
+  echo "openajar node $NODE_NAME, installed${REF:+ from $REF} at $(date -u +%Y-%m-%dT%H:%MZ)"
   echo "doctor exit code: $doctor_rc (0: no check failed; read the warnings below)"
   echo "controller: $join"
   echo

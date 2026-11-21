@@ -1,5 +1,5 @@
 
- Usage: agentos routines [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar routines [OPTIONS] COMMAND [ARGS]...
 
  Work that runs by itself: runs, flows, schedules, workflows and brains.
 

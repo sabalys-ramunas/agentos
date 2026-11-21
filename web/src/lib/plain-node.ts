@@ -43,11 +43,11 @@ function holdWord(reason: string): string {
 
 /** Command fragments a node sentence carries, and the words that say the same thing without them. */
 const COMMAND_WORDS: [RegExp, string][] = [
-  [/\(agentos migrate run stamps them\)/, '(a migration updates them)'],
+  [/\(openajar migrate run stamps them\)/, '(a migration updates them)'],
   [/not stamped yet/, 'need updating'],
-  [/; check each one with: agentos lane check --all/, ', and check each one on the computer'],
-  [/`agentos lane keepalive --node on` turns it on/, 'Turn it on from the computer'],
-  [/nodes run on Linux/, 'agentos runs on Linux'],
+  [/; check each one with: openajar lane check --all/, ', and check each one on the computer'],
+  [/`openajar lane keepalive --node on` turns it on/, 'Turn it on from the computer'],
+  [/nodes run on Linux/, 'openajar runs on Linux'],
   [/no node\.toml in \S+/, 'The settings file is missing'],
   [/bubblewrap is missing \(terminal and service lanes isolate programs with it\)/, 'bubblewrap is missing. It keeps each environment\'s programs apart.'],
   [/no lane is visited unattended, so a lane left idle/, 'no account is visited unattended, so an account left idle'],
@@ -117,12 +117,12 @@ const REASONS: [RegExp, string][] = [
   [/wrong passphrase/i, 'That passphrase did not open the file. Check it, or the file may be damaged.'],
   [/is (?:warm|warming|active); close it first/i, 'This account is open right now. Close it first, then try again.'],
   // Signed out: the node says how to sign in with its command. A person is told what to do, never the command.
-  [/^Sign in (?:to the panel )?first\. Run .*agentos panel login/, 'Sign in again with a new code from this computer.'],
+  [/^Sign in (?:to the panel )?first\. Run .*openajar panel login/, 'Sign in again with a new code from this computer.'],
   [/only the owner \(or an admin grant\) may write owner-only entries/, 'Only the owner can change this.'],
   [/domain must be a lowercase registrable domain/, 'Type the site by its plain address, such as instagram.com.'],
   [/^the Android engine does not exist yet, so this worker cannot run on any node/, 'Android accounts are not supported yet, so this worker cannot run on any computer'],
   [/^the desktop worker is planned for later: no desktop engine exists yet$/, 'Desktop apps are not supported yet, so this worker is not available here'],
-  [/^Browser accounts are built by agentos itself\. Other browser engines and fonts are not here yet\.$/, 'Browser accounts are built by agentos itself. Other browsers and fonts are not here yet.'],
+  [/^Browser accounts are built by openajar itself\. Other browser engines and fonts are not here yet\.$/, 'Browser accounts are built by openajar itself. Other browsers and fonts are not here yet.'],
   [/ConnectError|ConnectTimeout/, 'The service could not be reached from this computer.'],
 ];
 
@@ -137,21 +137,21 @@ export function plainReason(text: string, names?: PlaceNames): string {
 /** Pattern, and the plain sentence for what to do. The raw fix text stays under Technical details. */
 const FIXES: [RegExp, string][] = [
   [/^chmod /, 'Make the data folders private, so only this account can read them.'],
-  [/agentos node init/, 'Set this computer up first. Its settings file is missing.'],
+  [/openajar node init/, 'Set this computer up first. Its settings file is missing.'],
   [/apt-get install/, 'Install the system programs this computer is missing, as its administrator.'],
-  [/agentos backup create/, 'Keep a backup on another disk, so one dead disk cannot take every login.'],
-  [/agentos lane check/, 'Check each account, and fix what each one reports.'],
-  [/agentos migrate run/, 'Update the account folders to the current format.'],
-  [/Ubuntu 24\.04/, 'Run agentos on a computer with Ubuntu 24.04. This one runs another system.'],
-  [/agentos identity init/, 'Give the account its identity on this computer. The key is made there and never leaves it.'],
+  [/openajar backup create/, 'Keep a backup on another disk, so one dead disk cannot take every login.'],
+  [/openajar lane check/, 'Check each account, and fix what each one reports.'],
+  [/openajar migrate run/, 'Update the account folders to the current format.'],
+  [/Ubuntu 24\.04/, 'Run openajar on a computer with Ubuntu 24.04. This one runs another system.'],
+  [/openajar identity init/, 'Give the account its identity on this computer. The key is made there and never leaves it.'],
   [/^Restore its profile folder from a backup, or set the account up again\.?$/, 'Restore its profile from a backup kept on this computer, or set the account up again.'],
   [/^restore \S+ from a backup/, 'Restore it from a backup kept on this computer.'],
 ];
 
 const FALLBACK_FIX = 'Fix it on the computer. Technical details has the exact steps.';
 
-/** A plain sentence the node wrote before its command: "Free some disk, or keep the backups elsewhere: agentos ..." */
-const LEAD = /^(.+?): (?=agentos |sudo |chmod |AGENTOS_HOME=|run |apt-get )/;
+/** A plain sentence the node wrote before its command: "Free some disk, or keep the backups elsewhere: openajar ..." */
+const LEAD = /^(.+?): (?=openajar |sudo |chmod |OPENAJAR_HOME=|run |apt-get )/;
 
 /** What to do about a check, in a sentence, and the raw text it came from. */
 export function fixWords(fix: string): { plain: string; command: string } {
@@ -189,6 +189,8 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'panel.environment.extend': 'Kept open longer:',
   'panel.job.read': 'Read the output of a command in',
   'panel.job.cancel': 'Stopped a command in',
+  'node.enrolled': 'Computer added',
+  'session.step_up': 'Proved it was them, with a',
 };
 
 /** The workspace a grant or a routine covers, in words: `*` is every one. */
@@ -229,7 +231,7 @@ export function proofSummary(text: string, names?: PlaceNames): string {
 /** Check names the node writes that a person would not say. */
 const CHECK_NAMES: Record<string, string> = {
   'Package bubblewrap': 'Sandbox programs',
-  'Disk (AGENTOS_HOME and /tmp)': 'Disk space',
+  'Disk (OPENAJAR_HOME and /tmp)': 'Disk space',
   'MCP endpoint': 'Agent address',
   Lanes: 'Accounts',
   'Lane directory formats': 'Account folders',
@@ -239,7 +241,7 @@ const CHECK_NAMES: Record<string, string> = {
 };
 
 export function checkName(name: string): string {
-  // `agentos doctor` names one check per `agentos connect` connection: "Connection <its name>".
+  // `openajar doctor` names one check per `openajar connect` connection: "Connection <its name>".
   const connection = /^Connection (\S+)$/.exec(name);
   if (connection) return `Agent connection ${connection[1]}`;
   return CHECK_NAMES[name] ?? name;
@@ -386,7 +388,7 @@ export const TOOL_TITLES: Record<string, string> = {
 };
 
 /**
- * The names tools had before 2026-11-19 (agentos.core.toolnames): the action log and an environment's calls
+ * The names tools had before 2026-11-19 (openajar.core.toolnames): the action log and an environment's calls
  * from before then still carry them, so they read as the tool does now.
  */
 export const OLD_TOOL_NAMES: Record<string, string> = {

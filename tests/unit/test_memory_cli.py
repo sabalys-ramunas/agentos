@@ -1,4 +1,4 @@
-"""`agentos memory`: the owner in person on the node."""
+"""`openajar memory`: the owner in person on the node."""
 
 from __future__ import annotations
 
@@ -8,14 +8,14 @@ import pytest
 from testkit.memory import fake_memory
 from typer.testing import CliRunner
 
-from agentos.cli import app
+from openajar.cli import app
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     return tmp_path
 
 
@@ -70,7 +70,7 @@ def test_an_owners_forget_is_on_the_action_log_and_show_keeps_the_write_time(hom
     """QA 2026-11-15 P2-12 and P2-14."""
     import sqlite3
 
-    from agentos.policy.service import PolicyService
+    from openajar.policy.service import PolicyService
 
     PolicyService(home).close()  # the node's action log, as agentosd leaves it
     entry = json.loads(run("write", "biz-a", "--type", "fact", "--title", "Marker", "--json").output)

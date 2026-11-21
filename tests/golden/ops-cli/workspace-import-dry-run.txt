@@ -1,4 +1,4 @@
-$ agentos workspace import <TMP>/personal.agentos --as copy --dry-run --passphrase-file <TMP>/pw --json
+$ openajar workspace import <TMP>/personal.openajar --as copy --dry-run --passphrase-file <TMP>/pw --json
 exit 0
 {
   "ok": true,

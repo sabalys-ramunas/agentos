@@ -65,10 +65,10 @@ export function ConnectionTab({ org, node, system, connections, owner }: { org: 
   return (
     <div className="grid gap-10">
       {/* Still loading is undefined; a node that does not report it answers null, which says so rather than loading. */}
-      <Panel title="Uptime" description="How much of each day this machine was connected to agentos.">
+      <Panel title="Uptime" description="How much of each day this machine was connected to openajar.">
         {connections === undefined ? <Skeleton className="h-36 rounded-xl" /> : connections === null ? <NotReported node={node.id} what="its uptime" /> : <UptimeBars connections={connections} />}
       </Panel>
-      <Panel title="The link" description="How this machine proves who it is to agentos. Its private key never leaves it.">
+      <Panel title="The link" description="How this machine proves who it is to openajar. Its private key never leaves it.">
         <Facts
           items={[
             { label: 'Link version', value: system ? `Version ${system.protocol}` : NONE },
@@ -76,7 +76,7 @@ export function ConnectionTab({ org, node, system, connections, owner }: { org: 
             { label: 'Reconnects, 30 days', value: connections ? String(reconnects) : NONE },
             { label: 'Enrolled', value: system?.enrolled_at ? date(system.enrolled_at) : NONE },
             { label: 'Enrolled by', value: system?.enrolled_by ?? NONE },
-            { label: 'agentos', value: node.version, mono: true },
+            { label: 'openajar', value: node.version, mono: true },
             { label: 'Clock', value: system?.timezone ?? node.timezone ?? NONE },
             { label: 'Architecture', value: system?.arch ?? node.arch, mono: true },
           ]}
@@ -92,7 +92,7 @@ export function ConnectionTab({ org, node, system, connections, owner }: { org: 
       <IdentityPanel org={org} node={node.id} owner={owner} />
       {/* Said once, in Uptime above: a node that reports no connections has no log either. */}
       {connections === null ? null : (
-        <Panel title="Connection log" description="What agentos saw, newest first.">
+        <Panel title="Connection log" description="What openajar saw, newest first.">
           {connections ? (
             <Card className="overflow-hidden">
               <ol className="divide-y divide-line">

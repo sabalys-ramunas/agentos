@@ -20,20 +20,20 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 from test_vault_support import make_vault, private_home
 
-from agentos.api import ApiSettings, build_api
-from agentos.api.access import PolicyAccess
-from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE, PanelStore
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, LaneSpec
-from agentos.core.presence import Presence
-from agentos.node.daemon import build_node_app, build_services, node_runtime
-from agentos.policy.tools import approval_wait
+from openajar.api import ApiSettings, build_api
+from openajar.api.access import PolicyAccess
+from openajar.api.auth import PRESENCE_HEADER, SESSION_COOKIE, PanelStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, LaneSpec
+from openajar.core.presence import Presence
+from openajar.node.daemon import build_node_app, build_services, node_runtime
+from openajar.policy.tools import approval_wait
 
 TOKEN = "node-token-for-the-panel-tests"
-SERVICES = ["agentos.api.events", "agentos.policy.service", "agentos.vault.service", "agentos.workspaces.service",
-            "agentos.runner.service",
-            "agentos.brains.service", "agentos.env.service", "agentos.memory.service",
-            "agentos.agenda.service"]
+SERVICES = ["openajar.api.events", "openajar.policy.service", "openajar.vault.service", "openajar.workspaces.service",
+            "openajar.runner.service",
+            "openajar.brains.service", "openajar.env.service", "openajar.memory.service",
+            "openajar.agenda.service"]
 LANES = ["personal/reddit", "biz-a/instagram", "biz-b/facebook"]
 PARAMS = {"org": "local", "node": "x1", "job": "decide", "uid": "x1", "ws": "biz-a", "workspace": "biz-a", "name": "instagram", "id": "x1", "action": "enable", "path": "x",
           "device": "x1", "token": "x1", "operation": "instagram_post", "param": "image", "run": "x1", "account": "x1",
@@ -46,7 +46,7 @@ OWNER_ONLY = [
     ("POST", "/api/approvals/batch"), ("GET", "/api/approvals/standing"), ("POST", "/api/approvals/standing"),
     ("DELETE", "/api/approvals/standing/x1"), ("POST", "/api/approvals/x1/approve"),
     ("GET", "/api/codes"), ("POST", "/api/codes/x1"), ("POST", "/api/codes/x1/decline"),
-    # a repository card (agentos.environments.api): the token page's link or a key, from the owner in person
+    # a repository card (openajar.environments.api): the token page's link or a key, from the owner in person
     ("POST", "/api/repo-connect/x1/form"), ("POST", "/api/repo-connect/x1/deploy-key"),
     ("POST", "/api/repo-connect/x1/check"), ("POST", "/api/repo-connect/x1/decline"),
     ("POST", "/api/approvals/x1/deny"), ("POST", "/api/questions/x1/answer"), ("POST", "/api/schedules"),
@@ -55,23 +55,23 @@ OWNER_ONLY = [
     ("DELETE", "/api/vault/x1"), ("GET", "/api/grants"), ("POST", "/api/grants"), ("POST", "/api/grants/x1/revoke"),
     ("GET", "/api/proxies"), ("POST", "/api/proxies"), ("GET", "/api/settings/notifications"),
     ("PUT", "/api/settings/notifications"), ("POST", "/api/settings/notifications/test"),
-    # the feature packages' own routes (agentos.api.mounts)
+    # the feature packages' own routes (openajar.api.mounts)
     ("GET", "/api/vault/status"), ("POST", "/api/vault/unseal"), ("POST", "/api/vault/seal"),
     ("POST", "/api/runs/x1/cancel"), ("POST", "/api/runs/x1/decide"), ("GET", "/api/flows/x1"),
     ("POST", "/api/flows"), ("PATCH", "/api/schedules/x1"), ("POST", "/api/schedules/x1/enable"),
     ("POST", "/api/brains/tasks/x1/cancel"), ("POST", "/api/brains/tasks/x1/resume"),
     ("POST", "/api/workspaces/biz-a/export"), ("POST", "/api/workspaces/import"),
     ("GET", "/api/agenda"), ("POST", "/api/agenda"), ("GET", "/api/agenda/x1"), ("PATCH", "/api/agenda/x1"),
-    ("POST", "/api/agenda/x1/enable"),  # the agenda (agentos.agenda.api)
-    ("POST", "/api/lanes/biz-a/instagram/sites"),  # the lane's site list (agentos.node.viewer_app)
-    # an assisted login (agentos.api.routes_login): the owner in person, never a grant
+    ("POST", "/api/agenda/x1/enable"),  # the agenda (openajar.agenda.api)
+    ("POST", "/api/lanes/biz-a/instagram/sites"),  # the lane's site list (openajar.node.viewer_app)
+    # an assisted login (openajar.api.routes_login): the owner in person, never a grant
     ("GET", "/api/lanes/biz-a/instagram/login"), ("POST", "/api/lanes/biz-a/instagram/login"),
     ("POST", "/api/lanes/biz-a/instagram/login/step"), ("POST", "/api/lanes/biz-a/instagram/login/refresh"),
     ("POST", "/api/lanes/biz-a/instagram/login/take"), ("POST", "/api/lanes/biz-a/instagram/login/resume"),
     ("POST", "/api/lanes/biz-a/instagram/login/cancel"), ("POST", "/api/lanes/biz-a/instagram/login/save"),
     ("GET", "/api/lanes/biz-a/instagram/login/screenshot"),
-    ("PUT", "/api/lanes/biz-a/instagram/meter"),  # a lane's limits (agentos.api.routes_meters)
-    # browser devices (agentos.api.routes_devices): they span lanes and name proxies
+    ("PUT", "/api/lanes/biz-a/instagram/meter"),  # a lane's limits (openajar.api.routes_meters)
+    # browser devices (openajar.api.routes_devices): they span lanes and name proxies
     ("GET", "/api/browser-devices"), ("POST", "/api/browser-devices"), ("GET", "/api/browser-devices/x1"),
     ("DELETE", "/api/browser-devices/x1"), ("GET", "/api/lanes/biz-a/instagram/device-move"),
     ("POST", "/api/lanes/biz-a/instagram/device"),
@@ -84,7 +84,7 @@ NEEDS_A_PERSON = {("POST", "/api/approvals/standing"), ("POST", "/api/approvals/
                   ("POST", "/api/repo-connect/x1/decline")}
 LOGIN_ROUTES = [rt for rt in OWNER_ONLY if "/login" in rt[1]]
 WS = "ws://localhost:7400"  # websocket_connect ignores base_url; the node refuses any other Host
-# the login exchange and the passkey ceremonies (agentos.api.routes_members); the static panel is the catch-all
+# the login exchange and the passkey ceremonies (openajar.api.routes_members); the static panel is the catch-all
 PUBLIC = {("GET", "/api/mail/form/{token}"), ("POST", "/api/mail/form/{token}"),  # the link is the credential
           ("GET", "/api/brains/form/{token}"), ("POST", "/api/brains/form/{token}"),  # so is this one
           ("GET", "/api/forms/{token}"), ("POST", "/api/forms/{token}"),  # and the node's forms for a secret
@@ -99,7 +99,7 @@ PUBLIC = {("GET", "/api/mail/form/{token}"), ("POST", "/api/mail/form/{token}"),
           # a computer's invite: the link's code is the credential, as the node's own invite routes above
           ("GET", "/api/invites/{token}"), ("POST", "/api/invites/{token}/passkey/options"),
           ("POST", "/api/invites/{token}/passkey"),
-          # a read-only share link: its signature is the credential (agentos.audit.service)
+          # a read-only share link: its signature is the credential (openajar.audit.service)
           ("GET", "/api/audit/shared/{token}"), ("GET", "/api/audit/shared/{token}/runs/{id}/screenshot"),
           ("POST", "/api/freeze/link")}  # a push's Freeze button: the signed link is the credential
 
@@ -107,7 +107,7 @@ PUBLIC = {("GET", "/api/mail/form/{token}"), ("POST", "/api/mail/form/{token}"),
 class Node:
     def __init__(self, tmp_path):
         home = private_home(tmp_path)
-        make_vault(home)  # a key-file vault, as `agentos vault init` makes
+        make_vault(home)  # a key-file vault, as `openajar vault init` makes
         self.config = NodeConfig(home=home, mcp_token=TOKEN, mcp_port=7400)
         self.lanes = FakeLaneManager(self.config)
         for lane in LANES:
@@ -194,7 +194,7 @@ def test_every_route_needs_credentials(node):
         assert client.post("/mcp", json={}).status_code == 401
         assert client.get("/.well-known/oauth-authorization-server").status_code == 401
         # the static panel (not built here) and the login exchange are the only public routes
-        assert client.get("/").status_code == 200 and "agentos" in client.get("/needs-you").text
+        assert client.get("/").status_code == 200 and "openajar" in client.get("/needs-you").text
         assert client.post("/api/session", json={"code": "wrong-code-123"}).status_code == 401
         assert client.post("/api/invites/accept/options", json={"code": "wrong-code-123"}).status_code == 401
         assert client.post("/api/invites/accept", json={"code": "wrong-code-123", "credential": {}}).status_code == 401
@@ -285,7 +285,7 @@ def test_a_lane_write_is_traced_on_its_account_with_its_control_action(monkeypat
     carries its action. The summary stays what the panel reads."""
     from types import SimpleNamespace
 
-    from agentos.api import mounts
+    from openajar.api import mounts
 
     recorder = _Trace()
     request = _json_post(b'{"action": "hand_back"}')
@@ -306,7 +306,7 @@ def test_a_lane_write_is_traced_on_its_account_with_its_control_action(monkeypat
 def test_a_lane_control_trace_says_which_action_the_person_took(monkeypatch):
     """The feed names the action of a lane control (take over, hand back), not only the account. The action rides
     on the trace as one new field; the summary the panel reads stays exactly what it was."""
-    from agentos.api import mounts
+    from openajar.api import mounts
 
     assert asyncio.run(mounts._control_fields(_json_post(b'{"action": "take"}'), "lane.control")) == {"control": "take"}
     assert asyncio.run(mounts._control_fields(_json_post(b'{"action": "hand_back", "done": true}'), "lane.control")) == {"control": "hand_back"}
@@ -360,7 +360,7 @@ def test_the_grants_list_explains_each_grant(node):
     with node.client() as client:
         listed = {g["id"]: g for g in client.get("/api/grants", headers=bearer(TOKEN)).json()}
     lines = listed[reader.id]["explain"]
-    assert lines == node.policy.explain_grant(reader.id)  # the same sentences as `agentos grants explain`
+    assert lines == node.policy.explain_grant(reader.id)  # the same sentences as `openajar grants explain`
     assert any("only look at pages" in line for line in lines)
     assert listed[gone.id]["explain"] == ["It is revoked, so it allows nothing now."]
 
@@ -391,7 +391,7 @@ def test_a_grant_sees_only_its_lanes(node):
 def test_lane_checks_are_scoped_to_the_grant(node):
     from test_ops_support import FakeHost
 
-    from agentos.stealth.lanecheck import LaneChecker
+    from openajar.stealth.lanecheck import LaneChecker
 
     node.runtime.register("lane_check", LaneChecker(node.config, lanes=node.lanes, host=FakeHost(), network=False,
                                                     write_cache=False))
@@ -408,7 +408,7 @@ def test_lane_checks_are_scoped_to_the_grant(node):
 
 
 async def _ask(node: Node, token: str, question: str) -> str:
-    from agentos.policy.tools import human_ask
+    from openajar.policy.tools import human_ask
 
     ctx = node.policy.context_for_token(token, tool="human_ask")
     return (await human_ask(ctx, question=question))["approval_id"]
@@ -473,8 +473,8 @@ def test_a_narrowed_child_of_an_admin_never_decides_its_familys_asks(node):
 
 def _partial_run(node: Node, token: str, run_id: str) -> str:
     """A run its grant started that stopped part way and asks for retry, skip or fail."""
-    from agentos.core.models import RunStatus
-    from agentos.runner.models import Run
+    from openajar.core.models import RunStatus
+    from openajar.runner.models import Run
 
     grant = node.policy.context_for_token(token, tool="flow_run").grant
     runner = node.runtime.require("runner")
@@ -765,7 +765,7 @@ def test_a_terminal_refuses_a_cross_origin_handshake_even_with_a_valid_token(nod
 
 def test_a_lane_with_shells_off_refuses_the_terminal_and_says_why(node, monkeypatch):
     """A service lane's preset turns shells off. The socket closes with the reason, so the panel can show it."""
-    from agentos.env.host import FakeHost
+    from openajar.env.host import FakeHost
     envs = node.runtime.envs
     monkeypatch.setattr(envs, "host", FakeHost())  # a node that can run a service lane's sandbox
     envs.create("biz-a/svc", kind="service", preset="service", service={"command": ["true"]})
@@ -878,9 +878,9 @@ def test_the_panel_lifespan_runs_its_feeds_and_stops_them(node, tmp_path):
 
 
 def test_events_service_is_well_known(node):
-    from agentos.core import runtime as runtime_module
+    from openajar.core import runtime as runtime_module
 
-    assert "events" in runtime_module.__doc__ and node.runtime.get("feature_services")[0][0] == "agentos.api.events"
+    assert "events" in runtime_module.__doc__ and node.runtime.get("feature_services")[0][0] == "openajar.api.events"
     assert Effect.EXEC.value == "exec"
 
 
@@ -923,7 +923,7 @@ def test_every_screen_loads_for_the_owner_on_real_services(node):
         assert client.post(f"/api/grants/{g['id']}/revoke", headers=csrf).json()["revoked"] is True
         assert next(x for x in client.get("/api/grants").json() if x["id"] == g["id"])["revoked"] is True
         # notifications: public fields only, test reports per channel
-        put = client.put("/api/settings/notifications", json={"ntfy": {"topic": "agentos-test", "token": "tk_secret_1",
+        put = client.put("/api/settings/notifications", json={"ntfy": {"topic": "openajar-test", "token": "tk_secret_1",
                                                                      "enabled": False}}, headers=csrf)  # no network
         assert put.status_code == 200 and "tk_secret_1" not in put.text and put.json()["ntfy"]["token_saved"] is True
         tested = client.post("/api/settings/notifications/test", headers=csrf).json()
@@ -934,22 +934,22 @@ def test_every_screen_loads_for_the_owner_on_real_services(node):
 
 
 async def test_panel_template_apply_keeps_the_workspace_proxy_rules(tmp_path):
-    """The panel's template apply goes through agentos.workspaces: one proxy for two businesses
+    """The panel's template apply goes through openajar.workspaces: one proxy for two businesses
     is refused with 409 and nothing is created; the panel lists the workspace templates."""
     from fakes import FakeInteraction, FakeLaneManager
     from starlette.testclient import TestClient
 
-    from agentos.api.app import ApiSettings, build_api
-    from agentos.core.config import NodeConfig, save_proxies
-    from agentos.core.models import ProxyConfig
-    from agentos.node.daemon import build_services, node_runtime
+    from openajar.api.app import ApiSettings, build_api
+    from openajar.core.config import NodeConfig, save_proxies
+    from openajar.core.models import ProxyConfig
+    from openajar.node.daemon import build_services, node_runtime
 
     cfg = NodeConfig(home=tmp_path, mcp_token="tok-panel-ws")
     cfg.secrets_dir.mkdir(parents=True)
     save_proxies(cfg, {"lt1": ProxyConfig(label="lt1", host="198.51.100.7", port=8080)})
     manager = FakeLaneManager(cfg)
     runtime = node_runtime(cfg, manager, FakeInteraction())
-    build_services(runtime, ["agentos.workspaces.service"])
+    build_services(runtime, ["openajar.workspaces.service"])
     app = build_api(runtime, ApiSettings(owner_token="tok-panel-ws", home=tmp_path))
     auth = {"Authorization": "Bearer tok-panel-ws"}
     with TestClient(app, base_url="http://localhost") as http:
@@ -970,8 +970,8 @@ async def test_panel_template_apply_keeps_the_workspace_proxy_rules(tmp_path):
 def test_lane_json_shows_the_lane_managers_signal_and_hold():
     from datetime import UTC, datetime, timedelta
 
-    from agentos.api.lanes_view import lane_json
-    from agentos.core.models import LaneInfo, LaneSpec, Signal
+    from openajar.api.lanes_view import lane_json
+    from openajar.core.models import LaneInfo, LaneSpec, Signal
 
     until = datetime.now(UTC) + timedelta(hours=6)
     info = LaneInfo(spec=LaneSpec(id="biz-a/instagram"), signal=Signal.RATE_LIMITED,
@@ -1014,9 +1014,9 @@ def test_a_flow_run_let_through_on_its_own_asks_if_ask_me_first_is_turned_on_bef
 
 
 def test_the_nodes_cli_removes_a_terminal_lane_through_agentosd(node, monkeypatch):
-    """QA 2026-11-10, finding 30: while agentosd runs, `agentos env remove` and `agentos env doctor` go
+    """QA 2026-11-10, finding 30: while agentosd runs, `openajar env remove` and `openajar env doctor` go
     through it. Removing needs a person: the node token alone is not one (an agent may hold it)."""
-    from agentos.env.host import FakeHost
+    from openajar.env.host import FakeHost
     envs = node.runtime.envs
     monkeypatch.setattr(envs, "host", FakeHost())
     envs.create("biz-a/box")

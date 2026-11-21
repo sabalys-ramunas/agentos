@@ -1,5 +1,5 @@
 {
-  "about": "Grant token test vectors; see src/agentos/policy/TOKENS.md. Keys are Ed25519 with seed = SHA-256(\"agentos token vector \" + name); public keys are unpadded base64url.",
+  "about": "Grant token test vectors; see src/openajar/policy/TOKENS.md. Keys are Ed25519 with seed = SHA-256(\"agentos token vector \" + name); public keys are unpadded base64url.",
   "keys": {
     "root": {
       "seed": "6f1ea64979fc3546768382155bd2ca01dccf3e70fdd98063a9161e0c332f7c9a",

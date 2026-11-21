@@ -4,7 +4,7 @@ import { describeError } from './errors';
 
 describe('describeError', () => {
   it('says a refusal from the computer in plain words, not its command', () => {
-    const error = new ApiError(401, 'unauthorized', 'Sign in first. Run `agentos panel login` on this computer.');
+    const error = new ApiError(401, 'unauthorized', 'Sign in first. Run `openajar panel login` on this computer.');
     expect(describeError(error)).toBe('Sign in again with a new code from this computer.');
   });
 

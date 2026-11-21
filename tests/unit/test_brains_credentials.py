@@ -5,7 +5,7 @@ import stat
 
 from testkit.brains import OAUTH, FakeVault
 
-from agentos.brains.credentials import DEV_FILE_NAME, CredentialStore
+from openajar.brains.credentials import DEV_FILE_NAME, CredentialStore
 
 
 async def test_dev_fallback_is_marked_and_private(tmp_path):

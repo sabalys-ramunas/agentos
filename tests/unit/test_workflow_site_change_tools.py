@@ -46,11 +46,11 @@ def test_the_catalog_says_what_the_trigger_gives(node):
 
 
 def test_the_cli_says_how_a_watch_stands(tmp_path, monkeypatch):
-    from agentos.runner.workflows import cli
+    from openajar.runner.workflows import cli
 
     home = tmp_path / "home"
     home.mkdir()
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     plain = {"name": "Plain", "workspace": "harbor", "trigger": {"kind": "manual"},
              "steps": [{"id": "n", "kind": "notify", "label": "tell you", "message": "It ran."}]}
     path = tmp_path / "plain.json"

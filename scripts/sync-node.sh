@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Copy this checkout to a directory on the node.
 #
-#   scripts/sync-node.sh "$AGENTOS_DEV_ROOT/mcp"
-#   scripts/sync-node.sh --web "$AGENTOS_DEV_ROOT/mcp"
-#   scripts/sync-node.sh --watch "$AGENTOS_DEV_ROOT/mcp" --restart 'systemctl restart agentosd-dev'
+#   scripts/sync-node.sh "$OPENAJAR_DEV_ROOT/mcp"
+#   scripts/sync-node.sh --web "$OPENAJAR_DEV_ROOT/mcp"
+#   scripts/sync-node.sh --watch "$OPENAJAR_DEV_ROOT/mcp" --restart 'systemctl restart agentosd-dev'
 #
-# AGENTOS_NODE names the node and AGENTOS_DEV_ROOT its dev directory (scripts/node-env.sh reads
-# them). Only paths under AGENTOS_DEV_ROOT are allowed unless SYNC_ANY_DIR=1, so a typo can
+# OPENAJAR_NODE names the node and OPENAJAR_DEV_ROOT its dev directory (scripts/node-env.sh reads
+# them). Only paths under OPENAJAR_DEV_ROOT are allowed unless SYNC_ANY_DIR=1, so a typo can
 # never overwrite a production install.
 # The remote .venv and the dev node data in .agentos-home survive the sync.
 #
@@ -46,17 +46,17 @@ fi
 . "$(dirname "${BASH_SOURCE[0]}")/node-env.sh"
 REMOTE_DIR="${REMOTE_DIR%/}"
 # Lexical safety first: no "..", "." or empty segments, so a path cannot look like it is under
-# AGENTOS_DEV_ROOT while resolving somewhere else (for example the PoC at /root/agentos).
+# OPENAJAR_DEV_ROOT while resolving somewhere else (for example the PoC at /root/agentos).
 case "$REMOTE_DIR/" in
   */../*|*/./*|*//*) echo "error: refusing $REMOTE_DIR (no '..', '.' or empty path segments)" >&2; exit 2 ;;
 esac
 [[ "$REMOTE_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "error: refusing $REMOTE_DIR (unexpected characters)" >&2; exit 2; }
 
 case "$REMOTE_DIR" in
-  "$AGENTOS_DEV_ROOT"/?*) ;;
+  "$OPENAJAR_DEV_ROOT"/?*) ;;
   *)
     if [ "${SYNC_ANY_DIR:-0}" != 1 ]; then
-      echo "error: refusing $REMOTE_DIR; use a dir under $AGENTOS_DEV_ROOT/ (or SYNC_ANY_DIR=1)" >&2
+      echo "error: refusing $REMOTE_DIR; use a dir under $OPENAJAR_DEV_ROOT/ (or SYNC_ANY_DIR=1)" >&2
       exit 2
     fi
     ;;
@@ -81,8 +81,8 @@ RSYNC_E="ssh"
 if [ "$WATCH" = 1 ]; then
   # one connection for every round, so a save syncs in well under a second (a short socket
   # path: macOS allows 104 characters)
-  SSH_CMD=(ssh -o ControlMaster=auto -o "ControlPath=/tmp/agentos-sync-%C" -o ControlPersist=120)
-  RSYNC_E="ssh -o ControlMaster=auto -o ControlPath=/tmp/agentos-sync-%C -o ControlPersist=120"
+  SSH_CMD=(ssh -o ControlMaster=auto -o "ControlPath=/tmp/openajar-sync-%C" -o ControlPersist=120)
+  RSYNC_E="ssh -o ControlMaster=auto -o ControlPath=/tmp/openajar-sync-%C -o ControlPersist=120"
 fi
 
 # --web: rebuild web/dist when the web sources changed since its last good build. Needs the web's
@@ -151,7 +151,7 @@ round() {
   fi
 }
 
-stamp="$(mktemp "${TMPDIR:-/tmp}/agentos-sync.XXXXXX")"
+stamp="$(mktemp "${TMPDIR:-/tmp}/openajar-sync.XXXXXX")"
 trap 'rm -f "$stamp"' EXIT
 trap 'echo; echo "stopped watching"; exit 0' INT TERM
 if [ "$WEB" = 1 ]; then ensure_web_build; fi

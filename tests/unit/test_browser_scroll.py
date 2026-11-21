@@ -7,15 +7,15 @@ from typing import Any
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.errors import HumanInControl, PolicyDenied
-from agentos.core.models import AccountRef, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.node import human
-from agentos.node import tools as node_tools
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE
+from openajar.core.errors import HumanInControl, PolicyDenied
+from openajar.core.models import AccountRef, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.node import human
+from openajar.node import tools as node_tools
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE
 
 LANE = "biz-a/social"
 

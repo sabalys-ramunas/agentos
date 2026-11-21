@@ -19,7 +19,7 @@ describe('webhooks', () => {
     const { user } = renderApp('/northwind-group/settings/webhooks');
     await user.click(await screen.findByRole('button', { name: 'Add webhook' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Add a webhook' }));
-    await user.type(dialog.getByLabelText('Address'), 'https://receiver.example.net/agentos');
+    await user.type(dialog.getByLabelText('Address'), 'https://receiver.example.net/openajar');
     await user.click(dialog.getByRole('button', { name: 'Add webhook' }));
     // The mock asks for step-up like the API does.
     expect(await screen.findByRole('dialog', { name: /Confirm it is you/ })).toBeInTheDocument();
@@ -32,15 +32,15 @@ describe('webhooks', () => {
     await user.click(await screen.findByRole('button', { name: 'Add webhook' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Add a webhook' }));
     const address = dialog.getByLabelText('Address');
-    await user.type(address, 'http://receiver.example.net/agentos');
+    await user.type(address, 'http://receiver.example.net/openajar');
     await user.click(dialog.getByRole('button', { name: 'Add webhook' }));
     expect(await dialog.findByRole('alert')).toHaveTextContent('Use an https address');
     await user.clear(address);
-    await user.type(address, 'https://localhost/agentos');
+    await user.type(address, 'https://localhost/openajar');
     await user.click(dialog.getByRole('button', { name: 'Add webhook' }));
     await waitFor(() => expect(dialog.getByRole('alert')).toHaveTextContent('That address is private'));
     await user.clear(address);
-    await user.type(address, 'https://receiver.example.net/agentos');
+    await user.type(address, 'https://receiver.example.net/openajar');
     await user.click(dialog.getByRole('button', { name: 'Add webhook' }));
     const secret = within(await screen.findByRole('dialog', { name: 'Copy the signing secret' }));
     const value = secret.getByText(/^whsec_/);

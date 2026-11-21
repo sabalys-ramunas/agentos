@@ -19,7 +19,7 @@ const routine = (id: string) => `/northwind-group/flows/${id}`;
 const ACCOUNT = '/northwind-group/lanes/aster/gmail';
 const setting = (id: string) => data().askFirst.find((item) => item.id === id);
 /** The row in the list: the same routine also has a tile on the line through now. */
-const row = async (name: string) => (await screen.findAllByRole('link', { name: new RegExp(`^${name}`) })).map((link) => link.closest('li')).find(Boolean) as HTMLElement;
+const row = async (name: string) => (await screen.findAllByRole('link', { name: new RegExp(`^${name}`) })).map((link) => link.closest('li, tr')).find(Boolean) as HTMLElement;
 
 // The whole list renders in jsdom, which a loaded machine takes its time over.
 vi.setConfig({ testTimeout: 20_000 });
@@ -155,7 +155,7 @@ describe('by role', () => {
 describe('on an account', () => {
   it('does not promise more than the switch can do', async () => {
     renderApp(ACCOUNT);
-    expect(await screen.findByText('This switch stops posts on sites agentos recognises. A routine is the surest way to control what goes out.')).toBeInTheDocument();
+    expect(await screen.findByText('This switch stops posts on sites openajar recognises. A routine is the surest way to control what goes out.')).toBeInTheDocument();
     expect(screen.queryByText(/^Everything agents do/)).not.toBeInTheDocument();
   });
 

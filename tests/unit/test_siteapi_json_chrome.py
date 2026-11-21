@@ -24,12 +24,12 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-from agentos.core.driver import MAX_JSON_BYTES
-from agentos.core.models import RunStatus
-from agentos.node.flow_driver import JsonWatch, PlaywrightFlowDriver
-from agentos.runner.fakes import FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.models import SUCCEEDED
-from agentos.runner.util import Clock
+from openajar.core.driver import MAX_JSON_BYTES
+from openajar.core.models import RunStatus
+from openajar.node.flow_driver import JsonWatch, PlaywrightFlowDriver
+from openajar.runner.fakes import FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.runner.models import SUCCEEDED
+from openajar.runner.util import Clock
 
 pw = pytest.importorskip("playwright.async_api")
 
@@ -524,7 +524,7 @@ async def test_a_session_that_cannot_attach_fails_the_read_and_never_goes_throug
 
 
 async def test_a_body_that_does_not_finish_is_slow_and_costs_no_request(tmp_path, browser, monkeypatch):
-    monkeypatch.setattr("agentos.node.flow_driver.BODY_TIMEOUT_S", 0.5)
+    monkeypatch.setattr("openajar.node.flow_driver.BODY_TIMEOUT_S", 0.5)
     server = Server({**PAGES, "/orders": html(READ_IT)}, slow={"/api/orders": 3.0})
     async with server.running(tmp_path) as base:
         run = await _read_once(tmp_path, browser, server, base)
@@ -601,7 +601,7 @@ class _Answer:
 
 
 async def test_on_firefox_a_body_is_read_as_before_and_a_failure_says_which(monkeypatch):
-    monkeypatch.setattr("agentos.node.flow_driver.BODY_TIMEOUT_S", 0.05)
+    monkeypatch.setattr("openajar.node.flow_driver.BODY_TIMEOUT_S", 0.05)
 
     async def good():
         return b"[]"

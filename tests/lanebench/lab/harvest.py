@@ -22,18 +22,18 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from agentos.core.driver import ElementNotFound
-from agentos.core.models import ActionKind
-from agentos.node import human
-from agentos.node.flow_driver import PATH_JS, PlaywrightFlowDriver
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.tools import full_outline, page_result
 from lanebench.executors.jev import planner_values
 from lanebench.executors.replay import ReplayExecutor, locator
 from lanebench.sites.app import Site, photo_png, serve
 from lanebench.sites.state import Plan
 from lanebench.sites.strings import STRINGS
 from lanebench.tasks import Task
+from openajar.core.driver import ElementNotFound
+from openajar.core.models import ActionKind
+from openajar.node import human
+from openajar.node.flow_driver import PATH_JS, PlaywrightFlowDriver
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.tools import full_outline, page_result
 
 LANE = "lab/walk"
 DATA = Path(__file__).resolve().parent / "data"

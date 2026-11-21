@@ -16,13 +16,13 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from test_dev_up import dev_node, ref_for
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import NotFound
-from agentos.core.models import LaneSpec
-from agentos.dev.node import build_runtime, prepare_home
-from agentos.node.files import LaneFiles
-from agentos.policy import ledger as ledger_mod
-from agentos.runner.fakes import BASE
+from openajar.core.config import NodeConfig
+from openajar.core.errors import NotFound
+from openajar.core.models import LaneSpec
+from openajar.dev.node import build_runtime, prepare_home
+from openajar.node.files import LaneFiles
+from openajar.policy import ledger as ledger_mod
+from openajar.runner.fakes import BASE
 
 PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
 
@@ -156,9 +156,9 @@ def test_a_ledger_that_cannot_hear_the_lanes_says_so(caplog):
 
 
 def test_a_workers_tool_names_are_the_ones_its_modules_serve():
-    from agentos.mcp.providers import feature_providers
-    from agentos.mcp.registry import collect_specs
-    from agentos.plugins.entries import PLUGINS
+    from openajar.mcp.providers import feature_providers
+    from openajar.mcp.registry import collect_specs
+    from openajar.plugins.entries import PLUGINS
 
     for plugin in PLUGINS:
         served = {spec.name for spec in collect_specs(SimpleNamespace(has=lambda name: True, get=lambda n: None),
@@ -170,13 +170,13 @@ def test_a_workers_tool_names_are_the_ones_its_modules_serve():
 
 
 def holder(name: str):
-    from agentos.node.claims import Holder
+    from openajar.node.claims import Holder
 
     return Holder(key=f"agent:{name}", label=f"agent {name}", identity=f"agent:{name}")
 
 
 async def dev_lanes(tmp_path, **config):
-    from agentos.dev.lanes import DevLaneManager
+    from openajar.dev.lanes import DevLaneManager
 
     lanes = DevLaneManager(NodeConfig(home=tmp_path, **config))
     await lanes.create(LaneSpec(id="biz-a/social"))
@@ -184,8 +184,8 @@ async def dev_lanes(tmp_path, **config):
 
 
 async def test_another_callers_act_waits_for_a_claim_then_is_busy_and_reads_pass(tmp_path):
-    from agentos.core.errors import LaneBusy
-    from agentos.node.claims import READ
+    from openajar.core.errors import LaneBusy
+    from openajar.node.claims import READ
 
     lanes = await dev_lanes(tmp_path, queue_timeout=0.3)
     a, b = holder("a"), holder("b")
@@ -207,7 +207,7 @@ async def test_another_callers_act_waits_for_a_claim_then_is_busy_and_reads_pass
 
 
 async def test_a_claim_that_ended_without_its_holder_fails_its_next_call_once(tmp_path):
-    from agentos.core.errors import ClaimLost
+    from openajar.core.errors import ClaimLost
 
     lanes = await dev_lanes(tmp_path)
     a = holder("a")

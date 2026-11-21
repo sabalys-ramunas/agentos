@@ -1,4 +1,4 @@
-"""`agentos identity` and the doctor's clock warning for signing lanes."""
+"""`openajar identity` and the doctor's clock warning for signing lanes."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import pytest
 from test_ops_support import FakeHost
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.config import load_config
-from agentos.core.models import LaneSpec
-from agentos.node.store import LaneStore
-from agentos.ops import doctor
-from agentos.ops.doctor import PASS, WARN, DoctorContext
-from agentos.webbotauth import keys, settings
+from openajar.cli import app
+from openajar.core.config import load_config
+from openajar.core.models import LaneSpec
+from openajar.node.store import LaneStore
+from openajar.ops import doctor
+from openajar.ops.doctor import PASS, WARN, DoctorContext
+from openajar.webbotauth import keys, settings
 
 LANE = "acme/research"
 EM_DASH = "—"
@@ -24,7 +24,7 @@ EM_DASH = "—"
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     result = CliRunner().invoke(app, ["node", "init"])
     assert result.exit_code == 0, result.output
     cfg = load_config(home)
@@ -79,7 +79,7 @@ def test_hosts_add_and_remove(home):
 
 
 def test_hosts_need_an_identity_and_an_agent(home):
-    assert "agentos identity init" in run("hosts", "add", LANE, "example.com", "--reason", "x").output
+    assert "openajar identity init" in run("hosts", "add", LANE, "example.com", "--reason", "x").output
     run("init", LANE)
     assert "signature agent" in run("hosts", "add", LANE, "example.com", "--reason", "x").output
 
@@ -117,7 +117,7 @@ def test_test_sign_hides_the_signature_and_refuses_unlisted_hosts(home):
 def test_settings_written_by_the_cli_load_in_the_provider(home):
     run("init", LANE, "--agent", "https://agents.example")
     run("hosts", "add", LANE, "example.com", "--reason", "research")
-    from agentos.webbotauth.route import IdentityProvider
+    from openajar.webbotauth.route import IdentityProvider
 
     cfg = load_config(home)
     signer = IdentityProvider(cfg).signer_for(LANE, profile_dir=cfg.profile_dir(LANE), proxied=True)

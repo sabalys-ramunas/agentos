@@ -48,7 +48,7 @@ export function ScreenStrip({
             onClick={() => onPick(screen.key)}
             className={cn(
               'grid w-32 shrink-0 gap-1 rounded-lg border p-1 text-left transition-colors duration-(--duration-fast) ease-standard',
-              on ? 'border-fg bg-card' : 'border-transparent hover:bg-hover',
+              on ? 'border-accent bg-accent-soft' : 'border-transparent hover:bg-hover',
             )}
           >
             <Thumb
@@ -57,14 +57,14 @@ export function ScreenStrip({
               className="aspect-[16/10] w-full"
             />
             <span className="flex items-center justify-between gap-1 px-1">
-              <span title={words} className={cn('truncate font-mono text-code-caption', on ? 'text-fg' : 'text-muted')}>
+              <span title={words} className={cn('truncate font-mono text-code-caption', on ? 'text-accent-text' : 'text-muted')}>
                 {words}
               </span>
               {screen.ok ? (
                 <span
                   className={cn(
                     'inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-mono text-micro tabular',
-                    count ? 'bg-fg text-on-primary' : 'border border-line text-faint',
+                    count ? 'bg-fg text-on-inverse' : 'border border-line text-faint',
                   )}
                 >
                   {count}

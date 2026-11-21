@@ -1,4 +1,4 @@
-"""`agentos audit verify`: one test per kind of tampering, each finding one sentence with seq
+"""`openajar audit verify`: one test per kind of tampering, each finding one sentence with seq
 numbers, and distinct exit codes for ok, tampered and unverifiable."""
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_policy_support import Clock
 from typer.testing import CliRunner
 
-from agentos.policy.auditlog import (
+from openajar.policy.auditlog import (
     EXIT_OK,
     EXIT_TAMPERED,
     SIG_CTX,
@@ -21,8 +21,8 @@ from agentos.policy.auditlog import (
     row_hash,
     sign,
 )
-from agentos.policy.tokens import key_id
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.policy.tokens import key_id
+from openajar.policy.traces import TraceEvent, TraceStore
 
 
 def ev(i: int, lane: str = "biz-a/instagram") -> TraceEvent:
@@ -194,7 +194,7 @@ def test_since_and_lane_scope(tmp_path):
     s.checkpoint()
     clock.advance(120)  # less than the 10 minutes after which a time checkpoint would cover it
     s.write(ev(2, lane="biz-a/y"))
-    from agentos.policy.auditlog import Scope
+    from openajar.policy.auditlog import Scope
 
     # the uncovered row is on another lane, or before the window: the scope is proven
     assert s.verify(scope=Scope(lane="biz-a/x")).status == "ok"
@@ -206,9 +206,9 @@ def test_since_and_lane_scope(tmp_path):
 # ---------------------------------------------------------------- the CLI
 
 def test_cli_exit_codes(tmp_path, monkeypatch):
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     s = TraceStore(tmp_path / "traces.db", secrets_dir=tmp_path / "secrets")
     for i in range(3):
         s.write(ev(i))
@@ -308,7 +308,7 @@ def test_verify_since_a_window_that_starts_the_log(tmp_path):
         raw.execute("DROP TRIGGER traces_append_only")
         raw.execute("DELETE FROM traces WHERE seq = 1")
         raw.close()
-        from agentos.policy.auditlog import Scope
+        from openajar.policy.auditlog import Scope
 
         # no row before the window: the walk starts at the genesis, so the missing first row is seen
         assert s.verify(scope=Scope(since=0)).status == "tampered"

@@ -5,7 +5,7 @@
  */
 import type { EnvProof, EnvReplayTimeline, ReplayCall, ReplayCause, ReplayFrame } from '@/api/types';
 
-/** How often the node pictures a person's take-over (agentos.environments.replay EVERY_S). */
+/** How often the node pictures a person's take-over (openajar.environments.replay EVERY_S). */
 export const PERSON_EVERY_MS = 3_000;
 export const SPEEDS = [1, 2, 4, 8] as const;
 export type Speed = (typeof SPEEDS)[number];

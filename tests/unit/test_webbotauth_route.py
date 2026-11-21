@@ -10,14 +10,14 @@ from typing import Any
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.node.camoufox.engine import CamoufoxEngine
-from agentos.webbotauth import keys, settings
-from agentos.webbotauth.keys import IdentityError
-from agentos.webbotauth.route import IdentityProvider, LaneSigner, filter_accept_encoding
-from agentos.webbotauth.settings import LaneIdentity
-from agentos.webbotauth.trace import IdentityTrace
-from agentos.webbotauth.verify import verify_request
+from openajar.core.config import NodeConfig
+from openajar.node.camoufox.engine import CamoufoxEngine
+from openajar.webbotauth import keys, settings
+from openajar.webbotauth.keys import IdentityError
+from openajar.webbotauth.route import IdentityProvider, LaneSigner, filter_accept_encoding
+from openajar.webbotauth.settings import LaneIdentity
+from openajar.webbotauth.trace import IdentityTrace
+from openajar.webbotauth.verify import verify_request
 
 LANE = "acme/research"
 SIGNED = "https://shop.example"

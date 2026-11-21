@@ -132,7 +132,7 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
       {item.note ? <p className="text-body text-muted">{item.note}</p> : null}
       {/* The answer first: the sign-in is what this page is for, so it sits above the live view, not under it. */}
       <p className="text-secondary text-faint">
-        The password is typed on this computer, into the account's own browser. agentos never sees it, and the computer keeps the session.
+        The password is typed on this computer, into the account's own browser. openajar never sees it, and the computer keeps the session.
         {item.login_url ? (
           <>
             {' '}

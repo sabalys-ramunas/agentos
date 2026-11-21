@@ -1,5 +1,5 @@
 """keepalive.db: a write lock held by another process never stalls the daemon's loop, and a
-lane's row is read without taking the write lock (agentos.core.sqlite)."""
+lane's row is read without taking the write lock (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 from lockheld import _hold, loop_stays_free
 
-from agentos.keepalive.store import STARTED, KeepaliveStore, Visit
+from openajar.keepalive.store import STARTED, KeepaliveStore, Visit
 
 
 async def test_status_and_visits_wait_for_the_lock_off_the_loop(tmp_path):

@@ -9,9 +9,9 @@ from __future__ import annotations
 import pytest
 from test_connector_social_ops import LI_AS, LI_LANE, LINKEDIN, ME_URL, _harness, _me_redirects
 
-from agentos.core.models import RunStatus
-from agentos.runner.connectors.compile import compile_path
-from agentos.runner.fakes import El, FakeSite
+from openajar.core.models import RunStatus
+from openajar.runner.connectors.compile import compile_path
+from openajar.runner.fakes import El, FakeSite
 
 OLD_PHOTO = "https://media.licdn.com/dms/image/v2/D4D03AQOLD0000/profile-displayphoto-shrink_200_200/0/1"
 OLD_COVER = "https://media.licdn.com/dms/image/v2/D4D16AQOLD0000/profile-displaybackgroundimage-shrink_350_1400/0/1"
@@ -303,9 +303,9 @@ def test_text_differs_takes_a_template_of_shown_params_only():
 
     from pydantic import ValidationError
 
-    from agentos.runner.connectors.compile import compile_connector
-    from agentos.runner.connectors.models import PreflightCheck
-    from agentos.runner.models import PreflightCheck as RunnerCheck
+    from openajar.runner.connectors.compile import compile_connector
+    from openajar.runner.connectors.models import PreflightCheck
+    from openajar.runner.models import PreflightCheck as RunnerCheck
 
     loc = {"role": "heading", "nth": 0, "within": {"role": "main"}}
     assert PreflightCheck.model_validate({"kind": "text_differs", "locator": loc, "text": "${headline}"}).text

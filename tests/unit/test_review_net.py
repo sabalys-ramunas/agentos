@@ -14,8 +14,8 @@ from typing import ClassVar
 import h11
 import pytest
 
-from agentos.environments.swap import Binding, swap_request
-from agentos.vault.policy import env_scope_allows
+from openajar.environments.swap import Binding, swap_request
+from openajar.vault.policy import env_scope_allows
 
 HOST = "api.bound.example"
 PH = "agentos-secret-" + "a" * 32
@@ -54,7 +54,7 @@ async def test_n2_control_origin_form_is_swapped():
 
 def test_n3_a_title_binding_is_not_reachable_by_another_family_choosing_the_title():
     # The binding records the grant family whose computer had the title when the owner bound it
-    # (agentos.environments.logins.title_scope), and lane_facts gives each lane's family: the title is the
+    # (openajar.environments.logins.title_scope), and lane_facts gives each lane's family: the title is the
     # opener's free choice (environment_open(title=...)), so it alone reaches nothing.
     class Entry:
         config: ClassVar[dict] = {"envs": {"scopes": [{"title": "Shop fix", "family": "g-owners-agent"}]}}

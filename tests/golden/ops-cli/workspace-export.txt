@@ -1,7 +1,7 @@
-$ agentos workspace export personal --to <TMP>/personal.agentos --passphrase-file <TMP>/pw --json
+$ openajar workspace export personal --to <TMP>/personal.openajar --passphrase-file <TMP>/pw --json
 exit 0
 {
-  "path": "<TMP>/personal.agentos",
+  "path": "<TMP>/personal.openajar",
   "size": <N>,
   "workspace": "personal",
   "counts": {

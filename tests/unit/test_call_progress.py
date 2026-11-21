@@ -1,4 +1,4 @@
-"""Progress notifications and notices on long tool calls (agentos.core.progress, agentos.mcp.registry)."""
+"""Progress notifications and notices on long tool calls (openajar.core.progress, openajar.mcp.registry)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ import json
 import pytest
 from mcp import Client
 
-from agentos.core import progress
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.mcp.registry import build_mcp
+from openajar.core import progress
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.mcp.registry import build_mcp
 
 
 def _runtime() -> Runtime:
@@ -112,8 +112,8 @@ async def test_progress_reaches_a_client_over_http(tmp_path, monkeypatch, mode):
     from fakes import mcp_port_for_tests
     from mcp.client.streamable_http import streamable_http_client
 
-    from agentos.mcp.http import build_app
-    from agentos.node import daemon
+    from openajar.mcp.http import build_app
+    from openajar.node import daemon
 
     monkeypatch.setattr(progress, "HEARTBEAT_S", 0.05)
     config = NodeConfig(home=tmp_path, mcp_token=TOKEN, mcp_port=mcp_port_for_tests())

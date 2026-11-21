@@ -181,7 +181,7 @@ export interface Lane {
   node: string;
   quarantine_reason: string | null;
   logged_in_hint: LoggedInHint;
-  /** Present when the lane is warm. */
+  /** Present when the lane is warm, and for an environment's browser whenever its machine's desktop runs. */
   viewer?: { url: string } | null;
   control: LaneControl;
   /** Why agents are held off this lane, and when that ends. No end means a person clears it. */

@@ -2,10 +2,10 @@
 
 from datetime import UTC, datetime
 
-from agentos.brains.models import BrainSpec, BrainState, TaskRecord, TaskStatus
-from agentos.brains.seats import SeatManager
-from agentos.brains.settings import BrainsSettings
-from agentos.brains.store import Store
+from openajar.brains.models import BrainSpec, BrainState, TaskRecord, TaskStatus
+from openajar.brains.seats import SeatManager
+from openajar.brains.settings import BrainsSettings
+from openajar.brains.store import Store
 
 
 class Clock:

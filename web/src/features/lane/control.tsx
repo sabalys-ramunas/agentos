@@ -20,6 +20,7 @@ import { useKeys } from '@/lib/keyboard';
 import { laneName } from '@/lib/labels';
 import { principalName } from '@/lib/principal';
 import { useNow } from '@/lib/use-now';
+import { PillButton, StageFrame } from './stage-frame';
 import { InlineError } from '@/components/ui/states';
 
 /** The core's default `control_idle_seconds`. Control goes back to agents after this. */
@@ -115,11 +116,25 @@ interface ControlProps extends BarProps {
   org: string;
   /** The live view fills the window: on a phone that is the only way to work in it. */
   expanded?: boolean;
+  /**
+   * The screen as a picture on a stage, with one pill under it that says who has control (an
+   * environment's browser). Without it, the bar over the view (an account).
+   */
+  stage?: boolean;
+  /** The agent's own name ("Claude Code"), when the page knows it. Never a guess. */
+  agent?: string | null;
+  /** On a stage, the frame holds the full window button. */
+  onExpandedChange?: (expanded: boolean) => void;
   children: React.ReactNode;
 }
 
+/** "19:22": when a person took control, in this browser's own time. */
+function sinceClock(iso: string) {
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 /** The live view with its control bar. The frame itself changes with who holds the lane. */
-export function ControlFrame({ org, lane, canControl, expanded = false, children }: ControlProps) {
+export function ControlFrame({ org, lane, canControl, expanded = false, stage = false, agent = null, onExpandedChange, children }: ControlProps) {
   const mutation = useLaneControl(org, lane.workspace, lane.name);
   const { control } = lane;
   const person = control.state === 'human';
@@ -143,7 +158,8 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
   useKeys({ t: () => run({ action: primary }) }, canControl && !(person && challenged));
 
   const held = paused && challenged;
-  const title = person ? `${holder.name} ${holder.mine ? 'have' : 'has'} control` : held ? 'Held for a check' : paused ? 'Agent stopped' : 'Agent has control';
+  const who = person ? holder.name : (agent ?? 'Agent');
+  const title = person ? `${holder.name} ${holder.mine ? 'have' : 'has'} control` : held ? 'Held for a check' : paused ? `${agent ?? 'Agent'} stopped` : `${who} has control`;
   const detail = person
     ? challenged
       ? 'Agents stay off until the check is done'
@@ -158,6 +174,109 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
           ? 'Working now'
           : 'Waiting for its next step';
   const Icon = person ? Hand : paused ? OctagonPause : Bot;
+
+  const buttons = canControl ? (
+    <div className="flex w-full items-center gap-2 sm:w-auto">
+      {!person && !paused ? (
+        <Button
+          size="sm"
+          variant="danger"
+          className="max-sm:h-10 max-sm:flex-1"
+          disabled={pending !== null}
+          onClick={() => setStopping(true)}
+        >
+          Stop agent
+        </Button>
+      ) : null}
+      {/* One button for both, so keyboard focus survives the change of state. The banner
+          below carries the same answer when an agent is asking, so it is not shown twice. */}
+      {control.takeback_requested ? null : person && challenged ? (
+        <HandBack challenged pending={pending} onHandBack={(done) => run({ action: 'hand_back', done })} />
+      ) : (
+      <Button
+        size="sm"
+        variant={person && !stage ? 'inverse' : 'primary'}
+        className="max-sm:h-10 max-sm:flex-1"
+        loading={pendingAction === 'take' || pendingAction === 'hand_back'}
+        // Its own request makes it busy, which keeps keyboard focus on it. Only another
+        // action (Stop agent, answered in its own dialog) disables it outright.
+        disabled={pendingAction === 'stop_agent' || pendingAction === 'deny_request'}
+        onClick={() => run({ action: primary })}
+      >
+        {pendingAction === 'take' ? 'Taking control' : pendingAction === 'hand_back' ? 'Handing back' : primary === 'take' ? 'Take over' : 'Hand back'}
+        <Kbd aria-hidden="true" className="hidden border-transparent bg-transparent text-current opacity-60 lg:inline-flex">
+          T
+        </Kbd>
+      </Button>
+      )}
+    </div>
+  ) : null;
+
+  const takeback = control.takeback_requested ? (
+    <Takeback lane={lane} canControl={canControl} pending={pending} onDeny={() => run({ action: 'deny_request' })} onHandBack={(done) => run({ action: 'hand_back', done })} />
+  ) : null;
+  const failure = mutation.isError ? (
+    <InlineError className="border-b border-line px-4 py-2">{describeError(mutation.error)}</InlineError>
+  ) : null;
+  const stopDialog = (
+    <ConfirmDialog
+      open={stopping}
+      onOpenChange={setStopping}
+      title={`Stop the agent on ${name}?`}
+      description="It stops now. Any run or brain task on this account is cancelled, and it will not act here until you hand back. Anything it already published stays published."
+      confirmLabel="Stop agent"
+      danger
+      loading={pendingAction === 'stop_agent'}
+      onConfirm={() => mutation.mutate({ action: 'stop_agent' }, { onSettled: () => setStopping(false) })}
+    />
+  );
+
+  if (stage) {
+    // On the night band: the control pill under the screen (stage-frame.tsx). Stop agent leaves the pill for its ⋯ menu.
+    const busyAction = pendingAction === 'take' || pendingAction === 'hand_back';
+    const action = !canControl || control.takeback_requested ? null : person && challenged ? (
+      <HandBack challenged pending={pending} onHandBack={(done) => run({ action: 'hand_back', done })} />
+    ) : (
+      <PillButton
+        pending={busyAction}
+        disabled={pendingAction === 'stop_agent' || pendingAction === 'deny_request'}
+        onClick={() => run({ action: primary })}
+        shortcut="T"
+      >
+        {pendingAction === 'take' ? 'Taking control' : pendingAction === 'hand_back' ? 'Handing back' : primary === 'take' ? 'Take over' : 'Hand back'}
+      </PillButton>
+    );
+    const warn = person && !challenged && left <= WARN_SECONDS;
+    return (
+      <StageFrame
+        name={name}
+        state={person ? 'human' : paused ? 'paused' : 'agent'}
+        agent={agent ?? 'Agent'}
+        holder={holder.name}
+        mine={holder.mine}
+        since={control.since && (person || paused) ? sinceClock(control.since) : null}
+        held={held}
+        note={warn ? `returns to agents in ${clock(left)}` : null}
+        noteTone={warn ? 'warn' : undefined}
+        canControl={canControl}
+        action={action}
+        onStop={canControl && !person && !paused ? () => setStopping(true) : null}
+        expanded={expanded}
+        onExpandedChange={onExpandedChange}
+        notices={
+          takeback || failure ? (
+            <div className="overflow-hidden rounded-lg border border-line bg-card">
+              {takeback}
+              {failure}
+            </div>
+          ) : null
+        }
+        dialogs={stopDialog}
+      >
+        {children}
+      </StageFrame>
+    );
+  }
 
   return (
     <section
@@ -184,62 +303,12 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
             <p className={cn('tabular text-caption', person ? 'opacity-80' : 'text-faint')}>{detail}</p>
           </div>
         </div>
-        {canControl ? (
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            {!person && !paused ? (
-              <Button
-                size="sm"
-                variant="danger"
-                className="max-sm:h-10 max-sm:flex-1"
-                disabled={pending !== null}
-                onClick={() => setStopping(true)}
-              >
-                Stop agent
-              </Button>
-            ) : null}
-            {/* One button for both, so keyboard focus survives the change of state. The banner
-                below carries the same answer when an agent is asking, so it is not shown twice. */}
-            {control.takeback_requested ? null : person && challenged ? (
-              <HandBack challenged pending={pending} onHandBack={(done) => run({ action: 'hand_back', done })} />
-            ) : (
-            <Button
-              size="sm"
-              variant={person ? 'inverse' : 'primary'}
-              className="max-sm:h-10 max-sm:flex-1"
-              loading={pendingAction === 'take' || pendingAction === 'hand_back'}
-              // Its own request makes it busy, which keeps keyboard focus on it. Only another
-              // action (Stop agent, answered in its own dialog) disables it outright.
-              disabled={pendingAction === 'stop_agent' || pendingAction === 'deny_request'}
-              onClick={() => run({ action: primary })}
-            >
-              {pendingAction === 'take' ? 'Taking control' : pendingAction === 'hand_back' ? 'Handing back' : primary === 'take' ? 'Take over' : 'Hand back'}
-              <Kbd aria-hidden="true" className="hidden border-transparent bg-transparent text-current opacity-60 lg:inline-flex">
-                T
-              </Kbd>
-            </Button>
-            )}
-          </div>
-        ) : null}
+        {buttons}
       </div>
-      {control.takeback_requested ? (
-        <Takeback lane={lane} canControl={canControl} pending={pending} onDeny={() => run({ action: 'deny_request' })} onHandBack={(done) => run({ action: 'hand_back', done })} />
-      ) : null}
-      {mutation.isError ? (
-        <InlineError className="border-b border-line px-4 py-2">
-          {describeError(mutation.error)}
-        </InlineError>
-      ) : null}
+      {takeback}
+      {failure}
       {children}
-      <ConfirmDialog
-        open={stopping}
-        onOpenChange={setStopping}
-        title={`Stop the agent on ${name}?`}
-        description="It stops now. Any run or brain task on this account is cancelled, and it will not act here until you hand back. Anything it already published stays published."
-        confirmLabel="Stop agent"
-        danger
-        loading={pendingAction === 'stop_agent'}
-        onConfirm={() => mutation.mutate({ action: 'stop_agent' }, { onSettled: () => setStopping(false) })}
-      />
+      {stopDialog}
     </section>
   );
 }

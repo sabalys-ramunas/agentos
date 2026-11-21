@@ -6,10 +6,10 @@ with no card. These started as the reviewer's proofs; they now assert the form i
 import pytest
 from test_handback import LANE, Ctx, env  # noqa: F401 - env is a fixture
 
-from agentos.core.models import ActionKind
-from agentos.node import fields as fields_mod
-from agentos.node import tools as node_tools
-from agentos.node.egress.helpers import _press_mode
+from openajar.core.models import ActionKind
+from openajar.node import fields as fields_mod
+from openajar.node import tools as node_tools
+from openajar.node.egress.helpers import _press_mode
 
 POST_FORM = {"action": "shop.test/account", "method": "post", "fields": [], "raw": "x"}
 

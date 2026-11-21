@@ -1,4 +1,4 @@
-"""The owner's sign-in from a saved login (agentos.node.login_assist.OwnerVaultContext): the vault's flow runs
+"""The owner's sign-in from a saved login (openajar.node.login_assist.OwnerVaultContext): the vault's flow runs
 with this context, so its two promises are tested here. It refuses another account's entry, and what it
 records goes to a sink as names and steps, never as a value."""
 
@@ -8,8 +8,8 @@ import asyncio
 
 import pytest
 
-from agentos.core.errors import PolicyDenied
-from agentos.node.login_assist import OwnerVaultContext
+from openajar.core.errors import PolicyDenied
+from openajar.node.login_assist import OwnerVaultContext
 
 
 def test_the_owner_context_refuses_another_account_and_allows_its_own():

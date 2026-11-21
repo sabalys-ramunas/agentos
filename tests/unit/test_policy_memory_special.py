@@ -6,14 +6,14 @@ from __future__ import annotations
 import pytest
 from test_policy_support import OWNER, make_service
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect
-from agentos.core.tools import ToolSpec
-from agentos.policy import memory_rules
-from agentos.policy.errors import Denied
-from agentos.policy.grants import Grant, GrantBlock, Specials, Subject, owner_block, widening_problems
-from agentos.policy.memory_rules import MemoryCap, check_memory, memory_scope
-from agentos.policy.tools import grant_info
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Effect
+from openajar.core.tools import ToolSpec
+from openajar.policy import memory_rules
+from openajar.policy.errors import Denied
+from openajar.policy.grants import Grant, GrantBlock, Specials, Subject, owner_block, widening_problems
+from openajar.policy.memory_rules import MemoryCap, check_memory, memory_scope
+from openajar.policy.tools import grant_info
 
 FULL = {"write": True, "private": True, "audience_owner": True}
 
@@ -234,8 +234,8 @@ def test_a_brain_child_cap_writes_its_workspace_never_audience_owner(svc):
 
 def test_a_special_with_no_grant_field_yet_is_denied_not_an_error():
     """Effect.AGENT exists for agent lanes before any grant can carry it: deny, never raise."""
-    from agentos.core.models import PENDING_SPECIALS, Effect
-    from agentos.policy.grants import Grant, owner_block
+    from openajar.core.models import PENDING_SPECIALS, Effect
+    from openajar.policy.grants import Grant, owner_block
 
     assert Effect.AGENT in PENDING_SPECIALS
     assert Grant([owner_block()]).effect_allowed(Effect.AGENT) is False

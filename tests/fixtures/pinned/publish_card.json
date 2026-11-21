@@ -829,20 +829,20 @@
    },
    "signed_in_as": null,
    "account_status": "unknown",
-   "line": "as an identity agentos does not know (x77) on Reddit, through test/reddit",
+   "line": "as an identity openajar does not know (x77) on Reddit, through test/reddit",
    "digest": "sha256:1f92283267d77860dea6d0fe21878ad2f4a0521e3dc1672b926122f86c2ca14e",
    "images": [],
    "params": [],
    "editable": [],
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
-   "identity_line": "Posts as an identity agentos does not know (x77): s",
+   "identity_line": "Posts as an identity openajar does not know (x77): s",
    "acting": {
     "status": "unrecognized",
     "id": "x77",
     "field": "actor_id",
     "why": "no surface names it."
    },
-   "identity_warning": "This would post as an identity agentos does not know (x77, from actor_id): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "identity_warning": "This would post as an identity openajar does not know (x77, from actor_id): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
   }
  },
@@ -880,18 +880,18 @@
    },
    "signed_in_as": null,
    "account_status": "unknown",
-   "line": "as an identity agentos does not know (x77) on Reddit, through test/reddit",
+   "line": "as an identity openajar does not know (x77) on Reddit, through test/reddit",
    "digest": "sha256:e43e8f24f41f110f62fb4ba9c84e8c54d8294132f14f39c98e866b05b1c3ff6f",
    "images": [],
    "params": [],
    "editable": [],
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
-   "identity_line": "Posts as an identity agentos does not know (x77): no surface names it",
+   "identity_line": "Posts as an identity openajar does not know (x77): no surface names it",
    "acting": {
     "status": "unrecognized",
     "id": "x77"
    },
-   "identity_warning": "This would post as an identity agentos does not know (x77): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "identity_warning": "This would post as an identity openajar does not know (x77): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
   }
  },
@@ -929,17 +929,17 @@
    },
    "signed_in_as": null,
    "account_status": "unknown",
-   "line": "as an identity agentos does not know on Reddit, through test/reddit",
+   "line": "as an identity openajar does not know on Reddit, through test/reddit",
    "digest": "sha256:d79e7adef695ada7fa83960f7f4108a354fcf5a6a439d69441d34df34c118517",
    "images": [],
    "params": [],
    "editable": [],
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
-   "identity_line": "Posts as an identity agentos does not know: no surface names it",
+   "identity_line": "Posts as an identity openajar does not know: no surface names it",
    "acting": {
     "status": "unrecognized"
    },
-   "identity_warning": "This would post as an identity agentos does not know: no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "identity_warning": "This would post as an identity openajar does not know: no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
   }
  },
@@ -1659,9 +1659,9 @@
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
    "identity_line": null,
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
-   "headline": "A request agentos does not recognise, to Reddit: PUT /x",
+   "headline": "A request openajar does not recognise, to Reddit: PUT /x",
    "shape": "PUT /x with a, b",
-   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its text, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "explain": "openajar has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its text, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
    "deny_safe": true
   }
  },
@@ -1700,9 +1700,9 @@
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
    "identity_line": null,
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
-   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "headline": "A request openajar does not recognise, to Reddit: POST /",
    "shape": "POST / with no fields",
-   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its title, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "explain": "openajar has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its title, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
    "deny_safe": true
   }
  },
@@ -1746,9 +1746,9 @@
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
    "identity_line": null,
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
-   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "headline": "A request openajar does not recognise, to Reddit: POST /",
    "shape": "POST / with q",
-   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed (in the field body.q), and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "explain": "openajar has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed (in the field body.q), and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
    "deny_safe": true
   }
  },
@@ -1787,9 +1787,9 @@
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
    "identity_line": null,
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
-   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "headline": "A request openajar does not recognise, to Reddit: POST /",
    "shape": "POST / with no fields",
-   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "explain": "openajar has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
    "deny_safe": true
   }
  },
@@ -1929,9 +1929,9 @@
    "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
    "identity_line": null,
    "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
-   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "headline": "A request openajar does not recognise, to Reddit: POST /",
    "shape": "POST / with k00, k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19",
-   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "explain": "openajar has no rule for this request, so it cannot tell whether it posts anything on Reddit. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
    "deny_safe": true
   }
  }

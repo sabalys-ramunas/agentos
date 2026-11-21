@@ -23,17 +23,17 @@ Claude Code and Codex crowd would install on day one ("my agent keeps working wi
 closed, and it wakes when a customer comments"), and it fits on top of what exists with
 less new machinery than it looks:
 
-- `agentos.brains` already runs `claude -p` and `codex exec` detached, as a confined user,
+- `openajar.brains` already runs `claude -p` and `codex exec` detached, as a confined user,
   in systemd scopes, with seats, cooldowns, redacted transcripts, resume and child grants.
   A brain task is a one-shot offload. An **agent lane** is the same supervisor made
   resident: one long-lived session per lane, many turns, a human able to attach.
-- `agentos.env` already has isolated lanes (netns, egress forwarder, overlay, cgroups,
+- `openajar.env` already has isolated lanes (netns, egress forwarder, overlay, cgroups,
   PTYs streamed to the panel). An agent lane is an env lane with a new `agent` preset.
-- `agentos.runner` already fires cron slots, page watches and signed webhooks with
+- `openajar.runner` already fires cron slots, page watches and signed webhooks with
   idempotency keys, but only into flows. The **events layer** puts a durable queue and
   owner-written routes between those sources and three targets: a flow, a brain task, or
   an agent lane.
-- `agentos.policy` already narrows grants, keeps taint per grant family, and routes
+- `openajar.policy` already narrows grants, keeps taint per grant family, and routes
   commits to the owner's phone. Each event turn gets its own grant, narrowed to that
   event, seeded with that event's taint.
 
@@ -42,14 +42,14 @@ The recommendation, in one line per decision:
 1. **New lane kind `agent`**, an env lane with preset `agent`: isolated network whose only
    exits are the runner's model hosts, declared git remotes and a node-side MCP socket.
 2. **Turns, not a chat.** The node drives the owner's CLI one turn at a time
-   (`claude -p --resume`, `codex exec resume`), using flags agentos already pins. A human
+   (`claude -p --resume`, `codex exec resume`), using flags openajar already pins. A human
    can attach the CLI's own interactive UI to the same session; while they do, events
    queue, exactly like Take over on a browser lane.
 3. **The CLI logs in by itself, inside the lane.** For agent lanes the owner signs the
    unmodified CLI in through the attach terminal, and the credential stays in the lane's
-   home. agentos never collects, stores or relays it. This is the reading of Anthropic's
+   home. openajar never collects, stores or relays it. This is the reading of Anthropic's
    terms that holds for self-host and for the hosted edition alike (section 2.3).
-4. **No token inside the lane.** The agent reaches agentos through a socket the node
+4. **No token inside the lane.** The agent reaches openajar through a socket the node
    serves inside the lane's network namespace. The node attaches the current turn's grant
    on its side, so there is no bearer token for the agent's own shell to read.
 5. **One grant per turn**, a child of the lane's grant, narrowed by the route that woke it
@@ -83,7 +83,7 @@ this design relies on.
 - **G3. Hands and brain in one place.** The agent and the browser lanes it drives share a
   node, so a turn calls lanes over a local socket, not over a tunnel from a sleeping Mac.
 - **G4. Enforced, not advisory.** The agent's native tools (Bash, Edit) are boxed by the
-  lane; its agentos tools are boxed by the turn grant. ARCHITECTURE section 5 ("the
+  lane; its openajar tools are boxed by the turn grant. ARCHITECTURE section 5 ("the
   advisory-grant fix") becomes the default for every hosted agent.
 - **G5. Calm.** Quiet hours, batching and one notification per incident. A 24/7 watcher
   costs the owner nothing in attention until something needs them.
@@ -92,9 +92,9 @@ this design relies on.
 
 ### 2.2 Non-goals, and the "not an agent" line
 
-agentos stays a body. Precisely, for this design:
+openajar stays a body. Precisely, for this design:
 
-agentos **may**:
+openajar **may**:
 
 - start, stop, confine, supervise and resume a process the owner chose (a pinned,
   unmodified CLI build);
@@ -103,7 +103,7 @@ agentos **may**:
 - answer its tool calls, under a grant;
 - show its transcript and let a human attach to it.
 
-agentos **may not**:
+openajar **may not**:
 
 - decide what the agent should pursue, or write instructions the owner did not write (the
   frame around an event is fixed text, the same for every event, listed in section 4.3.5);
@@ -111,9 +111,9 @@ agentos **may not**:
   (routes are owner-written data, not a planner);
 - choose the model for an agent lane (the CLI does, from the owner's config); the brains
   router keeps routing brain tasks only;
-- ship a default agent, persona or "agentos assistant".
+- ship a default agent, persona or "openajar assistant".
 
-The test: delete every runner adapter in `agentos.agents` and agentos still contains no
+The test: delete every runner adapter in `openajar.agents` and openajar still contains no
 agent. Hosting Hermes or OpenClaw does not change this, because they are the owner's
 agents, run the same way.
 
@@ -151,13 +151,13 @@ What this design does with that:
 
 - An agent lane runs the **unmodified `claude` binary**, signed in by the owner
   (**cli-native login**: the owner runs the CLI's own login through the attach terminal,
-  and `~/.claude/.credentials.json` [C5] lives in the lane's private home). agentos
+  and `~/.claude/.credentials.json` [C5] lives in the lane's private home). openajar
   never reads, stores or relays the credential. This matches the carve-out in [C4] for
   self-host and for a hosted platform alike.
 - The existing brains path (vault custody of a `setup-token`, injected into `claude -p`)
   stays for self-host brain tasks, where the owner's node holds the owner's token for the
   owner's own scripts. It is **not** used for agent lanes in the hosted edition, because
-  there agentos (the vendor) would be the one storing a Claude.ai token.
+  there openajar (the vendor) would be the one storing a Claude.ai token.
 - Event-driven turns count against "ordinary, individual usage". Default pacing (section
   4.3.6) keeps a lane well inside what one person at a keyboard would do, and the owner
   sees turns per day per lane.
@@ -173,16 +173,16 @@ agent lanes use the tenant's API key only, until OpenAI's terms say otherwise.
 
 **Hermes and OpenClaw.** Both are open-source agents the owner installs and points at
 providers of their choice (Nous Portal, OpenRouter, OpenAI, Anthropic, local endpoints)
-[H1][H2][O3]. agentos treats their provider credentials the same way: configured by the
-owner inside the lane, never custodied by agentos. OpenClaw's docs list a community
+[H1][H2][O3]. openajar treats their provider credentials the same way: configured by the
+owner inside the lane, never custodied by openajar. OpenClaw's docs list a community
 "Claude Max API Proxy" with the warning to "verify Anthropic policy/terms before use"
-[O3]; agentos will not configure or recommend it.
+[O3]; openajar will not configure or recommend it.
 
 **No pooling, anywhere.** One subscription belongs to one person's lanes on that person's
 nodes. The hosted edition gives every tenant its own lanes in its own microVM, signed in
 with that tenant's own credential; no seat, session or token is ever shared across
-tenants or people, and no agentos service proxies model requests for anyone. If a
-provider closes the door, `agentos.agents` disables that runner and the rest of agentos
+tenants or people, and no openajar service proxies model requests for anyone. If a
+provider closes the door, `openajar.agents` disables that runner and the rest of openajar
 (lanes, flows, events into flows) is untouched.
 
 ---
@@ -245,19 +245,19 @@ per-route flow allowlist.
 
 ### S3. "Hand my laptop session to the node and close the lid"
 
-1. In Claude Code on the Mac: `/agentos-offload`. The skill checks git (asks before any
+1. In Claude Code on the Mac: `/openajar-offload`. The skill checks git (asks before any
    commit or push), then calls `agent_handoff` with the git remote and ref, the summary,
    and **the session transcript file** (Claude Code's own session JSONL, which
    `--resume` accepts as a path [C2]).
 2. The node creates or wakes `personal/claude`, clones the ref into `~/work`, places the
    session, and starts a turn: *"Continue the work in this session. You are now on the
    node."* (the owner's offload prompt). The laptop is told: "running on mynode; attach
-   with `agentos attach personal/claude`".
+   with `openajar attach personal/claude`".
 3. Lid closed. The turn runs to its budget, commits and pushes as instructed.
 4. On the phone, the panel's lane view shows the transcript and a composer. The owner
    types "also fix the flaky test in tests/billing"; that is an `owner.message` event,
    delivered as the next turn of the same session.
-5. Back at the desk: `agentos attach personal/claude` opens the real Claude Code UI on the
+5. Back at the desk: `openajar attach personal/claude` opens the real Claude Code UI on the
    node's session in the terminal (events queue meanwhile). Or `agent_handback`: the node
    pushes the branch and returns the session file, and `claude --resume <file>` continues
    on the Mac.
@@ -296,12 +296,12 @@ This is phase 2 for the mailbox side; the webhook side works in phase 1.
 
 ```
  laptop (Claude Code / T3 Code)   panel (web)   phone (panel, Claude app)   Mac client
-        |  MCP tools agent_*        |  /api/agents, SSE     |                 | agentos attach
+        |  MCP tools agent_*        |  /api/agents, SSE     |                 | openajar attach
         +---------------------------+-----------------------+-----------------+
                                     | (tunnel / mesh)
 +---------------------------------- node (agentosd) -------------------------------------+
 |                                                                                        |
-|  SOURCES                    EVENTS (agentos.events)              TARGETS               |
+|  SOURCES                    EVENTS (openajar.events)              TARGETS               |
 |  cron, watch, webhook ----> emit -> [durable queue] -> dispatcher -> flow  (runner)    |
 |  (runner.Scheduler)         dedupe   SQLite WAL       routes       -> brain (brains)   |
 |  approval.decided (policy)           controls:        grant per    -> agent lane turn  |
@@ -317,7 +317,7 @@ This is phase 2 for the mailbox side; the webhook side works in phase 1.
 |  | CLAUDE.md / AGENTS.md (owner's lane charter)   notes/ (agent's own)         |       |
 |  | turn: claude -p --resume <session>   or   attach: claude --resume (PTY)     |       |
 |  | egress: model hosts + declared git remotes only (egress forwarder)          |       |
-|  | 127.0.0.1:7401 = agentos MCP socket (node side adds the turn grant)         |       |
+|  | 127.0.0.1:7401 = openajar MCP socket (node side adds the turn grant)         |       |
 |  +-----------------------------------------------------------------------------+       |
 |        | MCP over the lane socket, as turn grant tu_... (child of the lane grant)      |
 |        v                                                                               |
@@ -335,11 +335,11 @@ sessions, a charter the owner writes, and a grant. It belongs to one workspace, 
 lane, so `biz-a/claude` cannot reach `biz-b` lanes by construction.
 
 ```ts
-interface AgentLaneSpec {                 // agentos.agents.models (sketch)
+interface AgentLaneSpec {                 // openajar.agents.models (sketch)
   id: string                              // "biz-a/claude"; kind = "agent"
   runner: "claude" | "codex" | "hermes" | "openclaw"
   credential: "cli-native" | { brain: string }  // cli-native default; {brain} = vault custody (self-host only)
-  model?: string                          // passed to the CLI; agentos never picks it
+  model?: string                          // passed to the CLI; openajar never picks it
   preset: "agent"                         // env preset, dials overridable by the owner
   egress_extra: string[]                  // beyond the runner's model hosts: git remotes, registries
   repos: { remote: string; ref?: string; deploy_key_ref?: string }[]
@@ -365,7 +365,7 @@ interface AgentLaneSpec {                 // agentos.agents.models (sketch)
 
 Why a process per turn first, and not a long-lived headless process:
 
-- It uses flags agentos already pins, so phase 1 adds almost no CLI risk.
+- It uses flags openajar already pins, so phase 1 adds almost no CLI risk.
 - A turn is a unit of grant, budget, taint and transcript. One process per turn makes all
   four exact, and a crash costs at most one turn.
 - RAM: a Claude Code process is only alive while it works, which matters on a node that
@@ -378,11 +378,11 @@ but its stdin wire format is **not documented** on the CLI pages (the Agent SDK 
 the message shape [C7]); Codex's app-server has `thread/start`, `turn/start`,
 `thread/resume` and approval requests over JSON-RPC [X2] (summary, **unverified**
 details). Both give faster turns and mid-turn messages, and the Codex one gives approval
-prompts agentos can turn into its own approvals.
+prompts openajar can turn into its own approvals.
 
 #### 4.2.3 Supervision
 
-The brains shim (`agentos.brains.shim`) already does the hard parts per attempt: own
+The brains shim (`openajar.brains.shim`) already does the hard parts per attempt: own
 session and systemd scope, rlimits, the brain uid, allowlisted env, redacted rotating
 transcript, turn, token, wall-clock, output and stall limits, graceful cancel and a scope
 sweep, heartbeat in `status.json`, the daemon as the only SQLite writer. Agent lanes reuse
@@ -391,7 +391,7 @@ it, generalized in two ways:
 1. **It runs inside an env lane.** The launch argv is wrapped by
    `EnvManager.command_argv(lane, cmd)` (netns, overlay, cgroup, seccomp) instead of only
    a systemd scope. The scope stays as the outer kill boundary.
-2. **It has a PTY variant** for attach mode, built on `agentos.env.pty.ShellSession`
+2. **It has a PTY variant** for attach mode, built on `openajar.env.pty.ShellSession`
    (ring buffer, subscribe for the panel, resize, close), recording the PTY bytes into
    the same bounded transcript.
 
@@ -428,10 +428,10 @@ holds the seat. With `cli-native` login the seat is keyed by the lane's provider
 - **Attach mode:** raw PTY bytes, redacted and bounded, plus the CLI's own session file,
   which the supervisor tails for the structured view (Claude sessions are JSONL [C2]).
   A user-level Claude Code `Stop` hook and a `Notification` hook with `idle_prompt` [C6],
-  written by agentos into the lane's `~/.claude/settings.json`, tell the supervisor when
+  written by openajar into the lane's `~/.claude/settings.json`, tell the supervisor when
   the human's turn ended and when the UI is idle, so the session lock can be released
   without guessing.
-- Redaction: against the values agentos knows (child tokens are gone, see 4.2.6; the
+- Redaction: against the values openajar knows (child tokens are gone, see 4.2.6; the
   vault-custody credential when used) and the existing patterns. Transcripts live in the
   lane folder, never on the controller.
 
@@ -441,12 +441,12 @@ Every surface talks to the same lane through one small set of verbs:
 
 | Verb | Laptop Claude Code / T3 Code (MCP) | Panel and phone | Mac terminal | What it does |
 |---|---|---|---|---|
-| send | `agent_send(on, message, wait_s?)` | composer in the lane view | `agentos send biz-a/claude "..."` | emits `owner.message`; the next turn of the main session |
-| watch | `agent_status(on)`, `agent_tail(on, since)` | live chat view (SSE `turn`) | `agentos attach --read-only` | read the transcript |
-| attach | `agent_attach(on)` returns a link and a command | "Take over" opens the CLI's UI in the web terminal | `agentos attach biz-a/claude` | the human drives the session; turns queue |
-| stop | `agent_stop(on)` | Stop button, phone break-glass | `agentos agents stop` | cancel the turn, pause the lane |
-| handoff | `agent_handoff(on, bundle, session_file?)` | n/a | `/agentos-offload` skill | move a laptop session onto the lane |
-| handback | `agent_handback(on)` | "Continue on my Mac" | `agentos handback` | push the branch, return the session file |
+| send | `agent_send(on, message, wait_s?)` | composer in the lane view | `openajar send biz-a/claude "..."` | emits `owner.message`; the next turn of the main session |
+| watch | `agent_status(on)`, `agent_tail(on, since)` | live chat view (SSE `turn`) | `openajar attach --read-only` | read the transcript |
+| attach | `agent_attach(on)` returns a link and a command | "Take over" opens the CLI's UI in the web terminal | `openajar attach biz-a/claude` | the human drives the session; turns queue |
+| stop | `agent_stop(on)` | Stop button, phone break-glass | `openajar agents stop` | cancel the turn, pause the lane |
+| handoff | `agent_handoff(on, bundle, session_file?)` | n/a | `/openajar-offload` skill | move a laptop session onto the lane |
+| handback | `agent_handback(on)` | "Continue on my Mac" | `openajar handback` | push the branch, return the session file |
 
 From Claude Code or T3 Code on the laptop, the node's agent is just another MCP server's
 tools, so "ask the node agent to check the deploy" is one tool call. This is a remote
@@ -460,22 +460,22 @@ Vendor remote channels are opt-in per lane (`remote.vendor_remote_control`):
   claude.ai/code or the Claude app connect, with outbound HTTPS only; it needs a
   claude.ai login (Pro, Max, Ultra, Team, Enterprise; "API keys are not supported"), the
   process must keep running, and the transcript "is stored on Anthropic servers" while
-  connected [C3]. agentos runs `claude remote-control` as a supervised attach that holds
+  connected [C3]. openajar runs `claude remote-control` as a supervised attach that holds
   the session lock, adds the Remote Control hosts to the lane's egress, and labels the
   lane "reachable from the Claude app". Turns from the app still run inside the lane box
-  and call agentos under the lane's attach grant; agentos records them from the session
+  and call openajar under the lane's attach grant; openajar records them from the session
   file, not as events.
 - **Codex remote TUI**: `codex app-server --listen ws://127.0.0.1:<port>` inside the lane
   and `codex --remote ws://...` on the laptop, over the existing SSH tunnel (plain
   WebSockets are meant for "localhost or an SSH port-forwarded connection") [X2].
 
-Both default to off, because they are inbound control paths agentos does not mediate turn
+Both default to off, because they are inbound control paths openajar does not mediate turn
 by turn.
 
-#### 4.2.6 The agent's MCP connection back into agentos
+#### 4.2.6 The agent's MCP connection back into openajar
 
 **The lane socket is the credential.** The egress forwarder already serves a listener
-*inside* an isolated lane's namespace from the host side (`agentos.env.netproxy`). Agent
+*inside* an isolated lane's namespace from the host side (`openajar.env.netproxy`). Agent
 lanes get a second one: `127.0.0.1:7401` inside the lane, served by the node, forwarding
 to the node's MCP endpoint with the caller identified by **which lane's listener the
 connection arrived on**. The node maps `lane:biz-a/claude` to the grant of the turn that
@@ -484,22 +484,22 @@ currently holds the session (or the attach grant). The CLI's MCP config is a pla
 
 - No bearer token exists inside the lane, so the agent's own Bash cannot read one, and a
   leaked transcript leaks no token. (Today brain tasks write the child token into a 600
-  file the brain's Bash can read; src/agentos/brains/README.md lists it as a residual risk.)
+  file the brain's Bash can read; src/openajar/brains/README.md lists it as a residual risk.)
 - Between turns the socket answers every call with `no_active_turn`.
 - A node without network namespaces (a macOS node, ARCHITECTURE section 3) falls back to
-  a short-lived turn token through Claude Code's `headersHelper` (as `agentos connect`
+  a short-lived turn token through Claude Code's `headersHelper` (as `openajar connect`
   uses) or Codex's `bearer_token_env_var`, labelled as the weaker mode.
 
 #### 4.2.7 Workspace and files
 
 ```
-$AGENTOS_HOME/agents/<ws>/<name>/          (root-owned, 700; the daemon's view)
+$OPENAJAR_HOME/agents/<ws>/<name>/          (root-owned, 700; the daemon's view)
   spec.json  store rows live in agents.db
   turns/<tu_id>/  launch.json  status.json  transcript-*.jsonl  (shim, as brains today)
-lane overlay, seen by the agent as its home (agent uid, no access to AGENTOS_HOME):
+lane overlay, seen by the agent as its home (agent uid, no access to OPENAJAR_HOME):
   ~/work/<repo>/                git clones of the declared repos
   ~/inbox/                      files events or the owner hand in (images, CSVs)
-  ~/outbox/                     files the agent hands out (agentos files_get)
+  ~/outbox/                     files the agent hands out (openajar files_get)
   ~/CLAUDE.md or ~/AGENTS.md    the lane charter, written by the owner in the panel
   ~/notes/                      the agent's own notes between sessions
   ~/.claude/ or ~/.codex/       the CLI's own login and session store (cli-native)
@@ -518,7 +518,7 @@ lane overlay, seen by the agent as its home (agent uid, no access to AGENTOS_HOM
 
 #### 4.2.8 Memory between sessions
 
-Three layers, all the CLIs' own mechanisms, so agentos stays a body:
+Three layers, all the CLIs' own mechanisms, so openajar stays a body:
 
 1. **The CLI's session store.** Continuing a session (`--resume`) is full memory. The
    owner's main session continues by default; event turns start new sessions by default
@@ -540,7 +540,7 @@ clones into `~/work`, places the session so `--resume` finds it, and seeds the s
 taint from the bundle (`untrusted` unless the owner says the laptop session read nothing
 from outside; the skill asks). Claude Code session files are internal and their
 portability across machines and paths is **unverified** (spike S0-4). The fallback is
-today's summary handoff (`AGENTOS_HANDOFF.md`), which already works.
+today's summary handoff (`OPENAJAR_HANDOFF.md`), which already works.
 
 `agent_handback(on)` pushes the branch (if the lane may) and returns the session file over
 `files_get`, so the laptop resumes it locally. The lane's session lock is released and the
@@ -575,7 +575,7 @@ the page for another reason, the watch reads from that visit instead of loading 
 #### 4.3.2 The event
 
 ```ts
-interface Event {                          // agentos.events.models (sketch)
+interface Event {                          // openajar.events.models (sketch)
   id: string                               // "ev_<12 hex>"
   source: "cron" | "watch" | "webhook" | "approval" | "run" | "lane" | "agent" | "owner" | "mail" | "queue"
   kind: string                             // "watch.changed", "approval.decided", ...
@@ -598,7 +598,7 @@ whatever the outside world wrote; it is carried, framed, and purged after
 
 #### 4.3.3 The durable queue
 
-- `$AGENTOS_HOME/events/events.db`, SQLite WAL, the daemon the only writer (as runner and
+- `$OPENAJAR_HOME/events/events.db`, SQLite WAL, the daemon the only writer (as runner and
   brains stores). Node-local, so it works with the controller down (ARCHITECTURE
   section 2, degraded mode).
 - `emit(event)` is idempotent on `(source, dedupe_key)`: a duplicate tick, a restart
@@ -621,7 +621,7 @@ instruction, under this grant, within these limits". In the panel it is called a
 **trigger** (a source plus a route, one form: "When ... then ...").
 
 ```ts
-interface Route {                          // agentos.events.models (sketch)
+interface Route {                          // openajar.events.models (sketch)
   id: string                               // "rt_<12 hex>"
   enabled: boolean
   match: { source: string; kind?: string; workspace: string; lane?: string;  // lane may be a glob
@@ -668,16 +668,16 @@ phase 2 every flow-target schedule becomes a source plus a flow route (one migra
 
 #### 4.3.5 The wake message
 
-Fixed frame, owner instruction, node facts, framed content. agentos writes nothing else:
+Fixed frame, owner instruction, node facts, framed content. openajar writes nothing else:
 
 ```
-[agentos event ev_3f9a21c0d4e7 · trigger "IG comments biz-a" (rt_81b2...) · attempt 1]
+[openajar event ev_3f9a21c0d4e7 · trigger "IG comments biz-a" (rt_81b2...) · attempt 1]
 
 Instruction from the owner:
   A new comment arrived. Read it in context on the post. If it needs a reply, draft one
   in biz-a's voice (see CLAUDE.md) and submit it with instagram.reply. ...
 
-Facts from agentos:
+Facts from openajar:
   source=watch  lane=biz-a/instagram  url=https://www.instagram.com/...  seq=42
   detected_at=2026-11-04T14:02:11+02:00  batch=3 items
 
@@ -691,7 +691,7 @@ This turn's grant: draft on biz-a/instagram; flow instagram.reply needs the owne
 approval; 8 turns, 10 minutes; expires 14:15.
 ```
 
-The frame text is a constant in `agentos.events.frame`, reviewed like policy. The
+The frame text is a constant in `openajar.events.frame`, reviewed like policy. The
 delimiters carry the event id so content cannot close the block early (a forged closing
 line without the id is ignored by convention and the content is escaped so the id cannot
 appear inside it).
@@ -733,10 +733,10 @@ Applied by the dispatcher in this order, each recorded with a reason on the deli
 
 Two layers, and each has to hold on its own:
 
-| | The lane box (native tools: Bash, Edit, the CLI itself) | The grant (agentos tools over the lane socket) |
+| | The lane box (native tools: Bash, Edit, the CLI itself) | The grant (openajar tools over the lane socket) |
 |---|---|---|
-| Process | its own uid (not `agentos`, not root), own PID and mount namespace, seccomp, cgroup (`memory_mb` default 1536, pids 512) | n/a |
-| Files | its overlay home and mounted volumes; no path to `AGENTOS_HOME`, other lanes, profiles or the vault | `files_put` / `files_get` on lanes the grant names |
+| Process | its own uid (not `openajar`, not root), own PID and mount namespace, seccomp, cgroup (`memory_mb` default 1536, pids 512) | n/a |
+| Files | its overlay home and mounted volumes; no path to `OPENAJAR_HOME`, other lanes, profiles or the vault | `files_put` / `files_get` on lanes the grant names |
 | Network | egress forwarder only: the runner's model and auth hosts, Remote Control hosts if enabled, declared git remotes, registries only if the owner enabled them; no UDP, DNS only through the forwarder, no private addresses | browser lanes the grant names, with their own site allowlists |
 | Node services | only the lane socket (`127.0.0.1:7401`) and the egress forwarder; never the node MCP port, the panel API, the viewer | per turn, by grant |
 | Credentials | the CLI's own login file in its home (cli-native) or the injected env credential (vault custody, scrubbed from the CLI's subprocesses as brains do with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`); never another secret | vault fills happen on the node into browser lanes; the agent never sees them |
@@ -751,7 +751,7 @@ drops to the agent's uid), so the rule is that the node never follows a link it 
   or a directory of the node's own), one component at a time with `O_NOFOLLOW` against the
   directory fd before it (`core.fs.open_dir`). A link anywhere on the way refuses the step,
   and since the check is the open itself, a link swapped in mid run is refused too.
-- Writes (the MCP config, a CLI's login and config, inline bundle files, `AGENTOS_HANDOFF.md`)
+- Writes (the MCP config, a CLI's login and config, inline bundle files, `OPENAJAR_HANDOFF.md`)
   go to an `O_EXCL` temp name and are renamed over the final name, which replaces a link, a
   hard link or a FIFO there instead of writing through it. An inline bundle file whose path
   runs through a link in the repo is refused outright.
@@ -769,15 +769,15 @@ drops to the agent's uid), so the rule is that the node never follows a link it 
 Native tool defaults per runner:
 
 - **Claude Code:** `--permission-mode dontAsk`, `--allowedTools` Bash, Read, Edit, Write,
-  Glob, Grep and `mcp__agentos__*`; `--disallowedTools` WebFetch and WebSearch (a bare
+  Glob, Grep and `mcp__openajar__*`; `--disallowedTools` WebFetch and WebSearch (a bare
   name "removes the matching tools from Claude's context" [C2]). WebSearch is refused
   because it runs on the provider's side and would bypass both the egress forwarder and
-  taint; web reading goes through agentos browser lanes, where it is labelled.
+  taint; web reading goes through openajar browser lanes, where it is labelled.
   `--setting-sources user` and `--strict-mcp-config` stay, because a `-p` session
   otherwise "runs the hooks in a project's `.claude/settings.json` ... even in a folder
   you've never trusted" [C1], and a cloned repo is exactly such a folder.
 - **Codex:** `--sandbox workspace-write` inside the lane, `shell_environment_policy`
-  as brains writes it today, MCP only `agentos`.
+  as brains writes it today, MCP only `openajar`.
 
 #### 4.4.2 Grants: the lane grant and one grant per turn
 
@@ -862,7 +862,7 @@ Nothing changes in how approvals work; event turns make more of them, so:
    dies; every route targeting the lane pauses;
 4. the lane folder, the session and the transcript stay for inspection.
 
-`agentos agents freeze` does the same for every agent lane on the node; a workspace-wide
+`openajar agents freeze` does the same for every agent lane on the node; a workspace-wide
 freeze does it for a workspace's agent lanes and holds its browser lanes.
 
 #### 4.4.7 Audit
@@ -882,7 +882,7 @@ are chained like every other trace.
 - A git remote the owner declares is a channel out. Pushes go only there.
 - Registries, if enabled, run third-party code in the lane (post-install scripts). The
   lane box contains it; sessions in such a lane carry `untrusted` permanently.
-- Vendor remote channels (Remote Control, codex `--remote`) take messages agentos does
+- Vendor remote channels (Remote Control, codex `--remote`) take messages openajar does
   not mediate; they still run inside the box and under the lane's attach grant.
 - A macOS node cannot build the box (no network namespaces); agent lanes there run in the
   weaker labelled mode with a turn token.
@@ -927,9 +927,9 @@ are chained like every other trace.
 | **api** | `/api/agents` (list, get, create, delete), `/api/agents/{ws}/{name}/messages` (POST), `/transcript?since=`, `/attach` (WebSocket, PTY, reusing the terminal route), `/stop`; `/api/routes` CRUD; `/api/events` (list, with deliveries); SSE kinds `agent`, `turn`, `event`, `delivery` |
 | **panel** | agent lane windows on the desk (kind icon, state, last turn); lane view with chat transcript, composer, Take over (web terminal), Stop; Triggers under Flows ("When ... then ..."); Needs you shows paused routes, dead letters and `needs_auth`; meters for turns per day. No new rail items |
 | **tui** (dash) | agent lanes in the lanes view with state and last turn; send and stop |
-| **client** (Mac) | `agentos attach <lane>` (SSH tunnel to the attach WebSocket, raw terminal), `agentos send`, `agentos handback`; the `/agentos-offload` skill targets `agent_handoff` when the node has agent lanes, with `brain_run` as the fallback |
+| **client** (Mac) | `openajar attach <lane>` (SSH tunnel to the attach WebSocket, raw terminal), `openajar send`, `openajar handback`; the `/openajar-offload` skill targets `agent_handoff` when the node has agent lanes, with `brain_run` as the fallback |
 | **controller** | phase 3: mirror agent lane state and events for the multi-node panel, route events across nodes, a hosted relay for public webhooks; the controller never holds session files, credentials or event content |
-| **integrations/claude-code** | `agentos-offload` updated; a new `agentos-agents` skill (how to use `agent_send` and `agent_tail` from the laptop) |
+| **integrations/claude-code** | `openajar-offload` updated; a new `openajar-agents` skill (how to use `agent_send` and `agent_tail` from the laptop) |
 
 ### 5.2 Contract changes
 
@@ -998,10 +998,10 @@ brief below is ready to hand to a builder.
 #### Brief B0: contracts (S)
 
 - **Scope:** the shared shapes, so B1 to B5 build in parallel. No behavior.
-- **Files:** `src/agentos/core/models.py` (`LaneKind.AGENT`, `Preset.AGENT`, special
-  `agent`, Subject kind `agent`), new `src/agentos/agents/__init__.py` and
+- **Files:** `src/openajar/core/models.py` (`LaneKind.AGENT`, `Preset.AGENT`, special
+  `agent`, Subject kind `agent`), new `src/openajar/agents/__init__.py` and
   `agents/models.py` (`AgentLaneSpec`, `Session`, `Turn`, `TurnStatus`, `AgentState`),
-  new `src/agentos/events/__init__.py` and `events/models.py` (`Event`, `Route`,
+  new `src/openajar/events/__init__.py` and `events/models.py` (`Event`, `Route`,
   `Delivery`, `DeliveryState`, controls), `agents/ports.py` and `events/ports.py`
   (Protocols the other packages call: `AgentsPort.deliver`, `EventsPort.emit`), a stub
   `events/frame.py` with the frame constant and a renderer.
@@ -1018,17 +1018,17 @@ brief below is ready to hand to a builder.
   the node MCP port with an `X-Agentos-Lane` identity the node sets (never the lane);
   base image template `agent@1` (Node 22 and the pinned CLIs from
   `brains/install_cli.sh`, no other tools beyond the dev-box set); the agent uid per lane.
-- **Files:** `src/agentos/env/presets.py`, `env/models.py`, `env/netproxy.py` (or a new
+- **Files:** `src/openajar/env/presets.py`, `env/models.py`, `env/netproxy.py` (or a new
   `env/mcpsock.py`), `env/images.py` and the template, `env/manager.py` (create and warm
-  for kind agent), `src/agentos/env/settings` keys, docs in `env` README section.
+  for kind agent), `src/openajar/env/settings` keys, docs in `env` README section.
 - **Tests:** unit: preset resolution, egress list merge, refusal of `network=shared` for
-  agent lanes. Node (`AGENTOS_TEST_SLOT=32 scripts/node-test.sh agents
+  agent lanes. Node (`OPENAJAR_TEST_SLOT=32 scripts/node-test.sh agents
   tests/node/test_agents_box_node.py`, displays from 320, viewer 6320, VNC 5320, MCP
   7620): from inside an agent lane, an allowlisted host connects, any other host, UDP and
   raw DNS fail; `127.0.0.1:7401` reaches a test MCP server and the node sees the right
-  lane identity; the node's own MCP port, panel port and `AGENTOS_HOME` are unreachable;
+  lane identity; the node's own MCP port, panel port and `OPENAJAR_HOME` are unreachable;
   the lane uid cannot read another lane's home.
-- **Done when:** the box passes the node tests and `agentos doctor` reports it.
+- **Done when:** the box passes the node tests and `openajar doctor` reports it.
 
 #### Brief B2: the agent supervisor (L, agents and brains, node slot 32)
 
@@ -1042,9 +1042,9 @@ brief below is ready to hand to a builder.
   states, stop (scope kill, pause, grant revoke through policy), handoff (bundle plus
   session file) and handback, re-adoption of running turns after a daemon restart,
   `turn.finished` emitted through `EventsPort`.
-- **Files (planned, not written yet; today `agents/` holds only `models.py` and `ports.py`):** `src/agentos/agents/service.py`, `store.py`, `adapters.py`, `supervisor.py`,
+- **Files (planned, not written yet; today `agents/` holds only `models.py` and `ports.py`):** `src/openajar/agents/service.py`, `store.py`, `adapters.py`, `supervisor.py`,
   `handoff.py`, `README.md` (with the terms boundary from section 2.3);
-  `src/agentos/brains/shim.py` (run-under-env and PTY options, no change in behavior for
+  `src/openajar/brains/shim.py` (run-under-env and PTY options, no change in behavior for
   brain tasks), `brains/seats.py` (seat key by credential), `brains/adapters.py` (split
   argv builders for reuse), `dev/fakecli.py` (multi-turn sessions, `--resume`, an
   interactive mode for PTY tests).
@@ -1067,9 +1067,9 @@ brief below is ready to hand to a builder.
   (`on_decision(callback)`) for `approval.decided`, lane-socket principals (the MCP layer
   passes `lane:<id>`; policy resolves the active turn's grant through `AgentsPort`),
   batched pushes keyed by route, and notifier quiet hours (AUD-34) if not already built.
-- **Files:** `src/agentos/policy/service.py`, `grants.py`, `routing.py`, `approvals.py`,
+- **Files:** `src/openajar/policy/service.py`, `grants.py`, `routing.py`, `approvals.py`,
   `notifier.py`, `ROUTING.md` (new sections: lane and turn grants, the `agent` special,
-  the untrusted-commit rule); `src/agentos/mcp/server.py` and `mcp/http.py` for the lane
+  the untrusted-commit rule); `src/openajar/mcp/server.py` and `mcp/http.py` for the lane
   principal.
 - **Tests:** property tests that a turn grant never widens its lane grant on any field;
   taint seeding and session union; the untrusted-commit rule against standing approvals;
@@ -1088,9 +1088,9 @@ brief below is ready to hand to a builder.
   keys), `run.finished` from the runner, `lane.held` and `lane.released` from the lane
   control listener, `approval.decided` from B3's listener, `owner.message` from the API;
   `flow_run(not_before=)`.
-- **Files:** `src/agentos/events/store.py`, `service.py`, `dispatcher.py`, `targets.py`,
-  `frame.py`, `sources.py`, `tools.py`, `README.md`; `src/agentos/runner/models.py`,
-  `schedules.py`, `runner.py`, `tools.py`; `src/agentos/node/lanes/` (listener only, a
+- **Files:** `src/openajar/events/store.py`, `service.py`, `dispatcher.py`, `targets.py`,
+  `frame.py`, `sources.py`, `tools.py`, `README.md`; `src/openajar/runner/models.py`,
+  `schedules.py`, `runner.py`, `tools.py`; `src/openajar/node/lanes/` (listener only, a
   few lines, coordinate with whoever owns lanes.py).
 - **Tests:** clock-driven unit tests with `runner/fakes.py` and a fake `AgentsPort`:
   duplicate emits store one event; quiet hours delay and digest; rate limits wait;
@@ -1099,24 +1099,24 @@ brief below is ready to hand to a builder.
   deliveries wait and release on hand back; flow params come from facts only (a content
   field never fills a param); a cron schedule with `route_id` fires once per slot across a
   restart; dead letter after 3 attempts.
-- **Done when:** S1, S2 and S5 run end to end against the fake node (`agentos dev up`).
+- **Done when:** S1, S2 and S5 run end to end against the fake node (`openajar dev up`).
 
 #### Brief B5: surfaces (M, mcp tools, api, panel, tui, client, skill)
 
 - **Scope:** the MCP tools in section 5.2; `/api/agents`, `/api/routes`, `/api/events` and
   SSE kinds; the panel lane view for agent lanes (chat transcript, composer, Take over in
   the web terminal, Stop, meters), the Triggers form under Flows, Needs you entries;
-  `agentos dash` agent lanes; the Mac client's `attach`, `send`, `handback`; the
-  `/agentos-offload` skill update and a new `agentos-agents` skill; docs/TOOLS.md and
+  `openajar dash` agent lanes; the Mac client's `attach`, `send`, `handback`; the
+  `/openajar-offload` skill update and a new `openajar-agents` skill; docs/TOOLS.md and
   docs/API.md regenerated.
-- **Files (planned, not written yet; today `agents/` holds only `models.py` and `ports.py`):** `src/agentos/agents/tools.py`, `src/agentos/events/tools.py`,
-  `src/agentos/api/routes_resources.py`, `api/realtime.py`, `api/events.py`,
-  `web/src/...` (lane view, triggers), `src/agentos/tui/views.py`,
-  `src/agentos/client/cli.py` and a new `client/attach.py`,
-  `integrations/claude-code/skills/agentos-offload/SKILL.md`, new
-  `integrations/claude-code/skills/agentos-agents/SKILL.md`.
+- **Files (planned, not written yet; today `agents/` holds only `models.py` and `ports.py`):** `src/openajar/agents/tools.py`, `src/openajar/events/tools.py`,
+  `src/openajar/api/routes_resources.py`, `api/realtime.py`, `api/events.py`,
+  `web/src/...` (lane view, triggers), `src/openajar/tui/views.py`,
+  `src/openajar/client/cli.py` and a new `client/attach.py`,
+  `integrations/claude-code/skills/openajar-offload/SKILL.md`, new
+  `integrations/claude-code/skills/openajar-agents/SKILL.md`.
 - **Tests:** API tests with auth and grant scope on every route (an agent lane's own grant
-  cannot call send, attach or stop on itself); SSE event shapes; panel e2e against `agentos
+  cannot call send, attach or stop on itself); SSE event shapes; panel e2e against `openajar
   dev up` (create a lane, send a message, see the turn, take over, stop); client attach
   against a fake WebSocket; `make tools-doc` clean; `make check` clean (it includes the em
   dash check over UI strings).
@@ -1127,7 +1127,7 @@ brief below is ready to hand to a builder.
 - Mailbox source (IMAP IDLE, vault credentials, per-workspace filters), queues
   (`event_emit`), passive watches, digests.
 - Long-lived turn modes from spike S0-6 (Claude stream-json stdin, Codex app-server) with
-  mid-turn owner messages and Codex approvals mapped to agentos approvals.
+  mid-turn owner messages and Codex approvals mapped to openajar approvals.
 - Schedules become sources only (one migration); brain tasks reimplemented as ephemeral
   agent lanes (open question 11).
 - Vendor remote channels (Claude Remote Control, codex `--remote`) as opt-in per lane.
@@ -1169,7 +1169,7 @@ brief below is ready to hand to a builder.
 Each has a recommended default that phase 1 uses unless you say otherwise.
 
 1. **How does Claude Code in an agent lane sign in?** Default: **cli-native**. You log the
-   unmodified CLI in once through the attach terminal, and agentos never holds the token.
+   unmodified CLI in once through the attach terminal, and openajar never holds the token.
    Your existing `claude-max` setup token keeps serving brain tasks. Alternative: reuse the
    vault token for agent lanes too (self-host only; Remote Control would not work with it [C5]).
 2. **Do event turns continue a session or start fresh?** Default: **a fresh session per
@@ -1207,7 +1207,7 @@ Each has a recommended default that phase 1 uses unless you say otherwise.
 13. **One agent lane per workspace, or more?** Default: **one per workspace per runner**
     (`biz-a/claude`, `personal/codex`), never across workspaces. A second one in the same
     workspace is allowed for separate jobs.
-14. **Hermes and OpenClaw: whose clock?** Default: **agentos triggers own the clock**.
+14. **Hermes and OpenClaw: whose clock?** Default: **openajar triggers own the clock**.
     Their built-in cron [H1][O3] stays off in agent lanes, so every wake runs under a grant
     scoped to its event.
 
@@ -1250,5 +1250,5 @@ come from a condensed read of long pages and need checking against the live page
 builder relies on them.
 
 In this repository: docs/VISION.md, docs/ARCHITECTURE.md (sections 2 to 5, 8, 11),
-docs/PRINCIPLES.md, src/agentos/brains/README.md (pinned versions claude 2.1.317 and codex-cli 0.166.0,
-verified on the node 2026-11-03), src/agentos/runner/README.md, src/agentos/policy/ROUTING.md.
+docs/PRINCIPLES.md, src/openajar/brains/README.md (pinned versions claude 2.1.317 and codex-cli 0.166.0,
+verified on the node 2026-11-03), src/openajar/runner/README.md, src/openajar/policy/ROUTING.md.

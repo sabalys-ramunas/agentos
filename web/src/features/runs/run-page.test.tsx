@@ -13,9 +13,9 @@ describe('A run', () => {
     const { user } = open('job-3c4d5e6f7a');
     expect(await screen.findByRole('heading', { level: 1, name: 'Tests in harbor-shop' }, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.getByText('Failed: 2 of 118 tests')).toBeInTheDocument();
-    expect(screen.getByTitle('agentos run -- pnpm vitest run')).toBeInTheDocument();
+    expect(screen.getByTitle('openajar run -- pnpm vitest run')).toBeInTheDocument();
     expect(screen.getByText('feature/cart-rounding')).toBeInTheDocument();
-    expect(screen.getByText('9f86d08 · clean')).toBeInTheDocument();
+    expect(screen.getByText((_, node) => node?.tagName === 'DD' && node.textContent === '9f86d08 · clean')).toBeInTheDocument();
     expect(screen.getByText('116 of 118 passed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
 

@@ -12,12 +12,12 @@ from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import Clock
 
-from agentos.audit.errors import ShareInvalid
-from agentos.audit.service import AuditService, today
-from agentos.core.errors import InvalidRequest
-from agentos.core.ratelimit import RateLimiter
-from agentos.core.zone import node_zone
-from agentos.policy.traces import TraceEvent
+from openajar.audit.errors import ShareInvalid
+from openajar.audit.service import AuditService, today
+from openajar.core.errors import InvalidRequest
+from openajar.core.ratelimit import RateLimiter
+from openajar.core.zone import node_zone
+from openajar.policy.traces import TraceEvent
 
 LANE = "biz-a/instagram"
 OWNER = bearer(TOKEN)
@@ -232,7 +232,7 @@ def test_a_trace_share_shows_only_that_trace_and_expires(node, tmp_path):
 def test_a_screenshot_kept_after_a_commit_is_served_to_who_may_see_the_call(node):
     import hashlib
 
-    from agentos.audit.captures import CAPTURE_KIND, capture_file
+    from openajar.audit.captures import CAPTURE_KIND, capture_file
 
     a, tok_a = agent(node, "worker-a")
     _b, tok_b = agent(node, "worker-b")

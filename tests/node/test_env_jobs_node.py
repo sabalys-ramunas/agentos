@@ -1,5 +1,5 @@
 # ruff: noqa: F811  (pytest fixtures imported from test_env_node_support)
-"""`agentos run`'s node side in a real sandbox: a synced tree lands in an overlay lane through the
+"""`openajar run`'s node side in a real sandbox: a synced tree lands in an overlay lane through the
 lane's own tar, a background job streams from it, deletes and the kept .venv behave, cancel ends it."""
 
 import asyncio
@@ -9,7 +9,7 @@ import os
 import pytest
 from test_env_node_support import mgr, needs_node  # noqa: F401
 
-from agentos.client.run import build_tree, manifest_chunks, read_chunk
+from openajar.client.run import build_tree, manifest_chunks, read_chunk
 
 pytestmark = [pytest.mark.node, needs_node]
 

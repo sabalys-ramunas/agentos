@@ -9,14 +9,14 @@ from typing import Any
 import pytest
 from testkit.pilot import FakeTools, ScriptedDecider, ScriptedWriter, step
 
-from agentos.core.models import Principal
-from agentos.pilot import service as pilot_service
-from agentos.pilot.deciders import BrainText, DeciderFailed, TextWriter, write_prompt
-from agentos.pilot.hands import NodeTools, ToolFailed
-from agentos.pilot.loop import Held, Pilot, Plan, State
-from agentos.pilot.models import Request, Status, Value
-from agentos.pilot.page import Element, on_site
-from agentos.pilot.service import parse_values
+from openajar.core.models import Principal
+from openajar.pilot import service as pilot_service
+from openajar.pilot.deciders import BrainText, DeciderFailed, TextWriter, write_prompt
+from openajar.pilot.hands import NodeTools, ToolFailed
+from openajar.pilot.loop import Held, Pilot, Plan, State
+from openajar.pilot.models import Request, Status, Value
+from openajar.pilot.page import Element, on_site
+from openajar.pilot.service import parse_values
 
 HEAD = "lane: a/b\nurl: https://x.example/compose\nsignal: ok\nrefs: 3\n\n"
 FORM = HEAD + '- textbox "Caption" [ref=e1]\n- button "Share" [ref=e2]\n'

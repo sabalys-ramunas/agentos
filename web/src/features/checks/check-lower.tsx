@@ -296,7 +296,7 @@ export function WhatChanged({
               title={item.reason}
               className={cn(
                 'inline-flex h-7 items-center gap-2 rounded-full border px-3 text-secondary',
-                shown?.screen === item.screen ? 'border-fg bg-fg text-on-primary' : 'border-line bg-card text-muted hover:text-fg',
+                shown?.screen === item.screen ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line bg-card text-muted hover:text-fg',
               )}
             >
               <span className="font-mono text-code-caption">{keyWords(item.screen)}</span>

@@ -14,20 +14,20 @@ from fakes import FakeInteraction, FakeLaneManager
 from mcp import Client
 from pydantic import Field
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ServiceUnavailable
-from agentos.core.tools import ToolSpec
-from agentos.mcp import providers as mcp_providers
-from agentos.mcp.registry import allow_all_wrap, build_mcp, collect_specs, tool_params
-from agentos.node import daemon
-from agentos.node.daemon import build_plugins, build_services, node_runtime, start_services, stop_services
-from agentos.plugins.errors import PluginDisabled
-from agentos.plugins.models import Plugin, Stage
-from agentos.plugins.service import SERVICE_NAME, PluginService
-from agentos.plugins.store import FILE_NAME, PluginStore
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ServiceUnavailable
+from openajar.core.tools import ToolSpec
+from openajar.mcp import providers as mcp_providers
+from openajar.mcp.registry import allow_all_wrap, build_mcp, collect_specs, tool_params
+from openajar.node import daemon
+from openajar.node.daemon import build_plugins, build_services, node_runtime, start_services, stop_services
+from openajar.plugins.errors import PluginDisabled
+from openajar.plugins.models import Plugin, Stage
+from openajar.plugins.service import SERVICE_NAME, PluginService
+from openajar.plugins.store import FILE_NAME, PluginStore
 
-SERVICE = "agentos.fakeworker.service"
-TOOLS = "agentos.fakeworker.tools"
+SERVICE = "openajar.fakeworker.service"
+TOOLS = "openajar.fakeworker.tools"
 WORKER = Plugin(id="fake-worker", name="Fake", description="d", stage=Stage.WORKS, lane_kinds=(),
                 services=(SERVICE,), tools=(TOOLS,))
 
@@ -76,14 +76,14 @@ def registry(monkeypatch, config):
         runtime.register(SERVICE_NAME, service)
         return service
 
-    module(monkeypatch, "agentos.fakeplugins", build=build)
-    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "agentos.fakeplugins")
+    module(monkeypatch, "openajar.fakeplugins", build=build)
+    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "openajar.fakeplugins")
 
 
 @pytest.fixture
 def worker(monkeypatch):
     events: list[str] = []
-    module(monkeypatch, "agentos.fakeworker")
+    module(monkeypatch, "openajar.fakeworker")
     module(monkeypatch, SERVICE, build=lambda runtime: runtime.register("fakeworker", Worker(events)) or
            runtime.get("fakeworker"))
     module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="worker_do", handler=worker_do, lane_arg=None)])
@@ -104,8 +104,8 @@ def served(runtime):
 
 def test_the_fixed_lists_hold_no_plugin_module():
     fixed = {*daemon.FEATURE_SERVICES, *mcp_providers.FEATURE_TOOLS}
-    assert not {name for name in fixed if name.startswith("agentos.plugins")}
-    assert daemon.REQUIRED_SERVICES == {"agentos.policy.service", "agentos.freeze.service"}
+    assert not {name for name in fixed if name.startswith("openajar.plugins")}
+    assert daemon.REQUIRED_SERVICES == {"openajar.policy.service", "openajar.freeze.service"}
 
 
 def test_a_real_node_with_nothing_on_loads_only_the_registry(runtime):
@@ -181,8 +181,8 @@ def test_a_broken_state_file_loads_nothing_and_the_node_goes_on(runtime, registr
 
 
 def test_a_registry_that_cannot_build_stops_nothing(runtime, monkeypatch, caplog):
-    module(monkeypatch, "agentos.fakeplugins", build=lambda runtime: 1 / 0)
-    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "agentos.fakeplugins")
+    module(monkeypatch, "openajar.fakeplugins", build=lambda runtime: 1 / 0)
+    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "openajar.fakeplugins")
     with caplog.at_level(logging.ERROR):
         build_plugins(runtime)
     assert "no plugin is loaded" in caplog.text
@@ -199,7 +199,7 @@ def test_a_plugin_that_fails_to_build_does_not_stop_the_node(runtime, registry, 
 
 
 def test_a_plugin_whose_module_is_missing_is_failed_not_fatal(runtime, registry, config, monkeypatch):
-    module(monkeypatch, "agentos.fakeworker")
+    module(monkeypatch, "openajar.fakeworker")
     monkeypatch.delitem(sys.modules, SERVICE, raising=False)
     turn_on(config)
     build_plugins(runtime)
@@ -207,7 +207,7 @@ def test_a_plugin_whose_module_is_missing_is_failed_not_fatal(runtime, registry,
 
 
 def test_a_build_that_registers_no_service_is_failed(runtime, config, monkeypatch, worker):
-    from agentos.plugins.requirements import NodeFacts, ServicePresent
+    from openajar.plugins.requirements import NodeFacts, ServicePresent
 
     plugin = Plugin(id=WORKER.id, name="F", description="d", stage=Stage.WORKS, lane_kinds=(), services=(SERVICE,),
                     needs=(ServicePresent("fakeworker", SERVICE),))
@@ -218,8 +218,8 @@ def test_a_build_that_registers_no_service_is_failed(runtime, config, monkeypatc
         runtime.register(SERVICE_NAME, service)
         return service
 
-    module(monkeypatch, "agentos.fakeplugins", build=build)
-    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "agentos.fakeplugins")
+    module(monkeypatch, "openajar.fakeplugins", build=build)
+    monkeypatch.setattr(daemon, "PLUGINS_SERVICE", "openajar.fakeplugins")
     module(monkeypatch, SERVICE, build=lambda runtime: Worker([]))  # builds, and never registers its name
     turn_on(config)
     build_plugins(runtime)
@@ -298,15 +298,15 @@ def test_a_module_already_in_the_fixed_lists_is_not_loaded_twice(runtime, regist
 
 def test_the_controller_channel_stays_the_last_service(runtime, registry, worker, config, monkeypatch):
     module(monkeypatch, daemon.LAST_SERVICE, build=lambda runtime: Worker([]))
-    module(monkeypatch, "agentos.fakefirst", build=lambda runtime: Worker([]))
-    build_services(runtime, ["agentos.fakefirst", daemon.LAST_SERVICE])
+    module(monkeypatch, "openajar.fakefirst", build=lambda runtime: Worker([]))
+    build_services(runtime, ["openajar.fakefirst", daemon.LAST_SERVICE])
     turn_on(config)
     build_plugins(runtime)
-    assert service_names(runtime) == ["agentos.fakefirst", SERVICE, daemon.LAST_SERVICE]
+    assert service_names(runtime) == ["openajar.fakefirst", SERVICE, daemon.LAST_SERVICE]
 
 
 def test_a_caller_that_names_its_modules_gets_only_those(runtime):
-    assert len(mcp_providers.tool_providers(["agentos.plugins.tools"])) == 2  # the node's own, and that one
+    assert len(mcp_providers.tool_providers(["openajar.plugins.tools"])) == 2  # the node's own, and that one
 
 
 def test_build_runtime_goes_through_the_gate(config, monkeypatch, registry, worker):

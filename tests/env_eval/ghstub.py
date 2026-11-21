@@ -1,16 +1,16 @@
 """A stand-in for GitHub's pull request API, on 127.0.0.1, so environment_pull_request works offline.
 
 The node's environments service sends its GitHub calls here (tests/env_eval/node_main.py sets
-`github_api`). It answers the three calls agentos.environments.pulls makes, from the run's own bare
+`github_api`). It answers the three calls openajar.environments.pulls makes, from the run's own bare
 repositories (`repos`: "owner/name" -> its bare repository's path):
 
 - GET  /repos/{owner}/{name}           the repository, with its default branch (the bare repo's HEAD)
 - POST /repos/{owner}/{name}/pulls     a pull request: 201, or 422 as GitHub answers when the head
                                        branch is not in the repository or one is open for it already
 - GET  /repos/{owner}/{name}/pulls     the open ones, `head=owner:branch` narrows it
-- PATCH /repos/{owner}/{name}/pulls/N  a new body (agentos's proof section in an open one)
+- PATCH /repos/{owner}/{name}/pulls/N  a new body (openajar's proof section in an open one)
 
-and, for the proofs a pull request shows (agentos.environments.prproofs), the Git Data API calls it
+and, for the proofs a pull request shows (openajar.environments.prproofs), the Git Data API calls it
 makes, in memory: blobs, trees, commits, the `agentos-proofs` ref, and the contents of a folder there.
 
 Every request must carry a bearer token (any): the node sends the vault's. What was opened is kept
@@ -141,7 +141,7 @@ class GitHubStub:
 
     def _git(self, req: http.server.BaseHTTPRequestHandler, method: str, repo: str, bits: list[str],
              query: dict[str, list[str]]) -> None:
-        """The Git Data API, as far as agentos's proofs use it."""
+        """The Git Data API, as far as openajar's proofs use it."""
         body = _body(req) if method in ("POST", "PATCH") else {}
         what = "/".join(bits[1:])
         with self._lock:

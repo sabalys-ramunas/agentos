@@ -1,5 +1,5 @@
 """QA 2026-11-07 #4: memory_context on the default agent grant. The node's instructions ask an agent
-to call it first in every workspace, so `agentos connect` and `dev up` give memory_read (the memory
+to call it first in every workspace, so `openajar connect` and `dev up` give memory_read (the memory
 special without write); writing memory stays a special the human adds. A grant without it gets a
 hint that names the special, not a ceiling."""
 
@@ -7,12 +7,12 @@ from __future__ import annotations
 
 from test_policy_support import make_service
 
-from agentos.api.bridge import panel_specials
-from agentos.core.models import Effect
-from agentos.core.tools import ToolSpec
-from agentos.dev.node import issue_agent_grant
-from agentos.mcp.registry import grant_hint
-from agentos.policy import memory_rules
+from openajar.api.bridge import panel_specials
+from openajar.core.models import Effect
+from openajar.core.tools import ToolSpec
+from openajar.dev.node import issue_agent_grant
+from openajar.mcp.registry import grant_hint
+from openajar.policy import memory_rules
 
 
 async def _noop(ctx, **kw):
@@ -54,7 +54,7 @@ def test_grant_hint_for_forget_on_a_memory_writer_names_the_ceiling():
     not the memory special."""
     from types import SimpleNamespace
 
-    from agentos.mcp.registry import ToolServer
+    from openajar.mcp.registry import ToolServer
 
     forget, write, read = (spec("memory_forget", Effect.IRREVERSIBLE), spec("memory_write", Effect.DRAFT),
                            spec("memory_context", Effect.READ))

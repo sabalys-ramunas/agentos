@@ -17,15 +17,15 @@ from starlette.websockets import WebSocketDisconnect
 from test_node_panel import TOKEN, WS, Node, bearer, concrete
 from test_node_panel import api_routes as every_route
 
-from agentos.api import realtime
-from agentos.api.members import CAPABILITIES, MEMBER_ROLES
-from agentos.api.realtime import WS_NOT_WARM
-from agentos.core import live
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.core.ratelimit import RateLimiter
-from agentos.policy.freeze_store import FreezeRecord, scope_key
-from agentos.policy.members import MEMBER_ROLES as POLICY_MEMBER_ROLES
+from openajar.api import realtime
+from openajar.api.members import CAPABILITIES, MEMBER_ROLES
+from openajar.api.realtime import WS_NOT_WARM
+from openajar.core import live
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.core.ratelimit import RateLimiter
+from openajar.policy.freeze_store import FreezeRecord, scope_key
+from openajar.policy.members import MEMBER_ROLES as POLICY_MEMBER_ROLES
 
 ORIGIN = "http://localhost:7400"
 
@@ -246,7 +246,7 @@ MEMBER_ROUTES: dict[tuple[str, str], frozenset[str]] = {
     ("GET", "/api/status"): EVERY_MEMBER, ("GET", "/api/templates"): EVERY_MEMBER, ("GET", "/api/brains"): EVERY_MEMBER,
     ("GET", "/api/me"): EVERY_MEMBER, ("GET", "/api/me/devices"): EVERY_MEMBER,
     ("PATCH", "/api/me/details"): EVERY_MEMBER,
-    # the web contract (src/agentos/api/web): a person's own sign-in, devices and details are theirs to see
+    # the web contract (src/openajar/api/web): a person's own sign-in, devices and details are theirs to see
     ("GET", "/api/session"): EVERY_MEMBER, ("PATCH", "/api/me"): EVERY_MEMBER,
     ("GET", "/api/auth/passkeys"): EVERY_MEMBER, ("DELETE", "/api/auth/passkeys/{id}"): EVERY_MEMBER,
     ("POST", "/api/auth/passkey/register/options"): EVERY_MEMBER,
@@ -384,7 +384,7 @@ MEMBER_ROUTES.update({(m, p): frozenset() for m, p in (
     ("GET", "/api/orgs/{org}/memory/export"), ("GET", "/api/orgs/{org}/memory/{id}"),
     ("POST", "/api/orgs/{org}/memory/{id}/confirm"), ("POST", "/api/orgs/{org}/memory/{id}/review"),
     ("POST", "/api/orgs/{org}/memory/{id}/forget"))})
-# Runs, Checks, Brand and VMs (agentos.api.web jobs, studio, brand, computers): web routes with no node route under
+# Runs, Checks, Brand and VMs (openajar.api.web jobs, studio, brand, computers): web routes with no node route under
 # them, so each says who may call it. Runs are read like a lane's activity: `see`, and only the runs in lanes of
 # their workspaces (filtered, 403 for one outside); stopping one is operating the lane. A studio check belongs to
 # the workspace of the profile it was checked with, and is read with `see` there; a check with no profile, and its
@@ -401,11 +401,12 @@ MEMBER_ROUTES.update({
         ("POST", "/{ws}/{id}/reject"))},
     ("GET", "/api/orgs/{org}/vms"): frozenset(),
 })
-# Environments (agentos.api.web.environments): an agent's cloud computer is read like a run, with `see`, and only
+# Environments (openajar.api.web.environments): an agent's cloud computer is read like a run, with `see`, and only
 # where the role reaches workspace env (filtered; one outside is not found); closing or extending one is operating.
 MEMBER_ROUTES.update({
     ("GET", "/api/orgs/{org}/environments"): SEES, ("GET", "/api/orgs/{org}/environments/{id}"): SEES,
     ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.png"): SEES,
+    ("GET", "/api/orgs/{org}/environments/{id}/screen.png"): SEES,
     ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.mp4"): SEES,
     ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.gif"): SEES,
     ("POST", "/api/orgs/{org}/environments/{id}/close"): frozenset({"operator", "admin"}),
@@ -565,6 +566,25 @@ def test_events_are_filtered_by_workspace(node):
     assert access.filter_event("brain", {"name": "x"}) is None and access.filter_event("member", {}) is None
 
 
+def test_the_agents_pointer_reaches_only_those_who_may_watch_the_screen(node):
+    boss = owner(node)
+    plain = join(node, boss, "plain", [role("approver")])
+    watcher = join(node, boss, "watch", [role("viewer", watch=True)])
+    api = node.api_app.state.api
+
+    async def access_of(person):
+        class Conn:
+            def __init__(self):
+                self.headers = {}
+                self.cookies = {"agentos_session": person.client.cookies.get("agentos_session")}
+        return (await api.authenticate(Conn())).access
+
+    spot = {"lane": "biz-a/instagram", "x": 10, "y": 20, "w": 1920, "h": 1080, "kind": "move"}
+    assert asyncio.run(access_of(watcher)).filter_event("pointer", spot) == spot
+    assert asyncio.run(access_of(plain)).filter_event("pointer", spot) is None  # sees the lane, not its screen
+    assert asyncio.run(access_of(watcher)).filter_event("pointer", {**spot, "lane": "biz-b/facebook"}) is None
+
+
 def test_the_live_view_follows_control(node):
     boss = owner(node)
     plain = join(node, boss, "plain", [role("approver")])
@@ -683,7 +703,7 @@ def test_a_viewer_never_decides_either_way_and_four_eyes_holds(node):
     assert approver_no.post(f"/api/approvals/{ap}/deny").json()["state"] == "denied"
     # a question: an approver answers it, a viewer cannot
     approver = join(node, boss, "ap", [role("approver")])
-    from agentos.policy.tools import human_ask
+    from openajar.policy.tools import human_ask
 
     g, _ = node.policy.issue(subject={"id": "asker"}, workspaces=["biz-a"], ceiling="read")
     ctx = node.policy.context(g, tool="human_ask", lane_id="biz-a/instagram")
@@ -736,11 +756,11 @@ def test_the_app_names_who_asked_and_who_decided_and_never_shows_a_members_id(no
     assert "Vee Marsh" == shown["requested_by"]["name"]
 
 
-MEMBER_WORDS = re.compile(r"`|\bagentos\b|\btokens?\b|\bgrants?\b|node\.toml", re.IGNORECASE)
+MEMBER_WORDS = re.compile(r"`|\bopenajar\b|\btokens?\b|\bgrants?\b|node\.toml", re.IGNORECASE)
 
 
 def test_a_members_refusal_says_what_happened_without_a_command_token_or_grant(node):
-    # The catalog's fix for `denied` names `agentos grants`; a member is never told that, and the owner still is
+    # The catalog's fix for `denied` names `openajar grants`; a member is never told that, and the owner still is
     boss = owner(node)
     ap = pending(node)
     viewer = join(node, boss, "wd", [role("viewer")])
@@ -1054,7 +1074,7 @@ def _hold(api, freeze, scope: str, target: str) -> None:
 
 
 def _freeze(node: Node, tmp_path):
-    from agentos.freeze.service import FreezeService
+    from openajar.freeze.service import FreezeService
 
     svc = FreezeService(node.runtime, home=tmp_path / "freeze")
     node.runtime.register("freeze", svc)
@@ -1111,7 +1131,7 @@ def test_a_freeze_keeps_a_members_stream_but_not_the_frozen_workspaces_events(no
 # ------------------------------------------------------------------ runs and checks, by workspace
 
 class _Jobs:
-    """The env manager's job reads, for runs in two workspaces (agentos.api.web.jobs reads only these)."""
+    """The env manager's job reads, for runs in two workspaces (openajar.api.web.jobs reads only these)."""
 
     def __init__(self, infos):
         self.infos = {i.id: i for i in infos}
@@ -1122,7 +1142,7 @@ class _Jobs:
     def job(self, job_id):
         from types import SimpleNamespace
 
-        from agentos.core.errors import NotFound
+        from openajar.core.errors import NotFound
         if job_id not in self.infos:
             raise NotFound(f"no job {job_id}")
         return SimpleNamespace(info=self.infos[job_id], kept=lambda stream: 0)
@@ -1142,11 +1162,11 @@ def test_a_member_sees_only_their_workspaces_runs_and_checks(node, tmp_path):
 
     from PIL import Image
 
-    from agentos.env.models import JobInfo
-    from agentos.studio.contracts import Capture, CheckRun, Screen, Shot, Target
-    from agentos.studio.runs import RunRecord, Runs, new_run_id
-    from agentos.studio.store import iso_now, new_capture_id, store_for
-    from agentos.studio.tools import store_home
+    from openajar.env.models import JobInfo
+    from openajar.studio.contracts import Capture, CheckRun, Screen, Shot, Target
+    from openajar.studio.runs import RunRecord, Runs, new_run_id
+    from openajar.studio.store import iso_now, new_capture_id, store_for
+    from openajar.studio.tools import store_home
 
     boss = owner(node)
     viewer = join(node, boss, "vi", [role("viewer")])

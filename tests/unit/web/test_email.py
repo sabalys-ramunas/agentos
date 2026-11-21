@@ -9,9 +9,9 @@ from typing import Any
 
 import pytest
 
-from agentos.runner.mail import api as mail_api
-from agentos.runner.mail import connect as connecting
-from agentos.runner.workflows.mail import Mailbox, MessageGone, Received
+from openajar.runner.mail import api as mail_api
+from openajar.runner.mail import connect as connecting
+from openajar.runner.workflows.mail import Mailbox, MessageGone, Received
 
 TOKEN = "t" * 43
 BOX = "biz-a/mail"
@@ -336,13 +336,13 @@ LIST_ID = "list.biz-a.customers"
 
 
 def owner_actor():
-    from agentos.runner.workflows.service import Actor
+    from openajar.runner.workflows.service import Actor
 
     return Actor.owner()
 
 
 def agent_actor():
-    from agentos.runner.workflows.service import Actor
+    from openajar.runner.workflows.service import Actor
 
     return Actor({"kind": "agent", "id": "claude-code"}, None, False, "agent:claude-code")
 

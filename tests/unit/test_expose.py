@@ -1,4 +1,4 @@
-"""`agentos expose` and `agentos forward` (agentos.node.expose): the reserved names, the lane's route,
+"""`openajar expose` and `openajar forward` (openajar.node.expose): the reserved names, the lane's route,
 the registry's ends (hard end, lease, the owner), the egress guard's view of an exposed host, the API's
 refusal of every credential an agent can hold, and the action log. The real browser is in
 tests/node/test_expose_node.py."""
@@ -17,17 +17,17 @@ from types import SimpleNamespace
 import pytest
 from test_egress import AGENT, SITES, FakeContext, FakeFrame, FakeRequest, make_guard
 
-from agentos.core.errors import Conflict, EgressRefused, InvalidRequest, LaneNotFound, NotFound
-from agentos.node.egress import Driver, judge
-from agentos.node.expose import names, relay
-from agentos.node.expose.forward import Forward, lane_dialer
-from agentos.node.expose.route import LaneExposeRoute
-from agentos.node.expose.service import ExposeService
-from agentos.node.routes import RouteDispatcher
+from openajar.core.errors import Conflict, EgressRefused, InvalidRequest, LaneNotFound, NotFound
+from openajar.node.egress import Driver, judge
+from openajar.node.expose import names, relay
+from openajar.node.expose.forward import Forward, lane_dialer
+from openajar.node.expose.route import LaneExposeRoute
+from openajar.node.expose.service import ExposeService
+from openajar.node.routes import RouteDispatcher
 
 LANE = "personal/linkedin"
 OTHER = "personal/reddit"
-HOST = "myapp.expose.agentos.invalid"
+HOST = "myapp.expose.openajar.invalid"
 URL = f"https://{HOST}/"
 
 
@@ -128,7 +128,7 @@ def test_a_name_is_one_dns_label_under_the_reserved_suffix():
     for bad in ("", "-x", "x-", "a.b", "a_b", "x" * 33, "../x", "a b"):
         with pytest.raises(InvalidRequest):
             names.validate_name(bad)
-    assert names.name_of(HOST) == "myapp" and names.name_of("myapp.expose.agentos.invalid.evil.com") is None
+    assert names.name_of(HOST) == "myapp" and names.name_of("myapp.expose.openajar.invalid.evil.com") is None
 
 
 @pytest.mark.parametrize("url", [URL, f"http://{HOST}/x", f"https://{HOST}:5173/", f"wss://{HOST}/hmr",
@@ -139,7 +139,7 @@ def test_the_route_pattern_takes_every_url_under_the_suffix(url):
 
 @pytest.mark.parametrize("url", ["https://localhost:5173/", "http://127.0.0.1:5173/", "http://10.0.0.1/",
                                  f"https://{HOST}.evil.com/", f"https://evil.com/{HOST}/",
-                                 f"https://{HOST}@evil.com/", "https://expose.agentos.invalid.evil.com/",
+                                 f"https://{HOST}@evil.com/", "https://expose.openajar.invalid.evil.com/",
                                  f"https://evil.com/?next=https://{HOST}/"])
 def test_the_route_pattern_never_takes_another_host(url):
     assert not names.URL_RE.search(url)
@@ -155,12 +155,12 @@ def test_an_exposed_host_is_inside_the_lane_and_grant_lists_only_while_exposed()
     assert judge(URL, "GET", navigation=True, sites=(), driver=only_grant, human=False).rule == "grant_egress"
     assert judge(URL, "GET", navigation=True, sites=(), driver=only_grant, human=False, exposed={HOST}) is None
     # another exposed name is no wildcard
-    other = "https://other.expose.agentos.invalid/"
+    other = "https://other.expose.openajar.invalid/"
     assert judge(other, "GET", navigation=True, sites=SITES, driver=AGENT, human=False, exposed={HOST}) is not None
 
 
 def test_an_exposed_host_still_meets_the_effect_rules():
-    from agentos.node.egress.rules import EffectRule
+    from openajar.node.egress.rules import EffectRule
 
     rule = EffectRule(id="myapp.post", site="myapp", host=HOST, path="/api/post", effect="commit")
     refusal = judge(URL + "api/post", "POST", navigation=False, sites=SITES, driver=AGENT, human=False,
@@ -312,7 +312,7 @@ def test_the_owner_ends_it_and_the_route_goes(svc):
         try:
             await svc.end(link["id"])
             assert session.routes.patterns() == [names.URL_RE]  # the api expose still needs it
-            assert svc.lookup(LANE, HOST) is None and svc.lookup(LANE, "api.expose.agentos.invalid")
+            assert svc.lookup(LANE, HOST) is None and svc.lookup(LANE, "api.expose.openajar.invalid")
             await svc.end(second["id"])
             assert session.routes.patterns() == [] and session.guard.exposed() == frozenset()
             assert not Path(link["socket"]).exists()
@@ -442,7 +442,7 @@ def test_a_navigation_is_answered_from_the_socket_with_cookies_both_ways():
 
 
 @pytest.mark.parametrize("url", [
-    "https://nobody.expose.agentos.invalid/",       # no such expose
+    "https://nobody.expose.openajar.invalid/",       # no such expose
     f"https://{HOST}:5173/",                         # another port: never another service
     f"https://{HOST}:22/",
     f"wss://{HOST}/hmr",                             # no WebSockets
@@ -471,7 +471,7 @@ def test_plain_http_goes_to_https():
 
 def test_another_sites_page_can_navigate_there_but_not_fetch_from_it():
     fetched: list = []
-    r = lane_route({HOST: EXPOSE, "api.expose.agentos.invalid": EXPOSE}, fetched)
+    r = lane_route({HOST: EXPOSE, "api.expose.openajar.invalid": EXPOSE}, fetched)
     linkedin = FakeFrame("https://www.linkedin.com/feed/")
     cross = Route()
     run(r.handle(cross, Req(URL + "api/me", headers={"sec-fetch-site": "cross-site",
@@ -485,7 +485,7 @@ def test_another_sites_page_can_navigate_there_but_not_fetch_from_it():
                            frame=FakeFrame(URL))))
     assert same.fulfilled["status"] == 200
     sibling = Route()  # the app on one exposed name calling its API on another
-    run(r.handle(sibling, Req("https://api.expose.agentos.invalid/v1", "POST", body=b"{}",
+    run(r.handle(sibling, Req("https://api.expose.openajar.invalid/v1", "POST", body=b"{}",
                               headers={"sec-fetch-site": "same-site", "origin": URL.rstrip("/")},
                               frame=FakeFrame(URL))))
     assert sibling.fulfilled["status"] == 200 and fetched[-1].body == b"{}"
@@ -546,7 +546,7 @@ def test_an_oauth_redirect_hop_back_is_navigated_again_once():
         r.on_request(hop)
         r.on_request(hop)  # the same hop again inside the window: not twice
         r.on_request(Req("https://evil.example/", nav=True, frame=frame, hop=object()))
-        r.on_request(Req("https://nobody.expose.agentos.invalid/", nav=True, frame=frame, hop=object()))
+        r.on_request(Req("https://nobody.expose.openajar.invalid/", nav=True, frame=frame, hop=object()))
         r.on_request(Req(URL + "post", "POST", nav=True, frame=frame, hop=object()))  # a 307 body is gone
         r.on_request(Req(URL + "not-a-hop", nav=True, frame=frame))  # routed already
         await asyncio.sleep(0)
@@ -660,8 +660,8 @@ def test_a_forward_needs_a_warm_lane_with_its_own_network():
 # ---- what agents see -----------------------------------------------------------------------
 
 def test_lanes_list_tells_an_agent_the_address_while_it_lasts(svc):
-    from agentos.core.models import LaneInfo, LaneSpec
-    from agentos.node.tools import lanes_list
+    from openajar.core.models import LaneInfo, LaneSpec
+    from openajar.node.tools import lanes_list
 
     infos = [LaneInfo(spec=LaneSpec(id=LANE)), LaneInfo(spec=LaneSpec(id=OTHER))]
 
@@ -690,7 +690,7 @@ def test_lanes_list_tells_an_agent_the_address_while_it_lasts(svc):
 async def test_the_lane_manager_tells_the_service_of_each_new_browser(tmp_path):
     from test_lanes import make
 
-    from agentos.core.models import LaneSpec
+    from openajar.core.models import LaneSpec
 
     mgr, _engine, *_ = make(tmp_path, self_check=False)
     await mgr.create(LaneSpec(id=LANE))

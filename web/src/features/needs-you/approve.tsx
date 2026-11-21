@@ -141,7 +141,7 @@ export function Approve() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-xl flex-col border-line md:border-x">
       <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-line px-4">
-        <Link to="/$org" params={{ org }} aria-label="agentos home" className="rounded-md">
+        <Link to="/$org" params={{ org }} aria-label="openajar home" className="rounded-md">
           <Logo />
         </Link>
         <span className="tabular flex-1 text-center text-secondary text-faint">{left ? `${left} to decide` : ''}</span>

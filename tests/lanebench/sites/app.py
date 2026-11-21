@@ -41,7 +41,7 @@ MAX_BODY = 2_000_000
 
 
 def photo_png() -> bytes:
-    from agentos.dev.image import Raster
+    from openajar.dev.image import Raster
 
     pic = Raster(64, 24, (223, 231, 245))
     pic.rect(4, 14, 56, 6, (120, 160, 90))

@@ -9,9 +9,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agentos.runner.mail import providers, session
-from agentos.runner.mail.cursor import Cursor, MailCursors, Seen, compose, fingerprint, is_new, split
-from agentos.runner.mail.session import classify_login, explain, internal_date, records
+from openajar.runner.mail import providers, session
+from openajar.runner.mail.cursor import Cursor, MailCursors, Seen, compose, fingerprint, is_new, split
+from openajar.runner.mail.session import classify_login, explain, internal_date, records
 
 GMAIL = providers.by_id("gmail")
 

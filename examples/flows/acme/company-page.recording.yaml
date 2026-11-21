@@ -2,7 +2,7 @@ format: 1
 note: |-
   SYNTHESIZED, NOT CAPTURED: written by hand for docs/WORKFLOWS.md ("Flows in git"), in the shape of a
   LinkedIn company page's admin view, on a reserved .example host. A recording of your own lane comes from
-  `agentos flows capture`. ${text} is the post's text: each test fills in its own.
+  `openajar flows capture`. ${text} is the post's text: each test fills in its own.
 pages:
 - url: https://www.linkedin.example/company/104857/admin/page-posts/published/
   title: Acme Bakery | Page posts

@@ -1,5 +1,5 @@
 #cloud-config
-# agentos node on a machine at home: Ubuntu 24.04 Server, installed unattended (autoinstall).
+# openajar node on a machine at home: Ubuntu 24.04 Server, installed unattended (autoinstall).
 # README.md in this directory has the USB steps. THE INSTALLER ERASES THE LARGEST DISK IT FINDS.
 #
 # Before you boot it, copy this file outside the checkout, chmod 600 the copy, and replace every
@@ -9,7 +9,7 @@
 # Identity: the first user, which must be the same user as ADMIN_USER in bootstrap.env. Its
 # password is a hash (make one with: openssl passwd -6). SSH uses keys only, so it is never typed.
 #
-# Variables in the bootstrap.env block are the same as the Hetzner template's (agentos node
+# Variables in the bootstrap.env block are the same as the Hetzner template's (openajar node
 # templates hetzner). HOSTNAME and PASSWORD_HASH are the identity fields below.
 
 autoinstall:
@@ -19,7 +19,7 @@ autoinstall:
     layout: us
   timezone: Etc/UTC  # set yours, for example Europe/Vilnius
   identity:
-    hostname: agentos-home  # HOSTNAME: this machine's name on your network
+    hostname: openajar-home  # HOSTNAME: this machine's name on your network
     username: agentos-admin  # ADMIN_USER
     password: "PASSWORD_HASH"  # PASSWORD_HASH: CHANGE-ME with the output of openssl passwd -6
   ssh:
@@ -58,7 +58,7 @@ autoinstall:
         permissions: "0755"
         content: |
           #!/bin/sh
-          # agentos first boot: fetch AGENTOS_GIT_REF, then run its bootstrap from that checkout. Run it
+          # openajar first boot: fetch AGENTOS_GIT_REF, then run its bootstrap from that checkout. Run it
           # again after changing /etc/agentos/bootstrap.env: sudo /usr/local/sbin/agentos-first-boot
           set -eu
           env_file=/etc/agentos/bootstrap.env

@@ -1,5 +1,5 @@
 """Guidelines, reviewer rubrics and reference notes an agent saves are screened like workspace
-memory's untrusted entries (agentos.memory.scan.suspicious_reasons): text that reads as an
+memory's untrusted entries (openajar.memory.scan.suspicious_reasons): text that reads as an
 instruction to agents is marked for the owner in the draft's reason, never refused, and the
 owner's own saves and text already approved are not screened again."""
 
@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from test_profiles import AGENT, OWNER
 
-from agentos.profiles.screen import instruction_flags
-from agentos.profiles.service import ProfilesService, parse_profile
+from openajar.profiles.screen import instruction_flags
+from openajar.profiles.service import ProfilesService, parse_profile
 
 PRODUCT = {
     "profile": "shop", "workspace": "biz-a", "kind": "product", "display_name": "Acme Shop",

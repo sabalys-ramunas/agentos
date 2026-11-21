@@ -1,8 +1,8 @@
 /**
- * The owner's routes of Environments, as the node serves them (src/agentos/api/web/environments.py):
+ * The owner's routes of Environments, as the node serves them (src/openajar/api/web/environments.py):
  *
  *   GET  /environments/prepared                       the prepared machines, the warm pool and their cost
- *   GET  /environments/{id}/replay                    the replay's timeline (agentos.environments.replay)
+ *   GET  /environments/{id}/replay                    the replay's timeline (openajar.environments.replay)
  *   GET  /environments/{id}/replay/{frame}.jpg        a frame (drawn here as SVG)
  *   GET  /environments/{id}/checkpoints/{cp}          one checkpoint against the work tree now
  *   POST /environments/saves/{id}/resume              resume a save from the app; the next agent takes it over
@@ -42,7 +42,7 @@ export function preparedList(now: number): PreparedList {
     eur_month: 0.46,
     pool: {
       warm: 1, target: 1, minutes: 55,
-      machines: [{ vm: 'vm-warm-8e21', state: 'ready', since: iso(-12 * MINUTE), image: 'agentos-prepared-a41c9e2b7d03', server_type: 'cpx22', location: 'nbg1', cost_eur: 0.0024, price_hourly_eur: 0.0121 }],
+      machines: [{ vm: 'vm-warm-8e21', state: 'ready', since: iso(-12 * MINUTE), image: 'openajar-prepared-a41c9e2b7d03', server_type: 'cpx22', location: 'nbg1', cost_eur: 0.0024, price_hourly_eur: 0.0121 }],
       // a machine for every hour of a 30 day month, billed by the started hour
       price_hourly_eur: 0.0121, worst_eur_month: 8.712, month_eur: 0.34,
     },
@@ -117,8 +117,8 @@ function resume(record: OrgData, saveId: unknown, now: number): EnvResumeAnswer 
   return { ...env, opened: 'resumed', resumed };
 }
 
-/** The node's words when the machines at once are all taken (agentos.environments.sizing). */
-const FULL = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `agentos environments allow --max-vms 4`.';
+/** The node's words when the machines at once are all taken (openajar.environments.sizing). */
+const FULL = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `openajar environments allow --max-vms 4`.';
 
 export function conceptHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'> & { data: () => MockDb }) {
   const find = (record: OrgData, id: unknown) => mockEnvironments(record).find((item) => item.detail.id === id);

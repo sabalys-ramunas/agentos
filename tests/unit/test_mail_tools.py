@@ -8,13 +8,13 @@ from types import SimpleNamespace
 import pytest
 from workflow_support import LIST, MAIL, PEOPLE, FakeMail, action, make_node, workflow
 
-from agentos.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect
-from agentos.runner.mail import outbox
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.outbox import MailDailyLimit, MailInDoubt, MailNotSent, MailSuppressed, UseAList
-from agentos.runner.workflows.mail import MessageGone, Received, SendInDoubt, SendRefused, build_message
-from agentos.runner.workflows.sends import Unsubscribe
+from openajar.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect
+from openajar.runner.mail import outbox
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.outbox import MailDailyLimit, MailInDoubt, MailNotSent, MailSuppressed, UseAList
+from openajar.runner.workflows.mail import MessageGone, Received, SendInDoubt, SendRefused, build_message
+from openajar.runner.workflows.sends import Unsubscribe
 
 STRANGER = "someone@example.org"
 
@@ -376,7 +376,7 @@ async def test_a_send_runs_on_its_own_before_reading_and_asks_after_it(node):
 
 
 async def test_an_agent_outside_the_workspace_reads_nothing(node):
-    from agentos.core.errors import PolicyDenied
+    from openajar.core.errors import PolicyDenied
 
     actor = node.agent(Effect.COMMIT, ("biz-b",))
     inbox(node, mail())
@@ -387,7 +387,7 @@ async def test_an_agent_outside_the_workspace_reads_nothing(node):
 
 async def test_no_mailbox_says_none_exists_and_how_to_ask_for_one(node):
     """QA 2026-11-10, tester B 7: the fix said "list first", and no tool lists mailboxes."""
-    from agentos.core import catalog
+    from openajar.core import catalog
     for call in (mail_tools.mail_list(Ctx(node), mailbox="biz-a/nomail"),
                  mail_tools.mail_read(Ctx(node), mailbox="biz-a/nomail", id="1")):
         with pytest.raises(NotFound) as e:

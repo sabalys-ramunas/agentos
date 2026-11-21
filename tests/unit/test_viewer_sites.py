@@ -12,13 +12,13 @@ from starlette.routing import Mount
 from test_egress import FakeContext, FakeFrame, FakeRequest
 from test_viewer_app import LANE, EventReader, node, serve, tokens_at  # noqa: F401 - node is a fixture
 
-from agentos.api.auth import PRESENCE_HEADER, PanelStore, new_login_code
-from agentos.core.models import LaneSpec
-from agentos.node import egress
-from agentos.node.egress import IDENTITY_SITES, LaneGuard
-from agentos.node.viewer_actions import change_sites
-from agentos.node.viewer_routes import control_api_routes
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.api.auth import PRESENCE_HEADER, PanelStore, new_login_code
+from openajar.core.models import LaneSpec
+from openajar.node import egress
+from openajar.node.egress import IDENTITY_SITES, LaneGuard
+from openajar.node.viewer_actions import change_sites
+from openajar.node.viewer_routes import control_api_routes
+from openajar.node.viewer_tokens import ViewTokens
 
 EM_DASH = "—"
 
@@ -147,7 +147,7 @@ async def test_an_off_list_document_while_a_human_has_control_reaches_the_live_v
         notice = events[-1][1]
         assert notice["lane"] == LANE and notice["host"] == "www.google.com" and notice["kind"] == "subframe"
         assert notice["rule"] == "noted" and notice["path"] == "/recaptcha/api2/anchor"
-        assert notice["command"] == "agentos lane sites personal/reddit add frame:www.google.com"
+        assert notice["command"] == "openajar lane sites personal/reddit add frame:www.google.com"
         assert "SECRET" not in repr(notice) and "KEY" not in repr(notice)
         ctx.emit("request", FakeRequest("https://www.google.com/recaptcha/api2/anchor?k=2", nav=True,
                                         frame=frame))  # the same block again: folded, no second notice

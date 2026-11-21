@@ -1,4 +1,4 @@
-"""The signed-out check (AUD-22, agentos.runner.signed_out): an operation declaring
+"""The signed-out check (AUD-22, openajar.runner.signed_out): an operation declaring
 `readback.public: cookieless` is verified only when a signed-out visitor sees what the author
 saw; otherwise `succeeded_unverified` with `visible_only_to_author`, re-checked later."""
 
@@ -8,12 +8,12 @@ import pytest
 from connector_samples import LANE, SITES, bind, commit_op, connector, connector_site, live
 from pydantic import ValidationError
 
-from agentos.core.models import RunStatus
-from agentos.runner import signed_out
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.models import ReadbackContract
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.fakes import OWNER, FakeLanes, FakeNotifier, Harness
+from openajar.core.models import RunStatus
+from openajar.runner import signed_out
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.models import ReadbackContract
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.fakes import OWNER, FakeLanes, FakeNotifier, Harness
 
 CAPTION = "Autumn at the lake"
 PARAMS = {"caption": CAPTION, "image": "photo.jpg"}
@@ -91,7 +91,7 @@ async def test_a_driver_that_cannot_read_signed_out_leaves_the_run_unverified(tm
 
     h = _harness(tmp_path)
     inner = h.driver
-    from agentos.runner.fakes import driver_factory
+    from openajar.runner.fakes import driver_factory
     h.runner.set_driver_factory(driver_factory(NoSignedOut()))
     run = await _post(h)
     assert run.status == RunStatus.SUCCEEDED_UNVERIFIED
@@ -137,7 +137,7 @@ async def test_a_permalink_outside_the_domain_is_never_opened(tmp_path):
 
 
 async def test_a_failed_live_readback_never_runs_the_signed_out_check(tmp_path):
-    from agentos.runner.fakes import El
+    from openajar.runner.fakes import El
 
     h = _harness(tmp_path)
     h.site.route("https://social.example/u/*", lambda s, d: El("document", "biz-a").add(El("main", "biz-a")))
@@ -167,15 +167,15 @@ def test_the_proof_never_carries_the_text_or_a_query():
                    "note": "n"}
 
 
-# ---- the lane manager's part (agentos.node.lanes.read_signed_out) ----
+# ---- the lane manager's part (openajar.node.lanes.read_signed_out) ----
 
 
 async def test_the_lane_lends_its_browser_on_a_display_of_its_own(tmp_path):
     from test_lanes import make
 
-    from agentos.core.errors import ServiceUnavailable
-    from agentos.core.models import LaneSpec
-    from agentos.node.lanes import ResourcesLow
+    from openajar.core.errors import ServiceUnavailable
+    from openajar.core.models import LaneSpec
+    from openajar.node.lanes import ResourcesLow
 
     mgr, engine, displays, _ = make(tmp_path, max_slots=4)
     await mgr.create(LaneSpec(id=LANE, sites=["social.example"]))
@@ -208,9 +208,9 @@ async def test_the_lane_lends_its_browser_on_a_display_of_its_own(tmp_path):
 async def test_the_flow_driver_reads_signed_out_through_its_lane():
     from contextlib import asynccontextmanager
 
-    from agentos.core.errors import ServiceUnavailable
-    from agentos.core.runtime import Runtime
-    from agentos.node import flow_driver as fd
+    from openajar.core.errors import ServiceUnavailable
+    from openajar.core.runtime import Runtime
+    from openajar.node import flow_driver as fd
 
     asked = []
 

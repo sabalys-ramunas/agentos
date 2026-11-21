@@ -9,12 +9,12 @@ from __future__ import annotations
 import pytest
 from test_policy_support import PRESENT, Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.context import PolicyContext
-from agentos.policy.errors import Denied
-from agentos.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.context import PolicyContext
+from openajar.policy.errors import Denied
+from openajar.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
 
 ALL = Specials(secret=LaneCap(), exec=LaneCap(), install_overlay=InstallCap(sources=["npm:left-pad@1.3.0"]),
                install_base={}, service=ServiceCap(max_ttl_s=3600),
@@ -150,7 +150,7 @@ async def test_sub_micro_dollar_costs_are_still_debited(env):
 @pytest.mark.parametrize("cost", [{"usd": float("inf")}, {"usd": float("nan")}, {"tokens": float("inf")},
                                   {"usd": 1e300}, {"tokens": 10**30}])
 async def test_absurd_costs_are_refused_cleanly(env, cost):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
 
     svc, _ = env
     ctx, _ = ctx_for(svc, specials=None, budget={"usd": 1.0, "tokens": 100})
@@ -163,7 +163,7 @@ async def test_absurd_costs_are_refused_cleanly(env, cost):
 
 @pytest.mark.parametrize("budget", [{"usd": float("inf")}, {"usd": float("nan")}])
 def test_an_infinite_budget_is_refused_when_issued(env, budget):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
 
     svc, _ = env
     with pytest.raises(InvalidRequest):

@@ -8,10 +8,10 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import RunStatus
-from agentos.runner.fakes import BASE, El, FakeClock, FakeNotifier, Harness
-from agentos.runner.schedules import _jitter, cron_slots, sign_webhook
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import RunStatus
+from openajar.runner.fakes import BASE, El, FakeClock, FakeNotifier, Harness
+from openajar.runner.schedules import _jitter, cron_slots, sign_webhook
 
 VILNIUS = ZoneInfo("Europe/Vilnius")
 

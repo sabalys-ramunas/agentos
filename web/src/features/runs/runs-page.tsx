@@ -1,16 +1,16 @@
 /**
- * Runs: every `agentos run` job the person may see, newest first, as the Mono table. Kind, title and
+ * Runs: every `openajar run` job the person may see, newest first, as the Mono table. Kind, title and
  * command, status, branch and commit when the client sent them, who started it and where, the test
  * totals read from the output, how long it took and when. Routine and agent runs live in History.
  */
-import { Link, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { Lock, SquareTerminal, Unplug } from 'lucide-react';
 import { useJobs } from '@/api/hooks';
 import { ApiError, isNotServed } from '@/api/http';
 import type { Job } from '@/api/types';
 import { Card } from '@/components/ui/card';
 import { CodeBlock, PageHeader } from '@/components/ui/misc';
-import { EmptyState, ErrorState, NotLive } from '@/components/ui/states';
+import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
 import { TableSkeleton } from '@/components/ui/table';
 import type { SortDirection } from '@/components/ui/table';
 import { PLACES } from '@/lib/vocabulary';
@@ -36,7 +36,7 @@ export const RANGES = [
 /** Running first, then what went wrong, then what passed. */
 const STATE_ORDER: Record<Job['state'], number> = { running: 0, failed: 1, lost: 2, timed_out: 3, cancelled: 4, passed: 5 };
 
-export const COLUMNS = ['', 'Run', 'Result', 'Branch', 'Who and where', 'Passed', 'Failed', 'Took', 'Started', ''];
+export const COLUMNS = ['', 'Run', 'Result', 'Branch, who and where', 'Passed', 'Failed', 'Took', 'Started', ''];
 
 export function filterJobs(jobs: Job[], search: RunsSearch, now = Date.now()): Job[] {
   const needle = search.q?.trim().toLowerCase();
@@ -76,21 +76,14 @@ export function RunsPage() {
   const now = useNow(!!jobs?.some((job) => job.state === 'running'));
 
   return (
-    <div className="grid gap-6">
+    <div>
       <PageHeader
         title={PLACES.runs.word}
         description={
           <>
             Tests, builds and dev servers that you and your agents start on your machines with{' '}
-            <code className="rounded-sm border border-line bg-hover px-1 font-mono text-code">agentos run</code>.
+            <code className="rounded-sm border border-line bg-hover px-1 font-mono text-code">openajar run</code>.
             {query.data?.available && jobs?.length ? <span className="text-fg"> {summaryOf(jobs, now)}</span> : null}
-            <span className="mt-1 block text-body text-faint">
-              Routines and the runs agents make on accounts are in{' '}
-              <Link to="/$org/activity" params={{ org }} className="font-medium text-muted underline underline-offset-2 hover:text-fg">
-                History
-              </Link>
-              .
-            </span>
           </>
         }
       />
@@ -101,10 +94,14 @@ export function RunsPage() {
 
 function RunsBody({ org, query, jobs }: { org: string; query: ReturnType<typeof useJobs>; jobs: Job[] | undefined }) {
   if (query.isPending) {
+    // Shaped like the loaded page (the section head, the filters, the table), so nothing moves when it arrives.
     return (
-      <Card role="status" aria-label="Loading runs">
-        <TableSkeleton columns={COLUMNS.slice(1, 9)} />
-      </Card>
+      <div role="status" aria-label="Loading runs" className="grid gap-4">
+        <Skeleton className="h-10 w-full rounded-md" />
+        <Card>
+          <TableSkeleton columns={COLUMNS.slice(1, 8)} />
+        </Card>
+      </div>
     );
   }
   if (isNotServed(query.error)) {
@@ -138,7 +135,7 @@ function RunsBody({ org, query, jobs }: { org: string; query: ReturnType<typeof 
         <EmptyState
           icon={<Unplug />}
           title="This machine runs no commands"
-          description={query.data.reason ?? 'It has no terminal lanes switched on, so nothing can run on it with agentos run.'}
+          description={query.data.reason ?? 'It has no terminal lanes switched on, so nothing can run on it with openajar run.'}
         />
       </Card>
     );
@@ -150,7 +147,7 @@ function RunsBody({ org, query, jobs }: { org: string; query: ReturnType<typeof 
           icon={<SquareTerminal />}
           title="No runs yet"
           description="When you or an agent runs a command on a machine, it shows here with its live output, what passed and what failed."
-          action={<CodeBlock code="agentos run -- pnpm test" label="Copy the command" className="text-left" />}
+          action={<CodeBlock code="openajar run -- pnpm test" label="Copy the command" className="text-left" />}
         />
       </Card>
     );

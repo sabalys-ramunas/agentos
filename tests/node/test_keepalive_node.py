@@ -1,7 +1,7 @@
 """A keepalive visit in a real Camoufox, against the fixture site (docs/design/keepalive.md).
 
 Run on the node:  scripts/node-test.sh keepalive tests/node/test_keepalive_node.py -q
-(or in the local agentos-stealth-node image, the same way the other node tests run).
+(or in the local openajar-stealth-node image, the same way the other node tests run).
 
 The visit drives the page's egress guard with the keepalive grant (read only), scrolls the long fixture
 feed with the wheel, may open one post and come back, and never presses a Like. A scripted Like is
@@ -18,13 +18,13 @@ import random
 
 import pytest
 
-from agentos.core.errors import EgressRefused
-from agentos.keepalive import visit
-from agentos.keepalive.sites import Entry
-from agentos.node import egress
-from agentos.node.egress import EffectRule, EgressTrace, LaneGuard
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.routes import RouteDispatcher
+from openajar.core.errors import EgressRefused
+from openajar.keepalive import visit
+from openajar.keepalive.sites import Entry
+from openajar.node import egress
+from openajar.node.egress import EffectRule, EgressTrace, LaneGuard
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.routes import RouteDispatcher
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 

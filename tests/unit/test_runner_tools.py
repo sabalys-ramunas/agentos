@@ -11,14 +11,14 @@ from starlette.applications import Starlette
 from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, RunStatus
-from agentos.core.tools import TOOL_NAME_RE
-from agentos.runner import api
-from agentos.runner.cli import app as cli_app
-from agentos.runner.fakes import BASE, FakeApprovals, FakeCtx, FakePolicy, Harness, post_flow
-from agentos.runner.schedules import sign_webhook
-from agentos.runner.tools import tool_specs
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, RunStatus
+from openajar.core.tools import TOOL_NAME_RE
+from openajar.runner import api
+from openajar.runner.cli import app as cli_app
+from openajar.runner.fakes import BASE, FakeApprovals, FakeCtx, FakePolicy, Harness, post_flow
+from openajar.runner.schedules import sign_webhook
+from openajar.runner.tools import tool_specs
 
 PARAMS = {"caption": "Autumn", "image": "files/a.jpg"}
 
@@ -52,7 +52,7 @@ async def test_tool_specs_include_typed_flow_tools(tmp_path):
     assert "on" not in sig.parameters
     hints = typing.get_type_hints(post.handler, include_extras=True)
     assert TypeAdapter(hints["caption"]).json_schema() == {"type": "string", "description": "post text"}
-    assert post.handler.__agentos_input_schema__["required"] == ["caption", "image"]
+    assert post.handler.__openajar_input_schema__["required"] == ["caption", "image"]
 
     read = spec(specs, "flow_any_social_read")
     rsig = inspect.signature(read.handler)
@@ -159,7 +159,7 @@ async def test_status_cancel_save_and_list_tools(tmp_path):
 async def test_flow_get_reads_a_definition_only_inside_the_grant(tmp_path):
     from test_policy_support import Clock
 
-    from agentos.policy.service import PolicyService
+    from openajar.policy.service import PolicyService
 
     h = Harness(tmp_path / "runner")
     policy = PolicyService(tmp_path / "policy", runtime=h.runtime, clock=Clock())
@@ -265,7 +265,7 @@ def test_api_webhook_route(tmp_path):
 
 
 def test_cli_flows_runs_schedules_watches(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     cli = CliRunner()
     flow_file = tmp_path / "post.json"
     flow_file.write_text(json.dumps(post_flow()))
@@ -312,7 +312,7 @@ def test_cli_flows_runs_schedules_watches(tmp_path, monkeypatch):
 
 def test_cli_run_is_executed_by_the_daemon(tmp_path, monkeypatch):
     """The CLI only queues; a runner on the same home picks the run up."""
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     h = Harness(tmp_path)
     h.save(post_flow())
     r = CliRunner().invoke(cli_app, ["flows", "run", "biz-a.social.post", "-p", "caption=From CLI",

@@ -9,9 +9,9 @@ import pytest
 from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy.tools import human_ask, traces_query
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy.tools import human_ask, traces_query
 
 LANE = "biz-a/instagram"
 

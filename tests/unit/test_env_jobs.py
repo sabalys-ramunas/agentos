@@ -1,4 +1,4 @@
-"""Background jobs and synced working trees in env lanes (agentos.env.jobs, agentos.env.sync), on
+"""Background jobs and synced working trees in env lanes (openajar.env.jobs, openajar.env.sync), on
 the fake host: workloads run on this machine with DirectLauncher, the lane's home is its work dir."""
 
 import asyncio
@@ -10,15 +10,15 @@ import re
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, LaneBusy, NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.env import tool_specs
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.env.sync import Manifest, empty_dirs_after
+from openajar.core.errors import InvalidRequest, LaneBusy, NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.env import tool_specs
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.env.sync import Manifest, empty_dirs_after
 
 
 class Ctx:
@@ -67,7 +67,7 @@ CHUNK = 1 << 20
 
 
 def tree_of(root, paths):
-    """The manifest a client sends for these paths, and every chunk by name (as agentos run builds them)."""
+    """The manifest a client sends for these paths, and every chunk by name (as openajar run builds them)."""
     files, blobs = [], {}
     for rel in paths:
         p = root / rel
@@ -97,7 +97,7 @@ async def upload_tree(t, ctx, root, paths):
 
 
 def store_keep(runtime):
-    from agentos.env.sync import SyncState, load_manifest
+    from openajar.env.sync import SyncState, load_manifest
     store = runtime.envs.chunk_store("dev/run")
     keep = set()
     for entry in SyncState(store.root).load().values():
@@ -147,7 +147,7 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     assert r["state"] == "exited" and r["exit_code"] == 2 and "boom" in r["stderr"]
     assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
     assert r["next_stdout_offset"] == r["stdout_bytes"] > 500_000
-    skipped = re.search(r"\[agentos: (\d+) bytes skipped here, of (\d+) in all; read them with stdout_offset="
+    skipped = re.search(r"\[openajar: (\d+) bytes skipped here, of (\d+) in all; read them with stdout_offset="
                         r"(\d+)\]\n", out)
     assert skipped and int(skipped[2]) == r["stdout_bytes"], out[3900:4300]
     head, tail = out[:skipped.start()], out[skipped.end():]

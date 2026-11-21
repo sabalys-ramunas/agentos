@@ -7,7 +7,7 @@ checkout's tests, the GitHub stand-in's pull requests, the node's own records of
 proofs and machines, Docker, and the tool calls the proxy saw. Never what the agent says it did,
 except where the task is to tell the human something (then the words are checked too).
 
-Each task also has two scripted agents: `perfect` does what the agentos-environment skill teaches and
+Each task also has two scripted agents: `perfect` does what the openajar-environment skill teaches and
 must finish; `careless` takes a plausible wrong turn and must not. Together they prove the checker,
 and `perfect` is a free, repeatable benchmark of the canonical loop: its time and the tokens of tool
 output it reads.
@@ -60,6 +60,7 @@ class Task:
     new_environments: int = 1                                       # new machines it needs (more: a wrong turn)
     internet: bool = False                                          # it fetches from a public registry
     timeout_s: float = 480                                          # per session, for a model agent
+    scripted_only: str | None = None                                # why a model agent skips it (the probes)
 
     def prompt(self, ctx: Ctx, session: int) -> str:
         return self.sessions[session].prompt.format(repo=ctx.repo.slug if ctx.repo else "")
@@ -119,6 +120,13 @@ class Ctx:
             done = subprocess.run(list(cmd), cwd=work, capture_output=True, text=True, timeout=120, check=False,
                                   env={"PATH": os.environ["PATH"], "HOME": tmp})
             return done.returncode == 0, (done.stdout + done.stderr)[-600:]
+
+    def on_machine(self, cmd: str, env_id: str | None = None) -> tuple[int, str]:
+        """Run `cmd` on the task's (newest) environment's container, as the checker: (exit code, stdout). The
+        agent's own calls never do this; it reads a site's state on a machine the agent left open."""
+        envs = self.environments()
+        env = next((e for e in envs if e.id == env_id), None) if env_id else (envs[-1] if envs else None)
+        return self.node.exec_in(env.id, cmd) if env is not None else (-1, "")
 
     async def closed_and_gone(self, wait_s: float = 90) -> list[Check]:
         """Every environment of the task is closed (a save in the background may take a while) and its

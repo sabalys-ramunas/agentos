@@ -14,8 +14,9 @@
  * deletes one, and only the owner may (`DELETE /environments/saves/{id}`). `?mock=no-saves` has none.
  */
 import { http, HttpResponse } from 'msw';
-import type { EnvCall, EnvCommand, EnvDetail, EnvKeep, EnvMachine, EnvProof, EnvSave, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
+import type { EnvCall, EnvCommand, EnvDetail, EnvKeep, EnvMachine, EnvProof, EnvSave, EnvScreen, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
 import { idleControl } from '@/lib/lanes';
+import deskStill from './assets/desk-still.webp';
 import { conceptHandlers, advanceStory } from './env-concepts';
 import { decorate, linkSaves, storyEnvironments, storySaves } from './env-stories';
 import { scenario } from './scenario';
@@ -430,6 +431,26 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
   }
 }
 
+/**
+ * The still of the whole screen the node keeps while a page shows the pictures (`screens=1`,
+ * openajar.environments.stills): only for a machine that is up and awake, and never while a person has control
+ * of its screen. The mock has one, the desktop of the Black Friday page; the others are drawn from their state.
+ */
+function screenStill(record: OrgData, detail: EnvDetail, now: number): EnvScreen | null {
+  if (detail.id !== 'e7k2' || !['ready', 'working', 'idle'].includes(detail.state)) return null;
+  const lane = record.lanes.find((entry) => entry.id === detail.lanes.browser);
+  if (lane && lane.control.state !== 'agent') return null;
+  const taken = new Date(Math.floor(now / 60_000) * 60_000);
+  return { src: deskStill, taken_at: taken.toISOString(), kind: 'screen', width: 640, height: 360 };
+}
+
+/** As the node lists it: the newest wide proof is the still the picture is drawn from (api/web/environments.py). */
+function screenOf(detail: EnvDetail): EnvScreen | null {
+  const wide = (detail.proofs ?? []).filter((item) => item.width >= item.height);
+  const newest = wide.sort((a, b) => b.taken_at.localeCompare(a.taken_at))[0];
+  return newest ? { src: newest.src, taken_at: newest.taken_at, kind: 'page', width: newest.width, height: newest.height } : null;
+}
+
 function strip(detail: EnvDetail): EnvSummary {
   const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, proofs: _proofs, ...rest } = detail;
   const { prepared: _prepared, app: _app, network: _network, bringup: _bringup, checkpoints: _checkpoints, replay: _replay, watched: _watched, resumed: _resumed, resumed_by: _by, owner_woken: _woken, ...summary } = rest;
@@ -485,19 +506,21 @@ export function environmentHandlers({ org, failure, data }: Pick<Helpers, 'org' 
     http.get(
       '/api/orgs/:org/environments',
       org((record, { request }) => {
-        const state = new URL(request.url).searchParams.get('state');
+        const search = new URL(request.url).searchParams;
+        const state = search.get('state');
+        const pictures = search.get('screens') === '1';
         const now = Date.now();
         const items = mockEnvironments(record);
         items.forEach((item) => advance(record, item, now));
         const environments = items
-          .map((item) => strip(item.detail))
+          .map((item) => ({ ...strip(item.detail), screen: (pictures ? screenStill(record, item.detail, now) : null) ?? screenOf(item.detail) }))
           .filter((env) => state !== 'open' || (env.state !== 'closed' && env.state !== 'failed'))
           .sort((a, b) => b.created_at.localeCompare(a.created_at));
         const saved = [...(record.environmentSaves ?? [])].sort((a, b) => b.saved_at.localeCompare(a.saved_at));
         return HttpResponse.json({ environments, saved });
       }),
     ),
-    // Forget a save: the owner in person (agentos.api.web.environments). Its snapshot and files are deleted.
+    // Forget a save: the owner in person (openajar.api.web.environments). Its snapshot and files are deleted.
     http.delete(
       '/api/orgs/:org/environments/saves/:id',
       org((record, { params }) => {
@@ -539,7 +562,7 @@ export function environmentHandlers({ org, failure, data }: Pick<Helpers, 'org' 
         if (env.state === 'closed' || env.state === 'failed' || env.state === 'closing') return HttpResponse.json(strip(env));
         const body = (await request.clone().json().catch(() => ({}))) as { discard?: boolean };
         if (!body.discard && env.unsaved && (env.unsaved.dirty_files.length || env.unsaved.unpushed.length)) {
-          // as the node answers (agentos.api.web.environments): the unsaved work inside the error
+          // as the node answers (openajar.api.web.environments): the unsaved work inside the error
           return HttpResponse.json(
             {
               error: {

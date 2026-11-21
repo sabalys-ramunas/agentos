@@ -8,9 +8,9 @@ from typing import Any
 import pytest
 from testkit.pilot import FakeTools, ScriptedDecider, step
 
-from agentos.pilot import Pilot, Request, Status
-from agentos.pilot.anchor import Target, check
-from agentos.pilot.page import parse_page
+from openajar.pilot import Pilot, Request, Status
+from openajar.pilot.anchor import Target, check
+from openajar.pilot.page import parse_page
 
 # the dev site's /p/1 (runner/fakes.py), the QA report's repro
 DEV_POST = """signal: ok

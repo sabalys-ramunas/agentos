@@ -7,13 +7,13 @@ import type { StatusLabel } from '@/lib/labels';
 
 /** Running is ink in Mono, so starting, working and closing pulse; idle is the hollow ring. */
 export const ENV_STATUS: Record<EnvState, StatusLabel> = {
-  starting: { label: 'Starting', tone: 'live', pulse: true },
+  starting: { label: 'Starting', tone: 'live', starting: true },
   ready: { label: 'Ready', tone: 'ok' },
   working: { label: 'Working', tone: 'live', pulse: true },
   idle: { label: 'Idle', tone: 'idle' },
   closing: { label: 'Closing', tone: 'live', pulse: true },
   closed: { label: 'Closed', tone: 'neutral' },
-  failed: { label: 'Failed', tone: 'bad' },
+  failed: { label: 'Did not start', tone: 'bad' },
 };
 
 /** One line on what each state means, for the status's title and the page's lede. */
@@ -175,7 +175,6 @@ export function openSummary(open: EnvSummary[]): string {
   return `${parts.join(', ')} · ${euro(cost)} so far`;
 }
 
-/** The short form of a commit: seven characters. */
 export const shortCommit = (commit: string) => commit.slice(0, 7);
 
 /**
@@ -257,4 +256,68 @@ export function pruneWords(save: Pick<EnvSave, 'prune_at'>, now: number): string
 }
 
 /** What a person says to an agent to bring one back. */
-export const continueLine = (title: string) => `continue ${title} in agentos`;
+export const continueLine = (title: string) => `continue ${title} in openajar`;
+
+/** What a call did, in the past tense a person uses ("Clicked on a page"), and what it was about. */
+export interface CallWords {
+  title: string;
+  /** The call's own summary, without the scheme of an address and without the verb the title already says. */
+  detail: string;
+  /** Which picture goes beside it: a page, a command, a check of a design, a file, the screen, the machine. */
+  kind: 'page' | 'command' | 'check' | 'file' | 'screen' | 'machine';
+}
+
+const CALL_TITLES: Record<string, [string, CallWords['kind']]> = {
+  browser_navigate: ['Opened a page', 'page'],
+  browser_snapshot: ['Read a page', 'page'],
+  browser_screenshot: ['Took a picture of a page', 'page'],
+  browser_wait: ['Waited for a page', 'page'],
+  browser_tabs: ['Looked at its tabs', 'page'],
+  browser_upload: ['Uploaded a file to a page', 'page'],
+  browser_dialog_answer: ['Answered a page', 'page'],
+  ui_check: ["Checked a page's design", 'check'],
+  ui_diff: ["Compared a page's design", 'check'],
+  lane_exec: ['Ran a command', 'command'],
+  lane_job_start: ['Started a command', 'command'],
+  lane_job_read: ["Read a command's output", 'command'],
+  lane_job_cancel: ['Stopped a command', 'command'],
+  lane_file_read: ['Read a file', 'file'],
+  lane_file_write: ['Wrote a file', 'file'],
+  lane_file_edit: ['Changed a file', 'file'],
+  files_put: ['Put a file on the machine', 'file'],
+  environment_upload: ['Brought files in', 'file'],
+  environment_download: ['Gave you a file', 'file'],
+  screen_snapshot: ['Looked at its screen', 'screen'],
+  screen_open: ['Opened an app', 'screen'],
+  environment_open: ['Opened its computer', 'machine'],
+  environment: ['Looked at its computer', 'machine'],
+  environment_save: ['Saved its computer', 'machine'],
+  environment_close: ['Closed its computer', 'machine'],
+};
+
+export function callWords(tool: string, summary: string, fallback: (tool: string) => string): CallWords {
+  const detail = summary.replace(/\bhttps?:\/\//g, '');
+  if (tool === 'browser_act' || tool === 'screen_act') {
+    const typed = /^type\b/i.test(summary);
+    const where = tool === 'browser_act' ? 'on a page' : 'on its screen';
+    return { title: `${typed ? 'Typed' : 'Clicked'} ${where}`, detail: detail.replace(/^(click|type|press|select|hover)\s+/i, ''), kind: tool === 'browser_act' ? 'page' : 'screen' };
+  }
+  const known = CALL_TITLES[tool];
+  return { title: known ? known[0] : fallback(tool), detail, kind: known ? known[1] : 'machine' };
+}
+
+/** Where a machine is, as a person names it: "Nuremberg" for nbg1. An unknown code is shown as it is. */
+const PLACES_BY_CODE: Record<string, string> = {
+  nbg1: 'Nuremberg',
+  fsn1: 'Falkenstein',
+  hel1: 'Helsinki',
+  ash: 'Ashburn',
+  hil: 'Hillsboro',
+  sin: 'Singapore',
+};
+export const placeOf = (location: string) => PLACES_BY_CODE[location] ?? location;
+
+/** "2 CPU, 4 GB, in Nuremberg", or "2 CPU, 4 GB, on this computer" for a container. */
+export function machineWords(machine: EnvSummary['machine']): string {
+  return machine.provider === 'docker' ? `${machineSize(machine)}, on this computer` : `${machineSize(machine)}, in ${placeOf(machine.location)}`;
+}

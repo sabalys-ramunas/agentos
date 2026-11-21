@@ -1,12 +1,12 @@
 /**
- * Home (Mono, docs/design/app-design.md section 1): three answers in the first five seconds.
+ * Home (Dawn's Full, web/DESIGN.md "Home"): three answers in the first five seconds.
  *
- * 1. One sentence says the state, from real data only (sentence.ts): what runs on how many machines, what
- *    failed and whether it runs again, what waits for you and for how long. Under it, a line with links.
- * 2. Open environments, one compact row each, only when there are some (environments/home-environments.tsx).
- *    Running now: the slider of job cards (running-now.tsx).
- * 3. Needs you and Problems, side by side (home-needs.tsx, problems.tsx).
- * 4. Three quiet links at the foot: earlier today, pages, machines, with real numbers.
+ * 1. The window (home-hero.tsx): the Dawn picture with one sentence that says the state, from real data only
+ *    (sentence.ts), and a line with links under it. On its lower edge, what needs you as glass cards, the
+ *    heaviest three, one action each (Look opens it on Needs you).
+ * 2. Working now (working-now.tsx): each open environment with a picture of its screen. Then Running now, the
+ *    slider of job cards (running-now.tsx), and Problems when there are any (problems.tsx).
+ * 3. Earlier today: one quiet row of links at the foot: the runs, the pages, the machines, with real numbers.
  *
  * What Home did before and still does, and where it lives now:
  * - An approver's Home is Needs you: the router sends them there (app/router.tsx), unchanged.
@@ -50,8 +50,7 @@ import { isOrgWide } from '@/lib/permissions';
 import { useMe } from '@/lib/use-principal';
 import { useNeedsYouCount } from '@/features/needs-you/count';
 import { GettingStarted } from '../onboarding/getting-started';
-import { HomeEnvironments } from '../environments/home-environments';
-import { HomeNeeds } from './home-needs';
+import { HomeHero, WindowPicture } from './home-hero';
 import type { Waiting } from './home-needs';
 import { ProblemsPanel } from './problems';
 import type { Problem } from './problems';
@@ -60,7 +59,9 @@ import { blockedChecks, ENDED_BADLY, isGoing, machinesOf, pageName, runningItems
 import type { Trouble } from './sentence';
 import { homeSentence } from './sentence';
 import { accountCondition, accountName, problemSentence } from './words';
-import { EarlierToday, HomeHeader, NoWorkspaces, inline } from './home-parts';
+import { EarlierToday, NoWorkspaces } from './home-parts';
+import { inline } from './sentence-line';
+import { WorkingNow } from './working-now';
 
 const startOfToday = () => {
   const day = new Date();
@@ -78,19 +79,23 @@ function newestPerPage(runs: StudioRunRow[]): StudioRunRow[] {
   return [...map.values()];
 }
 
+/** While the workspaces load: the window in place, quiet, and the cards' shapes under it. */
 function HomeSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading">
-      <Skeleton className="h-3 w-48" />
-      <Skeleton className="mt-4 h-10 w-full max-w-2xl" />
-      <Skeleton className="mt-4 mb-12 h-5 w-full max-w-lg" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="home-window on-dawn relative isolate overflow-hidden rounded-2xl px-5 pt-9 pb-8 sm:px-10">
+        <WindowPicture />
+        <Skeleton className="h-4 w-56" />
+        <Skeleton className="mt-5 h-10 w-full max-w-2xl" />
+        <Skeleton className="mt-4 h-5 w-full max-w-lg" />
+      </div>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((index) => (
-          <Card key={index} className={cn('overflow-hidden', index > 0 && 'max-sm:hidden', index > 1 && 'max-lg:hidden')}>
-            <Skeleton className="h-36 rounded-none" />
-            <div className="grid gap-3 p-4">
-              <Skeleton className="w-24" />
+          <Card key={index} className={cn('p-2', index > 0 && 'max-sm:hidden', index > 1 && 'max-lg:hidden')}>
+            <Skeleton className="aspect-video h-auto w-full rounded-md" />
+            <div className="grid gap-2 px-3 pt-3 pb-2">
               <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="w-1/2" />
             </div>
           </Card>
         ))}
@@ -158,7 +163,7 @@ export function Home() {
 
   const date = new Date(now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  if (data.length === 0) return <NoWorkspaces org={org} date={date} envs={envs.data} canSetUp={canSetUp} />;
+  if (data.length === 0) return <NoWorkspaces org={org} now={now} date={date} envs={envs.data} canSetUp={canSetUp} />;
 
   const sentence = items
     ? homeSentence({
@@ -177,22 +182,30 @@ export function Home() {
 
   return (
     <>
-      <HomeHeader org={org} date={date} going={Boolean(items && items.some(isGoing))} current={current} workspaces={data} sentence={sentence} />
+      <HomeHero
+        org={org}
+        now={now}
+        date={date}
+        current={current}
+        workspaces={data}
+        sentence={sentence}
+        asks={{ items: waitingItems, total: count.loaded ? count.total : count.failedToLoad ? (status?.needs_you ?? 0) : null }}
+      />
 
-      <HomeEnvironments org={org} />
-      <GettingStarted org={org} />
-      <OverLimitBanner org={org} />
+      <div className="empty:hidden mt-10 grid gap-6">
+        <GettingStarted org={org} />
+        <OverLimitBanner org={org} />
+      </div>
+
+      <WorkingNow org={org} />
 
       <RunningNow org={org} items={items} jobs={jobs.data} studio={studio.data} canWatch={canWatch} first={firstJob} />
 
-      <div className="mt-10 grid items-start gap-6 lg:grid-cols-12">
-        <div className="min-w-0 lg:col-span-7">
-          <HomeNeeds org={org} items={waitingItems} total={count.loaded ? count.total : count.failedToLoad ? (status?.needs_you ?? 0) : null} oldestAt={oldestAt} workspaces={data} />
+      {problems.length ? (
+        <div className="mt-10">
+          <ProblemsPanel org={org} problems={problems} loading={false} canLift={freeze.canLift} onLift={openUnfreeze} />
         </div>
-        <div className="min-w-0 lg:col-span-5">
-          <ProblemsPanel org={org} problems={problems} loading={jobs.isPending || studio.isPending} canLift={freeze.canLift} onLift={openUnfreeze} />
-        </div>
-      </div>
+      ) : null}
 
       <EarlierToday org={org} jobs={jobs} studio={studio} status={status} today={today} />
 

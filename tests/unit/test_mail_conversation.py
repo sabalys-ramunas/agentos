@@ -10,10 +10,10 @@ from test_mail_tools import STRANGER, Ctx, Transport, mail
 from test_mail_unreadable import nested
 from workflow_support import LIST, MAIL, OWNER, action, make_node, workflow
 
-from agentos.runner.mail import outbox
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.outbox import MailDailyLimit, MailInDoubt, MailSuppressed, UseAList
-from agentos.runner.workflows.mail import MessageGone, parse_message
+from openajar.runner.mail import outbox
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.outbox import MailDailyLimit, MailInDoubt, MailSuppressed, UseAList
+from openajar.runner.workflows.mail import MessageGone, parse_message
 
 
 @pytest.fixture

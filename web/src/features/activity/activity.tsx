@@ -11,10 +11,11 @@
 import { SegmentedControl } from '@/components/ui/tabs';
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { ArrowUp, Download, ListFilter } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useActivity, useHistory, useRetention, useWorkspaces } from '@/api/hooks';
 import type { ActivityFilters } from '@/api/client';
 import type { ActivityRange, Effect, HistoryDay, HistoryPage, RunStatus, StoryKind, TraceEvent } from '@/api/types';
+import { RadioGroup } from 'radix-ui';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
@@ -31,7 +32,7 @@ import { ActivityTable, RunsChart } from './activity-table';
 import { activityCsv } from './csv';
 import { dayLabel, quietLine } from './feed';
 import { DaySection, WorkingNow } from './history-feed';
-import { Chosen, RunDrawer } from './run-drawer';
+import { RunDrawer } from './run-drawer';
 import { kindOf, KINDS } from './story-view';
 
 const ALL = 'all';
@@ -89,19 +90,10 @@ function exportCsv(rows: TraceEvent[]) {
   const body = activityCsv(rows);
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([body], { type: 'text/csv' }));
-  link.download = 'agentos-history.csv';
+  link.download = 'openajar-history.csv';
   link.click();
   URL.revokeObjectURL(link.href);
 }
-
-const WIDE = '(min-width: 1280px)';
-function subscribeWide(listener: () => void) {
-  const query = window.matchMedia(WIDE);
-  query.addEventListener('change', listener);
-  return () => query.removeEventListener('change', listener);
-}
-/** At 1280 and up, the chosen story sits beside the list instead of in a drawer. */
-const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
 
 function FeedSkeleton() {
   return (
@@ -202,6 +194,27 @@ function TechnicalLog({ org, search, onOpen }: { org: string; search: ActivitySe
   );
 }
 
+/** One kind of thing at a time, as chips (the drawing's filter row), kept as radios for the keyboard and readers. */
+function ChipChoice<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
+  return (
+    <RadioGroup.Root aria-label={label} value={value} onValueChange={(next) => onChange(next as T)} className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <RadioGroup.Item
+          key={option.value}
+          value={option.value}
+          className={cn(
+            'inline-flex h-8 items-center rounded-full border px-3 text-secondary font-medium whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard',
+            'border-line bg-card text-muted hover:border-line-strong hover:text-fg',
+            'data-[state=checked]:border-accent-line data-[state=checked]:bg-accent-soft data-[state=checked]:text-accent-text',
+          )}
+        >
+          {option.label}
+        </RadioGroup.Item>
+      ))}
+    </RadioGroup.Root>
+  );
+}
+
 export function Activity() {
   const { org = '' } = useParams({ strict: false }) as { org?: string };
   const search = useSearch({ strict: false }) as ActivitySearch;
@@ -214,7 +227,6 @@ export function Activity() {
   const [technical] = useTechnical();
   const [view, setView] = useState<'story' | 'table'>('story');
   const table = technical && view === 'table';
-  const wide = useWide();
 
   const retention = useRetention(org).data;
   const workspaces = useWorkspaces(org).data;
@@ -248,10 +260,9 @@ export function Activity() {
   const stories = useMemo(() => new Map([...working, ...days.flatMap((day) => day.stories)].map((story) => [story.id, story])), [working, days]);
   const nameOf = usePrincipalName(org);
 
-  // On a wide screen the newest thing done is open beside the list from the start.
-  const first = days.find((day) => day.stories.length > 0)?.stories[0]?.id ?? null;
-  const selected = search.run ?? (wide && !table ? first : null);
-  const select = (id: string) => setSearch({ run: id }, wide);
+  // A row opens in the side sheet, as drawn; the list keeps the whole width.
+  const selected = search.run ?? null;
+  const select = (id: string) => setSearch({ run: id });
 
   const setFilter = (key: keyof ActivitySearch, value: string) =>
     setSearch({ [key]: value === ALL ? undefined : value, ...(key === 'workspace' ? { lane: undefined } : {}), run: undefined });
@@ -396,13 +407,11 @@ export function Activity() {
       />
       {/* The filters wrap on a phone: a row that scrolls sideways clipped the workspace filter at 375 ("All worksp"). */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <SegmentedControl
+        <ChipChoice
           label="Show"
-          // Five choices: on a phone they scroll sideways inside the control, never the page.
-          className="scrollbar-none max-w-full overflow-x-auto [&>*]:shrink-0"
           value={show}
           options={showOptions.map((value) => ({ value, label: value === 'problems' && problems > 0 ? `Problems ${problems}` : labelOf(value) }))}
-          onValueChange={setShow}
+          onChange={setShow}
         />
         <Select
           size="sm"
@@ -458,16 +467,12 @@ export function Activity() {
           <TechnicalLog org={org} search={search} onOpen={(id) => setSearch({ run: id })} />
         </>
       ) : (
-        <div className={cn(wide && stories.size > 0 && 'grid grid-cols-[minmax(0,1fr)_400px] items-start gap-8')}>
+        <div>
           <div className="min-w-0">{feed}</div>
-          {wide && stories.size > 0 ? (
-            <aside aria-label="What happened" className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto rounded-xl border border-line bg-card p-5">
-              {selected ? <Chosen org={org} id={selected} stories={stories} /> : <p className="text-body text-muted">Pick something on the left to see what it did and the proof.</p>}
-            </aside>
-          ) : null}
+
         </div>
       )}
-      <RunDrawer org={org} id={wide && !table ? null : (search.run ?? null)} stories={stories} onClose={() => setSearch({ run: undefined })} />
+      <RunDrawer org={org} id={search.run ?? null} stories={stories} onClose={() => setSearch({ run: undefined })} />
     </>
   );
 }

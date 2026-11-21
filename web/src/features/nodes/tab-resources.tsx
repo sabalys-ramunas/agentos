@@ -14,7 +14,7 @@ const RANGES: { value: NodeRange; label: string }[] = [
   { value: '7d', label: '7 days' },
 ];
 
-/** The processes that make agentos run, as opposed to what it runs. */
+/** The processes that make openajar run, as opposed to what it runs. */
 const RUNTIME = new Set(['agentosd', 'scheduler', 'websockify']);
 
 interface Part {
@@ -40,7 +40,7 @@ export function memorySplit(node: NodeDetail, services: NodeService[] | null): P
   const warm = node.lanes.filter((lane) => lane.mem_mb).length;
   const parts: Part[] = [
     { label: 'Browser and app accounts', mb: lanes, color: 'var(--foreground)', note: `${warm} warm` },
-    { label: 'agentos runtime', mb: runtime, color: 'var(--foreground-muted)', note: 'agentosd, scheduler, remote view' },
+    { label: 'openajar runtime', mb: runtime, color: 'var(--foreground-muted)', note: 'agentosd, scheduler, remote view' },
     { label: 'Other services', mb: other, color: 'var(--control)', note: others.map((item) => item.name).slice(0, 3).join(', ') || 'None' },
     { label: 'System and cache', mb: system, color: 'var(--fill-3)', note: 'The OS, page cache, everything else' },
     { label: 'Free', mb: Math.max(0, node.mem.total_mb - used), color: 'transparent', note: `of ${gb(node.mem.total_mb)}` },

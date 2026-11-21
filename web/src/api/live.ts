@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useSyncExternalStore } from 'react';
 import { fleet } from './client';
 import { keys } from './keys';
+import { emitPointer } from './pointer';
 import { LIVE_EVENT_TYPES } from './types';
 import type {
   Approval,
@@ -286,6 +287,9 @@ export function applyLiveEvent(client: QueryClient, org: string, event: LiveEven
       return patchNode(client, org, event.payload);
     case 'meter':
       return refreshMeter(client, org, event.payload);
+    case 'pointer':
+      // News of this moment only: it goes to the live view that draws it, never into the cache.
+      return emitPointer(event.payload);
   }
 }
 

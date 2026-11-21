@@ -32,16 +32,16 @@
   --foreground-subtle: var(--text-tertiary);
   --foreground-disabled: var(--text-disabled);
 
-  /* The primary is ink, never a hue. */
-  --primary: var(--accent-fill);
-  --on-primary: var(--text-inverse);
+  /* The primary is Dawn's violet pill (action.primary), white words on it. */
+  --primary: var(--action-primary);
+  --primary-hover: var(--action-primary-hover);
+  --on-primary: var(--action-on-primary);
 
   /*
-   * Blue was links and focus. In Mono focus is the one blue, and a link is ink with an underline
-   * (app.css gives a link that uses text-blue its underline). So --blue is ink, and --focus is the
-   * focus ring.
+   * Blue was links and focus. A link is ink with an underline (app.css gives a link that uses
+   * text-blue its underline), so --blue is ink; --focus is the focus ring (violet in Dawn).
    */
-  --blue: var(--accent-text);
+  --blue: var(--link-text);
   --focus: var(--focus-ring);
 
   --green: var(--status-ok-text);
@@ -67,9 +67,9 @@
   --stuck-line: var(--status-bad-line);
 
   /*
-   * The current: an agent acting right now. It was pink; in Mono running is ink with the ringed,
-   * pulsing dot, so no status shares a hue with a kind of work. One place changes the meaning for
-   * every screen that says bg-live, text-live or var(--current).
+   * The current: an agent acting right now. It was pink, then ink in Mono; in Dawn it is the agent's
+   * violet, a ring that never pulses. One place changes the meaning for every screen that says
+   * bg-live, text-live or var(--current).
    */
   --current: var(--status-live-dot);
   --current-soft: var(--status-live-fill);
@@ -97,7 +97,11 @@
   --tracking-56: -0.05em;
   --tracking-silk: 0.04em;
 
-  /* Cards are 10, pictures 8. */
+  /* Shadows: the old three steps onto the Mono shadow colours. */
+  --shadow-1: var(--shadow-color-1);
+  --shadow-2: var(--shadow-color-1);
+  --shadow-3: var(--shadow-color-2);
+  /* Cards are 10, pictures 8, the stage and Home's window 14. */
   --radius-card: var(--radius-xl);
   --radius-thumb: var(--radius-lg);
 

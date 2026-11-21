@@ -1,4 +1,4 @@
-"""Learned profile rules (agentos.node.learned_rules, docs/design/learn-a-site.md section 3): the
+"""Learned profile rules (openajar.node.learned_rules, docs/design/learn-a-site.md section 3): the
 node's store, what it refuses, where the guard orders them, and that nothing an agent reaches can
 write them."""
 
@@ -12,10 +12,10 @@ from pathlib import Path
 import pytest
 from test_egress import COMMITTER, make_guard
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.node import egress, learned_rules
-from agentos.node.egress import EFFECT_RULES, classify
-from agentos.node.learned_rules import LearnedRules
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.node import egress, learned_rules
+from openajar.node.egress import EFFECT_RULES, classify
+from openajar.node.learned_rules import LearnedRules
 
 IG_GQL = "https://www.instagram.com/graphql/query"
 IG_EDIT = "https://www.instagram.com/api/v1/web/accounts/edit/"
@@ -40,7 +40,7 @@ EDIT_PATH = "/api/v1/web/accounts/edit/"
 def graphql_endpoints(monkeypatch):
     """Reviewed GraphQL edit endpoints as a future entry would name them (the shipped table has
     Instagram's form only): where the order against the GraphQL catch-alls matters."""
-    from agentos.node import sites
+    from openajar.node import sites
 
     monkeypatch.setitem(sites.PROFILE_EDIT_ENDPOINTS, "instagram", {
         **sites.PROFILE_EDIT_ENDPOINTS["instagram"],
@@ -158,7 +158,7 @@ def test_a_torn_file_falls_back_to_its_last_copy(tmp_path):
 def test_moving_the_built_in_reads_after_the_actions_changes_no_built_in_classification():
     """ordered() puts every built-in read after every non-read rule when learned rules exist: no read
     precedes a non-read rule of its site whose path could overlap, so first-match is unchanged."""
-    from agentos.core import globs
+    from openajar.core import globs
 
     for i, read in enumerate(EFFECT_RULES):
         if read.effect != "read":
@@ -241,7 +241,7 @@ def test_a_store_that_cannot_be_read_leaves_the_built_in_rules(tmp_path):
 
 # ---- nothing an agent reaches writes them --------------------------------------------------
 
-SRC = Path(__file__).resolve().parents[2] / "src" / "agentos"
+SRC = Path(__file__).resolve().parents[2] / "src" / "openajar"
 # node code that may import the store: the guard and the lane manager read it; the profile learner
 # (in-process, from its own trace evidence) writes and reads it
 ALLOWED = {"node/learned_rules.py", "node/egress/guard.py", "node/egress/learn.py", "node/lanes/launch.py",

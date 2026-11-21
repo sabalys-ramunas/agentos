@@ -136,7 +136,7 @@ export function StandingSettings() {
         description="Approve one kind of thing ahead of time, a set number of times, until a date. Payments, irreversible actions and base images are never covered."
         action={
           canCreate && !isNotServed(standing.error) ? (
-            <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
               New
             </Button>
           ) : undefined

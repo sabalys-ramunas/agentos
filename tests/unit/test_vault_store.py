@@ -11,8 +11,8 @@ import threading
 import pytest
 from test_vault_support import FAST_KDF, PASSWORD, SEED, USERNAME, private_home
 
-from agentos.vault import crypto
-from agentos.vault.errors import (
+from openajar.vault import crypto
+from openajar.vault.errors import (
     EntryExists,
     EntryInvalid,
     EntryNotFound,
@@ -23,10 +23,10 @@ from agentos.vault.errors import (
     VaultNotInitialized,
     VaultTampered,
 )
-from agentos.vault.models import EntryKind, NewEntry, validate_new_entry
-from agentos.vault.secret import Secret
-from agentos.vault.service import keyfile_path, load_keyfile_master, pending_keyfile_path
-from agentos.vault.store import VaultStore, WrongKey
+from openajar.vault.models import EntryKind, NewEntry, validate_new_entry
+from openajar.vault.secret import Secret
+from openajar.vault.service import keyfile_path, load_keyfile_master, pending_keyfile_path
+from openajar.vault.store import VaultStore, WrongKey
 
 
 @pytest.fixture
@@ -402,7 +402,7 @@ def test_newer_schema_is_refused(store_key):
         c.execute("UPDATE meta SET value='99' WHERE key='schema_version'")
     with pytest.raises(VaultCorrupt) as exc:
         store.header()
-    assert "newer agentos" in exc.value.message
+    assert "newer openajar" in exc.value.message
 
 
 def test_crash_midway_through_rotation_changes_nothing(store_key, monkeypatch):
@@ -427,7 +427,7 @@ def test_crash_midway_through_rotation_changes_nothing(store_key, monkeypatch):
 
 
 def test_a_held_write_lock_gives_vault_busy_not_a_hang(store_key):
-    from agentos.vault.errors import VaultBusy
+    from openajar.vault.errors import VaultBusy
 
     store, key = store_key
     holder = sqlite3.connect(store.path, isolation_level=None)

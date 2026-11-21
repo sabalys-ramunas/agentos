@@ -28,7 +28,7 @@ function addCard(reason: 'not_connected' | 'refused' = 'not_connected'): Questio
       host: 'github.com',
       reason,
       token_url: 'https://github.com/settings/personal-access-tokens/new',
-      classic_token_url: 'https://github.com/settings/tokens/new?scopes=repo&description=agentos',
+      classic_token_url: 'https://github.com/settings/tokens/new?scopes=repo&description=openajar',
       deploy_keys_url: 'https://github.com/acme/private-app/settings/keys/new',
     },
   };
@@ -64,7 +64,7 @@ describe('a repository card', () => {
     expect(panel().getByText(/Contents: Read \(Read and write to push\)/)).toBeInTheDocument();
     expect(panel().getByText(/you do not need to be an admin of the repository/)).toBeInTheDocument();
     expect(panel().getByRole('link', { name: /Make a fine-grained token/ })).toHaveAttribute('href', 'https://github.com/settings/personal-access-tokens/new');
-    expect(panel().getByRole('link', { name: /or a classic one/ })).toHaveAttribute('href', 'https://github.com/settings/tokens/new?scopes=repo&description=agentos');
+    expect(panel().getByRole('link', { name: /or a classic one/ })).toHaveAttribute('href', 'https://github.com/settings/tokens/new?scopes=repo&description=openajar');
     expect(panel().getByRole('button', { name: 'Paste a token' })).toBeInTheDocument();
     expect(panel().queryByLabelText('Token')).not.toBeInTheDocument();
     expect(document.querySelector('input[type="password"]')).toBeNull();

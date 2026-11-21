@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import pytest
 from workflow_support import MAIL, OWNER, make_node, workflow
 
-from agentos.runner.workflows.mail import Received
+from openajar.runner.workflows.mail import Received
 
 OTHER = "biz-a/support"
 TICK_S = 1.0  # far longer than a tick that waits for nothing

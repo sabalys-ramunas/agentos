@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from agentos.core.models import RunStatus
-from agentos.node.login_assist import service_for
-from agentos.runner.models import Run
+from openajar.core.models import RunStatus
+from openajar.node.login_assist import service_for
+from openajar.runner.models import Run
 
 LANE = "biz-a/social"
 

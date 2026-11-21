@@ -41,8 +41,8 @@ STREAM = "\n".join(json.dumps(e) for e in [
 
 
 def bare_runtime(tmp_path: Path):
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
 
     return Runtime(config=NodeConfig(home=tmp_path))
 
@@ -56,8 +56,8 @@ def test_the_agent_gets_the_browser_lane_tool_set(tmp_path):
 
 
 async def test_secret_is_granted_on_login_tasks_only():
-    from agentos.core.errors import PolicyDenied
-    from agentos.core.models import Effect
+    from openajar.core.errors import PolicyDenied
+    from openajar.core.models import Effect
 
     assert grants_secret(TASKS["login-save-login"]) and not grants_secret(TASKS["feed-like"])
     login = BenchContext(runtime=None, tool="login", lane="lanebench/login-lt", ceiling="draft", sites=["127.0.0.1"],
@@ -81,7 +81,7 @@ def test_no_goal_hands_over_the_password():
 
 
 def test_the_fixture_names_no_login_post_and_the_interstitials_as_writes():
-    from agentos.node.egress import classify
+    from openajar.node.egress import classify
 
     rules = harness.bench_effect_rules("127.0.0.1")
     base = "http://127.0.0.1:6528"
@@ -92,7 +92,7 @@ def test_the_fixture_names_no_login_post_and_the_interstitials_as_writes():
 
 
 def test_the_repair_format_comes_from_the_locator_model():
-    from agentos.core.locator import Locator
+    from openajar.core.locator import Locator
 
     text = locator_schema()
     for key in PATCH_KEYS:
@@ -174,16 +174,16 @@ async def test_an_agent_that_writes_its_own_transcript_keeps_it(tmp_path):
 def test_the_run_home_is_on_disk_not_in_the_temp_dir(tmp_path, monkeypatch):
     import tempfile
 
-    monkeypatch.delenv("AGENTOS_TEST_ROOT", raising=False)
+    monkeypatch.delenv("OPENAJAR_TEST_ROOT", raising=False)
     assert harness.home_root() == harness.HOME_ROOT
     assert not str(harness.HOME_ROOT).startswith(tempfile.gettempdir())
     assert harness.home_root(tmp_path / "h") == tmp_path / "h" and (tmp_path / "h").is_dir()
-    monkeypatch.setenv("AGENTOS_TEST_ROOT", str(tmp_path / "env"))
+    monkeypatch.setenv("OPENAJAR_TEST_ROOT", str(tmp_path / "env"))
     assert harness.home_root() == tmp_path / "env"
 
 
 async def test_the_run_vault_holds_the_fixture_login_for_bench_lanes(tmp_path):
-    from agentos.vault.policy import lane_bound
+    from openajar.vault.policy import lane_bound
 
     home = tmp_path / "home"
     home.mkdir(mode=0o700)

@@ -7,10 +7,10 @@ import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 from fakes import PNG_1X1
 
-from agentos.core.errors import NotFound
-from agentos.core.models import Principal
-from agentos.node.channel import bridge, wire
-from agentos.node.channel.files import proof_path
+from openajar.core.errors import NotFound
+from openajar.core.models import Principal
+from openajar.node.channel import bridge, wire
+from openajar.node.channel.files import proof_path
 
 PHOTO = b"\x89PNG\r\n\x1a\n a photo for the post"
 
@@ -173,8 +173,8 @@ async def test_a_file_streams_bytes_respect_the_controllers_credit(node, monkeyp
 def test_a_proof_is_read_up_to_the_cap_and_no_further(tmp_path, monkeypatch):
     from pathlib import Path
 
-    from agentos.core.errors import InvalidRequest
-    from agentos.node.channel import files
+    from openajar.core.errors import InvalidRequest
+    from openajar.node.channel import files
 
     shot = tmp_path / "runner" / "shots" / "run_abc" / "final.png"
     shot.parent.mkdir(parents=True)

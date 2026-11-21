@@ -283,8 +283,8 @@ export function storyOf(source: Source, businessName: (workspace: string) => str
       label = isPublic ? 'Live, checked' : 'Checked';
       verdict = isPublic ? 'It is live, and we checked.' : 'Done, and we checked.';
       because = isPublic
-        ? `Afterwards, agentos opened ${site} as a visitor and found it. This is what it saw.`
-        : `agentos looked at ${site} afterwards and saw it was done.`;
+        ? `Afterwards, openajar opened ${site} as a visitor and found it. This is what it saw.`
+        : `openajar looked at ${site} afterwards and saw it was done.`;
       break;
     case 'succeeded_unverified':
       if (inEnvironment) {
@@ -296,7 +296,7 @@ export function storyOf(source: Source, businessName: (workspace: string) => str
       label = 'Not checked';
       note = `It ran, but we could not see it on ${site} afterwards.`;
       verdict = 'Done, but not checked.';
-      because = `It ran, but agentos could not see it on ${site} afterwards. It may still be fine: open the account to look.`;
+      because = `It ran, but openajar could not see it on ${site} afterwards. It may still be fine: open the account to look.`;
       break;
     case 'partial':
       label = 'Partly done';

@@ -7,8 +7,8 @@ from __future__ import annotations
 import gc
 import weakref
 
-from agentos.node import human, interaction, typist
-from agentos.node.camoufox.engine import PageTracker, forget_context, tracker_for
+from openajar.node import human, interaction, typist
+from openajar.node.camoufox.engine import PageTracker, forget_context, tracker_for
 
 
 class FakeContext:

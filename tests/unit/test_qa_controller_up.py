@@ -1,4 +1,4 @@
-"""QA for `agentos up` (agentos.controller.up.run_up) across restarts: a node that keeps its identity, and
+"""QA for `openajar up` (openajar.controller.up.run_up) across restarts: a node that keeps its identity, and
 a node the owner removed in the panel. Bugs are strict xfails pinned to their reason."""
 
 from __future__ import annotations
@@ -9,12 +9,12 @@ import pytest
 from channel_support import wait_for
 from fakes import FakeInteraction, FakeLaneManager
 
-from agentos.controller.config import ControllerConfig, save_controller_config
-from agentos.controller.store import ControllerStore
-from agentos.controller.up import run_up
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.models import LaneSpec
-from agentos.node.daemon import build_services, node_runtime
+from openajar.controller.config import ControllerConfig, save_controller_config
+from openajar.controller.store import ControllerStore
+from openajar.controller.up import run_up
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.models import LaneSpec
+from openajar.node.daemon import build_services, node_runtime
 
 
 def builder(built: dict):
@@ -22,7 +22,7 @@ def builder(built: dict):
         manager = FakeLaneManager(config)
         asyncio.get_event_loop().create_task(manager.create(LaneSpec(id="personal/reddit")))
         runtime = node_runtime(config, manager, FakeInteraction())
-        build_services(runtime, ["agentos.policy.service", "agentos.node.channel.service"])
+        build_services(runtime, ["openajar.policy.service", "openajar.node.channel.service"])
         built["runtime"] = runtime
         return runtime
 
@@ -75,7 +75,7 @@ async def test_a_restart_keeps_the_node_identity_and_it_comes_back_online(home):
         await asyncio.wait_for(task, 20)
 
 
-async def test_agentos_up_enrolls_again_a_node_the_owner_removed(home):
+async def test_openajar_up_enrolls_again_a_node_the_owner_removed(home):
     node_home, ctl_cfg = home
     built: dict = {}
     task, stop = start(node_home, ctl_cfg, built)

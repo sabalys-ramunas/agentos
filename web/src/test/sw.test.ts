@@ -108,7 +108,7 @@ describe('the service worker', () => {
     await worker.push(approval);
     await worker.click(worker.shown[0]!);
     expect(focus).toHaveBeenCalled();
-    expect(post).toHaveBeenCalledWith({ type: 'agentos-open', path: approval.url });
+    expect(post).toHaveBeenCalledWith({ type: 'openajar-open', path: approval.url });
     expect(worker.opened).toEqual([]);
   });
 

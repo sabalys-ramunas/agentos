@@ -10,10 +10,10 @@ from __future__ import annotations
 from test_connector_approvals import LANE, _harness, _no_pace, _policy, _post
 from test_policy_support import Clock
 
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.tools import tool_specs
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.tools import tool_specs
 
 PARAMS = {"caption": "Autumn at the lake", "image": "a.jpg"}
 

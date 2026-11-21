@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from agentos.policy.traces import TraceEvent
+from openajar.policy.traces import TraceEvent
 
 TOKEN = "t" * 43
 
@@ -63,7 +63,7 @@ def test_the_export_is_the_action_log_as_csv(client, node) -> None:
     answer = client.get("/api/orgs/local/activity/export?format=csv")
     assert answer.status_code == 200, answer.text
     assert answer.headers["content-type"].startswith("text/csv")
-    assert answer.headers["content-disposition"].startswith('attachment; filename="agentos-activity-local-')
+    assert answer.headers["content-disposition"].startswith('attachment; filename="openajar-activity-local-')
     rows = list(csv.DictReader(io.StringIO(answer.text)))
     assert [row["summary"] for row in rows[:2]] == ["posted the photo", "'=HYPERLINK(\"https://evil.example\")"]
     assert rows[-1]["summary"] == "exported the action log as csv"  # the export is itself in the log
@@ -143,7 +143,7 @@ def test_a_grant_cannot_open_billing(client, node) -> None:
     assert refused.json()["error"]["code"] == "denied"
 
 
-WEBHOOK_URL = "https://hooks.example.com/agentos/receive"
+WEBHOOK_URL = "https://hooks.example.com/openajar/receive"
 
 
 @pytest.fixture
@@ -172,8 +172,8 @@ def make_hook(client, url: str = WEBHOOK_URL, events: list[str] | None = None) -
 def test_the_events_the_app_offers_are_the_ones_the_service_sends(hooks) -> None:
     from typing import get_args
 
-    from agentos.api.web.webhooks import Event
-    from agentos.webhooks.service import EVENTS
+    from openajar.api.web.webhooks import Event
+    from openajar.webhooks.service import EVENTS
 
     assert set(get_args(Event)) == set(EVENTS) == {"approval.requested", "approval.decided", "approval.expired",
                                                     "run.failed"}
@@ -190,7 +190,7 @@ def test_a_webhook_is_made_and_its_secret_is_shown_once(client, hooks) -> None:
     assert made["events"] == ["approval.requested", "approval.decided", "approval.expired", "run.failed"]
     [listed] = client.get("/api/orgs/local/webhooks").json()
     assert "secret" not in listed and listed["origin"] == "https://hooks.example.com"
-    assert "/agentos/receive" not in json.dumps(listed)  # the address never comes back
+    assert "/openajar/receive" not in json.dumps(listed)  # the address never comes back
     assert listed["last_delivery"] is None
 
 
@@ -303,7 +303,7 @@ def test_the_window_is_the_one_the_daily_sweep_applies(tmp_path) -> None:
     it: the same number, read in the same place. The log is a prefix, so the old row comes first."""
     import time
 
-    from agentos.policy.traces import TraceStore
+    from openajar.policy.traces import TraceStore
 
     store = TraceStore(tmp_path / "traces.db", retention_days=30)
     store.write(TraceEvent(kind="tool_end", tool="x", status="ok", summary="long ago", at=time.time() - 40 * 86400))

@@ -1,4 +1,4 @@
-"""QA for the agent tools' outline memory (agentos.node.tools.render_snapshot over snapshot.OUTLINES).
+"""QA for the agent tools' outline memory (openajar.node.tools.render_snapshot over snapshot.OUTLINES).
 
 A delta is "what changed since your last snapshot of this tab" (docs/TOOLS.md), so it has to be
 measured against the snapshot this same agent session was shown. Bugs are strict xfails that
@@ -11,8 +11,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.models import Principal
-from agentos.node.tools import render_snapshot
+from openajar.core.models import Principal
+from openajar.node.tools import render_snapshot
 
 URL = "https://site.example/feed"
 # A page long enough that a one-line change is a shorter delta than the full outline (short pages

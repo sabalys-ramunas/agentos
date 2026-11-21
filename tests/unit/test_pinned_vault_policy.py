@@ -1,4 +1,4 @@
-"""Pins the vault's structural field roles (agentos.vault.policy.classify_fields): explicit
+"""Pins the vault's structural field roles (openajar.vault.policy.classify_fields): explicit
 autocomplete, the input before a password, a username-first step, one-time codes by structure
 and split into single boxes, and the fields that never get a role."""
 
@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from pinned import check, outcome
 
-from agentos.vault.policy import classify_fields
-from agentos.vault.typist import FieldInfo
+from openajar.vault.policy import classify_fields
+from openajar.vault.typist import FieldInfo
 
 TOP = ("https://login.example.com",)
 IFRAME = ("https://login.example.com", "https://auth.example.com")

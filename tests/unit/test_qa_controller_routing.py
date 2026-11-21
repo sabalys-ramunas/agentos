@@ -1,10 +1,10 @@
-"""QA for lane routing across nodes (agentos.controller.routing.route): a call's destination must not depend
+"""QA for lane routing across nodes (openajar.controller.routing.route): a call's destination must not depend
 on the order in which the nodes connected. Bugs are strict xfails pinned to their reason."""
 
 from __future__ import annotations
 
-from agentos.controller.routing import NodeView, ToolDef, route
-from agentos.core.models import Effect
+from openajar.controller.routing import NodeView, ToolDef, route
+from openajar.core.models import Effect
 
 
 def node(name: str, lane_arg: str | None) -> NodeView:

@@ -1,5 +1,5 @@
-"""The learn window (LaneGuard.open_learn, agentos.node.egress.learn; docs/design/learn-a-site.md
-section 4), the reviewed edit pages and endpoints (agentos.node.sites), and a learned operation's
+"""The learn window (LaneGuard.open_learn, openajar.node.egress.learn; docs/design/learn-a-site.md
+section 4), the reviewed edit pages and endpoints (openajar.node.sites), and a learned operation's
 strict commit scope (FlowCommit.strict). Fake requests and contexts (test_egress). The adversarial
 review's probes are here as regressions (a DM, another field's rule, a piggybacked edit, the value
 in another field, a window with no grant)."""
@@ -14,14 +14,14 @@ import pytest
 from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FakeMeter, FakePage, FakeRequest, FakeRoute, make_guard
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import AccountRef
-from agentos.node import egress
-from agentos.node.egress import learn
-from agentos.node.egress.learn_window import others_changed, path_under
-from agentos.node.egress.verdicts import Driver
-from agentos.node.learned_rules import LearnedRules
-from agentos.node.sites import PROFILE_EDIT_ENDPOINTS, profile_edit_endpoint, profile_edit_paths
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import AccountRef
+from openajar.node import egress
+from openajar.node.egress import learn
+from openajar.node.egress.learn_window import others_changed, path_under
+from openajar.node.egress.verdicts import Driver
+from openajar.node.learned_rules import LearnedRules
+from openajar.node.sites import PROFILE_EDIT_ENDPOINTS, profile_edit_endpoint, profile_edit_paths
 
 EDIT = "https://www.instagram.com/api/v1/web/accounts/edit/"
 IG_GQL = "https://www.instagram.com/graphql/query"
@@ -344,7 +344,7 @@ def test_fields_and_sites_with_no_reviewed_endpoint_get_no_window(tmp_path):
 
 async def test_a_linkedin_request_never_matches_a_reviewed_endpoint(tmp_path, monkeypatch):
     """Even with a reviewed LinkedIn headline entry, a name change or a DM on the same window is refused."""
-    from agentos.node import sites
+    from openajar.node import sites
 
     monkeypatch.setitem(sites.PROFILE_EDIT_ENDPOINTS, "linkedin", {"headline": sites.EditEndpoint(
         "POST", "www.linkedin.com", r"/flagship-web/rsc-action/actions/server-request", "json:serverRequest.headline",
@@ -717,7 +717,7 @@ async def test_a_learned_save_that_pins_no_field_is_refused(tmp_path):
 
 
 def test_the_executor_fills_a_pinned_value_escaped():
-    from agentos.runner.execution import match_for
+    from openajar.runner.execution import match_for
 
     got = match_for({"form:biography": "^${value}$"}, {"value": "a+b (c)?"})
     assert got == {"form:biography": "^a\\+b\\ \\(c\\)\\?$"}
@@ -729,8 +729,8 @@ def test_the_executor_fills_a_pinned_value_escaped():
 
 
 async def test_the_executor_scopes_a_learned_operations_run_strictly():
-    from agentos.runner.execution import learned_flow
-    from agentos.runner.executor import FlowExecutor
+    from openajar.runner.execution import learned_flow
+    from openajar.runner.executor import FlowExecutor
 
     seen = []
 

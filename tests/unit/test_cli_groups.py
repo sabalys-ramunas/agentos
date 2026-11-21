@@ -1,10 +1,10 @@
-"""The task-first `agentos` top level (agentos.cli_groups, unification stage C1).
+"""The task-first `openajar` top level (openajar.cli_groups, unification stage C1).
 
 - Every command path recorded before the regrouping (tests/fixtures/cli/old_tree.json, made by
   scripts/cli_tree.py) still resolves to the same function with the same options.
-- `agentos --help` shows the 14 groups and fits on one screen; the old names are hidden.
+- `openajar --help` shows the 14 groups and fits on one screen; the old names are hidden.
 - Each top-level group's --help matches tests/fixtures/cli/help/<group>.txt, at 80 columns.
-  After a meant change: AGENTOS_UPDATE_HELP=1 uv run pytest tests/unit/test_cli_groups.py
+  After a meant change: OPENAJAR_UPDATE_HELP=1 uv run pytest tests/unit/test_cli_groups.py
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ import typer
 import typer.rich_utils
 from typer.testing import CliRunner
 
-from agentos import cli_groups
-from agentos.cli import app
+from openajar import cli_groups
+from openajar.cli import app
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures" / "cli"
@@ -88,7 +88,7 @@ def test_an_alias_prints_exactly_what_its_new_path_prints(old, new):
 
 
 def _help(args: list[str]) -> str:
-    result = runner.invoke(app, [*args, "--help"], prog_name="agentos")
+    result = runner.invoke(app, [*args, "--help"], prog_name="openajar")
     assert result.exit_code == 0, result.output
     return "\n".join(line.rstrip() for line in result.output.splitlines()) + "\n"
 
@@ -97,7 +97,7 @@ def test_top_level_help_fits_on_one_screen_and_starts_with_the_task(monkeypatch)
     monkeypatch.setattr(typer.rich_utils, "MAX_WIDTH", 80)
     text = _help([])
     assert len(text.splitlines()) <= 43  # 40, then `environments` (docs/design/environments.md), `local`, `web`
-    assert "agentos setup" in text.split("Options")[0]
+    assert "openajar setup" in text.split("Options")[0]
     assert "—" not in text
 
 
@@ -106,21 +106,21 @@ def test_golden_help_per_group(group, monkeypatch):
     monkeypatch.setattr(typer.rich_utils, "MAX_WIDTH", 80)
     text = _help([group] if group else [])
     assert "—" not in text
-    golden = FIXTURES / "help" / f"{group or 'agentos'}.txt"
-    if os.environ.get("AGENTOS_UPDATE_HELP"):
+    golden = FIXTURES / "help" / f"{group or 'openajar'}.txt"
+    if os.environ.get("OPENAJAR_UPDATE_HELP"):
         golden.parent.mkdir(parents=True, exist_ok=True)
         golden.write_text(text)
-    assert text == golden.read_text(), f"{group} --help changed; AGENTOS_UPDATE_HELP=1 records it"
+    assert text == golden.read_text(), f"{group} --help changed; OPENAJAR_UPDATE_HELP=1 records it"
 
 
 def test_help_lists_the_everyday_commands_and_they_exist():
     result = runner.invoke(app, ["help"])
-    assert result.exit_code == 0 and "agentos up" in result.output and "—" not in result.output
+    assert result.exit_code == 0 and "openajar up" in result.output and "—" not in result.output
     for line in result.output.splitlines():
-        if line.startswith("  agentos "):
+        if line.startswith("  openajar "):
             words = [w for w in line.split("  ")[1].split()[1:] if not w.startswith(("<", "-")) and w.islower()]
             path = " ".join(words)
-            assert path in TREE, f"`agentos help` names {path!r}, which is no command"
+            assert path in TREE, f"`openajar help` names {path!r}, which is no command"
 
 
 # ---- the wrapped commands ----
@@ -148,8 +148,8 @@ def test_with_flag_forwards_every_option_and_keeps_the_rest_required():
 
 
 def test_open_terminal_is_the_dashboard_and_status_check_is_doctor(monkeypatch):
-    from agentos.ops import cli as ops_cli
-    from agentos.tui import cli as tui_cli
+    from openajar.ops import cli as ops_cli
+    from openajar.tui import cli as tui_cli
 
     seen = []
     monkeypatch.setattr(tui_cli, "dash", lambda **kw: seen.append(("dash", kw["node"])))
@@ -162,14 +162,14 @@ def test_open_terminal_is_the_dashboard_and_status_check_is_doctor(monkeypatch):
 
 
 def test_connect_by_hand_prints_the_steps_for_this_box(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "node"))
-    monkeypatch.delenv("AGENTOS_CONTROLLER_HOME", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "node"))
+    monkeypatch.delenv("OPENAJAR_CONTROLLER_HOME", raising=False)
     none = runner.invoke(app, ["connect", "--by-hand"])
     assert none.exit_code == 1 and "no node.toml" in none.output
     assert runner.invoke(app, ["node", "init", "--mcp-port", "7690"]).exit_code == 0
     node = runner.invoke(app, ["connect", "--by-hand", "box"])
     assert node.exit_code == 0, node.output
-    assert "ssh -N -L 7690:localhost:7690 box" in node.output and "agentos access grants issue" in node.output
+    assert "ssh -N -L 7690:localhost:7690 box" in node.output and "openajar access grants issue" in node.output
     assert "claude mcp add" in node.output and "—" not in node.output
     assert runner.invoke(app, ["controller", "init", "--port", "7691"]).exit_code == 0
     ctl = runner.invoke(app, ["connect", "--by-hand", "box"])

@@ -1,4 +1,4 @@
-# The agentos web app
+# The openajar web app
 
 The screens a person uses to watch and steer what agents do on a node: every environment with its
 live browser, the commands its terminal ran and its git (branch, changes, what was pushed), runs,
@@ -40,8 +40,8 @@ To work against a real node, start a dev node from the repository root (fake acc
 everything else, nothing leaves your machine), then point the app at it:
 
 ```bash
-uv run agentos dev up                      # prints a sign-in link on 127.0.0.1:7450
-AGENTOS_API_TARGET=http://127.0.0.1:7450 VITE_API_MODE=live pnpm dev --port 5321
+uv run openajar dev up                      # prints a sign-in link on 127.0.0.1:7450
+OPENAJAR_API_TARGET=http://127.0.0.1:7450 VITE_API_MODE=live pnpm dev --port 5321
 ```
 
 Sign in with the code from the link the dev node printed, on the app's port:
@@ -55,23 +55,23 @@ prints a second link for the browser.
 pnpm build                    # writes dist/, in live mode
 ```
 
-A node serves `web/dist` at `/` beside its API, as soon as `dist/` is built (`AGENTOS_PANEL_DIR`
-points it at another build). A checkout's own build comes first; an agentos installed without a
-checkout serves the prebuilt copy `agentos web install` unpacks into `~/.agentos/web/app`
+A node serves `web/dist` at `/` beside its API, as soon as `dist/` is built (`OPENAJAR_PANEL_DIR`
+points it at another build). A checkout's own build comes first; an openajar installed without a
+checkout serves the prebuilt copy `openajar web install` unpacks into `~/.openajar/web/app`
 ([docs/LOCAL.md](../docs/LOCAL.md#the-web-app)).
 
 Each release carries that copy: the `web-release` workflow builds `web/` in live mode and packs
-`dist/` with `scripts/web_asset.py` into `agentos-web-<version>.tar.gz` and its `.sha256`. To make
+`dist/` with `scripts/web_asset.py` into `openajar-web-<version>.tar.gz` and its `.sha256`. To make
 the same archive here (it is reproducible: the same build packs to the same bytes):
 
 ```bash
-make web-asset                # pnpm build, then dist-release/agentos-web-<version>.tar.gz and .sha256
+make web-asset                # pnpm build, then dist-release/openajar-web-<version>.tar.gz and .sha256
 ```
 
 The packer refuses a `dist/` with a link in it or the mock backend in it. The node's installer (`deploy/install-node.sh`) builds `web/` whenever its sources changed since the last
 good build, and keeps that build if a new one fails.
 
-To open it on a node, run `agentos panel login` there: it prints a one-time sign-in link. From your
+To open it on a node, run `openajar panel login` there: it prints a one-time sign-in link. From your
 computer, reach the node first with `ssh -N -L 7400:localhost:7400 <your node>`.
 
 ## Tests
@@ -102,7 +102,7 @@ To prove a change draws nothing different (a codemod, a token rename), `scripts/
 photographs the catalog and the main screens on the mock and compares two sets pixel by pixel:
 
 ```bash
-AGENTOS_API_TARGET=http://127.0.0.1:9 pnpm dev --port 5343 &
+OPENAJAR_API_TARGET=http://127.0.0.1:9 pnpm dev --port 5343 &
 node scripts/visual-compare.mjs shoot --out /tmp/before      # before the change
 node scripts/visual-compare.mjs shoot --out /tmp/after       # after it
 node scripts/visual-compare.mjs diff /tmp/before /tmp/after --out /tmp/diff

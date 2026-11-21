@@ -18,7 +18,7 @@ job, so the problems studio had are listed at the end.
 - **Sizes:** 320, 375, 430, 768 and 1440 px wide, light and dark. That gives 238 images per set.
 - **Studio:** `ui_check` on all 17 pages at those 5 widths and both themes (10 screens per page),
   then again with `since`. `system_check tokens="page"` on 6 pages at 375 and 1440. `ui_diff`
-  against the before run. Studio ran from a scratch HOME, never the real `~/.agentos`.
+  against the before run. Studio ran from a scratch HOME, never the real `~/.openajar`.
 - **By eye:** every page as someone who does not use AI tools, and as a daily user.
 
 ## Measured findings, before and after
@@ -230,7 +230,7 @@ plain lines. These are the problems, roughly by how much they cost:
    screens both sides have, and saying so once, would read better.
 10. **`studio up` died twice from outside.** Both times another builder's session started its own
     studio at the same second as mine got SIGTERM, so something on this machine stops
-    `agentos studio` processes by name. I ran it through a wrapper script with a different name.
+    `openajar studio` processes by name. I ran it through a wrapper script with a different name.
     Not a studio bug, but `studio up` has no way to tell instances apart (a lock file or a named
     instance would help), and the first request after it died failed with a bare connection error.
 11. **The token is only in the banner.** The agent token is printed once, and with output piped to a

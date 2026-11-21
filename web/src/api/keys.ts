@@ -123,7 +123,7 @@ export const keys = {
   proofShares: (org: string) => ['org', org, 'proof', 'shares'] as const,
   /** A read-only link is read with no org, so it is keyed by its token alone. */
   proofShared: (token: string) => ['proof', 'shared', token] as const,
-  /** Runs started with `agentos run`, and one run. Polled while one is running. */
+  /** Runs started with `openajar run`, and one run. Polled while one is running. */
   jobs: (org: string, lane?: string, state?: string) => ['org', org, 'jobs', lane ?? '', state ?? ''] as const,
   jobsAll: (org: string) => ['org', org, 'jobs'] as const,
   job: (org: string, id: string) => ['org', org, 'job', id] as const,
@@ -143,6 +143,8 @@ export const keys = {
   /** Environments: the cloud computers agents rent for one chat, and one of them. Polled. */
   environmentsAll: (org: string) => ['org', org, 'environments'] as const,
   environments: (org: string, state: 'open' | 'all') => ['org', org, 'environments', 'list', state] as const,
+  /** The same list read by a page that shows each screen's picture (`screens=1`). */
+  environmentPictures: (org: string, state: 'open' | 'all') => ['org', org, 'environments', 'pictures', state] as const,
   environment: (org: string, id: string) => ['org', org, 'environments', 'one', id] as const,
   environmentReplay: (org: string, id: string) => ['org', org, 'environments', 'replay', id] as const,
   checkpointDiff: (org: string, id: string, checkpoint: string) => ['org', org, 'environments', 'diff', id, checkpoint] as const,

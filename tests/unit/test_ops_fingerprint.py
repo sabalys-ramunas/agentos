@@ -6,7 +6,7 @@ import json
 
 from test_ops_support import fingerprint
 
-from agentos.node import fingerprint as fp
+from openajar.node import fingerprint as fp
 
 
 def test_versions_from_ua_and_camoufox():

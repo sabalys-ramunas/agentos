@@ -2,7 +2,7 @@
 brain's own PID namespace, the sweeps, the scope, and the confinement probe through the helper.
 
 Needs root and util-linux; the scope test needs systemd as PID 1. Two throwaway users are made
-(and removed): a caller standing in for `agentos` and a brain user.
+(and removed): a caller standing in for `openajar` and a brain user.
 """
 
 from __future__ import annotations
@@ -22,15 +22,15 @@ from pathlib import Path
 
 import pytest
 
-from agentos import runas
-from agentos.brains import confine, launch
-from agentos.runas import Identity, RunasError, Server
+from openajar import runas
+from openajar.brains import confine, launch
+from openajar.runas import Identity, RunasError, Server
 
 pytestmark = [pytest.mark.node,
               pytest.mark.skipif(not sys.platform.startswith("linux") or os.geteuid() != 0
                                  or not runas.has_namespace_tools(), reason="needs root on Linux with util-linux")]
 
-CALLER, BRAIN = "agentos-rt", "agentos-brain-rt"
+CALLER, BRAIN = "openajar-rt", "agentos-brain-rt"
 SYSTEMD = Path("/run/systemd/system").is_dir()
 
 
@@ -166,7 +166,7 @@ def test_the_request_env_never_reaches_root(helper, tmp_path):
 def test_the_brains_env_is_never_in_any_argv(helper):
     """The env (it carries the child grant token) goes through an fd: no process of the start
     chain (prlimit, unshare, setpriv, env, the loader) ever shows it in /proc/<pid>/cmdline."""
-    token = "agentos-test-token-" + os.urandom(8).hex()
+    token = "openajar-test-token-" + os.urandom(8).hex()
     seen: list[str] = []
     stop = threading.Event()
 
@@ -238,7 +238,7 @@ def _serve(sock: Path) -> subprocess.Popen:
 
 def _client(sock: Path, argv: list[str]) -> subprocess.Popen:
     """A caller (as the caller user) that starts a brain and holds the connection."""
-    code = ("import os, sys, time; from agentos import runas; "
+    code = ("import os, sys, time; from openajar import runas; "
             f"p = runas.request({str(sock)!r}, {{'identity': 'brain', 'argv': {argv!r}, 'cwd': '/'}}, (0, 1, 2)); "
             "print(p.pid, flush=True); time.sleep(120)")
     return subprocess.Popen([sys.executable, "-c", code], user=CALLER, group=CALLER, extra_groups=[],
@@ -362,9 +362,9 @@ def test_whoami_over_the_real_socket(helper, users):
 AGENTOSD = """
 import json, sys
 from pathlib import Path
-from agentos.brains import confine
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
+from openajar.brains import confine
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
 home, sock, run_as = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
 svc = BrainService(None, home=home, settings=BrainsSettings(run_as=run_as, runas_socket=sock, confinement="require"))
 try:

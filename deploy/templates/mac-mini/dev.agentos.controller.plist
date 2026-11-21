@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- The agentos controller as a LaunchAgent. setup.sh fills in __AGENTOS_BIN__, __AGENTOS_HOME__
+<!-- The openajar controller as a LaunchAgent. setup.sh fills in __OPENAJAR_BIN__, __OPENAJAR_HOME__
      and __LOG_DIR__ (render_plist.py) and loads it into the logged-in user's session. -->
 <plist version="1.0">
 <dict>
@@ -8,19 +8,19 @@
   <string>dev.agentos.controller</string>
   <key>ProgramArguments</key>
   <array>
-    <string>__AGENTOS_BIN__</string>
+    <string>__OPENAJAR_BIN__</string>
     <string>controller</string>
     <string>serve</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>AGENTOS_HOME</key>
-    <string>__AGENTOS_HOME__</string>
+    <key>OPENAJAR_HOME</key>
+    <string>__OPENAJAR_HOME__</string>
     <key>PYTHONUNBUFFERED</key>
     <string>1</string>
   </dict>
   <key>WorkingDirectory</key>
-  <string>__AGENTOS_HOME__</string>
+  <string>__OPENAJAR_HOME__</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

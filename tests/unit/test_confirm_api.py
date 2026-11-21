@@ -9,8 +9,8 @@ from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.core.ratelimit import RateLimiter
-from agentos.policy.cli import confirmation_app
+from openajar.core.ratelimit import RateLimiter
+from openajar.policy.cli import confirmation_app
 
 
 @pytest.fixture
@@ -138,7 +138,7 @@ def test_the_owners_chat_clients_are_listed_by_name(node):
 
 
 def test_no_tool_changes_it():
-    from agentos.policy.tools import tool_specs
+    from openajar.policy.tools import tool_specs
 
     assert not [s.name for s in tool_specs(None) if "confirmation" in s.name]
 
@@ -147,7 +147,7 @@ def test_no_tool_changes_it():
 
 @pytest.fixture
 def cli(node, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(node.config.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(node.config.home))
     return lambda *a: CliRunner().invoke(confirmation_app, list(a))
 
 

@@ -17,10 +17,10 @@ from typing import ClassVar
 
 import pytest
 
-from agentos.core.errors import EngineError, InvalidRequest, NotFound
-from agentos.core.models import ProxyConfig
-from agentos.node import files as files_mod
-from agentos.node.files import (
+from openajar.core.errors import EngineError, InvalidRequest, NotFound
+from openajar.core.models import ProxyConfig
+from openajar.node import files as files_mod
+from openajar.node.files import (
     CSV,
     JPEG,
     MB,
@@ -626,7 +626,7 @@ async def test_put_url_streams_into_the_inbox(lane_files, site):
     assert stored.url == f"{site}/hero.png"
     assert lane_files.path(stored.id).read_bytes() == PNG_BYTES
     assert stored.sha256 == hashlib.sha256(PNG_BYTES).hexdigest()
-    assert _Site.seen[0]["headers"]["User-Agent"].startswith("agentos/")
+    assert _Site.seen[0]["headers"]["User-Agent"].startswith("openajar/")
 
 
 async def test_put_url_names_from_content_disposition_and_fits_the_type(lane_files, site):

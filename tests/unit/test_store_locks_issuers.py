@@ -1,6 +1,6 @@
 """grant_issuers.db: a CLI holding its write lock never freezes the daemon. A revocation from the
 controller takes effect in memory at once and is on disk before the handler answers, waiting
-for the lock off the event loop (agentos.core.sqlite)."""
+for the lock off the event loop (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import sqlite3
 
 from lockheld import loop_stays_free
 
-from agentos.policy.issuers import DB_NAME, TrustedIssuers
+from openajar.policy.issuers import DB_NAME, TrustedIssuers
 
 
 async def test_a_revocation_is_refused_at_once_and_saved_off_the_loop(tmp_path):

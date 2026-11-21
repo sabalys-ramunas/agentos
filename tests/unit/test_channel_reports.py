@@ -8,10 +8,10 @@ from types import SimpleNamespace
 import pytest
 from channel_fake_controller import FAST, NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.core import logs
-from agentos.node.channel import reports
-from agentos.node.daemon import build_services
-from agentos.ops.doctor import CheckResult, Report
+from openajar.core import logs
+from openajar.node.channel import reports
+from openajar.node.daemon import build_services
+from openajar.ops.doctor import CheckResult, Report
 
 FLOW = {"id": "biz-a.social.look", "lane": "biz-a/social",
         "params": {"type": "object", "properties": {"caption": {"type": "string", "default": "hi",
@@ -47,7 +47,7 @@ async def node(tmp_path):
     home = tmp_path / "node"
     async with FakeController(NODE_ID, node_pubkey(home)) as fake:
         runtime = await node_runtime(home, fake, lanes=("biz-a/social",))
-        build_services(runtime, ["agentos.runner.service"])
+        build_services(runtime, ["openajar.runner.service"])
         runtime.register("vault", FakeVault())
         runtime.get("channel").timings = replace(FAST, reports=0.1, report_min=0.5, doctor_after=600.0)
         runtime.flows.save(FLOW)
@@ -125,7 +125,7 @@ async def test_system_programs_and_services_go_out_after_welcome(node):
     system = (await peer.recv("event", where=node_report("system"))).body["payload"]["system"]
     assert system["protocol"] == 1 and system["cores"] and system["version"]
     programs = (await peer.recv("event", where=node_report("programs"))).body["payload"]["programs"]
-    assert any(p["name"] == "agentos" and p["scope"] == "node" for p in programs)
+    assert any(p["name"] == "openajar" and p["scope"] == "node" for p in programs)
     services = (await peer.recv("event", where=node_report("services"))).body["payload"]["services"]
     assert services[0]["name"] == "agentosd" and services[0]["state"] == "running"
 
@@ -139,13 +139,13 @@ async def test_the_doctor_report_runs_offline_and_masks_addresses(node, monkeypa
         return Report(node="node-t", home=str(ctx.home), generated_at="2026-11-04T10:00:00+00:00", results=[
             CheckResult("disk", "Disk", "pass", "41 GB free"),
             CheckResult("proxy.res1", "Proxy res1", "fail", "exit IP 203.0.113.7 differs from 198.51.100.2",
-                        "agentos proxy add res1 host:port:user"),
+                        "openajar proxy add res1 host:port:user"),
             CheckResult("vault", "Vault", "warn", "the key hunter2-hunter2 is readable"),
             CheckResult("backups", "Backups", "skip", "no backup folder"),
         ])
 
-    monkeypatch.setattr("agentos.ops.doctor.run", fake_run)
-    monkeypatch.setattr("agentos.core.logs._scrubbers", [FakeVault().scrub])
+    monkeypatch.setattr("openajar.ops.doctor.run", fake_run)
+    monkeypatch.setattr("openajar.core.logs._scrubbers", [FakeVault().scrub])
     channel = runtime.get("channel")
     channel._doctor = await asyncio.to_thread(reports.doctor, channel.config, logs.scrub)
     channel._report_wake.set()
@@ -212,7 +212,7 @@ def test_doctor_text_is_masked_before_it_is_cut(monkeypatch, tmp_path):
         return Report(node="n", home=str(ctx.home), generated_at="2026-11-04T10:00:00+00:00", results=[
             CheckResult("proxy.res1", "Proxy res1", "fail", "x" * 293 + " 203.0.113.7")])
 
-    monkeypatch.setattr("agentos.ops.doctor.run", fake_run)
+    monkeypatch.setattr("openajar.ops.doctor.run", fake_run)
     checks = reports.doctor(SimpleNamespace(home=tmp_path))
     assert "203" not in checks[0]["detail"]
 

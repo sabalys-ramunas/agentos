@@ -1,4 +1,4 @@
-"""Live tool reload (agentos.mcp.reload): connector and flow tools appear, change and go while
+"""Live tool reload (openajar.mcp.reload): connector and flow tools appear, change and go while
 agentosd runs, connected clients hear tools/list_changed, and nothing restarts."""
 
 import asyncio
@@ -7,18 +7,18 @@ import pytest
 from connector_samples import SITES, bind, connector, read_op
 from mcp import Client
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.mcp.registry import build_mcp
-from agentos.mcp.reload import ToolWatch, fingerprint, refresh, reload_tools
-from agentos.ops import control
-from agentos.runner import tools as runner_tools
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.fakes import OWNER, Harness
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec
+from openajar.mcp.registry import build_mcp
+from openajar.mcp.reload import ToolWatch, fingerprint, refresh, reload_tools
+from openajar.ops import control
+from openajar.runner import tools as runner_tools
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.fakes import OWNER, Harness
 
 
 async def one(ctx) -> dict:
@@ -193,7 +193,7 @@ async def test_a_connector_installed_by_another_process_appears_without_a_restar
     watch = ToolWatch(daemon.runtime, server, poll_s=0.05)
     await watch.start()
     try:
-        cli = Harness(tmp_path)  # `agentos connector install`: its own process, the same database
+        cli = Harness(tmp_path)  # `openajar connector install`: its own process, the same database
         _install(cli)
         bind(cli)
         for _ in range(100):

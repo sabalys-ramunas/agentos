@@ -14,17 +14,17 @@ import pytest
 from test_lanes import FakeDisplays, FakeEngine
 from test_lanes_holds import build
 
-from agentos.core.config import (
+from openajar.core.config import (
     LANE_MEMORY_DEFAULT_MB,
     LANE_MEMORY_MIN_MB,
     NodeConfig,
     load_config,
     save_config,
 )
-from agentos.core.errors import ConfirmRequired, InvalidRequest, LaneBusy, LaneNotFound
-from agentos.core.models import LaneSpec, LaneState, ViewerInfo
-from agentos.node.camoufox.engine import window_size_of
-from agentos.node.lanes import ResourcesLow, ScopeLimiter
+from openajar.core.errors import ConfirmRequired, InvalidRequest, LaneBusy, LaneNotFound
+from openajar.core.models import LaneSpec, LaneState, ViewerInfo
+from openajar.node.camoufox.engine import window_size_of
+from openajar.node.lanes import ResourcesLow, ScopeLimiter
 
 MB = 1024 * 1024
 
@@ -174,7 +174,7 @@ async def test_the_scope_limiter_asks_systemd_for_a_scope_with_memory_max():
 
     limiter = ScopeLimiter(1024, run=run)
     unit = await limiter.apply("biz-a/instagram", [4321, 4322, 4321, 0])
-    assert unit == "agentos-lane-biz-a--instagram-4321.scope"
+    assert unit == "openajar-lane-biz-a--instagram-4321.scope"
     argv = calls[0]
     assert argv[:7] == ["busctl", "call", "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
                         "org.freedesktop.systemd1.Manager", "StartTransientUnit", "ssa(sv)a(sa(sv))"]
@@ -229,14 +229,14 @@ async def test_a_systemd_without_oompolicy_on_scopes_still_gets_the_scope():
         return 0, ""
 
     limiter = ScopeLimiter(2048, run=run)
-    assert await limiter.apply("a/b", [10]) == "agentos-lane-a--b-10.scope"
+    assert await limiter.apply("a/b", [10]) == "openajar-lane-a--b-10.scope"
     assert ["OOMPolicy" in argv for argv in calls] == [True, False]
-    assert await limiter.apply("a/c", [11]) == "agentos-lane-a--c-11.scope"
+    assert await limiter.apply("a/c", [11]) == "openajar-lane-a--c-11.scope"
     assert "OOMPolicy" not in calls[-1] and len(calls) == 3  # asked once; later scopes go without
 
 
 def test_lanes_get_scopes_by_default_where_systemd_runs(tmp_path, monkeypatch):
-    from agentos.node.lanes import resources as lanes_resources
+    from openajar.node.lanes import resources as lanes_resources
 
     monkeypatch.setattr(ScopeLimiter, "supported", staticmethod(lambda: True))
     monkeypatch.setattr(lanes_resources, "default_scopes_fit", lambda: False)  # not root, or a capped service
@@ -257,7 +257,7 @@ def test_lanes_get_scopes_by_default_where_systemd_runs(tmp_path, monkeypatch):
 
 
 def test_the_default_cap_rides_on_the_default_scopes_and_never_asks_for_one(tmp_path, monkeypatch):
-    from agentos.node.lanes import resources as lanes_resources
+    from openajar.node.lanes import resources as lanes_resources
 
     monkeypatch.setattr(ScopeLimiter, "supported", staticmethod(lambda: True))
     monkeypatch.setattr(lanes_resources, "default_scopes_fit", lambda: True)
@@ -321,7 +321,7 @@ async def test_caps_systemd_refuses_are_reported_as_not_applied_and_warned_once(
     t = build(tmp_path, limiter=ScopeLimiter(2048, cpu_max_pct=150, run=run))
     status = t.mgr.memory_status()
     assert status["lane_memory_max_mb"] is None and status["lane_limits"]["working"] is None  # not tried yet
-    with caplog.at_level(logging.DEBUG, logger="agentos.lanes"):
+    with caplog.at_level(logging.DEBUG, logger="openajar.lanes"):
         for name in ("a/one", "a/two"):
             await t.mgr.create(LaneSpec(id=name))
             assert (await t.mgr.open(name)).state == LaneState.WARM
@@ -446,7 +446,7 @@ async def test_delete_removes_a_lane_whose_record_cannot_be_read(tmp_path):
     t = build(tmp_path)
     with sqlite3.connect(t.config.db_path) as conn:
         conn.execute("INSERT INTO lanes (id, spec) VALUES (?, ?)", ("b/bad", '{"id": "b/bad", "kind": "martian"}'))
-    with pytest.raises(InvalidRequest, match="agentos lane delete b/bad"):
+    with pytest.raises(InvalidRequest, match="openajar lane delete b/bad"):
         t.mgr.get("b/bad")
     assert await t.mgr.delete("b/bad") is None
     assert not t.mgr.store.exists("b/bad")
@@ -512,7 +512,7 @@ async def test_recent_human_input_keeps_a_lane_from_eviction(tmp_path):
 async def test_shutdown_during_the_memory_scope_leaves_the_lane_cold(tmp_path, monkeypatch):
     from test_lanes_edge import _ShortLaneWaits
 
-    from agentos.node.lanes import manager as lanes_manager
+    from openajar.node.lanes import manager as lanes_manager
 
     monkeypatch.setattr(lanes_manager, "asyncio", _ShortLaneWaits())
     gate, entered = asyncio.Event(), asyncio.Event()
@@ -535,8 +535,8 @@ async def test_shutdown_during_the_memory_scope_leaves_the_lane_cold(tmp_path, m
 
 
 def test_new_lanes_draw_the_configured_os_and_a_bad_os_is_refused(tmp_path):
-    from agentos.core.config import NodeConfig
-    from agentos.node.lanes import build_lane_manager
+    from openajar.core.config import NodeConfig
+    from openajar.node.lanes import build_lane_manager
 
     # the owner's decision (2026-11-04): lanes made from now on claim Linux, the node's own OS
     assert NodeConfig(home=tmp_path).lane_os == ["linux"]
@@ -571,7 +571,7 @@ def _cgroups(tmp_path, own: str, caps: dict[str, dict[str, str]]):
 
 
 def test_default_scopes_only_where_no_level_above_the_daemon_caps_memory(tmp_path):
-    from agentos.node.lanes import default_scopes_fit
+    from openajar.node.lanes import default_scopes_fit
 
     own = "system.slice/agentosd.service"
     assert default_scopes_fit(**_cgroups(tmp_path / "free", own, {}))
@@ -583,7 +583,7 @@ def test_default_scopes_only_where_no_level_above_the_daemon_caps_memory(tmp_pat
 
 
 def test_default_scopes_stay_off_on_cgroup_v1_or_an_unreadable_file(tmp_path):
-    from agentos.node.lanes import default_scopes_fit
+    from openajar.node.lanes import default_scopes_fit
 
     v1 = _cgroups(tmp_path / "v1", "system.slice/agentosd.service", {})
     v1["proc_cgroup"].write_text("12:memory:/system.slice/agentosd.service\n1:name=systemd:/system.slice\n")

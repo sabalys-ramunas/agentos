@@ -14,14 +14,14 @@ import pytest
 from fakes import FakeInteraction, FakeLaneManager, mcp_port_for_tests
 from starlette.testclient import TestClient
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.tools import ToolSpec
-from agentos.mcp import providers as mcp_providers
-from agentos.mcp.registry import allow_all_wrap
-from agentos.node import daemon
-from agentos.node.daemon import node_runtime, serve
+from openajar.core.config import NodeConfig
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.tools import ToolSpec
+from openajar.mcp import providers as mcp_providers
+from openajar.mcp.registry import allow_all_wrap
+from openajar.node import daemon
+from openajar.node.daemon import node_runtime, serve
 
 INIT = {
     "jsonrpc": "2.0",
@@ -80,7 +80,7 @@ async def test_lanes_close_even_if_start_fails(config):
 
 
 async def test_refuses_without_token(tmp_path):
-    with pytest.raises(RuntimeError, match="agentos node init"):
+    with pytest.raises(RuntimeError, match="openajar node init"):
         config = NodeConfig(home=tmp_path)
         await serve(config, node_runtime(config, FakeLaneManager(), FakeInteraction()))
 
@@ -88,8 +88,8 @@ async def test_refuses_without_token(tmp_path):
 def test_build_runtime_imports_lazily():
     """Importing the CLI, the daemon and the MCP server must not pull in a browser stack."""
     code = (
-        "import sys, agentos.cli, agentos.node.daemon, agentos.node.tools, agentos.mcp.server\n"
-        "bad = [m for m in ('camoufox', 'playwright', 'agentos.node.lanes', 'agentos.node.interaction')"
+        "import sys, openajar.cli, openajar.node.daemon, openajar.node.tools, openajar.mcp.server\n"
+        "bad = [m for m in ('camoufox', 'playwright', 'openajar.node.lanes', 'openajar.node.interaction')"
         " if m in sys.modules]\n"
         "assert not bad, bad\n"
     )
@@ -132,16 +132,16 @@ def test_feature_providers_skip_what_is_missing(monkeypatch, tmp_path, caplog):
     (tmp_path / "featdep" / "__init__.py").write_text("")
     (tmp_path / "featdep" / "tools.py").write_text("import a_dependency_nobody_installed\n")
     monkeypatch.syspath_prepend(str(tmp_path))
-    modules = ["agentos.nothere.tools", "featok.tools", "featfails.tools", "featnospecs.tools", "featdep.tools"]
-    with caplog.at_level(logging.INFO, logger="agentos.node.daemon"):
+    modules = ["openajar.nothere.tools", "featok.tools", "featfails.tools", "featnospecs.tools", "featdep.tools"]
+    with caplog.at_level(logging.INFO, logger="openajar.node.daemon"):
         providers = mcp_providers.tool_providers(modules)
     levels = {r.getMessage().split()[0]: r.levelno for r in caplog.records}
-    assert levels["agentos.nothere.tools"] == logging.INFO
+    assert levels["openajar.nothere.tools"] == logging.INFO
     assert levels["featdep.tools"] == logging.ERROR and levels["featnospecs.tools"] == logging.ERROR
     assert len(providers) == 3  # the node's own tools, featok, featfails
     runtime = node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction())
     names = [spec.name for provide in providers for spec in provide(runtime) if isinstance(spec, ToolSpec)]
-    from agentos.node import tools as node_tools
+    from openajar.node import tools as node_tools
 
     own = [s for s in node_tools.tool_specs(runtime) if isinstance(s, ToolSpec)]
     assert "feat_ok" in names and "browser_act" in names and len(names) == len(own) + 1  # the node's own and feat_ok
@@ -213,7 +213,7 @@ def test_policy_tokens_reach_mcp(monkeypatch, config):
 
 
 def test_a_policy_service_without_its_wrapper_refuses_to_start(monkeypatch, config):
-    monkeypatch.setattr(daemon, "POLICY_WRAP", "agentos.policy_missing.wrap")
+    monkeypatch.setattr(daemon, "POLICY_WRAP", "openajar.policy_missing.wrap")
     runtime = node_runtime(config, FakeLaneManager(), FakeInteraction(), policy=FakePolicy())
     with pytest.raises(ModuleNotFoundError):
         daemon.build_node_app(config, runtime)

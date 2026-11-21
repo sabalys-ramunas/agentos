@@ -1,5 +1,5 @@
 /**
- * The mock of Brand (`/brand`, agentos.api.web.brand) and of disposable VMs (`/vms`). Harbor Supply's web shop
+ * The mock of Brand (`/brand`, openajar.api.web.brand) and of disposable VMs (`/vms`). Harbor Supply's web shop
  * is a product profile with a waiting draft an agent proposed; Aster Coffee is a business with no draft. As on
  * the node, only the owner reads and decides: anyone else is refused, the proposals for Needs you included.
  */

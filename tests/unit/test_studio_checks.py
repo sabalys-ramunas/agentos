@@ -16,9 +16,9 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 
-from agentos.studio.checks import IDS, delta, merge, run_checks
-from agentos.studio.checks.scripts import script
-from agentos.studio.contracts import CheckContext, Confidence, EngineName, Screen, Severity, Theme
+from openajar.studio.checks import IDS, delta, merge, run_checks
+from openajar.studio.checks.scripts import script
+from openajar.studio.contracts import CheckContext, Confidence, EngineName, Screen, Severity, Theme
 
 pw = pytest.importorskip("playwright.async_api")
 pytestmark = pytest.mark.asyncio(loop_scope="module")
@@ -217,7 +217,7 @@ async def test_small_text_on_a_blurred_bar_is_judged_with_its_css_colour(opened)
     assert 2.3 < f.measured["ratio"] < 2.7 and f.seen_at[0].count == 2
 
 
-# --- what the first run on a real app (agentos's web app) got wrong, kept clean -------------------
+# --- what the first run on a real app (openajar's web app) got wrong, kept clean -------------------
 
 
 async def test_small_text_over_dots_gradients_and_blur_is_read_with_its_real_colour(opened):
@@ -540,7 +540,7 @@ async def test_marks_and_drawn_pages_keep_their_colours_without_a_theme_leak(ope
 
 
 async def test_without_component_markers_findings_group_by_section_or_part_and_say_how(opened):
-    from agentos.studio import shaping
+    from openajar.studio import shaping
 
     out = await check(opened, "faults/grouped")
     comps = sorted((f.component.name, f.component.via) for f in out.findings)
@@ -607,7 +607,7 @@ async def test_a_shift_from_a_web_font_swapping_in_is_named_and_marked_as_varyin
 
 
 async def test_studios_own_full_page_screenshot_is_not_a_layout_shift_of_the_page(opened):
-    from agentos.studio.checks.run import mark_capture
+    from openajar.studio.checks.run import mark_capture
 
     page, screen = await opened("clean/viewport_shell", 375, height=800)
     await mark_capture(page)                      # what review does before its screenshot

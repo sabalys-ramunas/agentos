@@ -1,12 +1,12 @@
 name: env-image
 
-# The docker provider's machine image, prebuilt for each release, so `agentos setup --docker` downloads
-# it in a minute or two instead of building it for 10 to 15 minutes (agentos.environments.cli._pull_image).
+# The docker provider's machine image, prebuilt for each release, so `openajar setup --docker` downloads
+# it in a minute or two instead of building it for 10 to 15 minutes (openajar.environments.cli._pull_image).
 # Published as ghcr.io/<owner>/agentos-env:<version> (vms.toml's docker_pull), for amd64 and arm64,
-# from the same folder `agentos environments setup --build` builds.
+# from the same folder `openajar environments setup --build` builds.
 #
 # It runs on each release tag (vX.Y.Z), or by hand on a tag or branch (Actions > env-image > Run
-# workflow): the version is the tag's, or src/agentos/__init__.py's on a branch.
+# workflow): the version is the tag's, or src/openajar/__init__.py's on a branch.
 
 on:
   push:
@@ -43,14 +43,14 @@ jobs:
         id: v
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else
-            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agentos/__init__.py); fi
+            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/openajar/__init__.py); fi
           [ -n "$v" ] || { echo "no version"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
-      - name: The build folder (as agentos.environments.cli._build_image makes it)
+      - name: The build folder (as openajar.environments.cli._build_image makes it)
         run: |
           mkdir ctx
-          cp deploy/environments/* src/agentos/environments/setup.sh src/agentos/environments/browser.sh \
-            src/agentos/environments/browser-requirements.txt ctx/
+          cp deploy/environments/* src/openajar/environments/setup.sh src/openajar/environments/browser.sh \
+            src/openajar/environments/browser-requirements.txt src/openajar/environments/desktop.sh ctx/
       - name: Build
         # the token goes in as a build secret, for Camoufox's releases API calls (rate limited without one)
         env:
@@ -80,7 +80,7 @@ jobs:
       - name: One name for both CPUs
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else
-            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agentos/__init__.py); fi
+            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/openajar/__init__.py); fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           tags="-t $REPO:$v"
           [ "$GITHUB_REF_TYPE" = tag ] && tags="$tags -t $REPO:latest"

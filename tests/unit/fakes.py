@@ -1,6 +1,6 @@
 """In-memory implementations of the node Protocols, for tests that run without a browser.
 
-The lane managers live in agentos.dev.lanes (the same classes `agentos dev up` serves); they are
+The lane managers live in openajar.dev.lanes (the same classes `openajar dev up` serves); they are
 re-exported here so the tests keep their import path.
 """
 
@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import os
 
-from agentos.core.errors import RefNotFound
-from agentos.core.models import ActionKind, ActionResult, NavigateResult, Signal, SnapshotResult
-from agentos.dev.lanes import (  # noqa: F401  (re-exported for the tests)
+from openajar.core.errors import RefNotFound
+from openajar.core.models import ActionKind, ActionResult, NavigateResult, Signal, SnapshotResult
+from openajar.dev.lanes import (  # noqa: F401  (re-exported for the tests)
     ControlFakeLaneManager,
     FakeLaneManager,
     FakePage,
@@ -26,7 +26,7 @@ PNG_1X1 = bytes.fromhex(
 
 def mcp_port_for_tests() -> int:
     """0 (any free port) by default; scripts/node-test.sh sets the agent's own range on the node."""
-    return int(os.environ.get("AGENTOS_TEST_MCP_PORT_BASE", "0"))
+    return int(os.environ.get("OPENAJAR_TEST_MCP_PORT_BASE", "0"))
 
 
 class FakeInteraction:
@@ -74,7 +74,7 @@ class FakeInteraction:
 
     async def wait(self, page: FakePage, spec, *, should_stop=None):
         """Records the WaitFor; returns `wait_result` (a WaitResult) or "met" at once."""
-        from agentos.node.interaction import WaitResult
+        from openajar.node.interaction import WaitResult
 
         self._maybe_fail()
         self.waits.append(spec)

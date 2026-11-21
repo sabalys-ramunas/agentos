@@ -7,18 +7,18 @@ person. These started as the reviewer's proofs of the attack; they now assert it
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.env import exposure, tool_specs
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import EnvLane
-from agentos.env.paths import EnvSettings
-from agentos.env.presets import resolve
-from agentos.env.sandbox import DirectLauncher
-from agentos.env.tools import _facts, lane_exec
-from agentos.policy.grants import LaneCap, Specials
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.env import exposure, tool_specs
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import EnvLane
+from openajar.env.paths import EnvSettings
+from openajar.env.presets import resolve
+from openajar.env.sandbox import DirectLauncher
+from openajar.env.tools import _facts, lane_exec
+from openajar.policy.grants import LaneCap, Specials
 
 
 @pytest.fixture
@@ -149,7 +149,7 @@ async def test_every_agent_path_sends_runs_on_node(tmp_path, tool, args):
 
 
 def test_the_panel_terminal_sends_runs_on_node(tmp_path):
-    from agentos.api.bridge import EnvsAdapter
+    from openajar.api.bridge import EnvsAdapter
     mgr = EnvManager(tmp_path / "home", host=FakeHost(), launcher=DirectLauncher(), settings=EnvSettings(proxy_port=0))
     mgr.create("ws/fs", preset="sandbox", overrides={"filesystem": "shared"}, node_secrets_ok=True)
     facts = EnvsAdapter(mgr).terminal_facts("ws/fs")

@@ -26,9 +26,9 @@ from test_viewer_app import (  # noqa: F401  (fixtures)
 from test_vnc_relay import HANDSHAKE_OUT, FakeVnc, fbur, key, pointer
 from websockets.asyncio.client import connect
 
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node import viewer_app
-from agentos.node.viewer_app import LINK_HOLDER_BY, VIEWER_BY, build_viewer_app
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node import viewer_app
+from openajar.node.viewer_app import LINK_HOLDER_BY, VIEWER_BY, build_viewer_app
 
 ENV_LANE = "env/eabcdefghjk-browser"
 ACCOUNT = "personal/reddit"
@@ -44,11 +44,14 @@ class Environments:
     def is_browser_lane(self, lane_id):
         return lane_id in self.lanes
 
+    def lane_environment(self, lane_id):
+        return getattr(self, "env", None) if lane_id in self.lanes else None
+
     def signed_proof(self, workspace, name, proof, token):
         return self.proofs.get((workspace, name, proof, token))
 
     def watch_lane(self, lane_id, kind="live_view"):
-        """A person watching counts as use (agentos.environments.watching): open now, and until it stops."""
+        """A person watching counts as use (openajar.environments.watching): open now, and until it stops."""
         self.watching = [*getattr(self, "watching", []), (lane_id, kind)]
 
         def stop():
@@ -124,6 +127,27 @@ async def test_the_link_holder_takes_types_and_hands_back_an_environment_browser
         assert r.json()["lane"]["control"]["state"] == "agent"
 
 
+@pytest.mark.parametrize(("laptop", "desktop", "drives"), [(False, True, False), (False, False, True),
+                                                           (True, True, True)])
+async def test_on_a_server_node_the_link_alone_does_not_drive_a_desktop(env_node, laptop, desktop, drives):
+    """With the desktop on, an environment's screen has a root terminal in its dock: on a server node the
+    control link alone gets the usual rules (a panel sign-in or an owner link); on a laptop it is loopback."""
+    from types import SimpleNamespace
+
+    node = env_node
+    node.envs.on_laptop = laptop
+    node.envs.vm_browsers = lambda: SimpleNamespace(desktops={ENV_LANE: desktop})
+    async with client(node) as c:
+        r = await c.post(node.url(control(ENV_LANE), node.token("control", lane=ENV_LANE)), json={"action": "take"})
+        assert r.status_code == 200, r.text  # taking only stops agents, as on any lane
+        r = await c.post(node.url(control(ENV_LANE), node.token("control", lane=ENV_LANE)),
+                         json={"action": "hand_back"})
+    assert (r.status_code == 200) is drives, r.text
+    async with httpx.AsyncClient() as c:
+        boot = boot_of((await c.get(node.url(f"/view/{ENV_LANE}", node.token("control", lane=ENV_LANE)))).text)
+    assert boot["holder"] is drives
+
+
 async def test_the_link_holder_hands_back_a_held_environment_browser(env_node):
     node = env_node
     await node.mgr.hold(ENV_LANE, reason="needs_human:captcha")
@@ -160,7 +184,7 @@ async def test_a_freeze_still_ends_the_environment_browsers_link(env_node, monke
         r = await c.post(node.url(control(ENV_LANE), node.token("control", lane=ENV_LANE)), json={"action": "take"})
         assert r.status_code == 403
         page = await c.get(node.url(f"/view/{ENV_LANE}", node.token("control", lane=ENV_LANE)))
-        assert page.status_code == 403 and "agentos-boot" not in page.text
+        assert page.status_code == 403 and "openajar-boot" not in page.text
 
 
 async def test_a_lane_the_service_no_longer_knows_gets_the_usual_rules(env_node):
@@ -233,6 +257,80 @@ async def test_a_proof_link_opens_its_image_and_nothing_else(env_node):
         assert r.headers["cache-control"] == "private, no-store"
         bad = await c.get(node.url(f"/view/{ENV_LANE}/proof/pabcdefghjk.png", "forged"))
         assert bad.status_code == 403 and "not valid or has expired" in bad.json()["error"]["message"]
+
+
+# ---- who has control, by name ----------------------------------------------------------------
+
+
+class _Call:
+    def __init__(self, client):
+        self.client = client
+
+
+class _Env:
+    def __init__(self, agent="an agent", client=None, calls=(), title=None):
+        self.agent, self.client, self.calls = agent, client, [_Call(c) for c in calls]
+        if title is not None:
+            self.title = title
+
+
+def test_the_agent_is_named_from_its_client_and_never_guessed():
+    from openajar.node.viewer_state import agent_name
+
+    assert agent_name("claude-code 2.1.3") == "Claude Code"
+    assert agent_name("codex-mcp-client 0.40.0") == "Codex"
+    assert agent_name("my_tool") == "My tool"
+    assert agent_name("Claude Code") == "Claude Code"
+    assert agent_name(None) is None and agent_name("") is None and agent_name("  ") is None
+    assert len(agent_name("x" * 200)) <= 32
+
+
+async def test_the_page_knows_the_agents_name_when_the_environment_does(env_node):
+    """The live view says "Claude Code has control": the environment's agent, else its newest call's MCP
+    client, else the one that opened it; nothing at all when none said a name."""
+    async def boot():
+        async with httpx.AsyncClient() as client:
+            r = await client.get(env_node.url(f"/view/{ENV_LANE}", env_node.token("view", lane=ENV_LANE)))
+        return boot_of(r.text)
+
+    assert (await boot())["agent"] is None  # no environment record: no name
+    env_node.envs.env = _Env(client="codex 0.40.0")
+    assert (await boot())["agent"] == "Codex"
+    env_node.envs.env = _Env(client="codex 0.40.0", calls=["claude-code 2.1.3"])
+    assert (await boot())["agent"] == "Claude Code"
+    env_node.envs.env = _Env(agent="Claude Code", client="t3-code 1.0")
+    assert (await boot())["agent"] == "Claude Code"
+
+
+async def test_the_page_is_headed_with_the_environments_title(env_node):
+    """A person reads the environment's own title ("Launch checklist"), not its lane's id."""
+    async def page():
+        async with httpx.AsyncClient() as client:
+            return await client.get(env_node.url(f"/view/{ENV_LANE}", env_node.token("view", lane=ENV_LANE)))
+
+    r = await page()
+    assert boot_of(r.text)["title"] is None and f"<title>{ENV_LANE} · openajar</title>" in r.text
+    env_node.envs.env = _Env(title="Launch checklist")
+    r = await page()
+    assert boot_of(r.text)["title"] == "Launch checklist" and "<title>Launch checklist · openajar</title>" in r.text
+
+
+def test_the_page_has_a_keyboard_for_touch_and_a_screen_that_outlives_the_browser():
+    from pathlib import Path
+
+    root = Path(viewer_app.__file__).parent / "viewer"
+    page, js = (root / "page.html").read_text(), (root / "assets" / "viewer.js").read_text()
+    assert 'id="btn-keyboard"' in page and 'id="kbd-input"' in page and 'autocorrect="off"' in page
+    assert "(pointer: coarse)" in js and "rfb.sendKey(XK.BackSpace, 'Backspace')" in js
+    assert "Boolean(state.lane.live)" in js  # a cold lane with a live screen connects
+    assert "This is the agent\\'s computer: what you type here, the agent could read." in js  # under Take over
+    assert " lane" not in page.split("<body", 1)[1].replace('class="lane', "").replace('id="lane', "")
+
+
+async def test_an_account_lane_names_no_agent(account_node):
+    async with httpx.AsyncClient() as client:
+        r = await client.get(account_node.url(f"/view/{ACCOUNT}", account_node.token("view", lane=ACCOUNT)))
+    assert boot_of(r.text)["agent"] is None
 
 
 async def test_an_open_live_view_counts_as_watching_until_it_closes(env_node):

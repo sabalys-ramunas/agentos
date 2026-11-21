@@ -30,10 +30,10 @@ On a throwaway Camoufox profile and loopback pages only (egress_guard.py's serve
          that made the hold reports it, and when the request reached the driver after the click
          (not run by default: `... commit_gate.py first`)
 
-Run it in the agentos-stealth-node image with this checkout mounted read-only:
+Run it in the openajar-stealth-node image with this checkout mounted read-only:
 
   docker run --rm -v "$PWD":/work:ro -e PYTHONPATH=/work/src -e DISPLAY_NUM=99 -e BASE_PORT=6410 \\
-    --entrypoint /opt/venv/bin/python agentos-stealth-node /work/scripts/spikes/commit_gate.py
+    --entrypoint /opt/venv/bin/python openajar-stealth-node /work/scripts/spikes/commit_gate.py
 
 Nothing here contacts any other host. Every process it starts is stopped at the end.
 """
@@ -125,7 +125,7 @@ def posts_since(i: int) -> list[dict[str, Any]]:
 
 
 async def cost(work: Path) -> dict[str, Any]:
-    from agentos.node.egress import gate_pattern
+    from openajar.node.egress import gate_pattern
 
     regex = gate_pattern()
     out: dict[str, Any] = {"pattern_chars": len(regex.pattern)}
@@ -178,9 +178,9 @@ async def feed_cost(work: Path) -> dict[str, Any]:
     with the gate's drive route on the site's own host (every request a round trip to Python, as the
     site's documents and API calls are), and with a route that matches nothing here (what images on
     a CDN host the route does not cover pay: only the cache)."""
-    from agentos.node import commitgate
-    from agentos.node.egress import Driver, EffectRule, LaneGuard, gate_pattern
-    from agentos.node.routes import RouteDispatcher
+    from openajar.node import commitgate
+    from openajar.node.egress import Driver, EffectRule, LaneGuard, gate_pattern
+    from openajar.node.routes import RouteDispatcher
 
     async def noop(route: Any) -> None:
         await route.fallback()
@@ -224,8 +224,8 @@ class Ctx:
         self.runtime = None
 
     async def authorize(self, effect: Any, *, content: Any = None, **kw: Any) -> None:
-        from agentos.core.errors import ApprovalPending
-        from agentos.policy.approval_binding import content_digest
+        from openajar.core.errors import ApprovalPending
+        from openajar.policy.approval_binding import content_digest
 
         digest = content_digest(content)
         if digest in self.approved:
@@ -252,9 +252,9 @@ class Meter:
 
 
 async def gate(work: Path) -> dict[str, Any]:
-    from agentos.node import commitgate
-    from agentos.node.egress import Driver, EffectRule, LaneGuard
-    from agentos.node.routes import RouteDispatcher
+    from openajar.node import commitgate
+    from openajar.node.egress import Driver, EffectRule, LaneGuard
+    from openajar.node.routes import RouteDispatcher
 
     commitgate.ASKED.clear()
     cm, ctx = await eg.launch(work / "profile-gate")
@@ -337,7 +337,7 @@ class ActingCtx(Ctx):
         super().__init__()
         from types import SimpleNamespace
 
-        from agentos.core.models import AccountRef, ActsAs, LaneSpec, Surface
+        from openajar.core.models import AccountRef, ActsAs, LaneSpec, Surface
 
         self.covers = covers
         self.on: list[tuple[str, str | None]] = []
@@ -356,16 +356,16 @@ class ActingCtx(Ctx):
         acts = (content or {}).get("record", {}).get("acts_as") or {}
         self.on.append((str(lane_id), acts.get("status")))
         if acts.get("status") == "unrecognized":  # what the policy does: always a person
-            from agentos.core.errors import ApprovalPending
+            from openajar.core.errors import ApprovalPending
 
-            raise ApprovalPending("an identity agentos does not know", approval_id="ap_unknown")
+            raise ApprovalPending("an identity openajar does not know", approval_id="ap_unknown")
         # Ask me first off: a known identity runs on its own
 
 
 async def acting_spike(work: Path) -> dict[str, Any]:
-    from agentos.node import acting, commitgate
-    from agentos.node.egress import Driver, EffectRule, LaneGuard
-    from agentos.node.routes import RouteDispatcher
+    from openajar.node import acting, commitgate
+    from openajar.node.egress import Driver, EffectRule, LaneGuard
+    from openajar.node.routes import RouteDispatcher
 
     acting.ACTING["loop"] = acting.ActingSpec("loop", True, "fb_page",
                                               (acting.ActingField("variables.input.actor_id", "actor"),))
@@ -428,9 +428,9 @@ async def acting_spike(work: Path) -> dict[str, Any]:
 
 async def flow_window(work: Path) -> dict[str, Any]:
     """An agent's press arms a page timer (publishes 3 s later), then a flow takes the lane."""
-    from agentos.node import commitgate
-    from agentos.node.egress import Driver, EffectRule, LaneGuard
-    from agentos.node.routes import RouteDispatcher
+    from openajar.node import commitgate
+    from openajar.node.egress import Driver, EffectRule, LaneGuard
+    from openajar.node.routes import RouteDispatcher
 
     commitgate.ASKED.clear()
     cm, ctx = await eg.launch(work / "profile-flow")
@@ -478,9 +478,9 @@ async def first_clicks(work: Path, runs: int) -> dict[str, Any]:
     """The cold first click, `runs` times, each on a fresh browser: does the act that made the hold
     report it (approval_pending), and when (after the click returned) did the request reach the
     driver's request event and the route handler."""
-    from agentos.node import commitgate
-    from agentos.node.egress import Driver, EffectRule, LaneGuard
-    from agentos.node.routes import RouteDispatcher
+    from openajar.node import commitgate
+    from openajar.node.egress import Driver, EffectRule, LaneGuard
+    from openajar.node.routes import RouteDispatcher
 
     rows = []
     for n in range(runs):

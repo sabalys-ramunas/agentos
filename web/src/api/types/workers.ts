@@ -57,7 +57,7 @@ export interface WorkerPlace {
   after_a_page_asks: boolean;
   /** An agent asked for it. Only a person can turn it on. */
   suggested_by: Principal | null;
-  /** It is on, and starts the next time agentos starts on this computer. */
+  /** It is on, and starts the next time openajar starts on this computer. */
   restart_needed?: boolean;
 }
 

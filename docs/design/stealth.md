@@ -12,10 +12,10 @@ catches a regression.
 
 ## 1. The check
 
-Two commands, both in `agentos.stealth` (and a third, `agentos lane redteam`, that tries to catch the
+Two commands, both in `openajar.stealth` (and a third, `openajar lane redteam`, that tries to catch the
 lanes the way a bot defence would, input and hardware included: [redteam.md](redteam.md)):
 
-- `agentos lane audit [--json]` reads every pinned fingerprint on a node and nothing else (no browser,
+- `openajar lane audit [--json]` reads every pinned fingerprint on a node and nothing else (no browser,
   no request), so it is safe on a node with live lanes. Per pin: user agent, platform, oscpu and
   User-Agent header agree; the WebGL renderer fits the OS and is not a software renderer; no font
   of another OS; Accept-Language follows the locale; the window fits the screen; no touchscreen on a
@@ -28,14 +28,14 @@ lanes the way a bot defence would, input and hardware included: [redteam.md](red
   another proxy than the device's, and lanes of two workspaces on one device; it warns on a device
   and a lane of its own behind one proxy, and on a pin whose timezone, country or locale is not where
   its proxy exits now (the lane check's daily lookup in `cache/exit-geo.json`).
-- `agentos lane stealth-check --slot S [--lanes N] [--relaunches R] [--os windows,macos,linux]
+- `openajar lane stealth-check --slot S [--lanes N] [--relaunches R] [--os windows,macos,linux]
   [--soak-minutes M --kill-every K] [--public] [--proxy host:port:user:pass] [--out DIR]` opens N
-  scratch lanes (no account) in a throwaway AGENTOS_HOME on a test slot's own displays and ports,
-  with the production lane manager, engine and displays. It reads the node.toml of AGENTOS_HOME, of
+  scratch lanes (no account) in a throwaway OPENAJAR_HOME on a test slot's own displays and ports,
+  with the production lane manager, engine and displays. It reads the node.toml of OPENAJAR_HOME, of
   /var/lib/agentos and of every running agentosd, and refuses a slot that touches any of their
   displays, ports or homes; its display sweep stops only processes that name its own home. SIGTERM
   and SIGHUP (a closed terminal) close its lanes as Ctrl-C does, and the next check stops what a
-  check killed outright left (scratch homes are `agentos-stealth-*` with an owner file). Each lane loads `stealth_probe.html` (shipped
+  check killed outright left (scratch homes are `openajar-stealth-*` with an owner file). Each lane loads `stealth_probe.html` (shipped
   in the package; the node tests' `fingerprint.html` is the same file) from a local server, and the
   page's own script dumps what a fingerprinting script reads. The check reports, per lane and across
   lanes: automation traces, consistency problems, relaunch drift, collisions, leaks, browser memory
@@ -54,7 +54,7 @@ addresses (the probe server is on localhost), so the network guard's PAC is not 
 guard has its own node tests (`test_network_guard_node.py`, `test_stealth_node.py`).
 
 Running it. On the node, from a dev install (docs/DEVELOPING.md):
-`AGENTOS_HOME=$PWD/.agentos-home .venv/bin/agentos lane stealth-check --slot 33 --lanes 3 --out /tmp/stealth`.
+`OPENAJAR_HOME=$PWD/.agentos-home .venv/bin/openajar lane stealth-check --slot 33 --lanes 3 --out /tmp/stealth`.
 Without a node, in the Docker node (Ubuntu 24.04 arm64, the same apt packages, Camoufox fetched;
 recipe in section 6). The node tests are `tests/node/test_stealth_node.py`.
 
@@ -69,7 +69,7 @@ single reports are marked weak.
 | Check | Status | Evidence | Fix or why not |
 |---|---|---|---|
 | `navigator.webdriver` | ok | false, a native getter on `Navigator.prototype`, no own property (probe, Windows and Linux identities) | |
-| Playwright and Juggler globals (`__pwInitScripts`, `__playwright__binding__`, `__juggler`, Selenium, Puppeteer names) | ok | none on `window` (probe scans every global by name and pattern). agentos never uses `add_init_script`, `expose_binding` or main-world evaluation (grep); our scripts run in Camoufox's isolated world. Beta.41 hides Juggler (Camoufox #852); the cloverlabs fork 0.6.0 leaked these globals (#733) | keep `main_world_eval` off; the probe fails the check if a name appears |
+| Playwright and Juggler globals (`__pwInitScripts`, `__playwright__binding__`, `__juggler`, Selenium, Puppeteer names) | ok | none on `window` (probe scans every global by name and pattern). openajar never uses `add_init_script`, `expose_binding` or main-world evaluation (grep); our scripts run in Camoufox's isolated world. Beta.41 hides Juggler (Camoufox #852); the cloverlabs fork 0.6.0 leaked these globals (#733) | keep `main_world_eval` off; the probe fails the check if a name appears |
 | Patched (non-native) functions | ok | 15 functions fingerprinting scripts test (`Function.prototype.toString`, navigator and screen getters, `Permissions.query`, canvas, WebGL, audio, timezone, `getBoundingClientRect`) are native code | Camoufox patches in C++ |
 | `window.chrome`, driver attributes on `<html>` | ok | undefined, none | |
 | A worker or a frame that sees another browser | ok | a dedicated worker and a `srcdoc` frame report the same user agent, platform, cores, languages, timezone and screen as the page, and an `OffscreenCanvas` WebGL in the worker names the same GPU | |
@@ -87,28 +87,28 @@ single reports are marked weak.
 
 | Check | Status | Evidence | Fix or why not |
 |---|---|---|---|
-| User agent, platform, oscpu, appVersion, User-Agent header | ok | consistent in every pin and probe; `agentos lane audit` checks each pin | |
+| User agent, platform, oscpu, appVersion, User-Agent header | ok | consistent in every pin and probe; `openajar lane audit` checks each pin | |
 | Fonts against the claimed OS | ok | a Windows identity shows 49 Windows fonts and no Linux font; a Linux identity shows Linux fonts and Calibri and Cambria, which real Linux desktops answer through Carlito and Caladea | |
 | GPU name against the OS | ok | ANGLE (Direct3D 11) strings on Windows identities, an AMD name on Linux ones | |
 | Windows or macOS identity on a Linux node (Camoufox #895, open) | **decided** | text metrics, form widget sizes, system colours and emoji widths come from Linux whatever the identity says, and with canvas cover on (any identity that is not the host's OS) canvas readback is new random data on every read, which reads as a privacy-hardened Firefox (the README; Castle on canvas noise, weak). Measured: the Windows identity's canvas changes within a page, the Linux one's does not | `lane_os` makes new lanes claim the host's OS, and is `["linux"]` by default since the owner's decision (section 7): honest Linux identities with real canvas readback. Existing lanes keep their pinned OS, Windows and macOS ones included (changing it is a new device to the site); `lane_os = []` gives Camoufox's mix again |
 | Software rendering (no GPU on the node) | **gap** (measured 2026-11-05) | WebGL and canvas pixels come from llvmpipe while the GPU name says Intel or AMD. The red team's draw-speed test sees it on the node VM: an "Intel(R) HD Graphics 400" lane draws its test shader at 54 to 58 ms a frame, a real GPU under 5 ([redteam.md](redteam.md), `env.gpu`) | a GPU node, or Camoufox's `virtual-gpu` mode; not on this VM |
 | Windows maths (`javascript.options.use_ucrt_math`) | unknown | the probe's six maths values were the same for Windows, macOS and Linux identities, on arm64 Docker and on the x86 node: either these inputs round alike in glibc and the Windows CRT, or the CRT maths is not in effect | compare with a stock Firefox on Windows; until then it is one more value every lane of a node shares |
 | Codecs | ok | H.264, HEVC, AAC, VP9, AV1 and Opus all "probably" for both identities | |
-| Timezone, locale and location against the exit IP | ok | the first launch takes them from the exit (geoip) and pins them; later launches compare the exit with the pin and warn on a move (engine); `agentos lane check` compares country and timezone offset daily | |
+| Timezone, locale and location against the exit IP | ok | the first launch takes them from the exit (geoip) and pins them; later launches compare the exit with the pin and warn on a move (engine); `openajar lane check` compares country and timezone offset daily | |
 | Accept-Language against `navigator.languages` | ok | `en-US,en;q=0.9` and `["en-US", "en"]` | |
 | The same device on every launch | ok | 6 lanes x 3 launches, no drift (section 3); the pin holds every key Camoufox would redraw | |
-| Firefox version | **fixed** | Camoufox 158.0.1 (Oct 29); Firefox stable is 159.0.1 and 160 ships Nov 10. One release behind is ordinary; Akamai's block on the old 135 base shows that a stale base is the risk (#555) | agentosd moves a pin's Firefox version to the installed browser's on the lane's first launch after a Camoufox upgrade (`CamoufoxEngine.bump_firefox`): only the `rv:` and `Firefox/` tokens of the user agent and its header, never the device; the browser must confirm it before the pin is written; the old pin stays as `fingerprint.json.firefox-<old>.bak`, the pin's `firefox_updates` and a `fingerprint_version_bumped` lane event record it, and `agentos lane audit` is quiet afterwards. Never moved back. `agentos lane refresh-fingerprint --keep-device [--version N]` does it by hand (and rolls back) |
-| Upgrading Camoufox | watch | Checked 2026-11-04: 158.0.1-beta.41 is the newest build (daijro/camoufox releases; package 0.5.9, the newest on PyPI, pairs with it through its `browser-pin.json`), so there is nothing newer to move to: upstream merged Firefox 159 (#986, Nov 2) but has not released a build of it, and agentos takes only released builds the package pins. #995 (Nov 3, one report, open): hCaptcha detects identities drawn by fpgen, the generator the 0.5.9 package already uses; it touches only new lanes' first draws (a pin replays what it holds) | run the stealth check on a new build before rolling it out; the steps are in DEVELOPING.md, "Upgrading Camoufox" |
+| Firefox version | **fixed** | Camoufox 158.0.1 (Oct 29); Firefox stable is 159.0.1 and 160 ships Nov 10. One release behind is ordinary; Akamai's block on the old 135 base shows that a stale base is the risk (#555) | agentosd moves a pin's Firefox version to the installed browser's on the lane's first launch after a Camoufox upgrade (`CamoufoxEngine.bump_firefox`): only the `rv:` and `Firefox/` tokens of the user agent and its header, never the device; the browser must confirm it before the pin is written; the old pin stays as `fingerprint.json.firefox-<old>.bak`, the pin's `firefox_updates` and a `fingerprint_version_bumped` lane event record it, and `openajar lane audit` is quiet afterwards. Never moved back. `openajar lane refresh-fingerprint --keep-device [--version N]` does it by hand (and rolls back) |
+| Upgrading Camoufox | watch | Checked 2026-11-04: 158.0.1-beta.41 is the newest build (daijro/camoufox releases; package 0.5.9, the newest on PyPI, pairs with it through its `browser-pin.json`), so there is nothing newer to move to: upstream merged Firefox 159 (#986, Nov 2) but has not released a build of it, and openajar takes only released builds the package pins. #995 (Nov 3, one report, open): hCaptcha detects identities drawn by fpgen, the generator the 0.5.9 package already uses; it touches only new lanes' first draws (a pin replays what it holds) | run the stealth check on a new build before rolling it out; the steps are in DEVELOPING.md, "Upgrading Camoufox" |
 
 ### Lanes linked to each other
 
 | Check | Status | Evidence | Fix or why not |
 |---|---|---|---|
-| The whole device | ok | no two of 6 lanes share user agent, screen, window, cores, GPU, timezone, fonts and voices together (section 3); `agentos lane audit` fails two lanes pinned to one device behind different proxies | |
+| The whole device | ok | no two of 6 lanes share user agent, screen, window, cores, GPU, timezone, fonts and voices together (section 3); `openajar lane audit` fails two lanes pinned to one device behind different proxies | |
 | Fonts, GPU, canvas noise | ok | each lane's font list, GPU parameters and canvas digest differ (section 3) | |
 | Cores claimed against cores measured | **gap** (measured 2026-11-05) | the node VM has 2 vCPUs and the pin says 4; 4 workers run like 1.5 to 2.1 in parallel ([redteam.md](redteam.md), `env.cores`) | pin `hardwareConcurrency` to what the node can run in parallel |
 | What every lane on one node shares | gap, inherent | audio output, maths, codecs, media devices before a camera grant, the cores count (the host's, snapped), WebGL pixels and, for Linux identities, text metrics are the same on every lane of a node, as for every user of the same build on the same kind of machine (Camoufox: "one canvas per host" since 156, #860) | they link lanes only together with the rest; spread accounts that must never be linked over several nodes |
-| One exit for several lanes | by design | AUD-02, built: lanes of one company share one device (`agentos device`), one pin and one proxy, each lane with its own profile, display and scope; the audit counts a device once and fails a device seen through several proxies, several devices on one exit, and two companies on one device | owner decision AUD-02 (docs/PROXIES.md) |
+| One exit for several lanes | by design | AUD-02, built: lanes of one company share one device (`openajar device`), one pin and one proxy, each lane with its own profile, display and scope; the audit counts a device once and fails a device seen through several proxies, several devices on one exit, and two companies on one device | owner decision AUD-02 (docs/PROXIES.md) |
 | TCP/IP fingerprint (p0f) | unknown | a site sees the proxy exit's TCP stack, not the node's: an ISP proxy on Linux under a Windows user agent can disagree (weak, proxy vendor blogs) | ask the proxy provider; Linux identities avoid it |
 | TLS (JA3/JA4) and HTTP/2 | ok | Camoufox is Firefox's own NSS; Akamai's #555 showed them identical to stock Firefox. A proxy that intercepts TLS would replace them: the owner's proxies are CONNECT proxies | |
 
@@ -116,7 +116,7 @@ single reports are marked weak.
 
 | Check | Status | Evidence | Fix or why not |
 |---|---|---|---|
-| WebRTC | ok | no raw address among the ICE candidates (probe); `media.peerconnection.ice.proxy_only` on proxied lanes; `agentos lane check` reads the effective prefs | |
+| WebRTC | ok | no raw address among the ICE candidates (probe); `media.peerconnection.ice.proxy_only` on proxied lanes; `openajar lane check` reads the effective prefs | |
 | DNS | ok | a proxied lane resolves no name on the node | |
 | IPv6 | ok | a proxied lane opens no socket of its own; WebRTC is proxy-only | |
 | A proxy that dies | ok | measured: a refused, a reset and an unresolvable proxy each fail every later fetch and navigation, and the fixture server saw no request around the proxy (`network.proxy.failover_direct` never applies to Playwright's proxy) | `test_a_dead_proxy_never_falls_back_to_a_direct_connection` keeps it so |
@@ -195,10 +195,10 @@ from real Windows machines, where LibreOffice installs them, so the rule was cor
   `display_size`). Pins do not change.
 - `lane_os` (node.toml): the OS a new lane's identity claims. Empty keeps Camoufox's mix.
 - `lane_scopes`, `lane_cpu_max_pct`; `lane_memory_max_mb` adds `MemoryHigh`. Since 2026-11-06 every
-  lane has a memory ceiling by default (derived from RAM and max_warm_lanes, `agentos.node.memwatch`;
+  lane has a memory ceiling by default (derived from RAM and max_warm_lanes, `openajar.node.memwatch`;
   0 turns it off), with a watchdog that warns and then closes a lane's browser gracefully.
-- `agentos lane audit`, `agentos lane stealth-check`, `agentos.stealth.stealth`,
-  `agentos.stealth.stealthcheck`, the probe page in the package, and `tests/node/test_stealth_node.py`.
+- `openajar lane audit`, `openajar lane stealth-check`, `openajar.stealth.stealth`,
+  `openajar.stealth.stealthcheck`, the probe page in the package, and `tests/node/test_stealth_node.py`.
 
 ## 5. For the owner to decide
 
@@ -216,7 +216,7 @@ Decided 2026-11-04: 1 (Linux for new lanes, the default now), 2 (the version mov
    bump the version on the first launch after a Camoufox upgrade, as `refresh-fingerprint
    --keep-device` does by hand today.
 3. **Camoufox upgrades.** Pin the build (today 158.0.1-beta.41), and before moving lanes to a new one,
-   run `agentos lane stealth-check` and one throwaway account on it (#995 shows a release can get
+   run `openajar lane stealth-check` and one throwaway account on it (#995 shows a release can get
    worse).
 4. **A test proxy.** The check ran without a proxy (no proxy was given): timezone, location and the
    WebRTC address behind a proxy were not exercised end to end here. A throwaway ISP proxy lets
@@ -250,7 +250,7 @@ In the Docker node, `test_fingerprint_pin_node.py`'s Linux case fails now and th
 `mediaDevices` (`enumerateDevices` taking more than 8 s). Not seen on the node; that file and
 `test_lanes_node.py` were not run on the node on 2026-11-04, because its available memory stayed
 under 2 GB while the live test ran. They are the owner's to run there:
-`AGENTOS_TEST_SLOT=33 scripts/node-test.sh stealth tests/node/test_fingerprint_pin_node.py tests/node/test_lanes_node.py`.
+`OPENAJAR_TEST_SLOT=33 scripts/node-test.sh stealth tests/node/test_fingerprint_pin_node.py tests/node/test_lanes_node.py`.
 
 ## 7. The review and the owner's decisions (2026-11-04)
 
@@ -267,7 +267,7 @@ listens only on a unix socket:
   sweeps only its own home's displays. Stopped by SIGTERM or SIGHUP, it closes its lanes; killed
   outright, the next check stops what it left.
 - Lane scopes:
-  - All lanes' scopes sit in `agentos-lanes.slice` (under `agentos.slice`, beside `system.slice`):
+  - All lanes' scopes sit in `agentos-lanes.slice` (under `openajar.slice`, beside `system.slice`):
     together they weigh like one unit against agentosd and the system, however many lanes are
     warm, and equally among themselves inside it. Before, each scope had CPUWeight 100 beside
     agentosd in `system.slice`, so the control plane's share shrank as lanes grew.
@@ -280,7 +280,7 @@ listens only on a unix socket:
     an unreadable file, none (the browsers stay in agentosd's cgroup, as before scopes).
   - A cap that systemd refuses (busctl denied, as for the hardened unit's unprivileged user) is
     logged once, `memory_status` reports a cap only while it is applied (`lane_limits` says what was
-    asked, made and refused), and `agentos doctor` has a `lane_limits` check that reads the warm
+    asked, made and refused), and `openajar doctor` has a `lane_limits` check that reads the warm
     browsers' cgroups (or, with none warm, the service's user).
   - `lane_memory_max_mb` is refused under 1536, except 0.
   - Since 2026-11-06 the default scopes carry a memory cap of 1536 MB (`LANE_MEMORY_DEFAULT_MB`, MemoryHigh

@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from agentos.studio.capture import capture, screens
-from agentos.studio.contracts import Screen, Target
-from agentos.studio.diff import diff_captures, noise_mask
-from agentos.studio.store import StudioStore
-from agentos.studio.tokens import from_css
+from openajar.studio.capture import capture, screens
+from openajar.studio.contracts import Screen, Target
+from openajar.studio.diff import diff_captures, noise_mask
+from openajar.studio.store import StudioStore
+from openajar.studio.tokens import from_css
 
 FIX = Path(__file__).resolve().parents[1] / "fixtures" / "studio" / "diff"
 PAIRS = json.loads((FIX / "pairs.json").read_text())

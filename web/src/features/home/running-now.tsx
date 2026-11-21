@@ -142,7 +142,7 @@ function testsWords(job: Job): ReactNode {
   );
 }
 
-/** A running `agentos run` job, with the last lines of its output while the first cards are in view. */
+/** A running `openajar run` job, with the last lines of its output while the first cards are in view. */
 function JobCard({ org, job, kind, follow }: { org: string; job: Job; kind: RunningItem['kind']; follow: boolean }) {
   const output = useJobFollow(org, job.id, follow);
   const lines = lastLines(`${output.stdout}${output.stderr ? `\n${output.stderr}` : ''}`, 6);
@@ -408,7 +408,7 @@ export function RunningNow({ org, items, jobs, studio, canWatch, first }: Runnin
               {studioHere ? ' A design check shows here for half an hour after it ends.' : ''}
             </p>
           </div>
-          {technical ? <CodeBlock code="agentos run -- pnpm test" className="md:w-72" /> : null}
+          {technical ? <CodeBlock code="openajar run -- pnpm test" className="md:w-72" /> : null}
         </Card>
       </section>
     );

@@ -5,10 +5,10 @@ are fixed; the tests after the findings pin the rules of the rebuilt pre-check."
 
 from __future__ import annotations
 
-from agentos.core.errors import EgressRefused
-from agentos.core.models import ActionKind
-from agentos.node.egress import Driver, LaneGuard
-from agentos.node.routes import GUARD_PATTERN, RouteDispatcher
+from openajar.core.errors import EgressRefused
+from openajar.core.models import ActionKind
+from openajar.node.egress import Driver, LaneGuard
+from openajar.node.routes import GUARD_PATTERN, RouteDispatcher
 
 
 class FakeTargetLocator:

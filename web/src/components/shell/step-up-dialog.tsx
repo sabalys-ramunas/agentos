@@ -139,7 +139,7 @@ export function StepUpDialog() {
         if (!next) cancel();
       }}
       title="Confirm it is you"
-      description={reason ?? 'This action is sensitive, so agentos asks again. You will not be asked for the next 10 minutes.'}
+      description={reason ?? 'This action is sensitive, so openajar asks again. You will not be asked for the next 10 minutes.'}
     >
       {stage === 'email' && byEmail ? (
         <div className="grid gap-2">
@@ -176,7 +176,7 @@ export function StepUpDialog() {
           {!byEmail && !canUsePasskey ? (
             session?.user.has_passkey ? (
               <p role="status" className="text-body text-muted">
-                This browser cannot use passkeys, so this cannot be confirmed here. Open agentos in a browser that can.
+                This browser cannot use passkeys, so this cannot be confirmed here. Open openajar in a browser that can.
               </p>
             ) : (
               <>

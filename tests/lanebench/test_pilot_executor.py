@@ -12,13 +12,13 @@ from typing import Any
 
 import pytest
 
-from agentos.pilot import Result, Status
-from agentos.pilot.deciders import BLOCKED, DeciderFailed
-from agentos.pilot.hands import ToolFailed
 from lanebench import executors
 from lanebench.executors import jev
 from lanebench.executors.pilot import BenchDecider, CommandRescue, PilotExecutor, exec_result, request_for
 from lanebench.tasks import load_all
+from openajar.pilot import Result, Status
+from openajar.pilot.deciders import BLOCKED, DeciderFailed
+from openajar.pilot.hands import ToolFailed
 
 OUTLINE = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 6 refs
@@ -93,14 +93,14 @@ def run(script: Script, tools: Tools, name: str) -> Any:
 
 
 def test_the_executor_is_on_the_bench() -> None:
-    from agentos.lanebench_cli import EXECUTORS
+    from openajar.lanebench_cli import EXECUTORS
 
     assert "pilot" in EXECUTORS and isinstance(executors.get("pilot"), PilotExecutor)
 
 
 def test_the_jev_executor_keeps_its_own_code() -> None:
     """Scored runs are pinned to jev.py, so it must not lean on the package."""
-    assert "agentos.pilot" not in inspect.getsource(jev)
+    assert "openajar.pilot" not in inspect.getsource(jev)
 
 
 def test_a_request_is_what_the_jev_executor_would_have_used() -> None:
@@ -182,8 +182,8 @@ async def test_a_rescue_command_never_gets_a_secret_and_a_stray_answer_is_no_ans
 
 
 def test_bench_tools_turn_a_node_error_into_a_tool_failure() -> None:
-    from agentos.core.errors import PolicyDenied
     from lanebench.executors.pilot import BenchTools
+    from openajar.core.errors import PolicyDenied
 
     async def refuse(**_: Any) -> Any:
         raise PolicyDenied("no")

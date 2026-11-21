@@ -1,11 +1,11 @@
-"""What a stranger sends, made safe to read (agentos.runner.mail.message)."""
+"""What a stranger sends, made safe to read (openajar.runner.mail.message)."""
 
 from __future__ import annotations
 
 from email.message import EmailMessage
 
-from agentos.runner.mail.message import attachment_name, html_to_text, message_ids, one_line, parse
-from agentos.runner.workflows.mail import parse_message
+from openajar.runner.mail.message import attachment_name, html_to_text, message_ids, one_line, parse
+from openajar.runner.workflows.mail import parse_message
 
 
 def raw(*headers: str, body: bytes = b"hello\r\n") -> bytes:

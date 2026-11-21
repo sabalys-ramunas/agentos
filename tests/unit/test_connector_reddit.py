@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from agentos.node.egress import classify
-from agentos.runner.connectors.compile import compile_path
+from openajar.node.egress import classify
+from openajar.runner.connectors.compile import compile_path
 
 ROOT = Path(__file__).resolve().parents[2] / "connectors" / "reddit"
 

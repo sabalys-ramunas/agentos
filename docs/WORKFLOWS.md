@@ -6,7 +6,7 @@ The hosted edition's contract mirrors this file.
 
 A workflow and a routine are the same thing. The panel says routine. A workflow is a trigger, then
 steps, then what happens with the result. It is built on what already exists: triggers are events
-routes and schedules (`src/agentos/events/`, `src/agentos/runner/schedules.py`), a run is a runner
+routes and schedules (`src/openajar/events/`, `src/openajar/runner/schedules.py`), a run is a runner
 `Run` of kind `workflow`, and an action step is an ordinary flow or connector run. There is no
 second engine.
 
@@ -349,7 +349,7 @@ described. See "Counted steps" below.
   counts (`see_whole_card` otherwise), so no path (chat, a batch, a relayed yes, a token) approves it
   from the cut alone, and a standing approval never releases it. A secret or vault value in a message
   shows redacted, as on every card, and the message is marked `withheld`.
-  `agentos approvals approve` prints every message and asks first. The binding stays over the whole
+  `openajar approvals approve` prints every message and asks first. The binding stays over the whole
   list, never the preview. A cut card made before this keeps no messages, so it cannot be approved:
   deny it and retry the run, and the new card shows them all.
 
@@ -463,7 +463,7 @@ and the notifier, so no person's name, company, domain or address is on it, even
 A source shows as a page's host, or the label it was given up to any path, as one clipped line of text, never a
 link. A source that names the lead's own domain, name or company reads "their own page". At most five sources
 are named, and the rest are counted. An agent's `why` is not on it. Who they are, each address and each source
-are read on the node, in the panel or `agentos workflows leads`.
+are read on the node, in the panel or `openajar workflows leads`.
 
 **Only the owner in person decides.** Take them all or Drop them on the card, through the panel's own answer,
 counts only if `answered_in_person` says so, without `relayed`: a controller's relay does not count, because
@@ -628,8 +628,8 @@ never on, never proposed and never ran, every version saved by its own grant fam
 person saw it, so nothing is lost and nobody has to clean up after an agent's mistake. Anything else a
 person already saw or something already did, so only a person deletes it.
 
-CLI: `agentos routines workflows apply <file>`, `export`, `list`, `run`, `runs`, `retry`, `enable`, `disable`,
-`remove` (a person deletes any workflow; past runs keep their records), `watch`, `templates`, and `leads list`, `show`, `take`, `drop`, `export`, `erase`, `seen`. `apply` is idempotent, so a developer keeps the file in a repository. `agentos mail connect`
+CLI: `openajar routines workflows apply <file>`, `export`, `list`, `run`, `runs`, `retry`, `enable`, `disable`,
+`remove` (a person deletes any workflow; past runs keep their records), `watch`, `templates`, and `leads list`, `show`, `take`, `drop`, `export`, `erase`, `seen`. `apply` is idempotent, so a developer keeps the file in a repository. `openajar mail connect`
 sets up a mailbox on the node, asking for its password hidden (docs/EMAIL.md).
 
 **Mailboxes** are set up on the node only. A mailbox id looks like a lane (`harbor/mail`), so grants
@@ -641,19 +641,19 @@ address and state crosses the channel. The cloud never holds it.
 The flows a workflow's action steps run (and the routines that post on their own) can live in a
 repository, reviewed and tested like code, instead of being edited live on the node. Run these on
 your computer, next to the repository. pull, diff and push go to the node through your connection
-(`agentos connect`), with its agents' grant. validate and test need no node at all.
+(`openajar connect`), with its agents' grant. validate and test need no node at all.
 
 ```
-agentos flow pull flows/ --workspace acme     # the node's flows, one YAML file each
+openajar flow pull flows/ --workspace acme     # the node's flows, one YAML file each
 $EDITOR flows/acme/acme.linkedin.post.yaml
-agentos flow validate flows/                  # the node's own check, offline
-agentos flow test flows/                      # each flow on its recordings, offline
-agentos flow diff flows/                      # what would change on the node
-agentos flow push flows/                      # the diff, a yes, then flow_save
+openajar flow validate flows/                  # the node's own check, offline
+openajar flow test flows/                      # each flow on its recordings, offline
+openajar flow diff flows/                      # what would change on the node
+openajar flow push flows/                      # the diff, a yes, then flow_save
 ```
 
-`agentos flow` is `agentos flows` (also `agentos routines flows`). The commands take `--node NAME`
-for one connection of several, or `--url http://127.0.0.1:7450` with `$AGENTOS_TOKEN` (a dev node,
+`openajar flow` is `openajar flows` (also `openajar routines flows`). The commands take `--node NAME`
+for one connection of several, or `--url http://127.0.0.1:7450` with `$OPENAJAR_TOKEN` (a dev node,
 a CI job with its own grant).
 
 **Layout.** `flows/<workspace>/<flow id>.yaml`: the workspace is the lane's (`acme/linkedin` goes in
@@ -754,18 +754,18 @@ cases:
   expect: {status: partial, failed_step: 7, error: element_not_found, published: []}
 ```
 
-`agentos flow test` prints PASS or FAIL for each case with what differed (the failing step, its
+`openajar flow test` prints PASS or FAIL for each case with what differed (the failing step, its
 locator, expected and found) and exits 1 on a failure; `--json` for CI. The example above is
 [examples/flows](../examples/flows), and `tests/unit/test_flow_replay.py` keeps it passing.
 
 **Recordings** of your own pages come from the lane itself, read only:
 
 ```
-agentos flow capture flows/acme/company-page.recording.yaml --on acme/linkedin \
+openajar flow capture flows/acme/company-page.recording.yaml --on acme/linkedin \
     --goto https://www.linkedin.com/company/104857/admin/page-posts/published/ -p text="Fresh rye"
-# do the next action yourself, in the live view (agentos open acme/linkedin) or with
-# agentos call browser_act --on acme/linkedin --arg ref=e12 --arg action=click
-agentos flow capture flows/acme/company-page.recording.yaml --on acme/linkedin --after 'click button "Start a post"'
+# do the next action yourself, in the live view (openajar open acme/linkedin) or with
+# openajar call browser_act --on acme/linkedin --arg ref=e12 --arg action=click
+openajar flow capture flows/acme/company-page.recording.yaml --on acme/linkedin --after 'click button "Start a post"'
 ```
 
 capture reads the page with browser_snapshot (and loads `--goto` first with browser_navigate),
@@ -774,12 +774,12 @@ keeps the outline without refs, layout boxes or hints, and writes `${text}` wher
 the after state by hand, as the example's are). A recording holds what the page showed: read it
 before you commit it. The node has already masked vault values in it.
 
-**Workflows** keep their own files already: `agentos workflows export` and `apply` (idempotent), on
+**Workflows** keep their own files already: `openajar workflows export` and `apply` (idempotent), on
 the node. Schedules are not files yet.
 
-**agentos call.** Any tool, from a shell, as your agents would call it (the same grant, policy and
-approvals): `agentos call flow_get --arg name=acme.linkedin.post`, `agentos call flows_list`,
-`agentos call browser_snapshot --on acme/linkedin`. `--json '{...}'` (or `@file`) passes the
+**openajar call.** Any tool, from a shell, as your agents would call it (the same grant, policy and
+approvals): `openajar call flow_get --arg name=acme.linkedin.post`, `openajar call flows_list`,
+`openajar call browser_snapshot --on acme/linkedin`. `--json '{...}'` (or `@file`) passes the
 arguments whole. A call that waits for a person exits 2; `--wait SECONDS` waits for the decision
 and, once approved, calls again with the same arguments.
 

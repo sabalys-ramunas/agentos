@@ -2,7 +2,7 @@
 
 Status: plan written 2026-11-12. Waves 1 and 2 are built and on main (the review browser,
 capture, the checks, tokens, product profiles with a brand, the diff, the MCP tools, learning a
-brand, the `agentos-studio` skill and its eval). Waves 3 and 4 are not built: the panel, audience
+brand, the `openajar-studio` skill and its eval). Waves 3 and 4 are not built: the panel, audience
 flows, the report screens, the bench and the tool eval. Neither are device simulators: studio has
 phone widths and emulated devices, not real iOS or Android. Owner's words: "agents os, helping devs and
 designers build", with "less hand holding".
@@ -13,7 +13,7 @@ Read with: [studio-ax.md](studio-ax.md) (the agent experience rules every tool f
 
 ## 1. What it is
 
-Agents write the code. agentos gives them a computer to run it on, tells them whether the
+Agents write the code. openajar gives them a computer to run it on, tells them whether the
 result is good, and remembers who the work is for.
 
 Three kinds of work sit around one object, the profile:
@@ -88,14 +88,14 @@ These were settled while planning. A builder who finds one wrong says so in the 
    use a real browser. No node, no proxy settings. A node is for long or heavy runs.
 3. **Chromium is the default engine**, Firefox and WebKit on request. Chromium has layout shift
    and long task measurement; the others report those as skipped.
-4. **Package and names.** Code in `src/agentos/studio/`, one toolset `studio`, one skill
-   `agentos-studio`, state under `$HOME/studio/`. New install extra `studio` (playwright,
+4. **Package and names.** Code in `src/openajar/studio/`, one toolset `studio`, one skill
+   `openajar-studio`, state under `$HOME/studio/`. New install extra `studio` (playwright,
    Pillow). The measured tools are ordinary tools (no plugin to enable). The panel and the
    bench spend model money, so they are a plugin a person turns on.
-5. **Judges are agents, tickets keep them blind.** agentos does not call vision models itself
+5. **Judges are agents, tickets keep them blind.** openajar does not call vision models itself
    (brains take no images today, except one typed API). The agent running a panel hands each
    judge a one-use ticket. A ticket reveals two unlabelled images and a brief, and takes one
-   answer. The judge never sees which is which, the round, the goal or other answers. agentos
+   answer. The judge never sees which is which, the round, the goal or other answers. openajar
    builds the pairs, tallies and keeps the cost record. A node-side judge is a later option.
 6. **Profile kinds.** `person` and `business` exist. New: `product` (a thing being built, with
    a brand), `reviewer` (a judging job an agent does; named reviewer because "role" already
@@ -106,13 +106,13 @@ These were settled while planning. A builder who finds one wrong says so in the 
 8. **Agents propose, the owner approves.** This already holds for profiles (an agent saves a
    draft, only the owner approves) and stays the rule for brand, guidelines and reviewers.
 9. **Findings are measured, heuristic or vision, and never mixed.**
-10. **Existing dev features are reused, not rebuilt**: `agentos run` (tests on the node),
-    `agentos expose` (the dev server in a lane), `browser_console` and `browser_network`.
+10. **Existing dev features are reused, not rebuilt**: `openajar run` (tests on the node),
+    `openajar expose` (the dev server in a lane), `browser_console` and `browser_network`.
 
 ## 5. Module layout and ownership
 
 ```
-src/agentos/studio/
+src/openajar/studio/
   contracts.py        shared types (written by the lead; change only through the lead)
   browser/            S1  pool, engines, pinned environment, targets, local run, studio_status
   store/  capture/    S2  artifact store, screen sets, capture, layout manifest
@@ -122,7 +122,7 @@ src/agentos/studio/
   tools.py            S7  the MCP surface, result shaping, toolset, skill, howto, AX eval
   panel/              S9  pairs, tickets, tally, drift check, stop rule, report
   bench/              S12 tasks, runner, results
-src/agentos/profiles/ S5  kinds, brand, guidelines, references, profile_use
+src/openajar/profiles/ S5  kinds, brand, guidelines, references, profile_use
                       S8  learn a brand from a live site
 ```
 
@@ -133,7 +133,7 @@ src/agentos/profiles/ S5  kinds, brand, guidelines, references, profile_use
 | 1 | S0 front door (README, vision), S1 browser, S2 capture, S3 checks, S4 tokens, S5 profiles, H1 chores | contracts.py |
 | 2 | S6 diff, S7 tools and skill, S8 learn a brand, H2 small-model usability runs | wave 1 merged |
 | 3 | S9 panel, S10 audience flows, S11 report screens in web/ | wave 2 |
-| 4 | S12 bench and results site, S13 tool eval for all of agentos | wave 3 |
+| 4 | S12 bench and results site, S13 tool eval for all of openajar | wave 3 |
 
 In wave 1 the four studio builders work against `contracts.py` and do not import each other.
 S2, S3 and S4 open pages through a tiny local helper in their own tests (plain Playwright,
@@ -141,7 +141,7 @@ system Chrome, as `tests/unit/test_siteapi_chrome.py` does) until S1 lands. S7 j
 
 ## 6. Contracts between builders
 
-The types are in `src/agentos/studio/contracts.py`. In words:
+The types are in `src/openajar/studio/contracts.py`. In words:
 
 - **S1 gives** `ReviewBrowser.page(target, screen)`: an async context manager that yields a
   Playwright `Page` already at the target, in the screen's width and theme, in the named
@@ -168,8 +168,8 @@ The types are in `src/agentos/studio/contracts.py`. In words:
 3. Do not change `contracts.py` on your own. Propose the change in the hand-back, with the diff.
 4. No em dash (U+2014) in anything a person or an agent reads: tool descriptions, errors, docs,
    UI. `make emdash` checks it.
-5. Every new error class needs an entry in `src/agentos/core/error_catalog.toml` and a status
-   in `src/agentos/core/http_errors.py`. Every new setting needs a description in
+5. Every new error class needs an entry in `src/openajar/core/error_catalog.toml` and a status
+   in `src/openajar/core/http_errors.py`. Every new setting needs a description in
    `core/config_report.py`. Every new tracked doc or top-level directory needs a line in
    `scripts/public-export.toml`.
 6. Keep `import playwright` and `import PIL` inside functions (a test checks playwright).
@@ -188,7 +188,7 @@ The types are in `src/agentos/studio/contracts.py`. In words:
 ## 8. What is deliberately later
 
 - Checks inside logged-in lanes (reduced set, isolated world).
-- Hot reload through `agentos expose`.
+- Hot reload through `openajar expose`.
 - A node-side vision judge.
 - Storybook sweep, a pull request check, a second design system for the bench.
 
@@ -197,6 +197,6 @@ The types are in `src/agentos/studio/contracts.py`. In words:
 | Question | Default |
 |---|---|
 | Fonts for pinned rendering | A small bundled set plus the project's own web fonts; system fonts reported as "not pinned" in coverage |
-| Where local mode keeps state | `~/.agentos/studio/` on a laptop, `$HOME/studio/` on a node |
+| Where local mode keeps state | `~/.openajar/studio/` on a laptop, `$HOME/studio/` on a node |
 | Image library | Pillow, in the `studio` extra only |
 | Source hints (file and line) | `data-source` and `data-component` attributes when present; a small build plugin later |

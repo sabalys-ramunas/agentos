@@ -8,10 +8,10 @@ import stat
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.core.errors import ServiceUnavailable
-from agentos.memory.errors import EntryNotFound, OwnerTrustRequired
-from agentos.memory.models import Caller, Limits, load_limits
-from agentos.memory.store import WorkspaceDB
+from openajar.core.errors import ServiceUnavailable
+from openajar.memory.errors import EntryNotFound, OwnerTrustRequired
+from openajar.memory.models import Caller, Limits, load_limits
+from openajar.memory.store import WorkspaceDB
 
 OWNER = Caller.owner(session="sess_1")
 
@@ -235,7 +235,7 @@ def test_newer_schema_is_refused(mem):
     con = raw(mem)
     con.execute("UPDATE schema_version SET version = 99")
     con.commit()
-    with pytest.raises(ServiceUnavailable, match="newer agentos"):
+    with pytest.raises(ServiceUnavailable, match="newer openajar"):
         WorkspaceDB(mem.service.stores.path("biz-a"), "biz-a")
 
 

@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea for agentos.
+description: An idea for openajar.
 labels: ["enhancement"]
 body:
   - type: textarea

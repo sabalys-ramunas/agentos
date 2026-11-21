@@ -29,13 +29,13 @@ def test_any_other_org_is_not_here(client) -> None:
 
 def test_a_node_serves_the_web_app(tmp_path, monkeypatch) -> None:
     # the order (a checkout build, then the installed copy) is in tests/unit/test_web_install.py
-    from agentos.core import webapp
+    from openajar.core import webapp
 
-    monkeypatch.delenv("AGENTOS_PANEL_DIR", raising=False)
+    monkeypatch.delenv("OPENAJAR_PANEL_DIR", raising=False)
     root = tmp_path / "repo"
     monkeypatch.setattr(webapp, "checkout_dist", lambda: root / "web" / "dist")
     assert webapp.panel_dir(tmp_path / "home") == root / "web" / "dist"
-    monkeypatch.setenv("AGENTOS_PANEL_DIR", str(tmp_path / "built"))
+    monkeypatch.setenv("OPENAJAR_PANEL_DIR", str(tmp_path / "built"))
     assert webapp.panel_dir(tmp_path / "home") == tmp_path / "built"
 
 

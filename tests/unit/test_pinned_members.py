@@ -1,5 +1,5 @@
 """Pins a member grant's ceiling and specials from its roles and options
-(agentos.policy.members.member_specials), every role alone and combined, each option valid and not."""
+(openajar.policy.members.member_specials), every role alone and combined, each option valid and not."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import itertools
 
 from pinned import check, outcome, plain
 
-from agentos.policy.members import MEMBER_ROLES, member_specials
+from openajar.policy.members import MEMBER_ROLES, member_specials
 
 OPTIONS = {
     "none": {},

@@ -129,7 +129,7 @@ export function NodeHeader({ node, sentence, system, hour, day, connections, ban
     system?.arch ?? node.arch,
     system?.cpu_model ? `${system.cpu_model}${system.cores ? `, ${system.cores} cores` : ''}` : null,
     system?.mem_total_mb ? gb(system.mem_total_mb) : null,
-    `agentos ${node.version}`,
+    `openajar ${node.version}`,
     system?.uptime_s ? `up ${uptime(system.uptime_s)}` : null,
   ].filter(Boolean);
 

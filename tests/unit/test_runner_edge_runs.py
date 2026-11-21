@@ -11,13 +11,13 @@ import sqlite3
 
 import pytest
 
-from agentos.core.driver import DriverTimeout
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import RunStatus
-from agentos.runner.fakes import BASE, FakeCtx, Harness, SimulatedCrash, post_flow
-from agentos.runner.models import TERMINAL
-from agentos.runner.store import RunnerStore
-from agentos.runner.tools import flow_save, tool_specs
+from openajar.core.driver import DriverTimeout
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import RunStatus
+from openajar.runner.fakes import BASE, FakeCtx, Harness, SimulatedCrash, post_flow
+from openajar.runner.models import TERMINAL
+from openajar.runner.store import RunnerStore
+from openajar.runner.tools import flow_save, tool_specs
 
 PARAMS = {"caption": "Autumn", "image": "files/a.jpg"}
 

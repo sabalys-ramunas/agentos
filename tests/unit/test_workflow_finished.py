@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from workflow_support import OWNER, action, commit_flow, make_node, read_flow, workflow
 
-from agentos.runner.workflows.service import WorkflowInvalid
+from openajar.runner.workflows.service import WorkflowInvalid
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 POST = "biz-a.social.post"

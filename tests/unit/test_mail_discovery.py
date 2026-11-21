@@ -7,9 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.mail import providers
-from agentos.runner.mail.discovery import (
+from openajar.core.errors import InvalidRequest
+from openajar.runner.mail import providers
+from openajar.runner.mail.discovery import (
     HTTPS,
     LOW,
     MAX_CONFIG,
@@ -266,7 +266,7 @@ async def test_a_person_correcting_both_hosts_is_a_yes_and_may_type_a_private_on
 
 def test_a_person_cannot_choose_no_tls():
     found_server = {"host": "mail.example.net", "port": 143, "security": "plain"}
-    from agentos.runner.mail.discovery import typed_server
+    from openajar.runner.mail.discovery import typed_server
 
     with pytest.raises(InvalidRequest, match="tls or starttls"):
         typed_server(found_server, username="a")
@@ -306,7 +306,7 @@ def site(certificates, monkeypatch):
     import ssl
     import threading
 
-    from agentos.runner.mail import net
+    from openajar.runner.mail import net
 
     answers = {}
 
@@ -370,7 +370,7 @@ async def test_a_certificate_for_another_name_gives_no_answer(site):
 
 
 async def test_a_name_that_leads_inside_is_refused_before_it_is_dialled(monkeypatch):
-    from agentos.runner.mail import net
+    from openajar.runner.mail import net
 
     client = net.RealNet(resolver=lambda host: ["10.0.0.1"])
     with pytest.raises(Refused, match="public address"):
@@ -380,7 +380,7 @@ async def test_a_name_that_leads_inside_is_refused_before_it_is_dialled(monkeypa
 async def test_mx_and_srv_answers_are_read_best_first(monkeypatch):
     import dns.resolver
 
-    from agentos.runner.mail import net
+    from openajar.runner.mail import net
 
     def answer(name, kind, lifetime):
         if kind == "MX":
@@ -396,7 +396,7 @@ async def test_a_dns_failure_is_an_empty_answer(monkeypatch):
     import dns.exception
     import dns.resolver
 
-    from agentos.runner.mail import net
+    from openajar.runner.mail import net
 
     def fails(*_, **__):
         raise dns.exception.Timeout()

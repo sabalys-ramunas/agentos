@@ -12,9 +12,8 @@ from fakes import FakeInteraction, FakeLaneManager
 from mcp import Client
 from starlette.testclient import TestClient
 
-from agentos.core.config import NodeConfig, save_proxies
-from agentos.core.errors import (
-    AgentosError,
+from openajar.core.config import NodeConfig, save_proxies
+from openajar.core.errors import (
     AgentPaused,
     ApprovalPending,
     EngineError,
@@ -22,11 +21,12 @@ from agentos.core.errors import (
     InvalidRequest,
     LaneExists,
     NotFound,
+    OpenajarError,
     PolicyDenied,
     ServiceUnavailable,
 )
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.mcp.server import (
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.mcp.server import (
     Redactor,
     build_http_app,
     build_server,
@@ -114,10 +114,10 @@ def test_unauthenticated_request_for_a_foreign_host_is_refused(http):
 # ---- error mapping -------------------------------------------------------------------
 
 
-def all_agentos_errors() -> list[type[AgentosError]]:
-    """Every AgentosError class once (a class with two error bases, like StudioTimeout, is a
+def all_openajar_errors() -> list[type[OpenajarError]]:
+    """Every OpenajarError class once (a class with two error bases, like StudioTimeout, is a
     subclass of both)."""
-    found, todo = [], [AgentosError]
+    found, todo = [], [OpenajarError]
     while todo:
         cls = todo.pop()
         if cls not in found:
@@ -126,17 +126,17 @@ def all_agentos_errors() -> list[type[AgentosError]]:
     return found
 
 
-# Codes two classes set on purpose. `frozen`: a call in a frozen scope (agentos.core.errors.Frozen)
-# and a grant a freeze revoked (agentos.policy.errors.GrantFrozen) are the same news for the agent,
+# Codes two classes set on purpose. `frozen`: a call in a frozen scope (openajar.core.errors.Frozen)
+# and a grant a freeze revoked (openajar.policy.errors.GrantFrozen) are the same news for the agent,
 # stop and tell the user, so both read `frozen` (commit 13a2642a); they differ in their HTTP status.
 SHARED_CODES = {"frozen": {"Frozen", "GrantFrozen"}}
 
 
-def test_every_agentos_error_has_a_distinct_snake_case_code():
+def test_every_openajar_error_has_a_distinct_snake_case_code():
     """A class that sets its own code must not reuse another class's code, so clients can tell
     errors apart. A subclass that inherits its parent's code is the same kind of error (for
     example policy's Denied is a PolicyDenied) and is fine."""
-    errors = all_agentos_errors()
+    errors = all_openajar_errors()
     own = [cls.code for cls in errors if "code" in cls.__dict__ and cls.code not in SHARED_CODES]
     assert len(own) == len(set(own)), sorted(own)
     for code, names in SHARED_CODES.items():
@@ -147,7 +147,7 @@ def test_every_agentos_error_has_a_distinct_snake_case_code():
 @pytest.mark.parametrize(
     ("exc", "prefix"),
     [
-        (AgentosError("plain"), "error: plain"),
+        (OpenajarError("plain"), "error: plain"),
         (ApprovalPending("needs a human", "ap-1"), "approval_pending: needs a human"),
         (ServiceUnavailable("no vault"), "unavailable: no vault"),
         (PolicyDenied("scope"), "denied: scope"),
@@ -157,7 +157,7 @@ def test_every_agentos_error_has_a_distinct_snake_case_code():
         (LaneExists("x exists"), "lane_exists: x exists"),
     ],
 )
-def test_each_agentos_error_maps_to_its_code(tmp_path, exc, prefix):
+def test_each_openajar_error_maps_to_its_code(tmp_path, exc, prefix):
     assert error_message(exc, Redactor(NodeConfig(home=tmp_path))) == prefix
 
 
@@ -171,7 +171,7 @@ def test_exception_without_a_message_still_names_its_type(tmp_path):
 
 
 def test_long_error_messages_are_cut_to_600_characters(tmp_path):
-    message = error_message(AgentosError("x" * 5000), Redactor(NodeConfig(home=tmp_path)))
+    message = error_message(OpenajarError("x" * 5000), Redactor(NodeConfig(home=tmp_path)))
     assert len(message) == 600 and message.endswith("...")
 
 

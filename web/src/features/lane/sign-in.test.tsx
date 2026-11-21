@@ -49,7 +49,7 @@ describe('signing an account in from the login queue', () => {
     const fetched = vi.spyOn(globalThis, 'fetch');
     const { user } = renderApp(`/${ORG}/logins`);
     const region = await screen.findByRole('region', { name: 'Sign in' });
-    expect(await within(region).findByText(/Saved in the vault. agentos signs in from it and asks nobody/)).toBeInTheDocument();
+    expect(await within(region).findByText(/Saved in the vault. openajar signs in from it and asks nobody/)).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Sign in from the vault' }));
     expect(await within(region).findByText('Signed in. The login is saved in the vault.')).toBeInTheDocument();
     expect(bodyOf(fetched, /\/login\/form$/)).toBeUndefined();

@@ -1,4 +1,4 @@
-"""`agentos git ...`: a deploy key is made on the node and only its public half is printed; a token
+"""`openajar git ...`: a deploy key is made on the node and only its public half is printed; a token
 is read from stdin or a prompt, never argv; nothing prints or exports a secret."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ import pytest
 from test_vault_support import make_vault, private_home
 from typer.testing import CliRunner
 
-from agentos.cli import app
+from openajar.cli import app
 
 runner = CliRunner()
 
@@ -18,7 +18,7 @@ runner = CliRunner()
 def home(tmp_path, monkeypatch):
     h = private_home(tmp_path)
     make_vault(h)
-    monkeypatch.setenv("AGENTOS_HOME", str(h))
+    monkeypatch.setenv("OPENAJAR_HOME", str(h))
     return h
 
 
@@ -31,7 +31,7 @@ def test_key_add_prints_the_public_key_and_seals_the_private_one(home):
     assert r.exit_code == 0, r.output
     assert "ssh-ed25519 AAAA" in r.output and "https://github.com/owner/app/settings/keys/new" in r.output
     assert "PRIVATE KEY" not in r.output and "BEGIN" not in r.output
-    assert "agentos git remote allow" in r.output
+    assert "openajar git remote allow" in r.output
     listed = json.loads(runner.invoke(app, ["git", "key", "list", "--json"]).output)
     [cred] = listed
     assert cred["name"] == "github-owner-app-ssh" and cred["host"] == "github.com" and cred["repos"] == ["owner/app"]

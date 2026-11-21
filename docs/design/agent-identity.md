@@ -1,4 +1,4 @@
-# Signed agent identity for agentos (Web Bot Auth)
+# Signed agent identity for openajar (Web Bot Auth)
 
 Status: research and proposal, 2026-11-04. The Phase 0 spike ran the same day (section 12), and
 Phase 1, the signing core, was built after it (section 13). Nothing is published or registered. This document answers
@@ -250,7 +250,7 @@ not adopted, so it is an option for later.
 
 ### 5.2 Keys
 
-- Stored at `AGENTOS_HOME/secrets/webbotauth/<lane-id>.key`, mode 600, PEM, created with the
+- Stored at `OPENAJAR_HOME/secrets/webbotauth/<lane-id>.key`, mode 600, PEM, created with the
   hard-link pattern from `policy/keys.py` and `node/channel/identity.py`. Refuse to load a key
   that other users can read.
 - Never in the lane's profile directory. Profiles are copied for snapshots, forks and
@@ -395,19 +395,19 @@ form, used where it helps.
 
 | Package or file | Change | Phase |
 | --- | --- | --- |
-| `src/agentos/webbotauth/` (new) | Keys per lane, RFC 9421 signature base, `Signature-Input` builder, JWK thumbprint, directory JSON and signing, a strict verifier for tests and `agentos identity check` | 1 |
-| `src/agentos/node/camoufox/` | Install the signing route only for `sign_hosts`. No route when the list is empty. Block service workers for signed hosts | 1 |
-| `src/agentos/node/lanes/` | Create the key at lane creation. Rotation command. `sign_hosts` in the lane site policy. Export excludes keys | 1 to 2 |
-| `src/agentos/node/` daemon and runner | Directory refresh timer, publish with a vault-held outbound credential | 2 |
-| `src/agentos/policy/grants.py`, `routing.py`, `service.py` | `identity` caveat with narrowing only. Enabling a host is an approval-class change | 2 |
-| `src/agentos/policy/traces.py`, `runner/` | Identity fields on action traces (no `Signature` header) | 2 |
-| `src/agentos/ops/doctor.py` | Key file permissions, directory fetch and signature check, expiry headroom | 2 |
-| `src/agentos/api/`, `web/src` | Identity card, per-host toggle, read routes scoped by grant | 2 |
-| `src/agentos/mcp/`, `core/tools.py` | `lane_identity` read tool. Set-identity tool is owner-only, effect class `commit` | 2 |
-| `src/agentos/controller/`, the hosted edition | Hosted tenant directories, no tenant keys in the cloud | 3 |
+| `src/openajar/webbotauth/` (new) | Keys per lane, RFC 9421 signature base, `Signature-Input` builder, JWK thumbprint, directory JSON and signing, a strict verifier for tests and `openajar identity check` | 1 |
+| `src/openajar/node/camoufox/` | Install the signing route only for `sign_hosts`. No route when the list is empty. Block service workers for signed hosts | 1 |
+| `src/openajar/node/lanes/` | Create the key at lane creation. Rotation command. `sign_hosts` in the lane site policy. Export excludes keys | 1 to 2 |
+| `src/openajar/node/` daemon and runner | Directory refresh timer, publish with a vault-held outbound credential | 2 |
+| `src/openajar/policy/grants.py`, `routing.py`, `service.py` | `identity` caveat with narrowing only. Enabling a host is an approval-class change | 2 |
+| `src/openajar/policy/traces.py`, `runner/` | Identity fields on action traces (no `Signature` header) | 2 |
+| `src/openajar/ops/doctor.py` | Key file permissions, directory fetch and signature check, expiry headroom | 2 |
+| `src/openajar/api/`, `web/src` | Identity card, per-host toggle, read routes scoped by grant | 2 |
+| `src/openajar/mcp/`, `core/tools.py` | `lane_identity` read tool. Set-identity tool is owner-only, effect class `commit` | 2 |
+| `src/openajar/controller/`, the hosted edition | Hosted tenant directories, no tenant keys in the cloud | 3 |
 | `docs/` | ARCHITECTURE gets an identity invariant. A tracking row for each phase. PRINCIPLES 7 wording stays | 1 |
 
-Note on naming: `src/agentos/node/channel/identity.py` already holds the node's own key. The new
+Note on naming: `src/openajar/node/channel/identity.py` already holds the node's own key. The new
 package is `webbotauth` so the two are not confused. `policy/keys.py` and `node/channel/identity.py`
 are reused as patterns, not changed.
 
@@ -461,17 +461,17 @@ published, and nothing shows in the panel.
 
 **In scope.**
 
-- `src/agentos/webbotauth/keys.py`: per-lane Ed25519 keys, the same file rules as `policy/keys.py`
+- `src/openajar/webbotauth/keys.py`: per-lane Ed25519 keys, the same file rules as `policy/keys.py`
   (mode 600, refuse readable files, hard-link creation).
-- `src/agentos/webbotauth/base.py`: the RFC 9421 signature base, `Signature-Input` with `tag`, `keyid`,
+- `src/openajar/webbotauth/base.py`: the RFC 9421 signature base, `Signature-Input` with `tag`, `keyid`,
   `created`, `expires` and `nonce`, JWK thumbprint per RFC 7638 and the OKP form per RFC 8037.
-- `src/agentos/webbotauth/verify.py`: a strict verifier that follows protocol section 5.2. Used by
-  tests and by `agentos identity check`.
+- `src/openajar/webbotauth/verify.py`: a strict verifier that follows protocol section 5.2. Used by
+  tests and by `openajar identity check`.
 - Tests against the protocol's Appendix E test vectors, plus golden output from Cloudflare's TypeScript
   `web-bot-auth` package generated once and committed. The spike's test key is not the production key.
-- `src/agentos/node/camoufox/`: install the route only for hosts in `sign_hosts`. An empty list
+- `src/openajar/node/camoufox/`: install the route only for hosts in `sign_hosts`. An empty list
   installs nothing.
-- A CLI subcommand `agentos identity init | show | test-sign <url>`, following the existing CLI pattern.
+- A CLI subcommand `openajar identity init | show | test-sign <url>`, following the existing CLI pattern.
 
 **Out of scope.** Directory publication, the panel, grants, the controller, hosted work, registration,
 the Firefox extension, any inbound port, changes to `node/channel/identity.py` or `policy/keys.py`.
@@ -491,7 +491,7 @@ the Firefox extension, any inbound port, changes to `node/channel/identity.py` o
 - The route test on a local test server shows `Signature` on the document, a subresource, a fetch and
   an XHR, and none on a host outside the list.
 - The pinned-fingerprint self-check passes with the route on and off.
-- The repo's full test target passes. `agentos doctor` output is unchanged.
+- The repo's full test target passes. `openajar doctor` output is unchanged.
 
 **Stop and report if** the route does not fire for subresources on the Camoufox build, or if a pinned
 fingerprint value moves with the route on.
@@ -593,7 +593,7 @@ in the lane, not only the signed ones (12.3).
 
 ### 12.1 Setup and method
 
-- Where: the dev node, throwaway dev copy `$AGENTOS_DEV_ROOT/identity` (slot 33: Xvfb `:330`,
+- Where: the dev node, throwaway dev copy `$OPENAJAR_DEV_ROOT/identity` (slot 33: Xvfb `:330`,
   loopback test servers on `127.0.0.1:6331`, the signed host, and `127.0.0.1:6332`, unsigned).
   The owner directed the spike to this slot, which overrides the "do not run on any node" line in
   section 8. Nothing touched `/root/agentos`, `/var/lib/agentos`, `/opt/agentos`, the service, or
@@ -818,7 +818,7 @@ default and limited to one test host. Change the Phase 1 brief (8.1) and the def
 2. **Nonce: 64 random bytes, standard base64** (not 16). The deployed verifier takes either, but
    the reference library requires exactly 64.
 3. **`created` = now minus 2 s, `expires` = `created` + 120.** Cloudflare allows no future skew.
-   `agentos doctor` should warn when the node clock is not NTP-synchronised.
+   `openajar doctor` should warn when the node clock is not NTP-synchronised.
 4. **Covered components: `@authority`, `@method` and `signature-agent`. Do not cover `@path` or
    `@query` until redirects are fixed.** With `@path` covered, every same-host redirect hop sends
    an invalid signature (2 of 2), and an invalid signature is worse than none. The cost is that a
@@ -850,8 +850,8 @@ published library in two ways (dictionary base, nonce length).
 
 ## 13. Phase 1 as built (2026-11-04)
 
-Phase 1 is in `src/agentos/webbotauth/` with the engine hook in `node/camoufox/engine.py`
-(`_install_identity`), the CLI `agentos identity`, and the doctor's clock check. It follows the
+Phase 1 is in `src/openajar/webbotauth/` with the engine hook in `node/camoufox/engine.py`
+(`_install_identity`), the CLI `openajar identity`, and the doctor's clock check. It follows the
 brief in 8.1 with the changes of 12.6, and it changes one thing the spike did not settle: **how a
 signed request is sent.**
 
@@ -940,7 +940,7 @@ Guards, each a fall back to the browser, unsigned, with a trace row giving the r
   only, https except loopback for tests) and the signature agent URL, in a mode 600 file next to the
   key. Only the CLI writes it; no MCP tool or API route exists. The file is bound to the lane's
   profile directory, so a recreated or imported lane starts with signing off and needs
-  `agentos identity init --force` (a new key).
+  `openajar identity init --force` (a new key).
 - `webbotauth/route.py`: the route, the guards and the detector, and `IdentityProvider`, which the
   engine asks at launch. No hosts means no route and no listener. A broken identity (bad mode, key
   mismatch, another profile) means the lane runs unsigned with an `identity_error` lane event.
@@ -949,12 +949,12 @@ Guards, each a fall back to the browser, unsigned, with a trace row giving the r
   status, keyid, covered, created, expires, SHA-256 of the base. Never the `Signature` or
   `Signature-Input` header. Lane events: `identity_signing` at launch, `identity_redirect_off_host`,
   `identity_redirect_leak`, `identity_signing_stopped`, `identity_error`.
-- `agentos identity init | show | hosts add | hosts remove | test-sign`. `test-sign` signs one URL
+- `openajar identity init | show | hosts add | hosts remove | test-sign`. `test-sign` signs one URL
   on a listed host, checks it locally, hides the `Signature` unless `--reveal`, and can `--send`
   it through the lane's proxy.
-- `agentos doctor`: the clock check names the lanes that sign when NTP is off or not synchronized.
+- `openajar doctor`: the clock check names the lanes that sign when NTP is off or not synchronized.
 
-Differences from 8.1: keys are made by `agentos identity init`, not at lane creation, so
+Differences from 8.1: keys are made by `openajar identity init`, not at lane creation, so
 `lanes.py` changes only in its wiring; `service_workers="block"` is not set (it would change every
 site the lane visits, and service worker requests are already unsigned rather than leaked); hosts
 added to `sign_hosts` take effect at the lane's next launch (that is when its route is

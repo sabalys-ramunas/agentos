@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.memory import Caller
+from openajar.memory import Caller
 
 OWNER = Caller.owner()
 

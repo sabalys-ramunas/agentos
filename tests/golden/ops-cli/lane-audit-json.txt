@@ -1,4 +1,4 @@
-$ agentos lane audit --json
+$ openajar lane audit --json
 exit 0
 {
   "level": "warn",

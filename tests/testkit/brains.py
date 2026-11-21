@@ -12,19 +12,19 @@ from typing import Any
 
 import httpx
 
-from agentos.brains import cliprobe
-from agentos.brains.models import BrainSpec
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
-from agentos.core.errors import ApprovalPending, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.dev import fakecli
-from agentos.policy.grants import fake_grant
+from openajar.brains import cliprobe
+from openajar.brains.models import BrainSpec
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
+from openajar.core.errors import ApprovalPending, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.dev import fakecli
+from openajar.policy.grants import fake_grant
 
 OAUTH = "sk-ant-oat01-" + "T" * 60          # fake subscription token
 API_KEY = "sk-ant-api03-" + "K" * 60        # fake metered key
-OWNER_TOKEN = "owner-token-" + "O" * 40     # the owner's own agentos token
+OWNER_TOKEN = "owner-token-" + "O" * 40     # the owner's own openajar token
 CHILD_TOKEN = "child-token-" + "C" * 40
 
 
@@ -169,7 +169,7 @@ def dump(svc: BrainService, task_id: str) -> dict:
 
 
 def all_task_bytes(svc: BrainService, task_id: str) -> bytes:
-    """Every byte agentos wrote for a task (transcripts, status, launch, logs, brain home)."""
+    """Every byte openajar wrote for a task (transcripts, status, launch, logs, brain home)."""
     out = b""
     for p in sorted(svc.task_dir(task_id).rglob("*")):
         if p.is_file() and p.name != "fake-dump.json" and p.name != "prompt.txt":

@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 import pytest
 from test_vault_support import fld, login_form
 
-from agentos.vault.errors import ResolutionDenied
-from agentos.vault.models import EntryKind, EntryMeta
-from agentos.vault.policy import (
+from openajar.vault.errors import ResolutionDenied
+from openajar.vault.models import EntryKind, EntryMeta
+from openajar.vault.policy import (
     FieldRole,
     Reason,
     Sink,

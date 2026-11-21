@@ -5,9 +5,9 @@ from __future__ import annotations
 
 from starlette.testclient import TestClient
 
-from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.api.auth import SESSION_COOKIE
-from agentos.dev.apifakes import demo_runtime
+from openajar.api import ApiSettings, PanelStore, build_api
+from openajar.api.auth import SESSION_COOKIE
+from openajar.dev.apifakes import demo_runtime
 
 OWNER = "owner-token-abc"
 EM_DASH = "—"

@@ -10,11 +10,11 @@ import hashlib
 
 from test_environments_docker import HOST, REPO, node, pytestmark  # noqa: F401  (node is a fixture)
 
-from agentos.core.models import Effect
-from agentos.env import tool_specs as term_specs
-from agentos.env.sync import Entry, Manifest
-from agentos.environments.tools import tool_specs as env_tool_specs
-from agentos.policy.wrap import bind_request_token, wrap_tool
+from openajar.core.models import Effect
+from openajar.env import tool_specs as term_specs
+from openajar.env.sync import Entry, Manifest
+from openajar.environments.tools import tool_specs as env_tool_specs
+from openajar.policy.wrap import bind_request_token, wrap_tool
 
 
 def _chunk(data: bytes) -> tuple[str, str]:
@@ -34,7 +34,7 @@ async def test_local_changes_reach_the_environment_by_upload_and_sync(node):  # 
     env = await call("environment_open", title="Local work", repo=f"{HOST}/{REPO}", wait_s=150)
     assert env["state"] == "ready", env
 
-    # the human's uncommitted change, as `agentos run` sends a tree: chunks, then a manifest of them
+    # the human's uncommitted change, as `openajar run` sends a tree: chunks, then a manifest of them
     changed = b"<title>Shop</title><h1>Forty percent off</h1>\n"
     new = b"console.log('banner')\n"
     files = {"index.html": changed, "banner.js": new}

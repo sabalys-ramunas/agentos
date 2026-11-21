@@ -1,6 +1,6 @@
 """Stealth and isolation on a real Camoufox (docs/design/stealth.md).
 
-Run on the node:  AGENTOS_TEST_SLOT=33 scripts/node-test.sh stealth tests/node/test_stealth_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=33 scripts/node-test.sh stealth tests/node/test_stealth_node.py -q
 or in the Docker node (docs/design/stealth.md, "Running the check"). Throwaway lanes under
 .node-home/ of this checkout, on the slot's own displays and ports; at most two browsers at once.
 No page reaches the internet: the lanes load a local fixture server and a local proxy.
@@ -9,7 +9,7 @@ No page reaches the internet: the lanes load a local fixture server and a local 
   (network.proxy.failover_direct), so nothing leaves from the node's own address.
 - A lane without a proxy stays walled off from the node's loopback however often a page tries.
 - A page's own script finds no automation trace, no worker or frame that disagrees with the
-  window, and no raw WebRTC address (agentos.stealth.stealth on stealth_probe.html).
+  window, and no raw WebRTC address (openajar.stealth.stealth on stealth_probe.html).
 - The stealth check itself: two lanes, a relaunch and a short soak with a kill.
 """
 
@@ -28,21 +28,21 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.stealth import stealth, stealthcheck
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.node.camoufox.engine import CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.stealth import stealth, stealthcheck
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "330"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5330"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6330"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "330"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5330"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6330"))
 SITE_PORT = VIEWER_BASE + 7
 PROXY_PORT = VIEWER_BASE + 8
 VIA = "x-agentos-test-proxy"
@@ -176,7 +176,7 @@ async def test_a_dead_proxy_never_falls_back_to_a_direct_connection(rig, site, f
     config, displays = rig
     proxy = ForwardingProxy(PROXY_PORT)
     proxy.start()
-    host = "agentos-dead-proxy.invalid" if failure == "unknown_host" else "127.0.0.1"
+    host = "openajar-dead-proxy.invalid" if failure == "unknown_host" else "127.0.0.1"
     engine = CamoufoxEngine(extra_options={"geoip": False})  # the guard as in production: localhost via the proxy
     session = await _launch(config, displays, engine, "qa/proxy", ProxyConfig(label="t", host=host, port=PROXY_PORT))
     try:
@@ -235,8 +235,8 @@ async def test_a_page_finds_no_automation_trace(rig, target_os, tmp_path):
         await page.goto(f"http://127.0.0.1:{SITE_PORT}/fingerprint.html")
         await page.wait_for_selector("#dump[data-state=done]", state="attached", timeout=40_000)
         dump = json.loads(await page.text_content("#dump"))
-        if os.environ.get("AGENTOS_TEST_EVIDENCE"):
-            out = Path(os.environ["AGENTOS_TEST_EVIDENCE"])
+        if os.environ.get("OPENAJAR_TEST_EVIDENCE"):
+            out = Path(os.environ["OPENAJAR_TEST_EVIDENCE"])
             out.mkdir(parents=True, exist_ok=True)
             (out / f"probe-{target_os}.json").write_text(json.dumps(dump, indent=1, sort_keys=True))
         assert stealth.ua_os(dump["navigator"]["userAgent"]) == target_os

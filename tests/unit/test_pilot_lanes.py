@@ -27,20 +27,20 @@ from test_pilot_service import (  # noqa: F401 (close_the_nodes is an autouse fi
     type_caption,
 )
 
-from agentos.core.errors import AgentosError
-from agentos.core.models import ActionKind
-from agentos.node import human, publish
-from agentos.node import tools as node_tools
-from agentos.pilot import errors as pilot_errors
-from agentos.pilot import service as pilot_service
-from agentos.pilot.deciders import BrainText, Text
-from agentos.pilot.service import load_settings
-from agentos.pilot.tools import lane_do
-from agentos.plugins import admin
-from agentos.plugins.service import LANE_WORKER, PluginService
-from agentos.plugins.store import PluginStore
-from agentos.runner import tools as runner_tools
-from agentos.runner.fakes import BASE
+from openajar.core.errors import OpenajarError
+from openajar.core.models import ActionKind
+from openajar.node import human, publish
+from openajar.node import tools as node_tools
+from openajar.pilot import errors as pilot_errors
+from openajar.pilot import service as pilot_service
+from openajar.pilot.deciders import BrainText, Text
+from openajar.pilot.service import load_settings
+from openajar.pilot.tools import lane_do
+from openajar.plugins import admin
+from openajar.plugins.service import LANE_WORKER, PluginService
+from openajar.plugins.store import PluginStore
+from openajar.runner import tools as runner_tools
+from openajar.runner.fakes import BASE
 
 WRITTEN = {"values": None, "goal": "Reply to the post"}
 
@@ -321,7 +321,7 @@ async def test_off_leaves_direct_control_alone(tmp_path, quick, monkeypatch):
         assert [p["caption"] for p in node.posts] == [CAPTION]
 
         await node.lanes.take_control(LANE, by="owner")
-        with pytest.raises(AgentosError) as stopped:
+        with pytest.raises(OpenajarError) as stopped:
             await node_tools.browser_snapshot(node.ctx(), on=LANE)
         assert stopped.value.code == "human_in_control"
         await node.lanes.hand_back(LANE, by="owner")

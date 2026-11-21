@@ -12,11 +12,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from agentos.pilot import Pilot, Request, Value
-from agentos.pilot.loop import Plan, State, Step, Stop
-from agentos.pilot.questions import Unreadable
 from lanebench.lab.harvest import DATA, HOST, LANE, walk_path
 from lanebench.lab.jev import LabDecider, LabJev
+from openajar.pilot import Pilot, Request, Value
+from openajar.pilot.loop import Plan, State, Step, Stop
+from openajar.pilot.questions import Unreadable
 
 
 class ReplayTools:
@@ -134,6 +134,6 @@ def load(jobs: list[tuple[Any, int, str]], root: Path = DATA) -> list[dict[str, 
     return walks
 
 
-from agentos.pilot.models import Status
+from openajar.pilot.models import Status
 
 _REFUSED = Status.REFUSED

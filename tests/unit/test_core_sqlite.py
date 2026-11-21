@@ -1,4 +1,4 @@
-"""agentos.core.sqlite: long-lived connections that still see other processes' commits, and
+"""openajar.core.sqlite: long-lived connections that still see other processes' commits, and
 async access that never blocks the event loop on another process's lock."""
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import time
 
 import pytest
 
-from agentos.core.sqlite import SqliteStore
-from agentos.node.store import LaneStore
+from openajar.core.sqlite import SqliteStore
+from openajar.node.store import LaneStore
 
 
 class Notes(SqliteStore):

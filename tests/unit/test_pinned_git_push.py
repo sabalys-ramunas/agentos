@@ -1,4 +1,4 @@
-"""Pins GitGateway._push for a table of pushes (agentos.git.gateway): what it answers git, what it
+"""Pins GitGateway._push for a table of pushes (openajar.git.gateway): what it answers git, what it
 records, what it authorizes, what it restores in the mirror and what it pushes upstream, byte for
 byte. Fakes stand in for the mirror, the policy context and the upstream credential, so every branch
 of the method runs: a bad pack, a ref git refused, force pushes, deletes, tags, protected branches,
@@ -17,13 +17,13 @@ from typing import Any
 import pytest
 from pinned import check, plain
 
-from agentos.core.errors import ApprovalPending, PolicyDenied
-from agentos.git import gateway as gw
-from agentos.git.gateway import Caller, GitGateway, Response
-from agentos.git.keys import Credential
-from agentos.git.remotes import RemoteRule
-from agentos.git.upstream import Target, UpstreamError
-from agentos.git.wire import Command, Push, Remote, build_report, pkt
+from openajar.core.errors import ApprovalPending, PolicyDenied
+from openajar.git import gateway as gw
+from openajar.git.gateway import Caller, GitGateway, Response
+from openajar.git.keys import Credential
+from openajar.git.remotes import RemoteRule
+from openajar.git.upstream import Target, UpstreamError
+from openajar.git.wire import Command, Push, Remote, build_report, pkt
 
 ZERO = "0" * 40
 A, B, C, D = ("a" * 40), ("b" * 40), ("c" * 40), ("d" * 40)

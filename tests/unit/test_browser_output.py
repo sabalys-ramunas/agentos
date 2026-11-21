@@ -1,4 +1,4 @@
-"""The browser's own output (agentos.node.browser_output): the Playwright driver's stderr goes
+"""The browser's own output (openajar.node.browser_output): the Playwright driver's stderr goes
 through the log scrubbers, and error tails (browser logs, call logs) leave agents' errors."""
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ import time
 
 import pytest
 
-from agentos.core import logs
-from agentos.node import browser_output
-from agentos.node.browser_output import browser_error, capture_driver_stderr, mask_urls, split_error
+from openajar.core import logs
+from openajar.node import browser_output
+from openajar.node.browser_output import browser_error, capture_driver_stderr, mask_urls, split_error
 
 TYPED = "typed-value-4417"  # a vault value the browser echoed
 CRASH = (
@@ -75,7 +75,7 @@ def test_browser_error_keeps_the_message_and_logs_the_output_scrubbed_and_masked
 
 
 def test_a_launch_failure_reaches_the_lane_error_without_the_browser_output():
-    from agentos.core.errors import EngineError
+    from openajar.core.errors import EngineError
 
     err = EngineError(f"biz-a/x: the browser failed to start: {browser_error(Exception(CRASH), 'biz-a/x')}")
     assert TYPED not in err.message and "Browser logs" not in err.message
@@ -113,7 +113,7 @@ def test_a_playwright_without_the_hook_leaves_stderr_alone(monkeypatch, caplog):
 
     monkeypatch.setattr(browser_output, "_write_fd", None)
     monkeypatch.delattr(_transport, "_get_stderr_fileno")
-    with caplog.at_level(logging.WARNING, "agentos.browser"):
+    with caplog.at_level(logging.WARNING, "openajar.browser"):
         assert capture_driver_stderr() is False
     assert "unscrubbed" in caplog.text
 
@@ -123,7 +123,7 @@ async def test_a_lane_close_failure_logs_the_message_not_the_browser_output(tmp_
     output, URLs with their tokens included, in the journal next to the message."""
     from test_lanes import make
 
-    from agentos.core.models import LaneSpec
+    from openajar.core.models import LaneSpec
 
     stream = journal()
     mgr, engine, *_ = make(tmp_path)
@@ -145,7 +145,7 @@ async def test_a_lane_close_failure_logs_the_message_not_the_browser_output(tmp_
 
 
 def test_a_download_error_keeps_no_url_query():
-    from agentos.node.camoufox.engine import _first_line
+    from openajar.node.camoufox.engine import _first_line
 
     assert _first_line(Exception("net::ERR_FAILED at https://cdn.example/f.zip?sig=abc123\nmore")) == \
         "net::ERR_FAILED at https://cdn.example/f.zip?..."
@@ -191,7 +191,7 @@ def feed(*texts: str) -> None:
 
 
 def test_the_driver_gets_pw_browser_in_its_own_environment_only(monkeypatch):
-    from agentos.node.typist import protocol_logging
+    from openajar.node.typist import protocol_logging
 
     monkeypatch.setenv("DEBUG", "pw:custom")
     env = browser_output._driver_env(lambda: {"DEBUG": "pw:custom", "PATH": "/bin"})()

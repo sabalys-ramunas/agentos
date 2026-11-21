@@ -1,4 +1,4 @@
-"""Shared lanes (agentos.node.claims): reads share, acts take turns in a FIFO queue, a claim keeps
+"""Shared lanes (openajar.node.claims): reads share, acts take turns in a FIFO queue, a claim keeps
 other callers' acts out for a multi-step job, and every way a claim ends without its holder is told
 to the holder on its next call.
 
@@ -15,14 +15,14 @@ from test_lanes import FakeEngine
 from test_lanes_holds import again, build
 from test_lanes_resources import Memory
 
-from agentos.api.lanes_view import lane_json
-from agentos.core import logs
-from agentos.core.errors import ClaimLost, HumanInControl, LaneBusy
-from agentos.core.models import ActionKind, LaneSpec, LaneState, Principal
-from agentos.core.runtime import Runtime
-from agentos.node import tools
-from agentos.node.claims import READ, RUN, Holder
-from agentos.node.flow_driver import _using
+from openajar.api.lanes_view import lane_json
+from openajar.core import logs
+from openajar.core.errors import ClaimLost, HumanInControl, LaneBusy
+from openajar.core.models import ActionKind, LaneSpec, LaneState, Principal
+from openajar.core.runtime import Runtime
+from openajar.node import tools
+from openajar.node.claims import READ, RUN, Holder
+from openajar.node.flow_driver import _using
 
 LANE = "biz-a/social"
 
@@ -426,7 +426,7 @@ def test_a_run_never_inherits_a_parent_from_an_outer_log_context():
 
 
 async def test_the_runner_gives_a_run_only_its_own_parent():
-    from agentos.runner.runner import RunnerService
+    from openajar.runner.runner import RunnerService
 
     seen = []
 
@@ -525,8 +525,8 @@ async def test_which_browser_tools_read_and_which_act(tool, args, mode):
     ("browser_dialog", {"accept": False}, "act"),
 ])
 async def test_which_io_tools_read_and_which_act(tool, args, mode):
-    from agentos.core.models import LaneInfo, LaneKind
-    from agentos.node import io_tools
+    from openajar.core.models import LaneInfo, LaneKind
+    from openajar.node import io_tools
 
     spy = Spy()
     spy.get = lambda on: LaneInfo(spec=LaneSpec(id=on, kind=LaneKind.BROWSER))
@@ -540,7 +540,7 @@ async def test_which_io_tools_read_and_which_act(tool, args, mode):
 @pytest.mark.parametrize(("tool", "args"), [("browser_console", {}), ("browser_network", {}),
                                            ("browser_network", {"id": "r1"})])
 async def test_the_devtools_tools_only_read(tool, args):
-    from agentos.node import devtools_tools
+    from openajar.node import devtools_tools
 
     spy = Spy()
     ctx = Ctx(Runtime(lanes=spy), Principal(id="claude-code", grant_id="g_1"))

@@ -1,4 +1,4 @@
-"""`agentos run` end to end on a node: the CLI, McpSession over HTTP to a real agentosd (in a temp
+"""`openajar run` end to end on a node: the CLI, McpSession over HTTP to a real agentosd (in a temp
 home, on a free loopback port) with the real policy and a real sandboxed env manager. The lane's
 network stays off, so nothing leaves the node."""
 
@@ -17,12 +17,12 @@ from typer.testing import CliRunner
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "unit"))
 from test_client_fakes import NodeServer
 
-from agentos.cli import app
-from agentos.client.state import Connection, ConnectionStore, Paths
-from agentos.client.tokens import FileStore
-from agentos.core.models import Effect
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
+from openajar.cli import app
+from openajar.client.state import Connection, ConnectionStore, Paths
+from openajar.client.tokens import FileStore
+from openajar.core.models import Effect
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
 
 pytestmark = [pytest.mark.node, needs_node]
 
@@ -47,7 +47,7 @@ def node(tmp_path):
     subprocess.run(["rm", "-rf", str(home)], check=False)
 
 
-def test_agentos_run_in_a_real_sandbox(node, tmp_path, monkeypatch):
+def test_openajar_run_in_a_real_sandbox(node, tmp_path, monkeypatch):
     laptop = tmp_path / "laptop"
     monkeypatch.setenv("HOME", str(laptop))
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
@@ -85,7 +85,7 @@ def test_agentos_run_in_a_real_sandbox(node, tmp_path, monkeypatch):
         stop.set()
     assert r.exit_code == 1, r.output
     assert r.stdout == "case 1 ok\ncase 2 ok\ncase 3 ok\n" and "1 failed" in r.stderr
-    assert "creating lane dev/run-proj" in r.stderr and "agentos run: exit 1" in r.stderr
+    assert "creating lane dev/run-proj" in r.stderr and "openajar run: exit 1" in r.stderr
 
     r = CliRunner().invoke(app, ["run", "--", "sh", "-c", "pwd; mkdir -p ../.venv; ls -A .."])
     assert r.exit_code == 0, r.output

@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.studio.checks import IDS, color, delta, merge, theme, unchecked
-from agentos.studio.checks.registry import selected
-from agentos.studio.checks.run import rule
-from agentos.studio.checks.scripts import script
-from agentos.studio.contracts import (
+from openajar.studio.checks import IDS, color, delta, merge, theme, unchecked
+from openajar.studio.checks.registry import selected
+from openajar.studio.checks.run import rule
+from openajar.studio.checks.scripts import script
+from openajar.studio.contracts import (
     CheckContext,
     CheckOutput,
     CoverageItem,

@@ -1,4 +1,4 @@
-"""terminal_exec's hint for a command that only read a file (agentos.env.readhint): the evals saw agents
+"""terminal_exec's hint for a command that only read a file (openajar.env.readhint): the evals saw agents
 read files with cat through terminal_exec, and file_read does that with line numbers."""
 
 from __future__ import annotations
@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from test_environments import node  # noqa: F401  (a fixture)
 
-from agentos.env.readhint import file_read_hint, read_path
+from openajar.env.readhint import file_read_hint, read_path
 
 
 @pytest.mark.parametrize(("cmd", "path"), [
@@ -16,8 +16,8 @@ from agentos.env.readhint import file_read_hint, read_path
     ("head -40 src/app.js", "src/app.js"),
     ("sed -n '1,40p' src/app.js", "src/app.js"),
     ("cat -n src/app.js | head -50", "src/app.js"),
-    ("ls -la; cat package.json; ls .agentos 2>/dev/null; cat .agentos/environment.toml 2>/dev/null", "package.json"),
-    ("ls -la && cat package.json 2>/dev/null | head -60 && ls .agentos 2>/dev/null", "package.json"),  # Haiku
+    ("ls -la; cat package.json; ls .openajar 2>/dev/null; cat .openajar/environment.toml 2>/dev/null", "package.json"),
+    ("ls -la && cat package.json 2>/dev/null | head -60 && ls .openajar 2>/dev/null", "package.json"),  # Haiku
     ('for f in src/* test/*; do echo "=== $f"; cat "$f"; done', ""),
 ])
 def test_a_plain_read_names_the_file(cmd, path):

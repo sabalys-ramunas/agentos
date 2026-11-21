@@ -1,4 +1,4 @@
-"""The layer check: every import in src/agentos goes down the layer order in scripts/layers.toml.
+"""The layer check: every import in src/openajar goes down the layer order in scripts/layers.toml.
 
 Run it with `make layers` (part of `make lint` and `make merge-check`). It reads every module with
 `ast`, so an import inside a function counts the same as one at the top of a file, and so does one
@@ -28,15 +28,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
-PACKAGE = "agentos"
+PACKAGE = "openajar"
 CONFIG = ROOT / "scripts" / "layers.toml"
 
 
 @dataclass(frozen=True)
 class Import:
-    importer: str  # agentos.node.forms
-    imported: str  # agentos.api.jsonable (the module, or the package when the name is not a module)
-    path: str      # src/agentos/node/forms.py
+    importer: str  # openajar.node.forms
+    imported: str  # openajar.api.jsonable (the module, or the package when the name is not a module)
+    path: str      # src/openajar/node/forms.py
     line: int
 
 
@@ -52,7 +52,7 @@ def all_modules() -> dict[str, Path]:
 
 
 def _resolve(name: str, modules: dict[str, Path]) -> str:
-    """The longest prefix of `name` that is a module (`agentos.node.egress.X` -> `agentos.node.egress`)."""
+    """The longest prefix of `name` that is a module (`openajar.node.egress.X` -> `openajar.node.egress`)."""
     parts = name.split(".")
     while parts:
         candidate = ".".join(parts)
@@ -78,7 +78,7 @@ def imports_of(mod: str, path: Path, modules: dict[str, Path]) -> list[Import]:
                 stem = ".".join(base + ([node.module] if node.module else []))
             else:
                 stem = node.module or ""
-            # `from agentos.node import egress` imports the module agentos.node.egress
+            # `from openajar.node import egress` imports the module openajar.node.egress
             targets = [f"{stem}.{alias.name}" if f"{stem}.{alias.name}" in modules else stem
                        for alias in node.names]
         for target in targets:
@@ -201,7 +201,7 @@ def check(layers: Layers, found: list[Import], report: bool) -> int:
     unplaced = sorted({top_package(i.importer) for i in found if layers.place(i.importer) is None}
                       | {top_package(i.imported) for i in found if layers.place(i.imported) is None})
     for pkg in unplaced:
-        problems.append(f"agentos.{pkg} is on no layer: add it to scripts/layers.toml")
+        problems.append(f"openajar.{pkg} is on no layer: add it to scripts/layers.toml")
     used: set[str] = set()
     upward: dict[tuple[str, str], list[Import]] = defaultdict(list)
     same_layer: dict[str, set[str]] = defaultdict(set)

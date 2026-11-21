@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.pilot.anchor import Target, check
-from agentos.pilot.page import parse_page
+from openajar.pilot.anchor import Target, check
+from openajar.pilot.page import parse_page
 
 
 def result(page_text: str, ref: str, goal: str, target: Target | None = None) -> dict:
@@ -140,7 +140,7 @@ def test_a_line_that_only_names_someone_else_blurs_the_item(goal: str) -> None:
 
 
 # ---- words as text lines are the item's own words -------------------------------------------------
-# The dev site writes an item's words as a text line under it, never a paragraph (agentos.dev.web.outline).
+# The dev site writes an item's words as a text line under it, never a paragraph (openajar.dev.web.outline).
 
 DEV_POST = """signal: ok
 https://social.example/p/1 · Post · 3 refs
@@ -225,7 +225,7 @@ def test_a_dev_site_post_page_verifies_the_right_comment() -> None:
     """The QA steps, on the outline the dev site itself renders for /p/1."""
     import asyncio
 
-    from agentos.dev.web import DevDriver, dev_site, outline
+    from openajar.dev.web import DevDriver, dev_site, outline
 
     async def render() -> str:
         driver = DevDriver(dev_site())

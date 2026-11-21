@@ -1,7 +1,7 @@
 
- Usage: agentos dev [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar dev [OPTIONS] COMMAND [ARGS]...
 
- A fake agentos node on this machine: no browser, no model, no account.
+ A fake openajar node on this machine: no browser, no model, no account.
 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help          Show this message and exit.                                  │

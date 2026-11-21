@@ -8,11 +8,11 @@ from types import SimpleNamespace
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.core.models import LaneState, ViewerInfo
-from agentos.node import vnc_relay
-from agentos.node.channel import wire
-from agentos.node.channel.node_streams import TerminalHolds
-from agentos.node.channel.streams import StreamPipe, StreamStalled, StreamTable
+from openajar.core.models import LaneState, ViewerInfo
+from openajar.node import vnc_relay
+from openajar.node.channel import wire
+from openajar.node.channel.node_streams import TerminalHolds
+from openajar.node.channel.streams import StreamPipe, StreamStalled, StreamTable
 
 RFB_CLIENT_HANDSHAKE = b"RFB 003.008\n" + bytes([1]) + bytes([1])  # version, security None, shared init
 KEY_DOWN = struct.pack(">BBxxI", 4, 1, 0x61)

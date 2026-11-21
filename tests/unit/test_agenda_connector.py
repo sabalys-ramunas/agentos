@@ -10,16 +10,16 @@ import pytest
 from connector_samples import LANE, SITES, Inbox, bind, commit_op, connector, connector_site, live
 from test_policy_support import make_service
 
-from agentos.agenda import tools as agenda_tools
-from agentos.agenda.models import ActionKind, EntryState
-from agentos.agenda.service import build
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.meters import MeterPolicy
-from agentos.policy.routing import PolicyConfig
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.fakes import OWNER, FakeClock, FakeLanes, Harness
+from openajar.agenda import tools as agenda_tools
+from openajar.agenda.models import ActionKind, EntryState
+from openajar.agenda.service import build
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.meters import MeterPolicy
+from openajar.policy.routing import PolicyConfig
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.fakes import OWNER, FakeClock, FakeLanes, Harness
 
 OP = "connector.social.post_photo"
 CAPTION = "Autumn at the lake"

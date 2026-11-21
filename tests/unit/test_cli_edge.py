@@ -1,4 +1,4 @@
-"""`agentos` CLI edge cases: proxy specs, lane ids, node init options, corrupt state.
+"""`openajar` CLI edge cases: proxy specs, lane ids, node init options, corrupt state.
 
 Passing tests pin edge cases that already work. `xfail(strict=True)` tests demonstrate a bug.
 """
@@ -10,9 +10,9 @@ import pytest
 from fakes import FakeLaneManager
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.node import daemon
+from openajar.cli import app
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.node import daemon
 
 PASSWORD = "Pa55:with:colons"
 USERNAME = "brd-customer-zone-isp"
@@ -21,7 +21,7 @@ USERNAME = "brd-customer-zone-isp"
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     return home
 
 
@@ -166,7 +166,7 @@ def test_node_init_does_not_change_an_existing_directory(tmp_path, monkeypatch, 
     shared.mkdir()
     (shared / "notes.txt").write_text("not ours")
     shared.chmod(0o755)
-    monkeypatch.setenv("AGENTOS_HOME", str(shared))
+    monkeypatch.setenv("OPENAJAR_HOME", str(shared))
     assert runner.invoke(app, ["node", "init"]).exit_code == 0
     assert mode(shared) == "755"
 
@@ -179,7 +179,7 @@ def test_corrupt_node_toml_gives_a_clean_error(home, runner):
 
 
 def test_corrupt_database_gives_a_clean_error(inited, runner):
-    (inited / "agentos.db").write_bytes(b"this is not a database" * 100)
+    (inited / "openajar.db").write_bytes(b"this is not a database" * 100)
     result = runner.invoke(app, ["lane", "list"])
     assert result.exit_code == 1 and isinstance(result.exception, SystemExit)
 

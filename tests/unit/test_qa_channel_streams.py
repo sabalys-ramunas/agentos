@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.node.channel import wire
-from agentos.node.channel.streams import StreamTable
+from openajar.node.channel import wire
+from openajar.node.channel.streams import StreamTable
 
 
 def table() -> StreamTable:
@@ -48,7 +48,7 @@ async def test_a_lower_case_stream_id_is_accepted_and_its_frames_still_arrive():
 
 
 async def test_a_writer_with_no_credit_gives_up_as_stalled():
-    from agentos.node.channel.streams import STALL_AFTER, StreamStalled
+    from openajar.node.channel.streams import STALL_AFTER, StreamStalled
 
     assert table().new(wire.ulid(), "vnc").stall_after == STALL_AFTER  # every stream has a stall timeout
 

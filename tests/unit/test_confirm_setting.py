@@ -7,11 +7,11 @@ import pytest
 from pydantic import ValidationError
 from test_policy_support import Clock, make_service
 
-from agentos.policy.confirm import ConfirmLevel, MethodRegistry, default_registry
-from agentos.policy.confirmation import ConfirmationConfig, ConfirmationStore
-from agentos.policy.errors import Denied, MethodUnavailable
-from agentos.policy.routing import PolicyConfig, RoutingTable, load_policy_config
-from agentos.policy.store import DB
+from openajar.policy.confirm import ConfirmLevel, MethodRegistry, default_registry
+from openajar.policy.confirmation import ConfirmationConfig, ConfirmationStore
+from openajar.policy.errors import Denied, MethodUnavailable
+from openajar.policy.routing import PolicyConfig, RoutingTable, load_policy_config
+from openajar.policy.store import DB
 
 
 @pytest.fixture
@@ -96,7 +96,7 @@ def test_a_level_no_ready_method_reaches_refuses_to_start(tmp_path, toml):
 
 
 def test_a_level_a_ready_method_reaches_starts(tmp_path):
-    from agentos.policy.confirm import Method
+    from openajar.policy.confirm import Method
 
     methods = MethodRegistry([*default_registry().all(), Method("fakewatch", "Fake", ConfirmLevel.DEVICE_KEY)])
     base = ConfirmationConfig(pay={"level": "device_key"})
@@ -210,7 +210,7 @@ def test_an_admin_changes_commit_and_turns_chat_off_but_not_on(store):
 
 @pytest.mark.parametrize("method", ["panel", "cli", "passkey", "watch", "nope"])
 def test_only_chat_can_be_turned_off(store, method):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
 
     with pytest.raises(InvalidRequest):
         store.change({"methods_off": [method]}, by="owner", role="owner")
@@ -318,7 +318,7 @@ def test_methods_listed_say_what_is_on(store):
 
 
 def test_a_ready_method_with_a_new_level_opens_that_level(tmp_path):
-    from agentos.policy.confirm import Method
+    from openajar.policy.confirm import Method
 
     methods = MethodRegistry([*default_registry().all(), Method("fakewatch", "Fake", ConfirmLevel.DEVICE_KEY)])
     store = ConfirmationStore(DB(tmp_path / "policy.db", ""), base=ConfirmationConfig(), clock=lambda: 1.0,

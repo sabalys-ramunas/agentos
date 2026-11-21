@@ -1,4 +1,4 @@
-$ agentos lane check work/site --offline
+$ openajar lane check work/site --offline
 exit 1
 work/site: FAIL (lane cold, checked <HM> UTC)
   UNKNOWN Proxy: Proxy lt1 was not probed (offline).

@@ -3,7 +3,7 @@
 set -e
 dir=/etc/ssl/mailtest
 mkdir -p "$dir"
-openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=agentos mailtest CA" \
+openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=openajar mailtest CA" \
   -keyout "$dir/ca.key" -out "$dir/ca.crt" 2>/dev/null
 openssl req -newkey rsa:2048 -nodes -subj "/CN=127.0.0.1" -keyout "$dir/server.key" -out "$dir/server.csr" 2>/dev/null
 printf 'subjectAltName=IP:127.0.0.1\n' > "$dir/san.cnf"

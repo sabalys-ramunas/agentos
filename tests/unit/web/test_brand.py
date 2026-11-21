@@ -1,4 +1,4 @@
-"""Brand: product and business profiles as the app's Brand page and Needs you read them (agentos.api.web.brand).
+"""Brand: product and business profiles as the app's Brand page and Needs you read them (openajar.api.web.brand).
 
 Through the node's own profile routes, so only the owner in person reads and decides. An agent's proposal is
 saved by the profiles service as it is from profile_propose: a draft with its reason and a readable diff.
@@ -10,7 +10,7 @@ from typing import Any
 
 from starlette.testclient import TestClient
 
-from agentos.core.models import Principal
+from openajar.core.models import Principal
 
 BRAND = "/api/orgs/local/brand"
 TOKEN = "t" * 43

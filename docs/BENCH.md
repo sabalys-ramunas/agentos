@@ -1,7 +1,7 @@
 # Benchmarks, soak and chaos
 
 Numbers and breakage tests on a real node, run in a dev slot next to the owner's lanes. Everything
-here uses `agentos.dev.slotnode`: the production agentosd (`agentos.node.daemon.serve`, real
+here uses `openajar.dev.slotnode`: the production agentosd (`openajar.node.daemon.serve`, real
 Camoufox, Xvfb, x11vnc, policy and MCP) in a throwaway home under `.node-home/`, on the slot's
 displays and ports. Two seams keep it on the node:
 
@@ -11,21 +11,21 @@ displays and ports. Two seams keep it on the node:
   CONNECT and never forwards. Stopping it is how a proxy goes away.
 - Camoufox's geoip lookup is off and the node's own IP is a TEST-NET address, not a lookup.
 
-Agents call with their own grant (`agentos grants issue`, kind agent, ceiling draft), not the node
+Agents call with their own grant (`openajar grants issue`, kind agent, ceiling draft), not the node
 token: the node token is the owner, and a human passes the hold gate.
 
 A fresh venv on the node has no Camoufox fingerprint model, and the slot daemon cannot download it.
 Run `uv run python -m fpgen fetch` once in that checkout (the harness says so if it is missing).
 
-Detection (can a bot defence tell a lane is automated?) has its own bench, `agentos lane redteam`,
+Detection (can a bot defence tell a lane is automated?) has its own bench, `openajar lane redteam`,
 with its history in `bench/redteam.jsonl`: [design/redteam.md](design/redteam.md).
 
 ## Lane benchmarks
 
 ```
 make bench                        # slot 53, 5 runs; appends bench/results.jsonl, then compares
-BENCH_RUNS=10 AGENTOS_TEST_SLOT=54 make bench
-AGENTOS_TEST_SLOT=53 scripts/node-test.sh bench --python scripts/bench_node.py --runs 2
+BENCH_RUNS=10 OPENAJAR_TEST_SLOT=54 make bench
+OPENAJAR_TEST_SLOT=53 scripts/node-test.sh bench --python scripts/bench_node.py --runs 2
 uv run python scripts/bench_compare.py [--threshold 0.2] [--against <sha>]
 ```
 
@@ -76,9 +76,9 @@ resolving and pinning the identity once.
 ## Soak and chaos
 
 ```
-AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak -q
-AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_chaos.py -q
-AGENTOS_SOAK_SECONDS=600 AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_soak.py -q -s
+OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak -q
+OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_chaos.py -q
+OPENAJAR_SOAK_SECONDS=600 OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak/test_soak.py -q -s
 ```
 
 The tests are marked `soak`, so neither the normal run nor `pytest -m node` collects them. Each
@@ -89,10 +89,10 @@ the agent's grant, the proxy password or its basic auth) may appear in agentosd'
 output.
 
 **Soak** (`test_soak.py`): two lanes open, navigate, snapshot, click, screenshot, fill a field and
-close, over and over for an hour (`AGENTOS_SOAK_SECONDS`). After every cycle nothing of theirs may
+close, over and over for an hour (`OPENAJAR_SOAK_SECONDS`). After every cycle nothing of theirs may
 be left; over the run agentosd's own RSS may grow at most 40 MB and its file descriptors at most 8
 (the last quarter of the run against the first, after three warm-up cycles). The samples go to
-`soak-report.json` next to the homes (or `AGENTOS_SOAK_REPORT`).
+`soak-report.json` next to the homes (or `OPENAJAR_SOAK_REPORT`).
 
 **Chaos** (`test_chaos.py`), each while a `browser_act` fill or a slow navigation is in flight:
 

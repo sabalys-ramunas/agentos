@@ -12,7 +12,7 @@ import { CONCEPT_TEXT, findMockCode } from './guard';
 const root = join(__dirname, '..');
 
 function build(): string {
-  const out = mkdtempSync(join(tmpdir(), 'agentos-live-'));
+  const out = mkdtempSync(join(tmpdir(), 'openajar-live-'));
   // NODE_ENV as a real build has it: under the test runner it is `test`, which builds in dev mode.
   const env = { ...process.env, VITE_API_MODE: 'live', NODE_ENV: 'production' };
   execFileSync(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'build', '--outDir', out, '--emptyOutDir', '--logLevel', 'error'], { cwd: root, env, stdio: 'pipe' });
@@ -37,7 +37,7 @@ describe('the live build', () => {
       expect(all).not.toContain('"/computer-form"');
       expect(findMockCode(out)).toEqual([]);
       // The design system's catalog is dev only (src/app/routes/catalog.tsx): none of it ships.
-      expect(all).not.toContain('agentos-design-catalog');
+      expect(all).not.toContain('openajar-design-catalog');
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

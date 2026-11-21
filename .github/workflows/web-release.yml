@@ -1,9 +1,9 @@
 name: web-release
 
-# The web app, prebuilt for each release, so `agentos web install` (and the web step of `agentos setup`)
-# downloads it instead of needing Node.js and pnpm (agentos.setup.webapp). Attached to the release as
-# agentos-web-<version>.tar.gz and agentos-web-<version>.tar.gz.sha256: the installer takes both from
-# the release of the agentos it runs (v<version>), and trusts only GitHub's own digest of the archive on
+# The web app, prebuilt for each release, so `openajar web install` (and the web step of `openajar setup`)
+# downloads it instead of needing Node.js and pnpm (openajar.setup.webapp). Attached to the release as
+# openajar-web-<version>.tar.gz and openajar-web-<version>.tar.gz.sha256: the installer takes both from
+# the release of the openajar it runs (v<version>), and trusts only GitHub's own digest of the archive on
 # a release GitHub keeps immutable (published once, its files and tag never change).
 #
 # So it runs by hand for the release's draft, before it is published (`gh workflow run web-release.yml -f
@@ -45,8 +45,8 @@ jobs:
         run: |
           case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::$TAG is not a vX.Y.Z tag"; exit 1 ;; esac
           v="${TAG#v}"
-          code=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agentos/__init__.py)
-          [ "$v" = "$code" ] || { echo "::error::the tag is $v but src/agentos/__init__.py says $code"; exit 1; }
+          code=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/openajar/__init__.py)
+          [ "$v" = "$code" ] || { echo "::error::the tag is $v but src/openajar/__init__.py says $code"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -60,11 +60,11 @@ jobs:
           pnpm build
       - name: Pack (scripts/web_asset.py, as `make web-asset` runs it)
         run: python3 scripts/web_asset.py --dist web/dist --version "${{ steps.v.outputs.version }}" --out dist-release
-      - name: Check the archive unpacks the way agentos web install unpacks it
+      - name: Check the archive unpacks the way openajar web install unpacks it
         run: |
           cd dist-release
-          sha256sum -c "agentos-web-${{ steps.v.outputs.version }}.tar.gz.sha256"
-          tar tzf "agentos-web-${{ steps.v.outputs.version }}.tar.gz" | grep -qx index.html
+          sha256sum -c "openajar-web-${{ steps.v.outputs.version }}.tar.gz.sha256"
+          tar tzf "openajar-web-${{ steps.v.outputs.version }}.tar.gz" | grep -qx index.html
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

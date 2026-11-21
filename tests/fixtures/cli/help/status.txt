@@ -1,5 +1,5 @@
 
- Usage: agentos status [OPTIONS] [name]
+ Usage: openajar status [OPTIONS] [name]
 
  Ask a node through its tunnel who it is and which lanes it has. On a node with
  no connections, this node itself.

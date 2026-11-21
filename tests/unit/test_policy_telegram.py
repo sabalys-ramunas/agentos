@@ -1,4 +1,4 @@
-"""Approve from your phone over Telegram (agentos.policy.telegram, docs/CONFIRMATIONS.md, Telegram).
+"""Approve from your phone over Telegram (openajar.policy.telegram, docs/CONFIRMATIONS.md, Telegram).
 
 Telegram is never called: a fake Bot API answers through httpx.MockTransport. Most of these are what a
 tap must not be able to do: approve what chat cannot, come from someone else, count twice, count for
@@ -14,11 +14,11 @@ import pytest
 from test_policy_support import T0, Clock, make_service
 from typer.testing import CliRunner
 
-from agentos.core.models import Principal
-from agentos.policy import telegram as tg
-from agentos.policy.confirm import ConfirmLevel
-from agentos.policy.notifier import TelegramConfig
-from agentos.policy.telegram import BotApi, TelegramError
+from openajar.core.models import Principal
+from openajar.policy import telegram as tg
+from openajar.policy.confirm import ConfirmLevel
+from openajar.policy.notifier import TelegramConfig
+from openajar.policy.telegram import BotApi, TelegramError
 
 TOKEN = "123456789:AAH-test-token-abcdefghijklmnopqrstuv"
 CHAT = 4242
@@ -57,7 +57,7 @@ class FakeTelegram:
             return httpx.Response(500, json={"ok": False, "error_code": 500,
                                              "description": f"Internal error for {request.url}"})
         if method == "getMe":
-            return ok({"id": 1, "is_bot": True, "username": "agentos_test_bot"})
+            return ok({"id": 1, "is_bot": True, "username": "openajar_test_bot"})
         if method == "sendMessage":
             self.next_id += 1
             return ok({"message_id": self.next_id, "chat": {"id": body["chat_id"]}})
@@ -89,7 +89,7 @@ def svc(tmp_path, fake, clock):
 
 @pytest.fixture
 def paired(svc):
-    svc.notifier.save_telegram(TelegramConfig(token=TOKEN, bot_username="agentos_test_bot", chat_id=CHAT,
+    svc.notifier.save_telegram(TelegramConfig(token=TOKEN, bot_username="openajar_test_bot", chat_id=CHAT,
                                               user_id=USER, username="the_owner", paired_at=T0))
     return svc
 
@@ -152,10 +152,10 @@ def traces(svc) -> list[dict]:
 # ---- pairing ----
 
 async def test_pairing_takes_the_right_code_once_only_in_a_private_chat_and_it_expires(svc, fake, clock):
-    assert await svc.telegram.set_token(TOKEN) == "agentos_test_bot"
+    assert await svc.telegram.set_token(TOKEN) == "openajar_test_bot"
     assert not svc.telegram.paired() and not svc.telegram.should_poll()
     code = svc.telegram.start_pairing()
-    assert svc.telegram.pair_link(code) == f"https://t.me/agentos_test_bot?start={code}"
+    assert svc.telegram.pair_link(code) == f"https://t.me/openajar_test_bot?start={code}"
     assert svc.telegram.should_poll()
     for wrong in (start("/start not-the-code"), start(f"/start {code}", chat=-100, chat_type="group"),
                   start(f"/start {code}", chat=999), start("/start")):
@@ -193,7 +193,7 @@ async def test_a_token_that_is_not_one_is_refused_and_a_new_token_starts_unpaire
 # ---- the message ----
 
 async def test_a_chat_level_action_gets_approve_deny_and_its_whole_content_as_plain_text(paired, fake):
-    paired.notifier.update_config({"public_base_url": "https://agentos.example.com"})
+    paired.notifier.update_config({"public_base_url": "https://openajar.example.com"})
     ap = ask(paired)
     assert "telegram" in ap.methods
     msg = await send(paired, fake)
@@ -202,7 +202,7 @@ async def test_a_chat_level_action_gets_approve_deny_and_its_whole_content_as_pl
     assert "Why it asks: a person reads a post before it goes out" in msg["text"] and "Expires:" in msg["text"]
     b = buttons(msg)
     assert set(b) == {"Approve", "Deny", "Review in the panel"}
-    assert b["Review in the panel"].startswith("https://agentos.example.com/local/needs-you?approval=")
+    assert b["Review in the panel"].startswith("https://openajar.example.com/local/needs-you?approval=")
     assert all(len(b[k]) <= 64 and ap.id not in b[k] for k in ("Approve", "Deny"))  # an opaque id, nothing else
 
 
@@ -219,7 +219,7 @@ async def test_content_too_long_for_one_message_gets_no_approve(paired, fake, mo
 
 
 async def test_a_question_gets_a_review_link_and_no_answer_buttons(paired, fake):
-    paired.notifier.update_config({"public_base_url": "https://agentos.example.com"})
+    paired.notifier.update_config({"public_base_url": "https://openajar.example.com"})
     question(paired)
     msg = await send(paired, fake)
     assert set(buttons(msg)) == {"Review in the panel"} and "| Which photo?" in msg["text"]
@@ -353,8 +353,8 @@ async def test_a_question_cannot_be_approved_by_a_forged_tap(paired, fake, clock
 
 async def test_the_store_itself_refuses_a_telegram_approve_for_what_chat_cannot_carry(paired):
     """Past every check in telegram.py: the method registry holds the proof to chat_refusal and the level."""
-    from agentos.policy.confirm import Proof
-    from agentos.policy.errors import ProofTooWeak
+    from openajar.policy.confirm import Proof
+    from openajar.policy.errors import ProofTooWeak
 
     ap = ask(paired, effect="pay")
     with pytest.raises(ProofTooWeak):
@@ -502,15 +502,15 @@ async def test_the_poller_runs_only_while_paired_or_pairing_and_stops_cleanly(sv
 # ---- the CLI ----
 
 def test_the_cli_reads_the_token_from_stdin_never_echoes_it_and_prints_a_pairing_link(svc, monkeypatch):
-    from agentos.policy import cli
+    from openajar.policy import cli
 
     monkeypatch.setattr(cli, "_service", lambda: svc)
     runner = CliRunner()
     out = runner.invoke(cli.app, ["notify", "telegram", "set-token", "--token-from", "-"], input=TOKEN + "\n")
     assert out.exit_code == 0, out.output
-    assert "@agentos_test_bot" in out.output and TOKEN not in out.output
+    assert "@openajar_test_bot" in out.output and TOKEN not in out.output
     out = runner.invoke(cli.app, ["notify", "telegram", "pair"])
-    assert out.exit_code == 0 and "https://t.me/agentos_test_bot?start=" in out.output
+    assert out.exit_code == 0 and "https://t.me/openajar_test_bot?start=" in out.output
     out = runner.invoke(cli.app, ["notify", "telegram", "status"])
     assert "a pairing link is waiting" in out.output and TOKEN not in out.output
     out = runner.invoke(cli.app, ["notify", "telegram", "remove"])
@@ -520,7 +520,7 @@ def test_the_cli_reads_the_token_from_stdin_never_echoes_it_and_prints_a_pairing
 
 
 def test_a_save_elsewhere_never_undoes_a_pairing(paired, tmp_path):
-    from agentos.policy.notifier import Notifier
+    from openajar.policy.notifier import Notifier
 
     stale = Notifier(tmp_path, paired.db)  # loaded now: holds the pairing
     paired.telegram.remove()  # another process removes it
@@ -545,7 +545,7 @@ async def test_off_in_one_workspace_nothing_of_it_goes_to_telegram_and_no_tap_de
 
 
 def test_only_the_owner_turns_telegram_back_on_in_a_workspace(paired):
-    from agentos.policy.errors import Denied
+    from openajar.policy.errors import Denied
 
     paired.confirmation.change({"workspaces": {"biz-a": {"methods_off": ["telegram"]}}}, by="owner", role="owner")
     for patch in ({"workspaces": {"biz-a": {"methods_off": []}}}, {"workspaces": {}}):

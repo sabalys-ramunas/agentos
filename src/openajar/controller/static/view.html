@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live view · openajar controller</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/view.js"></script>
+</head>
+<body>
+  <header>
+    <h1 id="lane"></h1>
+    <span class="muted" id="status">Connecting.</span>
+    <a href="/">Back</a>
+  </header>
+  <main>
+    <div class="toolbar">
+      <button id="take" class="primary">Take control</button>
+      <button id="handback" class="hidden">Hand back to agents</button>
+      <span class="muted" id="hint">Watching. Agents keep control until you take it.</span>
+    </div>
+    <div id="screen"></div>
+  </main>
+</body>
+</html>

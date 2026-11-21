@@ -18,7 +18,7 @@ import shlex
 from collections import Counter
 from typing import Any
 
-from agentos.core.toolnames import current
+from openajar.core.toolnames import current
 
 ENV_TOOLS = {"environment_open", "environment"}
 # A call refused for want of the environment's handle: the skill's first rule is to pass `on`.

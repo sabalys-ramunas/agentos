@@ -1,5 +1,5 @@
 """One error shape and one status map across the node's API, its MCP endpoint and the controller
-(agentos.core.http_errors)."""
+(openajar.core.http_errors)."""
 
 import json
 
@@ -7,14 +7,14 @@ import pytest
 from starlette.responses import PlainTextResponse
 from starlette.testclient import TestClient
 
-from agentos.api import errors as api_errors
-from agentos.controller import web
-from agentos.controller.app import Controller, build_app
-from agentos.controller.config import ControllerConfig
-from agentos.controller.mcp import AgentAuth
-from agentos.core import catalog, http_errors
-from agentos.core.errors import AgentosError, NotFound
-from agentos.mcp.http import BearerAuth
+from openajar.api import errors as api_errors
+from openajar.controller import web
+from openajar.controller.app import Controller, build_app
+from openajar.controller.config import ControllerConfig
+from openajar.controller.mcp import AgentAuth
+from openajar.core import catalog, http_errors
+from openajar.core.errors import NotFound, OpenajarError
+from openajar.mcp.http import BearerAuth
 
 
 def _fix_of(response) -> str:
@@ -22,17 +22,17 @@ def _fix_of(response) -> str:
 
 
 def _names_a_token_or_reconnect(fix: str) -> bool:
-    return any(word in fix.lower() for word in ("bearer", "token", "agentos connect"))
+    return any(word in fix.lower() for word in ("bearer", "token", "openajar connect"))
 
 
 def test_the_api_and_the_controller_use_the_same_map():
     assert api_errors.STATUS_BY_CODE is http_errors.STATUS_BY_CODE
-    odd = AgentosError("x")
+    odd = OpenajarError("x")
     odd.code = "something_new"
     assert api_errors.status_for(odd) == 500
-    assert web.agentos_error(odd).status_code == 500  # was 400 on the controller
-    assert web.agentos_error(NotFound("gone")).status_code == 404
-    assert web.agentos_error(type("Busy", (AgentosError,), {"code": "already_decided"})("x")).status_code == 409
+    assert web.openajar_error(odd).status_code == 500  # was 400 on the controller
+    assert web.openajar_error(NotFound("gone")).status_code == 404
+    assert web.openajar_error(type("Busy", (OpenajarError,), {"code": "already_decided"})("x")).status_code == 409
 
 
 def test_controller_401_is_the_shared_envelope_with_a_challenge():
@@ -40,7 +40,7 @@ def test_controller_401_is_the_shared_envelope_with_a_challenge():
     body = json.loads(r.body)
     assert body["error"]["code"] == "unauthorized" and body["error"]["message"] == "Sign in."
     assert "fix" in body["error"]
-    assert r.headers["www-authenticate"] == 'Bearer realm="agentos"'
+    assert r.headers["www-authenticate"] == 'Bearer realm="openajar"'
 
 
 def test_mcp_endpoints_answer_401_in_the_envelope_with_www_authenticate():
@@ -54,7 +54,7 @@ def test_mcp_endpoints_answer_401_in_the_envelope_with_www_authenticate():
     for wrapped in (BearerAuth(app, "node-token"), AgentAuth(app, Grants())):
         r = TestClient(wrapped).post("/mcp", json={})
         assert r.status_code == 401
-        assert r.headers["www-authenticate"] == 'Bearer realm="agentos"'
+        assert r.headers["www-authenticate"] == 'Bearer realm="openajar"'
         err = r.json()["error"]
         assert err["code"] == "unauthorized" and err["message"] and err["fix"]
         assert "—" not in r.text
@@ -102,28 +102,28 @@ def test_the_controller_401_fix_names_the_controller_sign_in(controller_client):
     r = controller_client.get("/api/nodes")
     assert r.status_code == 401
     fix = _fix_of(r)
-    assert "agentos controller login" in fix
+    assert "openajar controller login" in fix
     assert "panel login" not in fix
 
 
 def test_a_paused_lane_is_not_a_server_error():
-    from agentos.core.errors import AgentPaused, HumanInControl
+    from openajar.core.errors import AgentPaused, HumanInControl
 
-    assert web.agentos_error(AgentPaused("paused")).status_code == 409
-    assert web.agentos_error(HumanInControl("a person has it")).status_code == 409
+    assert web.openajar_error(AgentPaused("paused")).status_code == 409
+    assert web.openajar_error(HumanInControl("a person has it")).status_code == 409
 
 
 def test_the_node_routes_answer_through_the_shared_map():
     """The runner, workspace, brain and vault routes used to keep their own code-to-status maps. They answer
     through the shared one now, except where a route has always answered differently (its own map, named in
     the module): a refused export and the vault's locked-out, entry, vault and busy answers."""
-    from agentos.brains import api as brains_api
-    from agentos.core.errors import ApprovalPending, Conflict, EngineError, LaneBusy, LaneNotFound
-    from agentos.runner import api as runner_api
-    from agentos.vault import api as vault_api
-    from agentos.vault.errors import VaultBusy, VaultLockedOut, VaultSealed
-    from agentos.workspaces import api as workspaces_api
-    from agentos.workspaces.transfer.format import ExportRefused
+    from openajar.brains import api as brains_api
+    from openajar.core.errors import ApprovalPending, Conflict, EngineError, LaneBusy, LaneNotFound
+    from openajar.runner import api as runner_api
+    from openajar.vault import api as vault_api
+    from openajar.vault.errors import VaultBusy, VaultLockedOut, VaultSealed
+    from openajar.workspaces import api as workspaces_api
+    from openajar.workspaces.transfer.format import ExportRefused
 
     for module in (runner_api, workspaces_api, brains_api, vault_api):
         assert not hasattr(module, "STATUS") and not hasattr(module, "_STATUS_BY_CODE"), module.__name__

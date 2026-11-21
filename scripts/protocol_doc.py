@@ -89,7 +89,7 @@ def record() -> None:
     sys.path.insert(0, str(ROOT / "tests" / "unit"))
     import protocol_capture as capture
 
-    with tempfile.TemporaryDirectory(prefix="agentos-protocol-") as home:
+    with tempfile.TemporaryDirectory(prefix="openajar-protocol-") as home:
         seen = asyncio.run(capture.session(Path(home)))
     capture.write_fixture(capture.select(seen))
 

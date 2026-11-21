@@ -10,17 +10,17 @@ import pytest
 from test_node_panel import Node, bearer
 from workflow_support import LIST, MAIL, OWNER, PEOPLE, action, make_node, read_flow, workflow
 
-from agentos.api.routes_activity import withheld_run
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.events.service import build as build_events
-from agentos.node.channel import reports
-from agentos.runner import tools as runner_tools
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.workflows import sitechange
-from agentos.runner.workflows import tools as wf_tools
-from agentos.runner.workflows.engine import StepFailed, Walk
-from agentos.runner.workflows.mail import Received
+from openajar.api.routes_activity import withheld_run
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.events.service import build as build_events
+from openajar.node.channel import reports
+from openajar.runner import tools as runner_tools
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.workflows import sitechange
+from openajar.runner.workflows import tools as wf_tools
+from openajar.runner.workflows.engine import StepFailed, Walk
+from openajar.runner.workflows.mail import Received
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 READ = "biz-a.social.read"

@@ -6,36 +6,36 @@ router works like a cloud VM. The hosted cloud speaks the same protocol, so a no
 at either one by changing a URL and a join token.
 
 Without a controller nothing changes: each node still serves MCP on its own localhost port
-and you tunnel to it (`agentos connect <ssh-host>`).
+and you tunnel to it (`openajar connect <ssh-host>`).
 
-## One box: `agentos up`
+## One box: `openajar up`
 
 On the node:
 
 ```
-agentos up                   # the first time it also writes node.toml (as node init) and controller.toml
+openajar up                   # the first time it also writes node.toml (as node init) and controller.toml
 ```
 
-`agentos up` starts the controller (settings in `$AGENTOS_HOME/controller/controller.toml`,
+`openajar up` starts the controller (settings in `$OPENAJAR_HOME/controller/controller.toml`,
 created on the first run), mints a join token in-process, enrolls the node over the real
 WebSocket to localhost, and runs the node daemon. On a new box it first writes node.toml as
-`agentos node init` does (on the next free port when something already listens on 7400). It
-prints the panel, a sign-in link that works once (10 minutes; `agentos controller login` makes
+`openajar node init` does (on the next free port when something already listens on 7400). It
+prints the panel, a sign-in link that works once (10 minutes; `openajar controller login` makes
 another) and the line that connects your computer, for example:
 
 ```
-agentos is up: controller and node box-1, joined.
+openajar is up: controller and node box-1, joined.
   Panel:    http://localhost:7401
   Sign in:  http://localhost:7401/login#code=...
-            (works once, for 10 minutes; `agentos controller login` makes another)
-  Connect:  agentos connect mynode --remote-home /var/lib/agentos/controller --name controller   (on your computer)
+            (works once, for 10 minutes; `openajar controller login` makes another)
+  Connect:  openajar connect mynode --remote-home /var/lib/agentos/controller --name controller   (on your computer)
 ```
 
-The tunnel and `claude mcp add` lines, for connecting by hand, are `agentos connect --by-hand`
-(run it on the box). At a terminal the log stays in `logs/agentosd.jsonl` (`agentos node logs`);
+The tunnel and `claude mcp add` lines, for connecting by hand, are `openajar connect --by-hand`
+(run it on the box). At a terminal the log stays in `logs/agentosd.jsonl` (`openajar node logs`);
 `-v` shows it as it comes.
 
-`agentos connect` works against the controller as against a node: the controller home has a
+`openajar connect` works against the controller as against a node: the controller home has a
 small `node.toml` holding only `name`, `kind = "controller"`, `mcp_port` and `mcp_token` (the
 agent token), which is what connect reads over SSH. Unlike a node's token, the controller's
 agent token is already the agents' own credential (the controller's owner token stays in
@@ -49,14 +49,14 @@ The node's own port (7400 by default) and the controller's (7401) must differ. B
 ## Running them apart
 
 ```
-agentos controller init --port 7401           # controller.toml with an agent token
-agentos controller serve                      # agents on /mcp, nodes on /v1/node/connect
-agentos controller join-token --name box-2    # single use, one hour
-agentos node join --self-hosted <controller-url> <token>    # on the node, then restart agentosd
+openajar controller init --port 7401           # controller.toml with an agent token
+openajar controller serve                      # agents on /mcp, nodes on /v1/node/connect
+openajar controller join-token --name box-2    # single use, one hour
+openajar node join --self-hosted <controller-url> <token>    # on the node, then restart agentosd
 ```
 
-Other commands: `agentos controller login` (a one-time sign-in link for the panel),
-`agentos controller nodes`, `agentos controller agent-token [--new]` (show or rotate the
+Other commands: `openajar controller login` (a one-time sign-in link for the panel),
+`openajar controller nodes`, `openajar controller agent-token [--new]` (show or rotate the
 agent token).
 
 ## Joining a second node
@@ -67,7 +67,7 @@ refused unless the controller is on the same machine. Two ways:
 - **Behind TLS.** Put the controller behind a reverse proxy that terminates TLS (Caddy,
   nginx, a Tailscale serve), set `public_url = "wss://controller.example.com"` and
   `behind_tls_proxy = true` in controller.toml (or give it `tls_certfile` and `tls_keyfile`
-  and bind beyond loopback). Then `agentos controller join-token` prints a line with the
+  and bind beyond loopback). Then `openajar controller join-token` prints a line with the
   wss URL to run on the new node. The node verifies the certificate with the system CA store
   (set `SSL_CERT_FILE` for a private CA).
 - **Over SSH.** On the new node keep a tunnel to the controller box
@@ -76,7 +76,7 @@ refused unless the controller is on the same machine. Two ways:
 Then, on the new node:
 
 ```
-agentos node join --self-hosted wss://controller.example.com ajt_...
+openajar node join --self-hosted wss://controller.example.com ajt_...
 systemctl restart agentosd
 ```
 
@@ -95,7 +95,7 @@ Agents send `Authorization: Bearer <agent token>`. The token in controller.toml 
 owner's agent (every workspace, up to `irreversible`, approvals as the nodes route them). Make
 more in the panel (Agents, New agent token) or with `POST /api/grants`, scoped to workspaces,
 lanes and a ceiling; revoking one reaches every node at once. The controller stores only token
-hashes, apart from the owner's agent token in controller.toml, which `agentos connect` reads.
+hashes, apart from the owner's agent token in controller.toml, which `openajar connect` reads.
 
 The tool list is the union of the tools of the org's online nodes, filtered by the agent's
 grant. Each tool keeps the node's schema plus an optional `node` argument. Calls route like
@@ -115,7 +115,7 @@ The list starts small, as on a node ([TOOLS.md](TOOLS.md#toolsets)): `nodes_list
 toolset and the meta tools `tools_more` (lists the other toolsets, and loads one into the MCP
 session) and `tools_call` (calls any tool by name). `/mcp?toolsets=files,flows` asks for more
 toolsets, `/mcp?toolsets=full` for every tool, and `mcp_toolsets` in controller.toml sets the
-default (`["core"]`). `agentos connect <controller-host> --toolsets ...` writes the URL for you.
+default (`["core"]`). `openajar connect <controller-host> --toolsets ...` writes the URL for you.
 A toolset changes only the list: a call through `tools_call` takes the same grant check and
 routing as a direct one. Listed schemas are leaned as a node leans its own (no generated
 titles, no null branch on an optional argument).
@@ -135,7 +135,7 @@ Approving lets an action run, so the node's controller ceiling (below) applies t
 controller may approve only an action whose effect it could have used itself (up to
 `controller_max_effect`, and a special only when `controller_specials` lists it). Above that,
 the node answers `denied: controller_ceiling: ...` and the approval stays pending until the
-owner decides it on the node: its panel, a push from the node, or `agentos approvals`. A denial
+owner decides it on the node: its panel, a push from the node, or `openajar approvals`. A denial
 from the controller always passes. A decision from the controller names no grant, so the node
 records it as `controller:<who>` and the grant family rule (a family never approves its own
 call) has nothing to apply to.
@@ -188,7 +188,7 @@ and keep TLS on.
 
 Each node's owner decides, on the node, what any controller may do there. The controller holds
 the org's grant key and signs `lane_control`, so a breach of the controller must not reach past
-what the owner allowed. Three settings in node.toml (`agentos config example` lists them):
+what the owner allowed. Three settings in node.toml (`openajar config example` lists them):
 
 | Setting | Default | What it bounds |
 |---|---|---|
@@ -201,8 +201,8 @@ controller_ceiling: ...` whatever the grant says. `lane_control` `take` needs `c
 stream the ceiling does not allow is refused before it opens. Typing into a terminal runs
 commands, so a terminal in control mode needs `terminal` and `control` in `controller_streams`
 and `exec` in `controller_specials`, as the MCP shell tools need `exec`; watching a terminal's
-output needs only `terminal`. The node's own grants (`agentos
-grants issue`, `agentos connect`) are not affected. The node reports its ceiling when it connects
+output needs only `terminal`. The node's own grants (`openajar
+grants issue`, `openajar connect`) are not affected. The node reports its ceiling when it connects
 (`hello.ceiling`), and `GET /api/nodes` shows it as `ceiling`. The controller can never raise it:
 edit node.toml on the node and restart agentosd.
 
@@ -239,7 +239,7 @@ revoke sent while the node was offline therefore has a bounded life even if it i
 is added while a freeze covers it (`frozen`), and a freeze revokes for good what reaches only its
 scope (a node freeze: everything). A
 node that joins another org forgets this org's grant key and revokes every standing approval it
-sent (`agentos node join` says so).
+sent (`openajar node join` says so).
 
 Two things the ceiling does not gate. `lane_control` `stop_agent` and `deny_request` pass
 whatever it says: they only reduce what agents do on a lane (pause the agent, refuse its request
@@ -254,16 +254,16 @@ The defaults are for a controller someone else runs, the hosted cloud: posting u
 specials, live views to watch only. A controller you run yourself gets the full ceiling (every
 effect and special, view, control and terminal):
 
-- `agentos up` writes it to node.toml when it joins the node, since the controller runs in the
+- `openajar up` writes it to node.toml when it joins the node, since the controller runs in the
   same process on the same box, as the same owner. A node joined by `up` before the ceiling existed
   gets it at the next `up`. A ceiling you lowered afterwards stays as you set it.
-- `agentos node join --self-hosted <url> <token>` writes it for your own controller on another
-  machine. Without `--self-hosted`, `agentos node join` writes the hosted default, so a ceiling
+- `openajar node join --self-hosted <url> <token>` writes it for your own controller on another
+  machine. Without `--self-hosted`, `openajar node join` writes the hosted default, so a ceiling
   meant for one controller never carries over to the next.
 
 node.toml is saved whole on any change, so `controller_ceiling_by` records who set the ceiling:
-`default` (nobody), `join` (`node join` without `--self-hosted`), `self_hosted` (`agentos up` or
-`--self-hosted`) or `owner`. `agentos up` writes the full ceiling only over `join`, or over
+`default` (nobody), `join` (`node join` without `--self-hosted`), `self_hosted` (`openajar up` or
+`--self-hosted`) or `owner`. `openajar up` writes the full ceiling only over `join`, or over
 `default` while the values are still the hosted default (a node from before the ceiling). A
 ceiling you edit by hand keeps its marker and stays as you set it; write
 `controller_ceiling_by = "owner"` to keep even the hosted default through `up`.
@@ -273,20 +273,20 @@ ceiling you edit by hand keeps its marker and stays as you set it; write
 | | Where | Mode |
 |---|---|---|
 | Settings | `<controller home>/controller.toml` | 600 |
-| Connect stub for `agentos connect` | `<controller home>/node.toml` | 600 |
+| Connect stub for `openajar connect` | `<controller home>/node.toml` | 600 |
 | Database (orgs, join tokens, nodes, lanes, grants, approvals, traces) | `<controller home>/controller.db` | 600 |
 | Panel sign-in codes and sessions | `<controller home>/panel.db` | 600 |
 | Controller key, org grant keys | `<controller home>/secrets/` | 600 |
-| Node key | `$AGENTOS_HOME/secrets/node.key` | 600 |
-| Node outbox and call cache | `$AGENTOS_HOME/channel.db` | 600 |
+| Node key | `$OPENAJAR_HOME/secrets/node.key` | 600 |
+| Node outbox and call cache | `$OPENAJAR_HOME/channel.db` | 600 |
 
-The controller home is `AGENTOS_CONTROLLER_HOME`, by default `$AGENTOS_HOME/controller`.
+The controller home is `OPENAJAR_CONTROLLER_HOME`, by default `$OPENAJAR_HOME/controller`.
 Requests whose Host is not localhost, the host of `public_url` or one of
 `extra_allowed_hosts` get 421, on every route.
 
 ## Owner API
 
-Sign in with `agentos controller login`, or send `Authorization: Bearer <owner_token>` from
+Sign in with `openajar controller login`, or send `Authorization: Bearer <owner_token>` from
 controller.toml. Cookie requests that change anything need the `X-Agentos-CSRF` header from
 `GET /api/session`. Errors are `{ "error": { "code", "message" } }`.
 
@@ -307,12 +307,12 @@ POST   /api/unfreeze                               (lifts only the controller's 
 
 ## Mesh freeze
 
-`agentos controller freeze --reason "..."` (or `POST /api/freeze`) freezes every node of the org.
+`openajar controller freeze --reason "..."` (or `POST /api/freeze`) freezes every node of the org.
 Online nodes get a signed `mesh_freeze` at once; a node that is offline gets it inside its next
-`welcome`, before anything the controller sends runs there (`agentos controller freeze-status`
+`welcome`, before anything the controller sends runs there (`openajar controller freeze-status`
 lists the nodes still pending). Every agent grant of the org is revoked, the owner's agent token
-included (`agentos controller agent-token --new` makes another), and the controller refuses MCP
-calls while the mesh is frozen. `agentos controller unfreeze` lifts the mesh freeze on every node;
+included (`openajar controller agent-token --new` makes another), and the controller refuses MCP
+calls while the mesh is frozen. `openajar controller unfreeze` lifts the mesh freeze on every node;
 a freeze made on a node itself stays until that node's owner lifts it. Nothing is restored.
 
 ### What a lane or workspace freeze reaches

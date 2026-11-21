@@ -13,14 +13,14 @@ import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 from typer.testing import CliRunner
 
-from agentos.core import catalog
-from agentos.core.models import utcnow
-from agentos.env.models import ExecResult
-from agentos.environments import manager as manager_mod
-from agentos.environments.cli import app as env_cli
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.policy.wrap import ToolCallError
+from openajar.core import catalog
+from openajar.core.models import utcnow
+from openajar.env.models import ExecResult
+from openajar.environments import manager as manager_mod
+from openajar.environments.cli import app as env_cli
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.policy.wrap import ToolCallError
 
 REPO = "example.test/me/shop"
 ZERO = "0" * 40
@@ -93,7 +93,7 @@ async def test_an_unknown_size_is_invalid_before_anything_is_rented(node):  # no
         await node["call"]("environment_open", title=TITLE, size="xxlarge")
     words = str(err.value)
     assert "small, medium, large or xlarge" in words and "server type" in words and "Nothing was rented" in words
-    assert "vm_error" not in words and "agentos vm" not in words
+    assert "vm_error" not in words and "openajar vm" not in words
     assert node["vms"].store.recent() == [] and node["mgr"].store.recent() == []
 
 
@@ -133,7 +133,7 @@ async def test_a_command_that_failed_shows_its_exit_code(node, monkeypatch):  # 
     real = node["envs"].exec
 
     async def exec_(lane_id, cmd, **kw):
-        if cmd == "exit 7":
+        if cmd.endswith("\nexit 7"):  # in the repository's folder
             return ExecResult(exit_code=7, stdout="", stderr="", duration_s=0.01)
         return await real(lane_id, cmd, **kw)
 
@@ -205,7 +205,7 @@ async def test_the_reaper_removes_the_lanes_a_closed_environment_left(node, monk
     await node["call"]("environment_close")
     assert refused["n"] == manager_mod.LANE_DELETE_TRIES and lanes.get(browser)  # it stayed
     # the lane list leaves it out meanwhile
-    from agentos.api.routes_core import _closed_environment_lane
+    from openajar.api.routes_core import _closed_environment_lane
 
     api = SimpleNamespace(runtime=node["rt"])
     assert _closed_environment_lane(api, browser) and not _closed_environment_lane(api, "personal/reddit")
@@ -219,11 +219,11 @@ async def test_the_reaper_removes_the_lanes_a_closed_environment_left(node, monk
     assert await node["mgr"].sweep_lanes(utcnow() + timedelta(days=2)) == []
 
 
-# ------------------------------------------------------------------ F15: agentos environments list
+# ------------------------------------------------------------------ F15: openajar environments list
 
 
 async def test_the_list_has_a_header_and_the_whole_repo(node, monkeypatch):  # noqa: F811
-    long_repo = "example.test/someone-else/agentos-with-a-long-name"
+    long_repo = "example.test/someone-else/openajar-with-a-long-name"
     await opened(node, repo=long_repo)
     runner = CliRunner()
     home = str(node["mgr"].home)

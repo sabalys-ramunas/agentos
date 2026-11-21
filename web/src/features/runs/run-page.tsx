@@ -1,5 +1,5 @@
 /**
- * One run (`agentos run`): its state, the command, the facts the node keeps, its output followed live,
+ * One run (`openajar run`): its state, the command, the facts the node keeps, its output followed live,
  * the failed tests read from that output, and what the machine recorded about it. Nothing here is
  * made up: a fact the node does not have is named as missing.
  */
@@ -172,7 +172,7 @@ function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind
   const [asking, setAsking] = useState(false);
   const { copied, copy } = useCopy();
   const status = statusOf(job);
-  const command = `agentos run -- ${job.command}`;
+  const command = `openajar run -- ${job.command}`;
   const canCancel = job.state === 'running' && access.can('lanes.operate');
 
   return (
@@ -255,9 +255,14 @@ function Facts({ job, now }: { job: Job; now: number }) {
           label="Branch"
           className="col-span-2 lg:col-span-1"
           sub={
-            source
-              ? [source.commit ? source.commit.slice(0, 7) : 'no commit', source.dirty ? 'plus edits not committed' : source.dirty === false ? 'clean' : ''].filter(Boolean).join(' · ')
-              : 'An older agentos, or nothing was synced'
+            source ? (
+              <>
+                {source.commit ? <span className="font-mono text-code-caption">{source.commit.slice(0, 7)}</span> : 'no commit'}
+                {source.dirty ? ' · plus edits not committed' : source.dirty === false ? ' · clean' : ''}
+              </>
+            ) : (
+              'An older openajar, or nothing was synced'
+            )
           }
         >
           {source?.branch ? (
@@ -274,12 +279,12 @@ function Facts({ job, now }: { job: Job; now: number }) {
           </span>
         </Fact>
         <Fact label="Started" sub={job.started_by ? `by ${job.started_by}` : 'Who started it was not kept'}>
-          <time dateTime={job.started_at} title={dateTime(job.started_at)} className="font-mono tabular">
+          <time dateTime={job.started_at} title={dateTime(job.started_at)} className="tabular">
             {clock(job.started_at)}
           </time>
         </Fact>
         <Fact label={job.state === 'running' ? 'Running for' : 'Took'} sub={limit}>
-          <span className="font-mono tabular">{took ?? 'Not known'}</span>
+          <span className="tabular">{took ?? 'Not known'}</span>
         </Fact>
         <Fact
           label="Tests"
@@ -297,7 +302,7 @@ function Facts({ job, now }: { job: Job; now: number }) {
           }
         >
           {tests ? (
-            <span className="font-mono tabular">
+            <span className="tabular">
               {tests.passed.toLocaleString('en')} of {tests.total.toLocaleString('en')} passed
             </span>
           ) : (

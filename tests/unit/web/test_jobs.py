@@ -1,4 +1,4 @@
-"""Runs (`agentos run` jobs) as the app's Runs pages read them (agentos.api.web.jobs).
+"""Runs (`openajar run` jobs) as the app's Runs pages read them (openajar.api.web.jobs).
 
 Jobs are real background commands in a terminal lane on the fake host, the setup the env tests use: they
 run on this machine with DirectLauncher. They print what a test runner prints, so the summary is read
@@ -17,13 +17,13 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.core.errors import InvalidRequest
-from agentos.env import testsummary
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.env.tools import _source
+from openajar.core.errors import InvalidRequest
+from openajar.env import testsummary
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.env.tools import _source
 
 JOBS = "/api/orgs/local/jobs"
 TOKEN = "t" * 43
@@ -58,11 +58,11 @@ PYTEST_OUT = "collected 123 items\\n\\n==== 2 failed, 118 passed, 3 skipped in 1
 
 
 def test_a_computer_without_terminal_lanes_says_so(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    from agentos.api.web import jobs
+    from openajar.api.web import jobs
 
     monkeypatch.setattr(jobs, "manager", lambda api: None)
     body = client.get(JOBS).json()
-    assert body["available"] is False and body["jobs"] == [] and "agentos run" in body["reason"]
+    assert body["available"] is False and body["jobs"] == [] and "openajar run" in body["reason"]
 
 
 def test_runs_are_listed_newest_first_with_how_they_ended(client: TestClient, envs: EnvManager) -> None:

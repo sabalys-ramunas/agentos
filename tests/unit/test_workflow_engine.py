@@ -7,9 +7,9 @@ from datetime import timedelta
 import pytest
 from workflow_support import LANE, OWNER, POST_INPUTS, action, commit_flow, make_node, read_flow, workflow
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import RunStatus
-from agentos.runner.fakes import BASE
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import RunStatus
+from openajar.runner.fakes import BASE
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ async def test_a_run_shows_each_step_with_its_input_output_timing_and_status(nod
 async def test_a_step_reads_what_the_step_before_it_gave_and_a_whole_reference_keeps_its_type(node, monkeypatch):
     owner_flow(node, read_flow(produces=[{"key": "left", "type": "number", "untrusted": False}]))
     owner_flow(node, commit_flow())
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     monkeypatch.setattr(engine.Walk, "_output", lambda self, child, op: ({"left": 7}, set()))
     wid = saved(node, action("look", READ),
@@ -71,7 +71,7 @@ async def test_a_loop_runs_its_body_for_each_item_and_keeps_a_row_per_item(node,
     owner_flow(node, read_flow(produces=[{"key": "names", "type": "list", "untrusted": False},
                                          {"key": "names_who", "untrusted": False}]))
     owner_flow(node, commit_flow())
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     monkeypatch.setattr(engine.Walk, "_output", lambda self, child, op: (
         ({"names": [{"who": "a"}, {"who": "b"}]}, set()) if op.flow_id == READ else ({}, set())))
@@ -157,7 +157,7 @@ async def test_a_failed_step_stops_the_run_honestly_and_a_retry_carries_on_from_
 
 
 async def test_a_step_that_fails_in_a_loop_is_retried_from_that_item(node, monkeypatch):
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     owner_flow(node, read_flow(produces=[{"key": "xs", "type": "list", "untrusted": False}]))
     owner_flow(node, commit_flow())

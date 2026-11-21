@@ -170,13 +170,14 @@ function Proposal({ org, api, workspace }: { org: string; api: SiteApi; workspac
   if (!proposal) return null;
   return (
     <section aria-label="Proposed by an agent">
-      <div className="grid gap-4 rounded-(--radius-card) border border-dashed border-line-strong p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
+      {/* As drawn: an agent's proposal is a card with a violet edge, the rows it read once beside it. */}
+      <Card className="grid gap-4 border border-accent-line p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-caption text-faint">
             {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={16} /> : null}
             Proposed by {proposal.by}, {timeAgo(proposal.at).toLowerCase()}
           </p>
-          <h2 className="mt-1 text-section-title">{api.title}</h2>
+          <h2 className="mt-1 text-card-title">{api.title}</h2>
           <p className="mt-1 text-secondary text-pretty text-muted">
             {proposal.tried_rows === undefined ? null : `It read ${plural(proposal.tried_rows, 'row')} once to try it. `}Nothing runs until a person turns it on.
           </p>
@@ -189,7 +190,7 @@ function Proposal({ org, api, workspace }: { org: string; api: SiteApi; workspac
             Look and decide
           </Link>
         </Button>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -197,7 +198,7 @@ function Proposal({ org, api, workspace }: { org: string; api: SiteApi; workspac
 /** A site API a person saved and has not turned on. It runs nothing until they do, and it stays on the list. */
 function Saved({ org, api, workspace }: { org: string; api: SiteApi; workspace: Workspace | undefined }) {
   return (
-    <div className="grid gap-3 rounded-(--radius-card) border border-dashed border-line-strong p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <Card className="grid gap-3 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-caption text-faint">
           {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={16} /> : null}
@@ -211,7 +212,7 @@ function Saved({ org, api, workspace }: { org: string; api: SiteApi; workspace: 
           Open it
         </Link>
       </Button>
-    </div>
+    </Card>
   );
 }
 

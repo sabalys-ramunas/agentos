@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from agentos.policy.traces import TraceEvent
+from openajar.policy.traces import TraceEvent
 
 ORG = "/api/orgs/local"
 LANE = "biz-a/shop"

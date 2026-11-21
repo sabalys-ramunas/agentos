@@ -1,4 +1,4 @@
-"""Checks: studio runs as the app's Checks and Brand pages read them (agentos.api.web.studio).
+"""Checks: studio runs as the app's Checks and Brand pages read them (openajar.api.web.studio).
 
 The runs and captures are kept in a real studio store, made here with Pillow as the diff tests make
 them: no browser starts, as none starts behind these routes.
@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.studio.contracts import (
+from openajar.studio.contracts import (
     Adherence,
     CheckRun,
     ComponentRef,
@@ -30,9 +30,9 @@ from agentos.studio.contracts import (
     Theme,
     Where,
 )
-from agentos.studio.runs import RunRecord, Runs, new_run_id
-from agentos.studio.store import Manifest, iso_now, new_capture_id, store_for
-from agentos.studio.tools import store_home
+from openajar.studio.runs import RunRecord, Runs, new_run_id
+from openajar.studio.store import Manifest, iso_now, new_capture_id, store_for
+from openajar.studio.tools import store_home
 
 pil = pytest.importorskip("PIL.Image")
 
@@ -80,7 +80,7 @@ def capture(store: Any, heading: float) -> Any:
         shots.append(Shot(screen=Screen(width=400, theme=theme), image=store.put_blob(
             image((37, 99, 235), (10, 40, 210, 40 + int(heading))), "image/png"),
             manifest=store.put_blob(m.model_dump_json().encode(), "application/json")))
-    from agentos.studio.contracts import Capture
+    from openajar.studio.contracts import Capture
 
     return store.save(Capture(id=new_capture_id(), target=Target(url=URL), shots=shots, created_at=iso_now()))
 
@@ -107,7 +107,7 @@ def keep_run(runs: Runs, cap: Any, findings: list[Finding], *, kind: str = "chec
 
 
 def test_without_studio_a_list_says_what_adds_it(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    from agentos.api.web import studio as routes
+    from openajar.api.web import studio as routes
 
     monkeypatch.setattr(routes, "service", lambda api: None)
     body = client.get(f"{STUDIO}/runs").json()

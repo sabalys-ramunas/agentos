@@ -1,7 +1,7 @@
 import type { CheckStatus } from './fleet';
 import type { LaneState } from './lanes';
 
-// An account's files: the inbox agents fill and the outbox its downloads land in (src/agentos/api/web/files.py).
+// An account's files: the inbox agents fill and the outbox its downloads land in (src/openajar/api/web/files.py).
 
 export type FileBox = 'inbox' | 'outbox';
 export type FileStatus = 'complete' | 'downloading' | 'partial' | 'failed';
@@ -215,7 +215,7 @@ export interface LaneCheckItem {
   data?: Record<string, unknown>;
 }
 
-/** The checklist of `agentos lane check`, run now. Reads only: it never warms the account. */
+/** The checklist of `openajar lane check`, run now. Reads only: it never warms the account. */
 export interface LaneCheck {
   lane: string;
   level: CheckLevel;

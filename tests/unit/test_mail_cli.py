@@ -1,4 +1,4 @@
-"""`agentos mail ...` with CliRunner: the prompt is faked, and the output never holds the password."""
+"""`openajar mail ...` with CliRunner: the prompt is faked, and the output never holds the password."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from test_mail_api import Net, Verifier
 from test_vault_support import make_vault, private_home
 from typer.testing import CliRunner
 
-from agentos.runner.mail import cli
-from agentos.runner.mail.discovery import Srv
-from agentos.runner.workflows.mail import SignInFailed
-from agentos.vault.service import VaultService
+from openajar.runner.mail import cli
+from openajar.runner.mail.discovery import Srv
+from openajar.runner.workflows.mail import SignInFailed
+from openajar.vault.service import VaultService
 
 PASSWORD = "the-very-secret-password"
 runner = CliRunner()
@@ -25,7 +25,7 @@ class LowNet(Net):
 def home(tmp_path, monkeypatch):
     h = private_home(tmp_path)
     make_vault(h)
-    monkeypatch.setenv("AGENTOS_HOME", str(h))
+    monkeypatch.setenv("OPENAJAR_HOME", str(h))
     monkeypatch.setattr(cli, "NET", Net)
     monkeypatch.setattr(cli, "_ask", lambda prompt: PASSWORD)
     verifier = Verifier()
@@ -140,7 +140,7 @@ def test_a_sign_in_failure_keeps_its_stage():
 
 def test_the_only_way_in_is_connect(home):
     assert run("add", "biz-a/inbox", "--address", "a@example.net").exit_code != 0
-    from agentos.runner.workflows import cli as workflows_cli
+    from openajar.runner.workflows import cli as workflows_cli
 
     assert not hasattr(workflows_cli, "mail_app") and not hasattr(workflows_cli, "mail_add")
 

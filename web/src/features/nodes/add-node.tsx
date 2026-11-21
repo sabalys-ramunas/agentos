@@ -103,7 +103,7 @@ export function AddWays({ className }: { className?: string }) {
           Give this node a Hetzner Cloud token once. Then an agent can rent a VM for a task; each one asks you first, deletes itself when its time is up, and shows here
           with its time left and cost.
         </p>
-        <CodeBlock code="agentos vm setup" label="Copy the VM setup command" />
+        <CodeBlock code="openajar vm setup" label="Copy the VM setup command" />
       </li>
       <li className="grid gap-2">
         <p className="flex items-center gap-2 text-label">
@@ -111,10 +111,10 @@ export function AddWays({ className }: { className?: string }) {
           Your own server, as a node of its own
         </p>
         <p className="text-secondary text-muted">
-          From your laptop: it installs agentos on the server (Ubuntu or Debian, root or passwordless sudo) and connects your agents to it. It gets its own panel; this
+          From your laptop: it installs openajar on the server (Ubuntu or Debian, root or passwordless sudo) and connects your agents to it. It gets its own panel; this
           page keeps showing this machine.
         </p>
-        <CodeBlock code="agentos connect root@my-server --install" label="Copy the connect command" />
+        <CodeBlock code="openajar connect root@my-server --install" label="Copy the connect command" />
       </li>
       <li className="grid gap-2">
         <p className="flex items-center gap-2 text-label">
@@ -122,7 +122,7 @@ export function AddWays({ className }: { className?: string }) {
           Several nodes at one address
         </p>
         <p className="text-secondary text-muted">On the box that runs the controller, make a one-time join line, then run the line it prints on the new machine.</p>
-        <CodeBlock code="agentos controller join-token --name office-box" label="Copy the join token command" />
+        <CodeBlock code="openajar controller join-token --name office-box" label="Copy the join token command" />
       </li>
     </ul>
   );
@@ -147,7 +147,7 @@ export function AddNodeDialog({ org, open, onOpenChange }: { org: string; open: 
       description={
         alone
           ? 'This node is one machine, and this page shows it. These are the ways to give your agents more, each one command.'
-          : 'A machine you control. It dials out to agentos, so no ports need opening.'
+          : 'A machine you control. It dials out to openajar, so no ports need opening.'
       }
       footer={
         flow.connected ? (

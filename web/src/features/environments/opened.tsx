@@ -277,7 +277,7 @@ function AppState({ env, app }: { env: EnvDetail; app: EnvApp }) {
               <p className="text-secondary text-muted">{other.sentence}</p>
               <div className="flex min-w-0 items-center gap-2">
                 <span className="grid min-w-0 flex-1">
-                  <span className="truncate font-mono text-code-caption text-faint">.agentos/environment.toml</span>
+                  <span className="truncate font-mono text-code-caption text-faint">.openajar/environment.toml</span>
                   <code className="font-mono text-code text-fg">{other.fix}</code>
                 </span>
                 <CopyButton text={other.fix} label="Copy the line" />
@@ -302,7 +302,7 @@ function NoApp({ env }: { env: EnvDetail }) {
     <section aria-label="The app" className="grid gap-1">
       <span className="text-caption text-faint">The app</span>
       <p className="text-secondary text-muted">
-        Nothing was started for it. With a <code className="font-mono text-code-caption text-fg">.agentos/environment.toml</code> in the repository, the next open runs its setup and
+        Nothing was started for it. With a <code className="font-mono text-code-caption text-fg">.openajar/environment.toml</code> in the repository, the next open runs its setup and
         starts the app, and the ones after start from a prepared machine.
       </p>
     </section>

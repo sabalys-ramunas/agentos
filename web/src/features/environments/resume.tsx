@@ -62,7 +62,7 @@ export function ResumeButton({ org, save, primary = false }: { org: string; save
         open={asking}
         onOpenChange={close}
         title={`Resume ${save.title}?`}
-        description={`agentos wakes ${what} now. ${price} It waits for an agent: the next one that opens "${save.title}" takes it over. If none comes and no one watches, it is saved again when it idles.`}
+        description={`openajar wakes ${what} now. ${price} It waits for an agent: the next one that opens "${save.title}" takes it over. If none comes and no one watches, it is saved again when it idles.`}
         confirmLabel={refused ? 'Try again' : 'Resume'}
         loading={resume.isPending}
         onConfirm={() =>
@@ -94,7 +94,7 @@ export function ResumeButton({ org, save, primary = false }: { org: string; save
 
 /** The node's refusal as it gave it, with the command it names ready to copy. Nothing was rented. */
 function Refusal({ error }: { error: ApiError }) {
-  const command = error.message.match(/`(agentos [^`]+)`/)?.[1] ?? error.message.match(/(agentos environments [\w -]+?(?:--\S+ \S+)+)/)?.[1] ?? null;
+  const command = error.message.match(/`(openajar [^`]+)`/)?.[1] ?? error.message.match(/(openajar environments [\w -]+?(?:--\S+ \S+)+)/)?.[1] ?? null;
   return (
     <div role="alert" className="grid gap-2 rounded-lg border border-warn-line bg-warn-fill px-3 py-3">
       <p className="text-secondary text-fg">

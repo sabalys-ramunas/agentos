@@ -7,9 +7,9 @@ import pytest
 from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.api.auth import PRESENCE_HEADER
-from agentos.core.ratelimit import RateLimiter
-from agentos.plugins.service import LANE_WORKER, PluginService
+from openajar.api.auth import PRESENCE_HEADER
+from openajar.core.ratelimit import RateLimiter
+from openajar.plugins.service import LANE_WORKER, PluginService
 
 LANE = "biz-a/instagram"
 URL = f"/api/lanes/{LANE}/worker"

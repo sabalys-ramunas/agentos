@@ -7,8 +7,8 @@ import { Switch } from '../ui/toggle';
 export const TECHNICAL_HINT = 'Shows ids, logs, costs per run and the terminal.';
 
 /**
- * The per-person "Technical details" switch. In the rail it sits at the foot, with its words from
- * the large breakpoint and as a tooltip on the narrow icon rail. As a row it fits a settings card.
+ * The per-person "Technical details" switch. In the rail it sits at the foot, its word from the large
+ * breakpoint, and its hint as the switch's tooltip and description. As a row it fits a settings card.
  */
 export function TechnicalToggle({ variant = 'rail', className }: { variant?: 'rail' | 'row'; className?: string }) {
   const [on, setOn] = useTechnical();
@@ -29,17 +29,18 @@ export function TechnicalToggle({ variant = 'rail', className }: { variant?: 'ra
       </div>
     );
   }
+  // In the rail the hint is read with the switch and shown as its tooltip, so the night's foot stays two lines.
   return (
-    <div data-technical-toggle className={cn('border-t border-line pt-3 lg:px-2', className)}>
-      <div className="flex items-center justify-center gap-2 lg:justify-between">
+    <div data-technical-toggle className={cn('lg:px-3', className)}>
+      <div className="flex h-9 items-center justify-center gap-2 lg:justify-between">
         <label data-rail-label htmlFor={id} className="hidden text-secondary text-muted lg:block">
           Technical details
         </label>
-        <Tooltip label={on ? 'Technical details: on' : 'Technical details: off'} side="right">
+        <Tooltip label={`${on ? 'On' : 'Off'}. ${TECHNICAL_HINT}`} side="right">
           <span className="lg:contents">{control}</span>
         </Tooltip>
       </div>
-      <p data-rail-label id={`${id}-hint`} className="mt-1 hidden text-caption text-faint lg:block">
+      <p id={`${id}-hint`} className="sr-only">
         {TECHNICAL_HINT}
       </p>
     </div>

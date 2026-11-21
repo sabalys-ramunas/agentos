@@ -288,7 +288,7 @@
 .yes-voice[data-outline='agent'] {
   outline: 1px dashed var(--control);
 }
-.yes-voice[data-outline='agentos'] {
+.yes-voice[data-outline='openajar'] {
   outline: 1.5px solid var(--foreground);
   outline-offset: 2px;
 }

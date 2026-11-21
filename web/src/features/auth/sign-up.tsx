@@ -6,7 +6,7 @@ import { SiteMark } from '@/components/brand/site-mark';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
 import { describeError } from '@/lib/errors';
-import { AuthLayout, Or, PromisePicture } from './layout';
+import { AuthLayout, authButton, Or, PromisePicture } from './layout';
 
 /** Under the button, never a checkbox: continuing is accepting, and the server records it. */
 export function PolicyLine({ extra }: { extra?: string }) {
@@ -42,6 +42,7 @@ export function SignUp() {
       title="Give your AI a computer of its own"
       description="Every chat gets a fresh computer in the cloud with a terminal, a real browser and your repo. Your agent works there, pushes a branch, and the computer is deleted. Money and pushes to main ask you first."
       aside={<PromisePicture />}
+      caption="Agents work on computers of their own. A post set to ask, a payment or a push to main asks you first."
       footer={
         <>
           Already have an account?{' '}
@@ -53,20 +54,22 @@ export function SignUp() {
     >
       {google ? (
         <>
-          <Button size="lg" className="w-full" asChild>
+          <Button size="lg" className={authButton} asChild>
             <a href={auth.googleStartUrl({ aupAccepted: true, next })}>
               <SiteMark site="google" size={16} label={false} />
               Continue with Google
             </a>
           </Button>
-          <Or />
+          <div className="my-3">
+            <Or />
+          </div>
         </>
       ) : null}
       <form onSubmit={submit} className="grid gap-4">
         <Field label="Email" error={send.isError ? describeError(send.error) : null}>
-          <Input autoFocus type="email" autoComplete="email" required placeholder="you@example.com" className="h-10" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <Input autoFocus type="email" inputMode="email" autoComplete="email" required placeholder="you@company.com" value={email} onChange={(event) => setEmail(event.target.value)} />
         </Field>
-        <Button type="submit" variant="primary" size="lg" loading={send.isPending}>
+        <Button type="submit" variant="primary" size="lg" className={authButton} loading={send.isPending}>
           Continue with email
         </Button>
       </form>

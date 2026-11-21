@@ -58,14 +58,14 @@ function useFormOpener(org: string, found: MailDiscovery, typed: TypedServers | 
 }
 
 export function HandOverStep({ org, found, computer, typed, go, onOpened }: { org: string; found: MailDiscovery; computer: MailComputer; typed: TypedServers | null; go: Go; onOpened: (form: OpenedForm | null) => void }) {
-  const line = `agentos mail connect ${found.address}`;
+  const line = `openajar mail connect ${found.address}`;
   const [terminal, setTerminal] = useState(!computer.has_screen);
   useEffect(() => setTerminal(!computer.has_screen), [computer.has_screen]);
   const opener = useFormOpener(org, found, typed, onOpened);
   return (
     <div className="max-w-xl">
       <p className="text-lede text-pretty text-muted">
-        Your password goes straight to <span className="mono text-body text-fg">{computer.id}</span>, on a small page it makes for this one job. It never passes through agentos Cloud.
+        Your password goes straight to <span className="mono text-body text-fg">{computer.id}</span>, on a small page it makes for this one job. It never passes through openajar Cloud.
       </p>
       <div className="mt-4"><ComputerChoice computers={found.computers} value={computer.id} onChange={(id) => go('hand-over', { computer: id, replace: true })} /></div>
       {computer.has_screen ? (

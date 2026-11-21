@@ -9,11 +9,11 @@ describe('what needs a yes', () => {
     expect(await screen.findByText(/things got done\. \d+ went on their own, and 11 stopped for a person\./)).toBeInTheDocument();
   });
 
-  it('never offers money less than a tap in agentos, and says why', async () => {
+  it('never offers money less than a tap in openajar, and says why', async () => {
     renderApp('/northwind-group/settings/yes');
     const money = await screen.findByRole('radiogroup', { name: 'How strong a yes: Money' });
     const stops = within(money).getAllByRole('radio').map((stop) => stop.getAttribute('aria-label'));
-    expect(stops).toEqual(['A tap in agentos', "Prove it's you"]);
+    expect(stops).toEqual(['A tap in openajar', "Prove it's you"]);
     expect(screen.getByText(/Money sent can't be taken back from here, so only how strong the yes is can change/)).toBeInTheDocument();
   });
 
@@ -34,9 +34,8 @@ describe('what needs a yes', () => {
   });
 
   it('lifts the floor for a business, so it can only ask for more', async () => {
-    const { user } = renderApp('/northwind-group/settings/yes');
-    await user.click(await screen.findByRole('radio', { name: /Meridian Travel/ }));
-    const money = screen.getByRole('radiogroup', { name: 'How strong a yes: Money' });
+    renderApp('/northwind-group/settings/yes');
+    const money = await screen.findByRole('radiogroup', { name: 'How strong a yes: Money, Meridian Travel' });
     expect(within(money).getAllByRole('radio').map((stop) => stop.getAttribute('aria-label'))).toEqual(["Prove it's you"]);
   });
 

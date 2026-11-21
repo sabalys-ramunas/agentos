@@ -1,14 +1,14 @@
-"""Parsing what a lane sends the git gateway (agentos.git.wire) and the declared remotes
-(agentos.git.remotes): refuse what cannot be read whole, never guess."""
+"""Parsing what a lane sends the git gateway (openajar.git.wire) and the declared remotes
+(openajar.git.remotes): refuse what cannot be read whole, never guess."""
 
 from __future__ import annotations
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.git.remotes import Remotes
-from agentos.git.service import gitconfig_text, rewrite_pairs
-from agentos.git.wire import (
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.git.remotes import Remotes
+from openajar.git.service import gitconfig_text, rewrite_pairs
+from openajar.git.wire import (
     Remote,
     build_report,
     check_ref,
@@ -44,7 +44,7 @@ def test_nested_groups_and_limits():
 def test_a_url_with_a_credential_is_refused_without_echoing_it():
     with pytest.raises(InvalidRequest) as e:
         parse_remote("https://user:ghp_secretsecret@github.com/o/r.git")
-    assert "ghp_secret" not in e.value.message and "agentos git key add" in e.value.message
+    assert "ghp_secret" not in e.value.message and "openajar git key add" in e.value.message
     with pytest.raises(InvalidRequest):
         parse_remote("https://ghp_secretsecret@github.com/o/r.git")
 
@@ -85,10 +85,10 @@ def test_parse_push_commands_and_capabilities():
 @pytest.mark.parametrize("sideband", [True, False])
 def test_report_round_trip(sideband):
     out = build_report({"refs/heads/a": None, "refs/heads/b": "waits for a person"}, sideband=sideband,
-                       messages=["agentos: hello"])
+                       messages=["openajar: hello"])
     report, messages = demux(out, sideband)
     assert parse_report(report) == ("ok", {"refs/heads/a": None, "refs/heads/b": "waits for a person"})
-    assert messages == (["agentos: hello\n"] if sideband else [])
+    assert messages == (["openajar: hello\n"] if sideband else [])
 
 
 def test_lane_git_config_points_only_declared_hosts_at_the_gateway(tmp_path):

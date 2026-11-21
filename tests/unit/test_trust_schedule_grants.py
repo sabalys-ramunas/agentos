@@ -18,9 +18,9 @@ from test_node_panel import TOKEN, Node, bearer
 from test_presence import Device, Token, refused
 from test_runner_safety import LOOK, agent, with_policy
 
-from agentos.core.models import Effect
-from agentos.runner.fakes import BASE, OWNER
-from agentos.runner.tools import flow_save
+from openajar.core.models import Effect
+from openajar.runner.fakes import BASE, OWNER
+from openajar.runner.tools import flow_save
 
 WATCH = {"url": "https://x.test/", "locator": {"css": "h1"}, "every_s": 60}
 

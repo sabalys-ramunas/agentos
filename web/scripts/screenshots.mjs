@@ -44,7 +44,7 @@ const routes = [
   ['auth-sign-in', '/sign-in', null, 'signed-out'],
   ['shared-link-invalid', '/shared#token=shr_mock_missing', null, 'signed-out'],
   ['auth-sign-up', '/sign-up', null, 'signed-out'],
-  ['auth-check-email', '/check-email?email=demo%40agentos.local', null, 'signed-out'],
+  ['auth-check-email', '/check-email?email=demo%40openajar.local', null, 'signed-out'],
   ['auth-verify-expired', '/auth/verify?token=expired', null, 'signed-out'],
   ['auth-verify-step-up', '/auth/verify?token=mock&step_up=1'],
   ['auth-verify-step-up-elsewhere', '/auth/verify?token=mock&step_up=1', null, 'signed-out'],
@@ -318,7 +318,7 @@ const routes = [
   ['s3-webhooks', `/${O}/settings/webhooks`],
   ['s3-webhooks-add', `/${O}/settings/webhooks`, async (page) => {
     await page.getByRole('button', { name: 'Add webhook' }).first().click();
-    await page.getByLabel('Address').fill('http://receiver.example.net/agentos');
+    await page.getByLabel('Address').fill('http://receiver.example.net/openajar');
     await page.getByRole('dialog').getByRole('button', { name: 'Add webhook' }).click();
     await page.getByText('Confirm it is you').waitFor();
     await page.getByRole('button', { name: 'Use your passkey' }).click();
@@ -326,7 +326,7 @@ const routes = [
   }],
   ['s3-webhooks-secret', `/${O}/settings/webhooks`, async (page) => {
     await page.getByRole('button', { name: 'Add webhook' }).first().click();
-    await page.getByLabel('Address').fill('https://receiver.example.net/agentos');
+    await page.getByLabel('Address').fill('https://receiver.example.net/openajar');
     await page.getByRole('dialog').getByRole('button', { name: 'Add webhook' }).click();
     await page.getByText('Confirm it is you').waitFor();
     await page.getByRole('button', { name: 'Use your passkey' }).click();
@@ -374,7 +374,7 @@ const routes = [
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(400);
     await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: async () => {}, userChoice: Promise.resolve({ outcome: 'dismissed' }) })));
-    await page.getByRole('complementary', { name: 'Install agentos' }).waitFor();
+    await page.getByRole('complementary', { name: 'Install openajar' }).waitFor();
   }],
   ['s3-review', `/${O}/needs-you`, async (page) => {
     const id = await page.evaluate(async () => (await (await fetch('/api/orgs/northwind-group/approvals')).json()).find((item) => item.effect === 'commit').id);
@@ -433,7 +433,7 @@ const routes = [
       delete window.PushManager;
     });
     await page.reload({ waitUntil: 'load' });
-    await page.getByText('Add agentos to your Home Screen first').waitFor();
+    await page.getByText('Add openajar to your Home Screen first').waitFor();
   }],
 ];
 

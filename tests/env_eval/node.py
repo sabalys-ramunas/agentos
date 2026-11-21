@@ -1,17 +1,17 @@
-"""One task's node: agentos's local node with the docker provider, in a scratch home, and its cleanup.
+"""One task's node: openajar's local node with the docker provider, in a scratch home, and its cleanup.
 
 `EvalNode` is a context manager. On the way in it:
 
 - tags the docker provider's image (vms.toml `docker_image`, default agentos-env:latest) as
-  `agentos-eval-<id>:base` and points vms.toml at that tag, so every save, snapshot and prepared
+  `openajar-eval-<id>:base` and points vms.toml at that tag, so every save, snapshot and prepared
   machine this node makes is an image of that repository alone (and nothing is pulled or built);
 - writes vms.toml (docker, never a cloud), environments.toml (the task's settings), the fixture
   repositories as local bare repositories declared through the git gateway as
-  `github.com/evals/<name>` (`agentos git remote allow env ... --url <path>`, as an owner does),
+  `github.com/evals/<name>` (`openajar git remote allow env ... --url <path>`, as an owner does),
   and one token for `github.com/evals/*` in the vault (a made-up one: the gateway pushes to a local
   path, and the GitHub stand-in takes any token);
 - prepares the home and an agent grant (node_main.py prepare), then starts the node
-  (node_main.py serve) with AGENTOS_GIT_ALLOW_FILE=1 on its port.
+  (node_main.py serve) with OPENAJAR_GIT_ALLOW_FILE=1 on its port.
 
 On the way out, always (an error, Ctrl-C), it stops the node and removes every container and
 network labelled with this node's name, every image of its repository, and its scratch home
@@ -36,7 +36,8 @@ from typing import Any, Self
 REPO = Path(__file__).resolve().parents[2]
 NODE_MAIN = Path(__file__).with_name("node_main.py")
 FIXTURES = Path(__file__).with_name("repos")
-BASE_IMAGE = "agentos-env:latest"
+# the machine image a run starts from; OPENAJAR_EVAL_IMAGE names another (a build of this tree under its own tag)
+BASE_IMAGE = os.environ.get("OPENAJAR_EVAL_IMAGE", "agentos-env:latest")
 HOST, OWNER = "github.com", "evals"
 GIT_ENV = {"HOME": "/nonexistent", "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUTHOR_NAME": "Eval Fixture",
            "GIT_AUTHOR_EMAIL": "fixture@example.invalid", "GIT_COMMITTER_NAME": "Eval Fixture",
@@ -71,7 +72,7 @@ def docker_ready(image: str = BASE_IMAGE) -> str | None:
     if done.returncode != 0:
         if "Cannot connect" in done.stderr or "daemon" in done.stderr:
             return "docker does not answer (is Docker Desktop running?)"
-        return f"docker has no {image}: run `uv run agentos environments setup --pull` once"
+        return f"docker has no {image}: run `uv run openajar environments setup --pull` once"
     return None
 
 
@@ -96,11 +97,11 @@ class EvalNode:
         self.port = port
         self.github_api = github_api
         self.settings = dict(settings or {})
-        self.src = src                      # an agentos checkout's src/ to run instead of this one's
+        self.src = src                      # an openajar checkout's src/ to run instead of this one's
         self.keep = keep
         self.id = secrets.token_hex(4)
         self.name = f"eval-{self.id}"
-        self.image_repo = f"agentos-eval-{self.id}"
+        self.image_repo = f"openajar-eval-{self.id}"
         self.home = root / "home"
         self.repos: dict[str, Repo] = {}
         self.token = ""                     # the agent grant's
@@ -152,7 +153,7 @@ class EvalNode:
 
     def serve(self) -> None:
         """Start the node (after the repositories are added) and wait until MCP listens."""
-        env = {**self._env(), "AGENTOS_GIT_ALLOW_FILE": "1"}
+        env = {**self._env(), "OPENAJAR_GIT_ALLOW_FILE": "1"}
         out = self.log.open("w")
         self.proc = subprocess.Popen([sys.executable, "-P", str(NODE_MAIN), "serve", str(self.home), str(self.port),
                                       self.github_api], env=env, stdout=out, stderr=subprocess.STDOUT, cwd=self.root,
@@ -193,9 +194,9 @@ class EvalNode:
         return tomllib.loads((self.home / "node.toml").read_text())
 
     def _env(self) -> dict[str, str]:
-        env = {**os.environ, "AGENTOS_HOME": str(self.home)}
-        env.pop("AGENTOS_URL", None)
-        env.pop("AGENTOS_TOKEN", None)
+        env = {**os.environ, "OPENAJAR_HOME": str(self.home)}
+        env.pop("OPENAJAR_URL", None)
+        env.pop("OPENAJAR_TOKEN", None)
         if self.src is not None:
             env["PYTHONPATH"] = str(self.src) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
         return env
@@ -208,19 +209,19 @@ class EvalNode:
         self._last_out = done.stdout.strip().splitlines()[-1] if capture else ""
 
     def owner(self, *args: str, stdin: str | None = None, timeout: float = 120) -> str:
-        """An owner's `agentos ...` command on this node's home (never the user's ~/.agentos)."""
-        argv = [sys.executable, "-P", "-c", "from agentos.cli import app; app()", *args]
+        """An owner's `openajar ...` command on this node's home (never the user's ~/.openajar)."""
+        argv = [sys.executable, "-P", "-c", "from openajar.cli import app; app()", *args]
         done = subprocess.run(argv, env=self._env(), input=stdin, capture_output=True, text=True, timeout=timeout,
                               cwd=self.root, check=False)
         if done.returncode != 0:
-            raise NodeFailed(f"agentos {' '.join(args[:3])} failed: {(done.stderr or done.stdout).strip()[-400:]}")
+            raise NodeFailed(f"openajar {' '.join(args[:3])} failed: {(done.stderr or done.stdout).strip()[-400:]}")
         return done.stdout
 
     # ---- reading the end state ----
 
     def environments(self) -> list[Any]:
         """Every environment this node opened, newest first (the node's own records)."""
-        from agentos.environments.store import EnvironmentStore
+        from openajar.environments.store import EnvironmentStore
 
         db = self.home / "environments.db"
         if not db.exists():
@@ -233,13 +234,13 @@ class EvalNode:
                 store.close()
 
     def prepared(self) -> list[Any]:
-        from agentos.environments.prepared import PreparedStore
+        from openajar.environments.prepared import PreparedStore
 
         return PreparedStore(self.home).all()
 
     def vms(self) -> list[Any]:
-        """Every machine this node rented (agentos.vms records), newest first."""
-        from agentos.vms.store import VmStore
+        """Every machine this node rented (openajar.vms records), newest first."""
+        from openajar.vms.store import VmStore
 
         db = self.home / "vms.db"
         return VmStore(db).recent(200) if db.exists() else []
@@ -253,12 +254,20 @@ class EvalNode:
                 left.append(rec.provider_id[:12])
         return left
 
+    def exec_in(self, env_id: str, cmd: str) -> tuple[int, str]:
+        """`cmd` in the container of environment `env_id`, as root: (exit code, stdout); (-1, "") without one."""
+        rec = next((r for r in self.vms() if r.environment == env_id and r.provider_id), None)
+        if rec is None:
+            return -1, ""
+        done = docker("exec", rec.provider_id, "sh", "-c", cmd)
+        return done.returncode, done.stdout
+
     def warm_ready(self) -> bool:
-        """A warm machine is booted and waiting (agentos.environments.warmpool)."""
+        """A warm machine is booted and waiting (openajar.environments.warmpool)."""
         return any(str(r.lane_id).startswith("env/warm-") and r.state == "ready" for r in self.vms())
 
     def containers(self, *, running_only: bool = False) -> list[dict[str, str]]:
-        """This node's containers: id, name, state, and the agentos labels."""
+        """This node's containers: id, name, state, and the openajar labels."""
         args = ["ps", "--format", "{{json .}}", "--filter", f"label=agentos-node={self.name}"]
         if not running_only:
             args.insert(1, "-a")
@@ -336,8 +345,8 @@ def _matches(repo: str, pattern: str) -> bool:
 
 
 def sweep_stale() -> dict[str, int]:
-    """What earlier runs left behind (a killed run): containers and networks whose agentos-node label
-    starts with eval-, and images of agentos-eval-* repositories. Nothing else is touched."""
+    """What earlier runs left behind (a killed run): containers and networks whose openajar-node label
+    starts with eval-, and images of openajar-eval-* repositories. Nothing else is touched."""
     removed = {"containers": 0, "networks": 0, "images": 0}
     for kind in ("ps", "network"):
         args = ["ps", "-a"] if kind == "ps" else ["network", "ls"]
@@ -350,5 +359,5 @@ def sweep_stale() -> dict[str, int]:
                     removed["containers"] += 1
                 elif docker("network", "rm", ident).returncode == 0:
                     removed["networks"] += 1
-    removed["images"] = sweep(None, "agentos-eval-*")["images"]
+    removed["images"] = sweep(None, "openajar-eval-*")["images"]
     return removed

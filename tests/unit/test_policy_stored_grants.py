@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.policy.errors import Denied
-from agentos.policy.grants import OWNER_GRANT_ID
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.policy.errors import Denied
+from openajar.policy.grants import OWNER_GRANT_ID
 
 
 @pytest.fixture

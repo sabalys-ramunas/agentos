@@ -10,10 +10,10 @@ with a "tool name" error. A new version of a flow still saves, and so does a flo
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Principal
-from agentos.runner.fakes import Harness
-from agentos.runner.flows import STATIC_TOOL_NAMES, tool_name_for
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.models import Principal
+from openajar.runner.fakes import Harness
+from openajar.runner.flows import STATIC_TOOL_NAMES, tool_name_for
 
 OWNER = Principal(kind="human", id="owner", owner="owner")
 AGENT_B = Principal(kind="agent", id="agent-biz-b", owner="owner")

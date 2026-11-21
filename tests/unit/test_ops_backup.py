@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 from test_ops_support import PASSPHRASE, PROXY_PASS, TOKEN, FakeHost, make_home
 
-from agentos.core import age
-from agentos.ops import backup
-from agentos.ops.backup import ArchiveError, BackupRefused
+from openajar.core import age
+from openajar.ops import backup
+from openajar.ops.backup import ArchiveError, BackupRefused
 
 LOG_N = 10
 T0 = datetime(2026, 11, 4, 3, 0, 0, tzinfo=UTC)
@@ -69,7 +69,7 @@ def test_round_trip_restores_every_kept_file(tmp_path):
     (home / "secrets" / "vault.key").chmod(0o600)
 
     result = create(cfg, tmp_path / "out")
-    assert result.path.name == "agentos-test-node-20261104T030000Z.tar.gz.age"
+    assert result.path.name == "openajar-test-node-20261104T030000Z.tar.gz.age"
     assert result.path.stat().st_mode & 0o777 == 0o600
     assert [lane["copied"] for lane in result.lanes] == ["cold", "cold"]
     assert not list((tmp_path / "out").glob(".partial-*")) and not list((tmp_path / "out").glob(".staging-*"))
@@ -93,22 +93,22 @@ def test_round_trip_restores_every_kept_file(tmp_path):
 
 def test_sqlite_is_copied_consistently_while_open(tmp_path):
     cfg = make_home(tmp_path)
-    writer = sqlite3.connect(cfg.home / "agentos.db")
+    writer = sqlite3.connect(cfg.home / "openajar.db")
     writer.execute("PRAGMA wal_autocheckpoint=0")
     writer.execute("CREATE TABLE IF NOT EXISTS notes (x TEXT)")
     writer.executemany("INSERT INTO notes VALUES (?)", [(f"n{i}",) for i in range(500)])
     writer.commit()  # committed into the WAL, not checkpointed into the main file
-    assert (cfg.home / "agentos.db-wal").stat().st_size > 0
+    assert (cfg.home / "openajar.db-wal").stat().st_size > 0
     try:
         result = create(cfg, tmp_path / "out")
     finally:
         writer.close()
     contents = backup.verify_backup(result.path, PASSPHRASE)
-    assert "agentos.db" in contents.sqlite_checked
+    assert "openajar.db" in contents.sqlite_checked
     restored = tmp_path / "restored"
     backup.restore_backup(result.path, PASSPHRASE, restored, host=FakeHost())
-    assert not (restored / "agentos.db-wal").exists()
-    with sqlite3.connect(restored / "agentos.db") as db:
+    assert not (restored / "openajar.db-wal").exists()
+    with sqlite3.connect(restored / "openajar.db") as db:
         assert db.execute("SELECT COUNT(*) FROM notes").fetchone()[0] == 500
         assert db.execute("SELECT COUNT(*) FROM lanes").fetchone()[0] == 2
 
@@ -157,7 +157,7 @@ def test_manifest_and_header(tmp_path):
     contents = backup.verify_backup(result.path, PASSPHRASE)
     assert contents.header["format"] == "agentos-backup" and contents.header["node"] == "test-node"
     files = {f["path"]: f for f in contents.manifest["files"]}
-    assert files["agentos.db"]["kind"] == "sqlite"
+    assert files["openajar.db"]["kind"] == "sqlite"
     assert "lanes/personal/reddit/fingerprint.json" in files
     assert "cache2" in contents.manifest["excluded"]["profile"]
     assert contents.files == result.files
@@ -234,7 +234,7 @@ def test_interrupted_backup_leaves_no_archive(tmp_path):
 def test_partial_files_never_count_and_old_ones_are_pruned(tmp_path):
     out = tmp_path / "out"
     out.mkdir()
-    partial = out / f"{backup.PARTIAL_PREFIX}agentos-n-20261101T000000Z.tar.gz.age"
+    partial = out / f"{backup.PARTIAL_PREFIX}openajar-n-20261101T000000Z.tar.gz.age"
     partial.write_bytes(b"half")
     assert backup.list_archives(out) == []
     old = (datetime.now(UTC) - timedelta(days=2)).timestamp()
@@ -247,7 +247,7 @@ def test_retention_keeps_newest_of_this_node(tmp_path):
     cfg = make_home(tmp_path)
     out = tmp_path / "out"
     out.mkdir()
-    other = out / "agentos-other-node-20200101T000000Z.tar.gz.age"
+    other = out / "openajar-other-node-20200101T000000Z.tar.gz.age"
     other.write_bytes(b"not ours")
     unrelated = out / "notes.txt"
     unrelated.write_text("keep")
@@ -262,7 +262,7 @@ def test_refusals(tmp_path):
     cfg = make_home(tmp_path)
     with pytest.raises(BackupRefused, match="at least"):
         backup.create_backup(cfg.home, tmp_path / "o", "short", node="n", host=FakeHost())
-    with pytest.raises(BackupRefused, match="inside AGENTOS_HOME"):
+    with pytest.raises(BackupRefused, match="inside OPENAJAR_HOME"):
         create(cfg, cfg.home / "lanes" / "x")
     host = FakeHost()
     host.default_disk = (10, 10, 1)
@@ -369,23 +369,23 @@ def test_restore_by_a_user_who_cannot_write_the_parent_says_so_without_a_traceba
     result = create(cfg, tmp_path / "out")
     parent = tmp_path / "varlib"
     parent.mkdir()
-    (parent / "agentos").mkdir()
+    (parent / "openajar").mkdir()
     parent.chmod(0o555)
     try:
         with pytest.raises(BackupRefused, match="Run it as root") as e:
-            backup.restore_backup(result.path, PASSPHRASE, parent / "agentos", host=FakeHost())
-        assert "sudo agentos backup restore" in e.value.message and "—" not in e.value.message
-        assert sorted(p.name for p in parent.iterdir()) == ["agentos"]  # nothing was staged
+            backup.restore_backup(result.path, PASSPHRASE, parent / "openajar", host=FakeHost())
+        assert "sudo openajar backup restore" in e.value.message and "—" not in e.value.message
+        assert sorted(p.name for p in parent.iterdir()) == ["openajar"]  # nothing was staged
     finally:
         parent.chmod(0o755)
 
 
 def test_the_unit_user_is_read_only_from_a_unit_for_this_home(tmp_path):
     unit = tmp_path / "agentosd.service"
-    unit.write_text("[Service]\nUser=agentos\nEnvironment=AGENTOS_HOME=/var/lib/agentos\n")
+    unit.write_text("[Service]\nUser=agentos\nEnvironment=OPENAJAR_HOME=/var/lib/agentos\n")
     assert backup.unit_user(Path("/var/lib/agentos"), unit) == "agentos"
     assert backup.unit_user(Path("/srv/other"), unit) is None
-    unit.write_text("[Service]\nEnvironment=AGENTOS_HOME=/var/lib/agentos\n")
+    unit.write_text("[Service]\nEnvironment=OPENAJAR_HOME=/var/lib/agentos\n")
     assert backup.unit_user(Path("/var/lib/agentos"), unit) is None  # root
     assert backup.unit_user(Path("/var/lib/agentos"), tmp_path / "missing") is None
 
@@ -446,7 +446,7 @@ def test_restore_rejects_a_checksum_mismatch_and_a_missing_manifest(tmp_path):
 def test_verify_checks_database_integrity(tmp_path):
     archive = tmp_path / "a.tar.gz.age"
     broken = b"SQLite format 3\x00" + b"\x00" * 84 + os.urandom(4000)
-    craft(archive, [("home/agentos.db", broken, tarfile.REGTYPE)])
+    craft(archive, [("home/openajar.db", broken, tarfile.REGTYPE)])
     with pytest.raises(ArchiveError, match="integrity"):
         backup.verify_backup(archive, PASSPHRASE)
 
@@ -454,7 +454,7 @@ def test_verify_checks_database_integrity(tmp_path):
 def test_not_an_archive(tmp_path):
     p = tmp_path / "x.tar.gz.age"
     p.write_bytes(b"hello")
-    with pytest.raises(ArchiveError, match="not an encrypted agentos backup"):
+    with pytest.raises(ArchiveError, match="not an encrypted openajar backup"):
         backup.verify_backup(p, PASSPHRASE)
     with pytest.raises(ArchiveError, match="cannot open"):
         backup.verify_backup(tmp_path / "missing", PASSPHRASE)

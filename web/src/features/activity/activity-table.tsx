@@ -136,7 +136,7 @@ export function ActivityTable({ org, rows, onOpen }: { org: string; rows: TraceE
               </div>
             </Td>
             <Td className="hidden text-secondary whitespace-nowrap text-muted xl:table-cell">{nameOf(row.principal)}</Td>
-            <Td className="mono tabular pr-4 pl-0 text-right text-secondary text-muted md:pr-6 md:pl-4">{usd(row.cost.usd)}</Td>
+            <Td money className="pr-4 pl-0 md:pr-6 md:pl-4">{usd(row.cost.usd)}</Td>
           </Tr>
         ))}
       </tbody>

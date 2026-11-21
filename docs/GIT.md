@@ -1,6 +1,6 @@
 # Git from lanes and brains
 
-A brain on the node, an `agentos run` job or a command in a terminal lane can clone a private
+A brain on the node, an `openajar run` job or a command in a terminal lane can clone a private
 repository and push a branch overnight, without the deploy key or the token ever being in the lane.
 The owner keeps the credential in the node's vault and declares which repositories each workspace
 (or lane) may use; the node does the git traffic with the real remote itself, and every push goes
@@ -10,17 +10,17 @@ freezes and the action log.
 ## Set it up (on the node, as the owner)
 
 ```
-$ agentos git key add --host github.com --repo me/app
+$ openajar git key add --host github.com --repo me/app
 Made deploy key github-me-app-ssh (SHA256:3q2+7w...) for github.com (me/app).
 Add this public key as a deploy key, with write access if lanes should push:
   https://github.com/me/app/settings/keys/new
 
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... agentos-github-me-app-ssh
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... openajar-github-me-app-ssh
 
 The private key stays sealed in the vault; nothing can export it.
-Then declare where it may be used: agentos git remote allow <workspace or lane> github.com/me/app
+Then declare where it may be used: openajar git remote allow <workspace or lane> github.com/me/app
 
-$ agentos git remote allow personal github.com/me/app
+$ openajar git remote allow personal github.com/me/app
 Declared github.com/me/app for personal: fetch and push, default branch asks.
 ```
 
@@ -30,29 +30,29 @@ There is no command that prints or exports the private key.
 
 | Command | What it does |
 |---|---|
-| `agentos git key add --host H --repo O/N [--repo ...]` | make an Ed25519 deploy key; print its public key |
-| `agentos git key add --token --host H --repo O/* [--stdin]` | store a token (a fine-grained PAT), read from a prompt or stdin, never argv |
-| `agentos git key list`, `show NAME`, `remove NAME` | names, hosts, repositories, public keys, use counts; never a secret |
-| `agentos git remote allow SCOPE REMOTE` | let a workspace (`personal`) or a lane (`personal/code`) fetch and push `REMOTE` |
+| `openajar git key add --host H --repo O/N [--repo ...]` | make an Ed25519 deploy key; print its public key |
+| `openajar git key add --token --host H --repo O/* [--stdin]` | store a token (a fine-grained PAT), read from a prompt or stdin, never argv |
+| `openajar git key list`, `show NAME`, `remove NAME` | names, hosts, repositories, public keys, use counts; never a secret |
+| `openajar git remote allow SCOPE REMOTE` | let a workspace (`personal`) or a lane (`personal/code`) fetch and push `REMOTE` |
 | `... --read-only` | fetch only |
 | `... --protect 'release/*'` | more branches where a push always asks (the default branch always does) |
 | `... --allow-default-branch` | a push to the default branch is a plain commit |
 | `... --url ssh://git@host:2222/o/n.git` | the real remote, when it is not the host's usual address |
-| `agentos git remote list [SCOPE]`, `deny SCOPE REMOTE` | what is declared; take a declaration back |
+| `openajar git remote list [SCOPE]`, `deny SCOPE REMOTE` | what is declared; take a declaration back |
 
-The same commands are under `agentos vault git ...`. A remote is `host/owner/name`, `host/owner/*`
+The same commands are under `openajar vault git ...`. A remote is `host/owner/name`, `host/owner/*`
 or any git URL; a URL with a password or a token in it is refused.
 
 SSH host keys: the node accepts github.com, gitlab.com and bitbucket.org only with their published
-keys (pinned in `agentos.git.keys`). For another host, `agentos git key add --host` reads its key,
+keys (pinned in `openajar.git.keys`). For another host, `openajar git key add --host` reads its key,
 prints the fingerprint for you to compare with the host's documentation, and records it in
-`AGENTOS_HOME/git/known_hosts` (or pass the key with `--host-key`). An unknown host key stops the
+`OPENAJAR_HOME/git/known_hosts` (or pass the key with `--host-key`). An unknown host key stops the
 connection; the node never trusts a key on first sight during a push.
 
 ## In a lane or a brain task
 
 Nothing to configure. A command a grant starts in a lane (`terminal_exec`, `terminal_job_start` and so
-`agentos run`, `shell_open`) gets `GIT_CONFIG_*` variables, and a brain task gets a private
+`openajar run`, `shell_open`) gets `GIT_CONFIG_*` variables, and a brain task gets a private
 `~/.gitconfig`, that send every declared host to the node's git gateway:
 
 ```
@@ -68,14 +68,14 @@ prints when the node says no is a sentence that says what to do:
 
 ```
 $ git push origin main
-remote: agentos: this push waits for a person (approval ap_e6bd...): main is a protected branch of
+remote: openajar: this push waits for a person (approval ap_e6bd...): main is a protected branch of
 github.com/me/app, so a person approves it. Tell the user; once it is approved, push again with the
 same commits. Do not change or split the push to get around it
- ! [remote rejected] main -> main (agentos: this push waits for a person ...)
+ ! [remote rejected] main -> main (openajar: this push waits for a person ...)
 
 $ git clone https://github.com/me/other.git
-fatal: remote error: agentos: github.com/me/other is not declared for personal/code; the owner runs
-`agentos git remote allow personal github.com/me/other` on the node
+fatal: remote error: openajar: github.com/me/other is not declared for personal/code; the owner runs
+`openajar git remote allow personal github.com/me/other` on the node
 ```
 
 An agent can ask what the node reaches with the `git_remotes` tool (in the `brains` toolset): the
@@ -90,7 +90,7 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
          x-agentos-git: agtg_...            1. token -> lane + grant
                                             2. declared? (remotes.json)
                                             3. policy: read / commit / irreversible
-                                            4. mirror (AGENTOS_HOME/git/mirrors)
+                                            4. mirror (OPENAJAR_HOME/git/mirrors)
                                                fetch / push with the credential  ───────▶  github.com
                                                  ssh: IdentityAgent = a one-op agent socket
                                                  https: Authorization in GIT_CONFIG_* env
@@ -101,7 +101,7 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
   the first time a command needs git, and closes it when the lane goes cold, so a connection on it
   can only come from that lane. Brains (which run on the node's network as their own user) and
   lanes on the node's network use the node's loopback listener (a port picked at start, or
-  `AGENTOS_GIT_PORT`). A lane with network `off` (an `agentos run` lane, by default) gets the
+  `OPENAJAR_GIT_PORT`). A lane with network `off` (an `openajar run` lane, by default) gets the
   listener too: a declared remote is the owner's yes to reach that repository through the node,
   and the lane still reaches nothing else.
 - **The token** (`agtg_...`) names the caller: the lane and the grant that started the command, or
@@ -123,7 +123,7 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
   pushed meanwhile is never lost. A refused, waiting or failed push puts every ref of the push back in
   the mirror; the remote never saw it. A push that asks for no report of what it did (git always asks
   for `report-status`; only a hand-made request leaves it out) is refused before the mirror takes it.
-- **SSH keys** are signed for by a small SSH agent inside agentosd (`agentos.git.agent`) on a fresh
+- **SSH keys** are signed for by a small SSH agent inside agentosd (`openajar.git.agent`) on a fresh
   socket in a 0700 directory of its own, for one operation: it holds the key in memory, offers only
   it, signs only an SSH login as `git` (never a commit or file signature), at most four times, and
   is gone when the operation ends. The node's ssh is pointed at it with `IdentityAgent`, an
@@ -162,7 +162,7 @@ Pushes from anywhere else (account lanes, brains, the owner) keep the rules in t
 
 The lane a push is a commit on: the lane the command runs in. A brain task has no lane of its own,
 so its push is a commit on the declaration's lane when the task was given that lane
-(`agentos git remote allow personal/code ...` and `brain_run(..., lanes=["personal/code"])`), and
+(`openajar git remote allow personal/code ...` and `brain_run(..., lanes=["personal/code"])`), and
 otherwise a commit on no account, which always asks. The approval card shows the remote, every
 ref with its old and new commit, whether it is forced or protected, and the first 20 commit
 subjects; the approval binds all of it, so the same push after the person's yes goes, and a
@@ -171,7 +171,7 @@ different one asks again.
 Every fetch is traced (`git_fetch`) and every push (`git_push`, with `result` pushed,
 approval_pending, denied or failed), each with the remote, the refs, the caller, the grant and
 the vault reference of the credential used; the vault records each read of the credential with
-its purpose (`agentos vault status`, `agentos git key list` show use counts).
+its purpose (`openajar vault status`, `openajar git key list` show use counts).
 
 ## Guarantees and limits
 
@@ -194,7 +194,7 @@ What it does not do:
   directly, with whatever credential the agent brings itself; the node's credential is never
   available to that path.
 - **A workbench (env0) lane, or a lane on the node's network or filesystem**, runs as the node's
-  user without a sandbox: it can read AGENTOS_HOME and reach the agent socket while a push runs.
+  user without a sandbox: it can read OPENAJAR_HOME and reach the agent socket while a push runs.
   These lanes are the owner's own shell; the guarantees above are for isolated lanes and brains.
 - **Commands in one lane** share it: a command of another grant in the same lane, with shared
   processes, can read the first command's token and push as that grant (within what the
@@ -216,9 +216,9 @@ What it does not do:
 
 ## For builders
 
-`src/agentos/git/`: `wire.py` (URLs, pkt-lines), `remotes.py`, `keys.py`, `agent.py`,
+`src/openajar/git/`: `wire.py` (URLs, pkt-lines), `remotes.py`, `keys.py`, `agent.py`,
 `upstream.py`, `gateway.py`, `service.py` (the runtime service `git`, built after the vault),
 `cli.py`, `tools.py`. Tests: `tests/unit/test_git_*.py` run a real git client through the gateway
 against a local bare repository with a real policy and vault; `tests/node/test_git_ssh_node.py` pushes
-over real SSH to a local sshd with a key made by `agentos git key add` (run it with
+over real SSH to a local sshd with a key made by `openajar git key add` (run it with
 `scripts/node-test.sh git tests/node/test_git_ssh_node.py`).

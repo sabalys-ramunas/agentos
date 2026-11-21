@@ -102,7 +102,7 @@ export function SharedPage() {
 
   return (
     <main className="mx-auto grid w-full max-w-[720px] content-start gap-8 px-4 py-10 md:px-10 md:py-16">
-      <p className="text-secondary text-faint">agentos, read-only</p>
+      <p className="text-secondary text-faint">openajar, read-only</p>
       {!token || gone ? (
         <section className="grid gap-2">
           <h1 className="text-heading">This link is not valid</h1>

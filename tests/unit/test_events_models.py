@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
-from agentos.events import frame
-from agentos.events.models import Delivery, DeliveryState, Event, QuietHours, Route
+from openajar.events import frame
+from openajar.events.models import Delivery, DeliveryState, Event, QuietHours, Route
 
 T0 = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 
@@ -128,7 +128,7 @@ def test_delivery_records_its_reasons():
 def test_frame_renders_the_fixed_parts():
     e = ev(facts={"url": "https://www.instagram.com/p/1", "seq": 42}, content={"text": 'maria.k: "Riga?"'})
     text = frame.render(route(), [e], attempt=1, expires_at=T0 + timedelta(minutes=15))
-    assert text.startswith('[agentos event ev_3f9a21c0d4e7 · trigger "IG comments biz-a" (rt_81b2aa00cc11) · '
+    assert text.startswith('[openajar event ev_3f9a21c0d4e7 · trigger "IG comments biz-a" (rt_81b2aa00cc11) · '
                            "attempt 1]")
     assert "Instruction from the owner:\n  A new comment arrived. Draft a reply." in text
     assert "source=watch" in text and "seq=42" in text and "url=https://www.instagram.com/p/1" in text

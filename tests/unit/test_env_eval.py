@@ -33,9 +33,9 @@ def row(tool, args=None, *, ok=True, text="", code=None, started=0.0, ended=1.0,
 
 # What `claude -p --output-format stream-json --verbose` writes, cut to the events the eval reads.
 STREAM = "\n".join(json.dumps(e) for e in [
-    {"type": "system", "subtype": "init", "model": "claude-haiku-4-5", "tools": ["mcp__agentos__environment_open"]},
+    {"type": "system", "subtype": "init", "model": "claude-haiku-4-5", "tools": ["mcp__openajar__environment_open"]},
     {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1",
-                                                     "name": "mcp__agentos__environment_open",
+                                                     "name": "mcp__openajar__environment_open",
                                                      "input": {"title": "Fix it"}}]}},
     {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1",
                                                 "content": [{"type": "text", "text": "{\"on\": \"x\"}"}]}]}},
@@ -339,13 +339,13 @@ def test_the_guard_refuses_past_max_usd_and_an_unknown_price():
     assert budget.guard("careless", "anything", 99, 0.0) == (0.0, 0.0)
 
 
-async def test_the_github_stand_in_keeps_the_proofs_agentos_sends_it(tmp_path):
-    """agentos.environments.prproofs.send against the stand-in: the files land on agentos-proofs, a second
+async def test_the_github_stand_in_keeps_the_proofs_openajar_sends_it(tmp_path):
+    """openajar.environments.prproofs.send against the stand-in: the files land on agentos-proofs, a second
     send adds only what is new, and the stand-in lists them for a checker."""
     import httpx
     from env_eval.ghstub import GitHubStub
 
-    from agentos.environments import prproofs
+    from openajar.environments import prproofs
 
     files = {"p1.mp4": b"mp4" * 100, "p1.gif": b"gif" * 50}
     for name, data in files.items():
@@ -375,3 +375,103 @@ def test_an_old_tool_name_counts_as_its_new_one():
             {"tool": "tools_call", "args": {"name": "lane_file_read", "arguments": {"path": "a"}}, "ok": True}]
     assert [metrics.unwrap(r)["tool"] for r in rows] == ["terminal_exec", "file_read"]
     assert metrics.wrong_turns(rows) == ["read a file through terminal_exec ('cat package.json'), not file_read"]
+
+
+# ---- merged from the evals/ suite of 2026-11-20: the smoke checks, the statistics, the shop ----
+
+
+def test_the_static_checks_hold():
+    """CI holds the product to tests/env_eval/budgets.toml on every push (run.py smoke prints the same)."""
+    from env_eval import smoke
+
+    failing = {name: c for name, c in smoke.run().items() if not c["ok"]}
+    assert not failing, f"over a budget in tests/env_eval/budgets.toml: {failing}"
+
+
+def test_wilson_and_fisher_give_the_textbook_values():
+    from env_eval import stats
+
+    low, high = stats.wilson(27, 36)
+    assert round(low, 2) == 0.59 and round(high, 2) == 0.86
+    assert stats.wilson(0, 3)[0] == 0.0 and round(stats.wilson(3, 3)[0], 2) == 0.44
+    assert round(stats.fisher(3, 3, 0, 3), 2) == 0.10       # 3 of 3 against 0 of 3: only "likely" with 3 a side
+    assert round(stats.fisher(5, 5, 0, 5), 3) == 0.008      # with 5 a side it is real
+    assert stats.fisher(2, 3, 3, 3) == 1.0
+    assert stats.strength(3, 3, 0, 3)[0] == "likely" and stats.strength(5, 5, 0, 5)[0] == "real"
+
+
+def test_a_finished_rate_over_repeats_regresses_only_as_far_as_fishers_test_says():
+    def rec(finished: float, runs: int) -> dict:
+        return {"tasks": {"t01": {"finished": finished, "runs": runs}}, "totals": {}}
+
+    noise = history.compare(rec(1.0, 3), rec(2 / 3, 3))           # 3 of 3, then 2 of 3: within the noise
+    assert noise[0]["verdict"] == "same" and not noise[0]["regressed"] and noise[0]["strength"] is None
+    likely = history.compare(rec(1.0, 3), rec(0.0, 3))[0]          # 3 of 3, then 0 of 3: likely
+    assert likely["regressed"] and likely["strength"] == "likely" and "likely, p=0.1" in history.describe([likely])[0]
+    real = history.compare(rec(1.0, 5), rec(0.0, 5))[0]
+    assert real["regressed"] and real["strength"] == "real"
+    assert history.compare(rec(1.0, 1), rec(0.0, 1))[0]["regressed"]  # one run a side: any drop counts
+
+
+@pytest.fixture
+def shop_site():
+    import subprocess
+    import sys
+    import time
+    import urllib.request
+    from pathlib import Path
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    serve = Path(__file__).resolve().parents[1] / "env_eval" / "repos" / "shopsite" / "serve.py"
+    proc = subprocess.Popen([sys.executable, str(serve), "--seed", "3", "--port", str(port)],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    base = f"http://127.0.0.1:{port}"
+    try:
+        for _ in range(100):
+            try:
+                urllib.request.urlopen(base + "/_state", timeout=1).close()
+                break
+            except OSError:
+                time.sleep(0.05)
+        yield base
+    finally:
+        proc.terminate()
+        proc.wait(10)
+
+
+def test_the_shop_records_an_order_the_way_the_checkout_task_reads_it(shop_site):
+    import urllib.parse
+    import urllib.request
+
+    from env_eval.tasks.t10_checkout_form import ORDER, SHOP
+
+    def post(path: str, **form: str) -> str:
+        req = urllib.request.Request(shop_site + path, data=urllib.parse.urlencode(form).encode())
+        with urllib.request.urlopen(req) as r:
+            return r.read().decode()
+
+    def state() -> dict:
+        with urllib.request.urlopen(shop_site + "/_state") as r:
+            return json.loads(r.read())
+
+    for line in ORDER["lines"]:
+        post("/basket", id=str(line["id"]), qty=str(line["qty"]))
+    details = {"name": ORDER["name"], "email": ORDER["email"], "country": ORDER["country"], "delivery": ORDER["delivery"]}
+    if ORDER["gift"]:
+        details["gift"] = "yes"
+    assert "You must accept the terms" in post("/checkout", **details) and state()["orders"] == []
+    assert "Your order number is" in post("/checkout", terms="yes", **details)
+    order = state()["orders"][0]
+    assert sorted((x["id"], x["qty"]) for x in order["lines"]) == sorted((x["id"], x["qty"]) for x in ORDER["lines"])
+    assert order["total_cents"] == ORDER["total_cents"] and SHOP.money(order["total_cents"])
+
+
+def test_every_task_loads_with_its_checker_and_both_scripts():
+    from env_eval.tasks import all_tasks
+
+    tasks = all_tasks()
+    assert [t.id for t in tasks][-4:] == ["t08_probes", "t09_slow_command", "t10_checkout_form", "t11_desktop_app"]
+    assert all(t.check and t.perfect and t.careless and t.sessions for t in tasks)
+    assert len({t.id for t in tasks}) == len(tasks)

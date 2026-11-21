@@ -1,9 +1,9 @@
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import LaneKind, Preset
-from agentos.env import presets
-from agentos.env.models import EnvLane
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import LaneKind, Preset
+from openajar.env import presets
+from openajar.env.models import EnvLane
 
 
 def lane(preset, kind=LaneKind.TERMINAL, **over):

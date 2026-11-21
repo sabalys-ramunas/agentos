@@ -2,11 +2,11 @@ import asyncio
 
 import pytest
 
-from agentos.core.errors import EngineError, InvalidRequest, RefNotFound
-from agentos.core.models import ActionKind, Signal
-from agentos.node.human import _inside, _visible_part
-from agentos.node.human_fields import arrow_steps, match_option
-from agentos.node.interaction import (
+from openajar.core.errors import EngineError, InvalidRequest, RefNotFound
+from openajar.core.models import ActionKind, Signal
+from openajar.node.human import _inside, _visible_part
+from openajar.node.human_fields import arrow_steps, match_option
+from openajar.node.interaction import (
     PlaywrightInteraction,
     check_url,
     classify_signal,
@@ -306,7 +306,7 @@ class _Clicked(list):
 def _clicks(monkeypatch, effect, *, before=None):
     """human.click as it behaves around the press: `before` runs during the scroll and glide (the
     page's chance to change things), then the before-press check, then the press's `effect`."""
-    from agentos.node import human
+    from openajar.node import human
 
     clicked = _Clicked()
     pressed = clicked.pressed
@@ -318,7 +318,7 @@ def _clicks(monkeypatch, effect, *, before=None):
         await human._check_before_press()
         pressed.append(target)
         await effect(page)
-    monkeypatch.setattr("agentos.node.human.click", click)
+    monkeypatch.setattr("openajar.node.human.click", click)
     return clicked
 
 
@@ -370,7 +370,7 @@ async def test_navigate_goes_directly_when_the_page_has_no_such_link(monkeypatch
 
 
 async def test_a_link_whose_click_starts_nothing_falls_back_to_goto(monkeypatch, quiet_report):
-    monkeypatch.setattr("agentos.node.interaction.navigation.LINK_START_S", 0.05)
+    monkeypatch.setattr("openajar.node.interaction.navigation.LINK_START_S", 0.05)
     page = _SitePage("https://site.example/feed", link=_Link())
 
     async def nothing(p):
@@ -382,7 +382,7 @@ async def test_a_link_whose_click_starts_nothing_falls_back_to_goto(monkeypatch,
 
 
 async def test_a_covered_link_falls_back_to_goto(monkeypatch, quiet_report):
-    from agentos.node.human import TargetCovered
+    from openajar.node.human import TargetCovered
 
     page = _SitePage("https://site.example/feed", link=_Link())
 
@@ -519,7 +519,7 @@ async def test_a_script_router_showing_the_target_counts_as_followed(monkeypatch
 async def test_a_late_navigation_is_waited_for_not_raced_by_a_goto(monkeypatch, quiet_report):
     """The click's script fetches first and navigates after LINK_START_S: while its request is in
     flight the network is not quiet, so the navigation is caught as the link's, with no goto."""
-    monkeypatch.setattr("agentos.node.interaction.navigation.LINK_START_S", 0.05)
+    monkeypatch.setattr("openajar.node.interaction.navigation.LINK_START_S", 0.05)
     page = _SitePage("https://site.example/feed", link=_Link())
 
     async def fetch_then_navigate(p):
@@ -573,14 +573,14 @@ _HERE = {"want": "https://site.example/about", "connected": True, "href": "https
     ({"want": None}, False),
 ])
 def test_link_leads_to(change, leads):
-    from agentos.node.interaction.navigation import _link_leads_to
+    from openajar.node.interaction.navigation import _link_leads_to
 
     assert _link_leads_to({**_HERE, **change}) == ("https://site.example/about" if leads else None)
     assert _link_leads_to(None) is None
 
 
 def test_a_link_with_the_asked_for_fragment_leads_there():
-    from agentos.node.interaction.navigation import _link_leads_to
+    from openajar.node.interaction.navigation import _link_leads_to
 
     here = "https://site.example/about#team"
     assert _link_leads_to({**_HERE, "want": here, "href": here}) == here
@@ -693,7 +693,7 @@ class SelectPage:
 
 
 def run_select(monkeypatch, select, label, arrows_work):
-    from agentos.node import human_fields
+    from openajar.node import human_fields
     human_presses = []
     if not arrows_work:
         async def arrows(page, key):  # the key arrives, the menu does not move

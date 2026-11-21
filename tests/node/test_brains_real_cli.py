@@ -1,9 +1,9 @@
 """Brains against the REAL claude and codex CLIs on the node (no real credentials).
 
-Pins the flags agentos relies on against the installed CLIs, and runs the real CLIs through
+Pins the flags openajar relies on against the installed CLIs, and runs the real CLIs through
 the full runner with deliberately invalid credentials, so the real stream formats, the auth
 classification and the MCP callback with a child token are all exercised. Real
-authenticated runs need the owner's own subscription (see src/agentos/brains/README.md).
+authenticated runs need the owner's own subscription (see src/openajar/brains/README.md).
 
 Run on the node:  uv run pytest -m node tests/node/test_brains_real_cli.py
 """
@@ -20,18 +20,18 @@ from typing import ClassVar
 import pytest
 from testkit.brains import FakeConfig, FakeCtx, FakeNotifier, FakePolicy, wait_status
 
-from agentos.brains import cliprobe
-from agentos.brains.models import BrainSpec, Budget
-from agentos.brains.service import BrainService
-from agentos.brains.settings import BrainsSettings
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
+from openajar.brains import cliprobe
+from openajar.brains.models import BrainSpec, Budget
+from openajar.brains.service import BrainService
+from openajar.brains.settings import BrainsSettings
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
 
 pytestmark = pytest.mark.node
 
 BIN = "/opt/agentos/node/bin"
-INVALID_OAUTH = "sk-ant-oat01-agentos-node-test-invalid-" + "0" * 40
-INVALID_OPENAI = "sk-agentos-node-test-invalid-" + "0" * 30
+INVALID_OAUTH = "sk-ant-oat01-openajar-node-test-invalid-" + "0" * 40
+INVALID_OPENAI = "sk-openajar-node-test-invalid-" + "0" * 30
 OWNER = "owner-token-node-test-" + "O" * 30
 CHILD = "child-token-node-test-" + "C" * 30
 P = Principal(id="node-test")
@@ -82,7 +82,7 @@ def mcp_server():
 
 @pytest.fixture
 def service(tmp_path, mcp_server, monkeypatch):
-    monkeypatch.setenv("AGENTOS_TOKEN", OWNER)
+    monkeypatch.setenv("OPENAJAR_TOKEN", OWNER)
     home = Path(tempfile.mkdtemp(prefix="agentos-brains-real-"))
     notifier = FakeNotifier()
     rt = Runtime(config=FakeConfig(home, token=OWNER), policy=FakePolicy(token=CHILD), notifier=notifier)
@@ -114,7 +114,7 @@ async def test_real_claude_invalid_token_is_needs_auth_and_child_token_reaches_m
         status = json.loads((service.attempt_dir(r["id"], 1) / "launch.json").read_text())
         assert status["run_as"]["uid"] == service._run_as().pw_uid
     await service.cancel(r["id"])
-    # nothing agentos keeps for the task holds the credential, the child token or the owner token
+    # nothing openajar keeps for the task holds the credential, the child token or the owner token
     files = [p for p in service.task_dir(r["id"]).rglob("*") if p.is_file()]
     files += [p for p in (service.task_dir(r["id"]) / "home").resolve().rglob("*") if p.is_file()]
     blob = b"".join(p.read_bytes() for p in files)

@@ -9,13 +9,13 @@ from types import SimpleNamespace
 import pytest
 from test_publish_normalize import facebook_comment
 
-from agentos.core.models import ActsAs, Surface
-from agentos.core.runtime import Runtime
-from agentos.node import commitgate, daemon, egress, publish
-from agentos.node import tools as node_tools
-from agentos.node.egress import verdicts
-from agentos.policy.errors import Denied
-from agentos.policy.redactor import Redactor
+from openajar.core.models import ActsAs, Surface
+from openajar.core.runtime import Runtime
+from openajar.node import commitgate, daemon, egress, publish
+from openajar.node import tools as node_tools
+from openajar.node.egress import verdicts
+from openajar.policy.errors import Denied
+from openajar.policy.redactor import Redactor
 
 LANE = "personal/facebook"
 
@@ -123,13 +123,13 @@ def test_a_required_service_that_is_not_installed_stops_the_node(monkeypatch):
 def test_an_optional_service_that_is_not_installed_is_still_skipped(monkeypatch):
     monkeypatch.setattr(daemon, "_installed", lambda module: None)
     runtime = Runtime()
-    assert daemon.build_services(runtime, ["agentos.runner.service"]) == []
+    assert daemon.build_services(runtime, ["openajar.runner.service"]) == []
 
 
 # ---- MCP redaction: an unreadable proxies file ----------------------------------------------
 
 def test_an_unreadable_proxies_file_still_masks_the_logins_last_read(monkeypatch):
-    from agentos.policy import redactor as redact
+    from openajar.policy import redactor as redact
 
     good = {"home": SimpleNamespace(password="s3cret-proxy-pass", username="proxyuser01")}
     monkeypatch.setattr(redact, "load_proxies", lambda config: good)

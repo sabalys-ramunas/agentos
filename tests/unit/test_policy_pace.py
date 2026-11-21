@@ -11,12 +11,12 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy import pace as pacing
-from agentos.policy.meters import MeterPolicy
-from agentos.policy.pace import LanePaced, Pace, Window
-from agentos.policy.routing import PolicyConfig, RoutingTable, Rule
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy import pace as pacing
+from openajar.policy.meters import MeterPolicy
+from openajar.policy.pace import LanePaced, Pace, Window
+from openajar.policy.routing import PolicyConfig, RoutingTable, Rule
 
 NODE_TZ = "Europe/Vilnius"
 NY = ZoneInfo("America/New_York")

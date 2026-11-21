@@ -1,5 +1,5 @@
 /**
- * The mock of Runs, the commands started with `agentos run` (`/jobs`, agentos.api.web.jobs): a run in every
+ * The mock of Runs, the commands started with `openajar run` (`/jobs`, openajar.api.web.jobs): a run in every
  * state, its output read from offsets, and cancel. The running one prints more on every read and ends after
  * a few, so a page that follows it sees it finish. A viewer reads; a cancel needs the owner, an admin or a
  * member who operates, as the node asks for `operate`.
@@ -172,7 +172,7 @@ export function seedJobs(now = Date.now()): MockJob[] {
       stderr: '',
     },
     {
-      // From an older agentos: no branch or commit was sent, and the command prints no test summary.
+      // From an older openajar: no branch or commit was sent, and the command prints no test summary.
       job: finished(now, base(now, {
         id: 'job-7a8b9c0d1e', lane: 'personal/shell', command: './scripts/backup-photos.sh --dry-run', state: 'passed',
         node: 'home-mini', exit_code: 0, started_by: 'The owner', sync: null,

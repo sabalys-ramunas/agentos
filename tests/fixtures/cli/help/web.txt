@@ -1,5 +1,5 @@
 
- Usage: agentos web [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar web [OPTIONS] COMMAND [ARGS]...
 
  The web app at http://127.0.0.1:7410/: a prebuilt copy for this release,
  optional. Install, update, remove, status.
@@ -9,11 +9,11 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
 │ status   What the local service serves at /, and whether it matches this     │
-│          agentos.                                                            │
+│          openajar.                                                           │
 │ install  Download this release's web app from GitHub, check its sha256, and  │
 │          unpack it under the home.                                           │
-│ update   Install or update the web app to match this agentos, unless you     │
-│          said no or AGENTOS_NO_WEB=1.                                        │
+│ update   Install or update the web app to match this openajar, unless you    │
+│          said no or OPENAJAR_NO_WEB=1.                                       │
 │ remove   Remove the installed web app. The node, MCP and live views keep     │
 │          working.                                                            │
 ╰──────────────────────────────────────────────────────────────────────────────╯

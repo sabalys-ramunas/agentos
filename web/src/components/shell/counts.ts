@@ -2,7 +2,7 @@
  * The live numbers the shell shows: the rail's counts and the status line at its foot. Every one
  * comes from a hook, so the rail, the tab bar and the pages agree.
  *
- * `useRunningJobs` below is the one place the rail reads how many `agentos run` jobs are running. It
+ * `useRunningJobs` below is the one place the rail reads how many `openajar run` jobs are running. It
  * reads the same list as the Runs page (`useJobs`, the same key and limit), so the rail and the page
  * agree. While the list is not known, or this computer runs no commands, it answers `undefined` and
  * the rail shows no number (never a made-up one).

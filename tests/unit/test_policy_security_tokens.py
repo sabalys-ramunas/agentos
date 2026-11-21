@@ -18,13 +18,13 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_policy_support import T0, Clock, issue_v1, make_service
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect
-from agentos.core.tools import ToolSpec
-from agentos.policy import tokens
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.util import b64u, b64u_decode
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Effect
+from openajar.core.tools import ToolSpec
+from openajar.policy import tokens
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.util import b64u, b64u_decode
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 _L = 2**252 + 27742317777372353535851937790883648493  # the Ed25519 group order
 _B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"

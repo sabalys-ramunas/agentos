@@ -1,4 +1,4 @@
-"""The review browser (agentos.studio.browser) in real Chrome, headless, against pages served through
+"""The review browser (openajar.studio.browser) in real Chrome, headless, against pages served through
 `context.route` (no network). Skips where Chrome cannot start, as test_siteapi_chrome does.
 
 Covers: the width and each theme switch applied and read back, a state reached by steps, each
@@ -15,9 +15,9 @@ import time
 
 import pytest
 
-from agentos.core import catalog
-from agentos.core.errors import EngineError
-from agentos.studio.browser import (
+from openajar.core import catalog
+from openajar.core.errors import EngineError
+from openajar.studio.browser import (
     BlankPage,
     EngineMissing,
     HttpErrorPage,
@@ -30,7 +30,7 @@ from agentos.studio.browser import (
     engines,
     settle,
 )
-from agentos.studio.contracts import EngineName, Screen, Step, Target, ThemeSwitch
+from openajar.studio.contracts import EngineName, Screen, Step, Target, ThemeSwitch
 
 pw = pytest.importorskip("playwright.async_api")
 
@@ -61,7 +61,7 @@ PAGES: dict[str, tuple[int, str]] = {
     "/pins": (200, """<style>@keyframes in{from{opacity:0}to{opacity:1}}
         #a{animation:in 5s forwards} #b{transition:opacity 5s} </style>
         <h1 id="a">Animated</h1><p id="b">Text</p><input id="i" value="x">"""),
-    "/fonts": (200, """<p style="font-family:'NoSuchFontAgentos', serif">Fallback</p>
+    "/fonts": (200, """<p style="font-family:'NoSuchFontOpenajar', serif">Fallback</p>
         <p style="font-family:serif">Generic</p>"""),
     "/stream": (200, STYLE + "<h1>Live</h1><script>new EventSource('/events')</script>"),
     # a phone sheet that fills itself when its slide-in transition ends (transitionend)
@@ -380,8 +380,8 @@ async def test_clock_random_motion_and_caret_are_pinned(pool):
 async def test_the_report_names_fonts_that_fell_back(pool):
     async with pool.page(target("/fonts"), Screen(width=360)) as page:
         report = pool.report(page)
-    assert report["fonts_fell_back"] == [{"family": "NoSuchFontAgentos", "used": "serif", "elements": 1}]
-    assert any("NoSuchFontAgentos -> serif" in note for note in report["notes"])
+    assert report["fonts_fell_back"] == [{"family": "NoSuchFontOpenajar", "used": "serif", "elements": 1}]
+    assert any("NoSuchFontOpenajar -> serif" in note for note in report["notes"])
 
 
 # ---- other engines: what is installed here ----

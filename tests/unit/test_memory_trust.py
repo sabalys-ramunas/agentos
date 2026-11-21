@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 from testkit.memory import FakeTrace, fake_memory
 
-from agentos.core.models import Principal
-from agentos.memory.errors import OwnerTrustRequired
-from agentos.memory.models import Caller, MemoryScope
+from openajar.core.models import Principal
+from openajar.memory.errors import OwnerTrustRequired
+from openajar.memory.models import Caller, MemoryScope
 
 FAMILY = "family:gr_a"
 

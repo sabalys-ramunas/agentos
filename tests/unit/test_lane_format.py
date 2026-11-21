@@ -1,4 +1,4 @@
-"""The versioned lane format (agentos.node.lanefmt): the v1 stamp changes nothing, a newer lane is
+"""The versioned lane format (openajar.node.lanefmt): the v1 stamp changes nothing, a newer lane is
 refused, warm lanes are never touched, steps back up what they change and survive an interrupt."""
 
 from __future__ import annotations
@@ -12,11 +12,11 @@ from pathlib import Path
 import pytest
 from test_lanes import make
 
-from agentos.core.models import LaneSpec, LaneState
-from agentos.node import lanefmt
-from agentos.node.lanefmt import LaneMigration, LaneMigrationContext
-from agentos.node.lanes import LaneFormatMismatch
-from agentos.node.store import LaneStore
+from openajar.core.models import LaneSpec, LaneState
+from openajar.node import lanefmt
+from openajar.node.lanefmt import LaneMigration, LaneMigrationContext
+from openajar.node.lanes import LaneFormatMismatch
+from openajar.node.store import LaneStore
 
 LANE = "personal/reddit"
 
@@ -36,7 +36,7 @@ def lane_copy(home: Path, lane_id: str = LANE) -> Path:
     (d / "files" / "inbox").mkdir(parents=True)
     (d / "files" / "inbox" / "photo.jpg").write_bytes(os.urandom(16))
     (d / "shots").mkdir()
-    store = LaneStore(home / "agentos.db")
+    store = LaneStore(home / "openajar.db")
     store.add(LaneSpec(id=lane_id))
     store.add_event(lane_id, "fingerprint_completed", {"keys": 3})
     return d
@@ -53,7 +53,7 @@ def tree_hash(root: Path) -> dict[str, str]:
 
 
 def rows(home: Path) -> list:
-    conn = sqlite3.connect(home / "agentos.db")
+    conn = sqlite3.connect(home / "openajar.db")
     try:
         return conn.execute("SELECT * FROM lanes ORDER BY id").fetchall()
     finally:
@@ -107,7 +107,7 @@ def test_a_newer_lane_stops_the_run_and_the_daemon(tmp_path):
     with pytest.raises(lanefmt.NewerLaneFormat, match="b/new"):
         lanefmt.migrate_lanes(tmp_path)
     assert not (tmp_path / "lanes" / "a" / "old" / lanefmt.FORMAT_NAME).exists()  # nothing was changed
-    assert "newer agentos" in lanefmt.check_openable(newer)
+    assert "newer openajar" in lanefmt.check_openable(newer)
 
 
 def test_a_broken_version_file_is_never_guessed(tmp_path):
@@ -171,7 +171,7 @@ def test_a_step_backs_up_what_it_changes_and_survives_an_interrupt(tmp_path):
     assert lanefmt.lane_version(d) == (1, True)
     backup = err.value.backup_dir / LANE
     assert (backup / "egress-trace.jsonl").read_text() == original
-    assert json.loads((backup / "agentos.db" / "lanes.jsonl").read_text())["id"] == LANE
+    assert json.loads((backup / "openajar.db" / "lanes.jsonl").read_text())["id"] == LANE
     result = lanefmt.migrate_lanes(tmp_path, migrations=steps)  # the rerun finishes it, once
     assert result.applied == [(LANE, 2, "trace header")]
     assert (d / "egress-trace.jsonl").read_text() == "#v2\n" + original
@@ -210,7 +210,7 @@ async def test_daemon_refuses_a_newer_lane(tmp_path):
     mgr, engine, *_ = make(tmp_path)
     await mgr.create(LaneSpec(id="a/one"))
     lanefmt.format_path(mgr.config.lane_dir("a/one")).write_text(json.dumps({"version": lanefmt.LATEST + 1}))
-    with pytest.raises(LaneFormatMismatch, match="newer agentos"):
+    with pytest.raises(LaneFormatMismatch, match="newer openajar"):
         await mgr.open("a/one")
     assert engine.launches == [] and mgr.get("a/one").state == LaneState.COLD
     await mgr.shutdown()
@@ -242,8 +242,8 @@ async def test_daemon_waits_out_a_migration_then_refuses(tmp_path, monkeypatch):
 
 
 def test_doctor_reports_lane_formats(tmp_path):
-    from agentos.core import migrate
-    from agentos.ops import doctor
+    from openajar.core import migrate
+    from openajar.ops import doctor
 
     d = lane_copy(tmp_path)
     ctx = doctor.DoctorContext(home=tmp_path)

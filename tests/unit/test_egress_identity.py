@@ -1,4 +1,4 @@
-"""Sign-in and captcha hosts on a lane's site list (agentos.node.egress): the shared identity
+"""Sign-in and captcha hosts on a lane's site list (openajar.node.egress): the shared identity
 group in every suggestion, `frame:` entries that admit a host only as a subframe, Google's
 country domains (`accounts.google.@cc`), and the live view's block notices while a human has
 control. The real browser is in tests/node/test_egressux_node.py."""
@@ -8,10 +8,10 @@ from __future__ import annotations
 import pytest
 from test_egress import AGENT, OWNER, FakeFrame, FakeRequest, make_guard, settle
 
-from agentos.core.errors import EgressRefused
-from agentos.core.models import LaneSpec, validate_sites
-from agentos.node import egress
-from agentos.node.egress import (
+from openajar.core.errors import EgressRefused
+from openajar.core.models import LaneSpec, validate_sites
+from openajar.node import egress
+from openajar.node.egress import (
     GOOGLE_COUNTRY_SUFFIXES,
     IDENTITY_SITES,
     PLATFORM_SITES,
@@ -152,7 +152,7 @@ async def test_an_off_list_document_while_a_human_has_control_sends_one_notice(t
     assert first["kind"] == "subframe" and first["frame"] is True and first["rule"] == "noted"
     assert guard.stats["blocked"] == 0  # let through: the human decides; agents would be refused
     assert first["path"] == "/recaptcha/api2/anchor" and first["allow"] == "frame:www.google.com"
-    assert first["command"] == "agentos lane sites biz-a/instagram add frame:www.google.com"
+    assert first["command"] == "openajar lane sites biz-a/instagram add frame:www.google.com"
     assert hop["kind"] == "redirect" and hop["allow"] == "accounts.google.@cc"
     text = repr(notices)
     assert "SECRET" not in text and "site-key" not in text and "?" not in text and EM_DASH not in text

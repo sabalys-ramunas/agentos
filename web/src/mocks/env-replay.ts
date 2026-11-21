@@ -1,6 +1,6 @@
 /**
  * The replays the mock keeps (concept stage): what happened in an environment's browser, as the node's
- * timeline gives it (agentos.environments.replay): frames with a cause, and the calls between them.
+ * timeline gives it (openajar.environments.replay): frames with a cause, and the calls between them.
  *
  * r9cl "Guest checkout, end to end" is the long one: 47 minutes on a fictional shop, Harbor Supply.
  * The agent finds that a guest cannot check out, makes a guest form, gets stuck on a postcode, a person

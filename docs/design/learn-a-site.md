@@ -14,7 +14,7 @@ the account's login and when they save (or approve) the profile.
 
 ## 1. Recording vs connector op
 
-`Recorder.build_checked` (`src/agentos/runner/recorder.py`) yields a FlowDefinition draft:
+`Recorder.build_checked` (`src/openajar/runner/recorder.py`) yields a FlowDefinition draft:
 steps navigate, wait_for, click, fill/type (with a param and inline readback), select, press,
 scroll_to; `Locator` (`runner/models.py`) with `name`, not per-language `names`; params
 schema; effect `draft`. Events come from `record_act` (`node/flow_driver.py`), which records
@@ -102,7 +102,7 @@ recipe. Tools: `profile_learn_start(surface, field)` (checks attached, approved,
 relearn, lane not held; starts the recorder, opens the learn window; returns value and edit-path
 hint) and `profile_learn_finish(surface, field, readback_ref, profile_url)` (node builds the op,
 compiles, installs, replays). The agent uses `login`, `browser_navigate`, `browser_snapshot`,
-`browser_act` in between. Panel: a "Teach agentos this field" button per manual field.
+`browser_act` in between. Panel: a "Teach openajar this field" button per manual field.
 
 ## 7. Sequence
 
@@ -126,7 +126,7 @@ is the first model-free commit; if it fails, the field relearns.
 4. A learned rule's kind is fixed `profile` and is ordered after the built-in commit rules.
 5. Strict FlowCommit: a learned op's run sends only its declared request and uploads.
 6. Catalog ops still need the owner's mark; the gate-shapes file stays owner-only.
-7. Revoke: `agentos connector verify --revoke`, `connector remove`, a per-lane learn switch.
+7. Revoke: `openajar connector verify --revoke`, `connector remove`, a per-lane learn switch.
 
 `name` is excluded from automatic learning and sync: Facebook and Instagram rate-lock name changes
 for weeks (hard to undo, PRINCIPLES.md:59-60).

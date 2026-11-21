@@ -11,15 +11,15 @@ import pytest
 from test_node_panel import Node, bearer
 from workflow_support import LIST, MAIL, OWNER, PEOPLE, action, make_node, read_flow, workflow
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect
-from agentos.events.service import build as build_events
-from agentos.runner.models import answered_in_person
-from agentos.runner.workflows import leads as leads_module
-from agentos.runner.workflows import tools as wf_tools
-from agentos.runner.workflows.leads import DROP_ALL, DROP_DAYS, MAX_BATCH, NOTE, REVIEW_DAYS, TAKE_ALL
-from agentos.runner.workflows.sends import MAX_LIST_SIZE
-from agentos.runner.workflows.service import Actor, WorkflowInvalid
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect
+from openajar.events.service import build as build_events
+from openajar.runner.models import answered_in_person
+from openajar.runner.workflows import leads as leads_module
+from openajar.runner.workflows import tools as wf_tools
+from openajar.runner.workflows.leads import DROP_ALL, DROP_DAYS, MAX_BATCH, NOTE, REVIEW_DAYS, TAKE_ALL
+from openajar.runner.workflows.sends import MAX_LIST_SIZE
+from openajar.runner.workflows.service import Actor, WorkflowInvalid
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 SEND = f"mail.send@{MAIL}"
@@ -685,7 +685,7 @@ def test_every_lead_route_needs_credentials(panel):
 def test_the_cli_is_a_person_and_a_batch_can_be_read_taken_and_erased(panel, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.runner.workflows import cli
+    from openajar.runner.workflows import cli
 
     monkeypatch.setattr(cli, "_svc", lambda: panel.wf)
     batch, _, _ = proposed(panel, "a@x.example", "b@x.example")

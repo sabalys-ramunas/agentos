@@ -1,4 +1,4 @@
-"""Flows as files (agentos.runner.flowfiles): the YAML, its offline checks, and `agentos flows validate`."""
+"""Flows as files (openajar.runner.flowfiles): the YAML, its offline checks, and `openajar flows validate`."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.cli import app
-from agentos.runner.fakes import BASE, post_flow
-from agentos.runner.flowfiles import (
+from openajar.core.errors import InvalidRequest
+from openajar.runner.cli import app
+from openajar.runner.fakes import BASE, post_flow
+from openajar.runner.flowfiles import (
     file_for,
     load_flow,
     load_yaml,
@@ -19,7 +19,7 @@ from agentos.runner.flowfiles import (
     secret_problems,
     workspace_dir,
 )
-from agentos.runner.flows import parse_definition
+from openajar.runner.flows import parse_definition
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE = ROOT / "examples" / "flows"

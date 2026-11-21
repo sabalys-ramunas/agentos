@@ -1,4 +1,4 @@
-"""The profiles routes (agentos.api.routes_profiles): the owner in person reads and edits a profile in the
+"""The profiles routes (openajar.api.routes_profiles): the owner in person reads and edits a profile in the
 panel; a token, the owner's included, a grant and a member are refused; an agent's draft waits for the
 owner's Approve here."""
 
@@ -9,7 +9,7 @@ import json
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.profiles.service import ProfilesService
+from openajar.profiles.service import ProfilesService
 
 LI = "biz-a/linkedin"
 IG = "biz-a/instagram"

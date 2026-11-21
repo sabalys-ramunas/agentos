@@ -1,0 +1,199 @@
+"""What the viewer and the control API say about a lane: the control hub that wakes event
+streams on a change, and the lane, control and action dicts they send.
+"""
+
+from __future__ import annotations
+
+import inspect
+import logging
+from collections.abc import Callable
+from typing import Any
+
+from openajar.core.models import ControlState, LaneControl, LaneInfo
+from openajar.node.viewer_tokens import iso
+
+log = logging.getLogger("openajar.viewer")
+
+
+RECENT_ACTIONS = 40
+
+
+# ---- control hub ------------------------------------------------------------------------
+
+class ControlHub:
+    """One control listener on the lane manager, fanned out to every open relay and event
+    stream, with a per-lane cache so the relay never reads the store per input event."""
+
+    def __init__(self, lanes: Any):
+        self.lanes = lanes
+        self._cache: dict[str, LaneControl] = {}
+        self._watchers: dict[str, list[Callable[[LaneControl], None]]] = {}
+        self._notice_watchers: dict[str, list[Callable[[dict], None]]] = {}
+        lanes.add_control_listener(self._changed)
+        add_notices = getattr(lanes, "add_notice_listener", None)  # a manager without an egress guard has none
+        if callable(add_notices):
+            add_notices(self._noticed)
+
+    def _noticed(self, lane_id: str, notice: dict) -> None:
+        for watcher in list(self._notice_watchers.get(lane_id, ())):
+            try:
+                watcher(notice)
+            except Exception:
+                log.exception("notice watcher failed")
+
+    def watch_notices(self, lane_id: str, callback: Callable[[dict], None]) -> Callable[[], None]:
+        return _watch(self._notice_watchers, lane_id, callback)
+
+    def _changed(self, lane_id: str, old: LaneControl, new: LaneControl) -> None:
+        self._cache[lane_id] = new
+        for watcher in list(self._watchers.get(lane_id, ())):
+            try:
+                watcher(new)
+            except Exception:
+                log.exception("control watcher failed")
+
+    def control(self, lane_id: str) -> LaneControl:
+        control = self._cache.get(lane_id)
+        if control is None:
+            control = self._cache[lane_id] = self.lanes.get(lane_id).control
+        return control
+
+    def state(self, lane_id: str) -> ControlState:
+        """Fail closed: a lane that cannot be read counts as paused."""
+        try:
+            return self.control(lane_id).state
+        except Exception:  # noqa: BLE001
+            return ControlState.PAUSED
+
+    def watch(self, lane_id: str, callback: Callable[[LaneControl], None]) -> Callable[[], None]:
+        return _watch(self._watchers, lane_id, callback)
+
+
+def _watch(table: dict[str, list[Callable]], lane_id: str, callback: Callable) -> Callable[[], None]:
+    table.setdefault(lane_id, []).append(callback)
+
+    def unwatch() -> None:
+        watchers = table.get(lane_id, [])
+        if callback in watchers:
+            watchers.remove(callback)
+        if not watchers:
+            table.pop(lane_id, None)
+
+    return unwatch
+
+
+def control_dict(control: LaneControl) -> dict[str, Any]:
+    data = control.model_dump(mode="json")
+    for key in ("since", "last_human_input"):
+        data[key] = iso(getattr(control, key))
+    return data
+
+
+def lane_dict(info: LaneInfo) -> dict[str, Any]:
+    """The Lane shape from docs/API.md, as far as the lane manager knows it."""
+    spec = info.spec
+    out: dict[str, Any] = {
+        "id": spec.id,
+        "workspace": spec.workspace,
+        "name": spec.name,
+        "kind": spec.kind.value,
+        "engine": spec.engine,
+        "state": info.state.value,
+        "proxy": {"label": spec.proxy_label} if spec.proxy_label else None,
+        "exit_ip": info.exit_ip,
+        "last_used": iso(info.last_used),
+        "quarantine_reason": info.quarantine_reason,
+        "live": info.viewer is not None,
+        "control": control_dict(info.control),
+    }
+    signal = getattr(info, "signal", None)
+    if signal is not None:
+        out["signal"] = getattr(signal, "value", signal)
+    return out
+
+
+# What an MCP client calls itself (clientInfo.name), as a person knows the agent behind it.
+KNOWN_CLIENTS = {
+    "claude-code": "Claude Code", "claude-ai": "Claude", "claude": "Claude", "codex": "Codex",
+    "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor", "gemini-cli": "Gemini CLI",
+    "vscode": "VS Code", "visual-studio-code": "VS Code", "windsurf": "Windsurf", "zed": "Zed",
+}
+MAX_AGENT_NAME = 32
+
+
+def agent_name(client: Any) -> str | None:
+    """The agent's name for the live view ("Claude Code"), from the MCP client it connected with
+    ("claude-code 2.1.3"), or None when it said none. Only the client's own name, never a guess: a
+    name the table does not know is shown as it came, without its version."""
+    if not isinstance(client, str):
+        return None
+    words = client.split()
+    if not words:
+        return None
+    if len(words) > 1 and words[-1][:1].isdigit():
+        words = words[:-1]  # the version
+    raw = " ".join(words)
+    known = KNOWN_CLIENTS.get(raw.lower())
+    if known:
+        return known
+    name = "".join(c for c in raw.replace("-", " ").replace("_", " ") if c.isprintable()).strip()
+    name = " ".join(name.split())[:MAX_AGENT_NAME].strip()
+    return (name[:1].upper() + name[1:]) if name else None
+
+
+def env_agent_name(env: Any) -> str | None:
+    """The name of the agent working an environment ("Claude Code"): the agent the environment names (as the
+    web app shows it), else the MCP client of its newest call, else the one that opened it. None without an
+    environment, and never a guess. The live view and the desktop's top bar both say it."""
+    if env is None:
+        return None
+    named = getattr(env, "agent", None)
+    if isinstance(named, str) and named.strip().lower() not in ("", "an agent", "agent", "owner"):
+        return agent_name(named)
+    calls = getattr(env, "calls", None) or []
+    for call in reversed(calls):
+        name = agent_name(getattr(call, "client", None))
+        if name:
+            return name
+    return agent_name(getattr(env, "client", None))
+
+
+def action_dict(event: Any) -> dict[str, Any] | None:
+    """A trace event (openajar.policy TraceEvent or a dict) as the page shows it."""
+    if hasattr(event, "public"):
+        event = event.public()
+    elif hasattr(event, "model_dump"):
+        event = event.model_dump(mode="json")
+    if not isinstance(event, dict):
+        return None
+    at = event.get("at")
+    if isinstance(at, (int, float)):
+        at = iso(at)
+    return {
+        "id": event.get("id"),
+        "at": at,
+        "tool": event.get("tool") or event.get("kind"),
+        "status": event.get("status"),
+        "summary": event.get("summary") or event.get("error"),
+        "principal": event.get("principal"),
+        "principal_kind": event.get("principal_kind"),
+        "effect": event.get("effect"),
+    }
+
+
+async def recent_actions(traces: Any, lane_id: str, limit: int = RECENT_ACTIONS) -> list[dict] | None:
+    """Newest first, or None when this node has no traces provider."""
+    if traces is None:
+        return None
+    query = getattr(traces, "query", None) or getattr(traces, "recent", None)
+    if query is None:
+        return None
+    try:
+        result = query(lane=lane_id, limit=limit)
+        if inspect.isawaitable(result):
+            result = await result
+    except Exception:
+        log.warning("could not read recent actions for %s", lane_id, exc_info=True)
+        return []
+    events = result[0] if isinstance(result, tuple) else result
+    return [a for a in (action_dict(e) for e in events or ()) if a is not None]

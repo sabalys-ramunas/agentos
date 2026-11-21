@@ -1,5 +1,5 @@
 """The egress package's shim: every name
-the single module agentos.node.egress had still resolves on the package, to the same object its new
+the single module openajar.node.egress had still resolves on the package, to the same object its new
 home holds, and each name is defined in one module only, so a patch of its home reaches every reader
 in the package."""
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from agentos.node import egress
+from openajar.node import egress
 
 # where each name the single module defined lives now
 HOMES: dict[str, tuple[str, ...]] = {
@@ -94,7 +94,7 @@ def _defined(path: Path) -> set[str]:
 
 @pytest.mark.parametrize("module", sorted(HOMES))
 def test_each_moved_name_is_the_same_object_on_the_package(module):
-    home = importlib.import_module(f"agentos.node.egress.{module}")
+    home = importlib.import_module(f"openajar.node.egress.{module}")
     for name in HOMES[module]:
         assert getattr(egress, name) is getattr(home, name), f"{module}.{name}"
 
@@ -102,7 +102,7 @@ def test_each_moved_name_is_the_same_object_on_the_package(module):
 def test_what_the_module_imported_still_resolves_on_the_package():
     missing = [name for name in IMPORTED if not hasattr(egress, name)]
     assert missing == []
-    assert egress.globs is importlib.import_module("agentos.core.globs")
+    assert egress.globs is importlib.import_module("openajar.core.globs")
     assert egress.registrable_domain is egress.sites.registrable_domain
     assert egress.same_site is egress.sites.same_site
 
@@ -110,7 +110,7 @@ def test_what_the_module_imported_still_resolves_on_the_package():
 def test_every_name_is_defined_in_one_module_only():
     seen: dict[str, list[str]] = {}
     for path in sorted(PACKAGE.glob("*.py")):
-        for name in _defined(path) - {"log"}:  # each module names the one logger, agentos.node.egress
+        for name in _defined(path) - {"log"}:  # each module names the one logger, openajar.node.egress
             seen.setdefault(name, []).append(path.stem)
     twice = {name: homes for name, homes in seen.items() if len(homes) > 1}
     assert twice == {}
@@ -121,6 +121,6 @@ def test_every_name_is_defined_in_one_module_only():
 
 def test_each_module_logs_as_the_package():
     for module in HOMES:
-        home = importlib.import_module(f"agentos.node.egress.{module}")
+        home = importlib.import_module(f"openajar.node.egress.{module}")
         if hasattr(home, "log"):
             assert home.log is egress.log

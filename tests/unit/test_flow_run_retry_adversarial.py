@@ -13,11 +13,11 @@ from test_connector_approvals import LANE, _harness, _no_pace, _policy, _post
 from test_flow_run_retry import PARAMS, _asking, _tool
 from test_policy_support import Clock
 
-from agentos.core.models import Effect, RunStatus
-from agentos.policy.errors import Denied
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.tools import tool_specs
+from openajar.core.models import Effect, RunStatus
+from openajar.policy.errors import Denied
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.tools import tool_specs
 
 FLOW = "biz-a.social.post"
 SLOT = "2026-11-11T09:00:00+00:00"
@@ -25,7 +25,7 @@ SLOT = "2026-11-11T09:00:00+00:00"
 
 def _typed(h: Harness):
     """The per-flow typed tool (make_flow_handler): the only tool with a flow input schema here."""
-    return next(s.handler for s in tool_specs(h.runtime) if hasattr(s.handler, "__agentos_input_schema__"))
+    return next(s.handler for s in tool_specs(h.runtime) if hasattr(s.handler, "__openajar_input_schema__"))
 
 
 def _with_props(**props):

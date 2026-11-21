@@ -1,11 +1,11 @@
 
- Usage: agentos environments [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar environments [OPTIONS] COMMAND [ARGS]...
 
  Your agents' cloud computers: list, show, download, close, allow, set up,
  connect repositories.
 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --home        <path>  AGENTOS_HOME (default: $AGENTOS_HOME)                  │
+│ --home        <path>  OPENAJAR_HOME (default: $OPENAJAR_HOME)                │
 │ --help                Show this message and exit.                            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
@@ -42,7 +42,7 @@
 │ prepared     The repositories' prepared machines (an image with their setup  │
 │              run), and the warm pool.                                        │
 │ login        Logins an environment's browser signs in with, from the vault:  │
-│              bind them to computers by title, repository or all. `agentos    │
+│              bind them to computers by title, repository or all. `openajar   │
 │              environments login TITLE SITE` signs one in now.                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

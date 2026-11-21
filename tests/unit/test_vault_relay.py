@@ -8,15 +8,15 @@ from types import SimpleNamespace
 import pytest
 from test_vault_support import FakeCtx, FakeTypist, Page, fld, login_form, make_vault, private_home
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import Principal
-from agentos.core.runtime import Runtime
-from agentos.policy.redact import redact_text
-from agentos.vault.catcher import validate_catcher_config
-from agentos.vault.errors import CodeRefused, CodeRequestClosed, EntryInvalid, ResolutionDenied
-from agentos.vault.login import fill_flow, login_flow
-from agentos.vault.relay import new_request_id, normalize_code
-from agentos.vault.secret import Secret
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import Principal
+from openajar.core.runtime import Runtime
+from openajar.policy.redact import redact_text
+from openajar.vault.catcher import validate_catcher_config
+from openajar.vault.errors import CodeRefused, CodeRequestClosed, EntryInvalid, ResolutionDenied
+from openajar.vault.login import fill_flow, login_flow
+from openajar.vault.relay import new_request_id, normalize_code
+from openajar.vault.secret import Secret
 
 IG = "https://www.instagram.com"
 LOGIN = IG + "/accounts/login/"

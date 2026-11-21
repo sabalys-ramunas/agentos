@@ -27,19 +27,19 @@ for arg in [a for a in sys.argv[1:] if a != "-m"] or ["."]:
     print(os.path.realpath(arg))
 """
 
-# Logs the call. `uv sync` builds a .venv/bin/agentos wrapper around the test interpreter's CLI.
+# Logs the call. `uv sync` builds a .venv/bin/openajar wrapper around the test interpreter's CLI.
 # SHIM_CLI=log makes that wrapper log and exit, so no test ever writes node data for real.
 UV = f"""#!/bin/bash
 echo "uv $*" >> "$SHIM_LOG"
 if [ "$1" = sync ]; then
   mkdir -p .venv/bin
-  cat > .venv/bin/agentos <<'WRAP'
+  cat > .venv/bin/openajar <<'WRAP'
 #!/bin/bash
-echo "agentos $*" >> "$SHIM_LOG"
+echo "openajar $*" >> "$SHIM_LOG"
 if [ "${{SHIM_CLI:-run}}" = log ]; then exit 0; fi
-exec "{sys.executable}" -c 'import sys; from agentos.cli import app; sys.argv[0] = "agentos"; app()' "$@"
+exec "{sys.executable}" -c 'import sys; from openajar.cli import app; sys.argv[0] = "openajar"; app()' "$@"
 WRAP
-  chmod +x .venv/bin/agentos
+  chmod +x .venv/bin/openajar
 fi
 exit 0
 """
@@ -93,10 +93,10 @@ def sandbox_env(root: Path, *, shims: tuple[str, ...], cli: str = "run") -> dict
         "SANDBOX": str(root),
         "SHIM_LOG": str(root / "shim.log"),
         "SHIM_CLI": cli,
-        "AGENTOS_HOME": "",
-        "AGENTOS_INIT_ARGS": "",
-        "AGENTOS_NODE": "mynode",  # scripts/node-env.sh: the dev node and its dev directory
-        "AGENTOS_DEV_ROOT": "/srv/agentos-dev",
+        "OPENAJAR_HOME": "",
+        "OPENAJAR_INIT_ARGS": "",
+        "OPENAJAR_NODE": "mynode",  # scripts/node-env.sh: the dev node and its dev directory
+        "OPENAJAR_DEV_ROOT": "/srv/agentos-dev",
     }
 
 
@@ -126,7 +126,7 @@ DEV_FLAGS = ("--dev", "--skip-apt", "--skip-browser")
 
 
 def installer(env: dict[str, str], cwd: Path, *, prefix: str, home: str, flags: tuple[str, ...] = DEV_FLAGS):
-    return run_script(INSTALLER, list(flags), env, cwd, INSTALL_PREFIX=prefix, AGENTOS_HOME=home)
+    return run_script(INSTALLER, list(flags), env, cwd, INSTALL_PREFIX=prefix, OPENAJAR_HOME=home)
 
 
 def has_rsync() -> bool:

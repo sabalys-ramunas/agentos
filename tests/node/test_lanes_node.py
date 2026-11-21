@@ -1,9 +1,9 @@
 """Lanes on a real node: Xvfb + x11vnc displays and real Camoufox browsers.
 
 Run on the node:  scripts/node-test.sh lanes tests/node/test_lanes_node.py -q
-Uses the ranges scripts/node-test.sh exports for its slot (AGENTOS_TEST_DISPLAY_BASE and
-AGENTOS_TEST_VNC_BASE; by default the lanes agent's :110-:119 and 5810-5819) and an
-AGENTOS_HOME under .node-home/ in this checkout (override with AGENTOS_TEST_ROOT).
+Uses the ranges scripts/node-test.sh exports for its slot (OPENAJAR_TEST_DISPLAY_BASE and
+OPENAJAR_TEST_VNC_BASE; by default the lanes agent's :110-:119 and 5810-5819) and an
+OPENAJAR_HOME under .node-home/ in this checkout (override with OPENAJAR_TEST_ROOT).
 At most two browsers run at once, and every test closes what it opened.
 """
 
@@ -21,9 +21,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec, LaneState
-from agentos.node.camoufox.engine import (
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec, LaneState
+from openajar.node.camoufox.engine import (
     LAUNCHER_KEYS,
     PIN_META,
     PIN_VERSION,
@@ -31,7 +31,7 @@ from agentos.node.camoufox.engine import (
     browser_pids_under,
     read_browser_config,
 )
-from agentos.node.display import (
+from openajar.node.display import (
     DisplayManagerImpl,
     iter_processes,
     kill_processes,
@@ -39,20 +39,20 @@ from agentos.node.display import (
     pid_alive,
     tcp_ports_of,
 )
-from agentos.node.lanes import LaneManagerImpl, build_lane_manager
+from openajar.node.lanes import LaneManagerImpl, build_lane_manager
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "110"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5810"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6110"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "110"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5810"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6110"))
 RANGES = {"display_base": DISPLAY_BASE, "vnc_base": VNC_BASE, "viewer_base": VIEWER_BASE, "max_slots": 10}
-PAGE = """<!doctype html><html><head><title>agentos lanes test</title></head>
-<body style="background:#fff"><h1>agentos lanes</h1><button id="b">Press</button></body></html>"""
+PAGE = """<!doctype html><html><head><title>openajar lanes test</title></head>
+<body style="background:#fff"><h1>openajar lanes</h1><button id="b">Press</button></body></html>"""
 
 
 def node_config(home: Path, **kw) -> NodeConfig:
@@ -175,9 +175,9 @@ async def test_real_lane_pins_then_reuses_fingerprint(managers, home, page_url):
     async with mgr.using(lane_id) as page:
         assert mgr.get(lane_id).state == LaneState.ACTIVE
         await page.goto(page_url)
-        assert await page.title() == "agentos lanes test"
+        assert await page.title() == "openajar lanes test"
         assert await page.evaluate("navigator.userAgent") == pinned["navigator.userAgent"]
-        await page.evaluate("localStorage.setItem('agentos', 'kept')")
+        await page.evaluate("localStorage.setItem('openajar', 'kept')")
     assert mgr.get(lane_id).state == LaneState.WARM
     assert await asyncio.to_thread(screen_mean, info.viewer.display, info.viewer.xauthority) > 0.2, "browser not drawn on the display"
 
@@ -198,7 +198,7 @@ async def test_real_lane_pins_then_reuses_fingerprint(managers, home, page_url):
         await page.goto(page_url)
         assert await page.evaluate("navigator.userAgent") == pinned["navigator.userAgent"]
         assert await page.evaluate("navigator.platform") == pinned["navigator.platform"]
-        assert await page.evaluate("localStorage.getItem('agentos')") == "kept"  # same profile
+        assert await page.evaluate("localStorage.getItem('openajar')") == "kept"  # same profile
 
     await mgr.close(lane_id)
     assert browser_pids(profile, main_only=False) == []

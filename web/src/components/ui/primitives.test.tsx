@@ -52,7 +52,7 @@ describe('Table', () => {
     expect(within(screen.getByRole('columnheader', { name: 'Branch' })).queryByRole('button')).toBeNull();
   });
 
-  it('sets density and the phone list form on the table, numbers in mono, and a selected row', () => {
+  it('sets density and the phone list form on the table, figures in tabular sans, money in mono, and a selected row', () => {
     const onActivate = vi.fn();
     render(
       <Table density="compact" stack>
@@ -61,6 +61,9 @@ describe('Table', () => {
             <Td main>Cart totals</Td>
             <Td numeric label="Tests">
               440
+            </Td>
+            <Td money label="Cost">
+              €0.08
             </Td>
             <Td phone="hide">
               <NoValue />
@@ -74,7 +77,9 @@ describe('Table', () => {
     expect(table).toHaveAttribute('data-stack');
     const row = screen.getByRole('row');
     expect(row).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText('440')).toHaveClass('font-mono', 'tabular', 'text-right');
+    expect(screen.getByText('440')).toHaveClass('tabular', 'text-right');
+    expect(screen.getByText('440')).not.toHaveClass('font-mono');
+    expect(screen.getByText('€0.08')).toHaveClass('font-mono', 'tabular', 'text-right');
     expect(screen.getByText('440')).toHaveAttribute('data-label', 'Tests');
     expect(screen.getByLabelText('None')).toHaveTextContent('–');
     fireEvent.keyDown(row, { key: 'Enter' });
@@ -127,9 +132,12 @@ describe('Status', () => {
     expect(mark).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('pulses only when asked, and colours the word only when it asks for attention', () => {
+  it('never pulses, dashes the ring while starting, and colours the word only when it asks for attention', () => {
     const { container } = render(<StatusDot tone="live" pulse />);
-    expect(container.firstChild).toHaveAttribute('data-pulse');
+    expect(container.firstChild).not.toHaveAttribute('data-pulse');
+    expect(container.firstChild).not.toHaveAttribute('data-dashed');
+    const starting = render(<StatusDot tone="live" starting />);
+    expect(starting.container.firstChild).toHaveAttribute('data-dashed');
     render(<Status status={{ tone: 'bad', label: 'Failed' }} />);
     expect(screen.getByText('Failed')).toHaveClass('text-bad');
     render(<Status status={{ tone: 'ok', label: 'Passed' }} />);

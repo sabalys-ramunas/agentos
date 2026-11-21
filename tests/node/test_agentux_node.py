@@ -12,11 +12,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.errors import RefNotFound
-from agentos.core.models import ActionKind, Signal
-from agentos.node.interaction import DialogGuard, PlaywrightInteraction, WaitFor
-from agentos.node.snapshot import find_refs, outline_delta
-from agentos.node.tools import page_text, render_snapshot
+from openajar.core.errors import RefNotFound
+from openajar.core.models import ActionKind, Signal
+from openajar.node.interaction import DialogGuard, PlaywrightInteraction, WaitFor
+from openajar.node.snapshot import find_refs, outline_delta
+from openajar.node.tools import page_text, render_snapshot
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
@@ -25,9 +25,9 @@ POST = "Post by Ada Lovelace"
 # Runs in Camoufox's isolated world: the observer and its log live there, invisible to the page.
 WATCH_MUTATIONS_JS = """
 () => {
-  window.__agentosTestMutations = [];
+  window.__openajarTestMutations = [];
   new MutationObserver((records) => {
-    for (const r of records) window.__agentosTestMutations.push(r.type + ':' + (r.attributeName || ''));
+    for (const r of records) window.__openajarTestMutations.push(r.type + ':' + (r.attributeName || ''));
   }).observe(document, {subtree: true, childList: true, attributes: true, characterData: true});
 }
 """
@@ -160,7 +160,7 @@ async def test_waits_never_mutate_the_page(page, site_url, ia):
 
     await page.wait_for_timeout(400)  # give the page's own leak detector a few ticks
     assert await page.evaluate("document.documentElement.outerHTML") == html_before
-    assert await page.evaluate("window.__agentosTestMutations") == []
+    assert await page.evaluate("window.__openajarTestMutations") == []
     assert await leak(page) == ""
 
 
@@ -255,7 +255,7 @@ class OnePageLanes:
     """A lane manager whose one lane is the test's page."""
 
     def __init__(self, page):
-        from agentos.core.models import LaneInfo, LaneSpec
+        from openajar.core.models import LaneInfo, LaneSpec
 
         self.page, self.info = page, LaneInfo(spec=LaneSpec(id="personal/fixture"))
 
@@ -280,10 +280,10 @@ async def test_the_tools_navigate_act_and_wait_with_outlines(page, site_url, ia)
 
     from mcp import Client
 
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
-    from agentos.mcp.registry import build_mcp
-    from agentos.node.tools import INSTRUCTIONS, UNTRUSTED, tool_specs
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
+    from openajar.mcp.registry import build_mcp
+    from openajar.node.tools import INSTRUCTIONS, UNTRUSTED, tool_specs
 
     runtime = Runtime(config=NodeConfig(), lanes=OnePageLanes(page), interaction=ia)
     on = "personal/fixture"

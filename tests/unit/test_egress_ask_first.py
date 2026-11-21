@@ -11,13 +11,13 @@ import pytest
 from test_egress import AGENT, OPEN_AGENT, FakeMeter, FakeRequest, FakeRoute, TargetPage, make_guard, settle
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import EgressRefused
-from agentos.core.models import ActionKind, Effect
-from agentos.core.runtime import Runtime
-from agentos.node import egress, flow_driver
-from agentos.node import tools as node_tools
-from agentos.node.egress import Driver, classify, judge
-from agentos.node.tools import session as tool_session
+from openajar.core.errors import EgressRefused
+from openajar.core.models import ActionKind, Effect
+from openajar.core.runtime import Runtime
+from openajar.node import egress, flow_driver
+from openajar.node import tools as node_tools
+from openajar.node.egress import Driver, classify, judge
+from openajar.node.tools import session as tool_session
 
 PUBLISH = "https://i.instagram.com/api/v1/media/configure/"
 LANE = "biz-a/instagram"

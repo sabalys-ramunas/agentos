@@ -10,11 +10,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import EngineError, InvalidRequest, LaneExists, LaneNotFound
-from agentos.core.models import LaneInfo, LaneSpec, LaneState, Principal
-from agentos.core.runtime import Runtime
-from agentos.workspaces.service import WorkspaceService, build
+from openajar.core.config import NodeConfig
+from openajar.core.errors import EngineError, InvalidRequest, LaneExists, LaneNotFound
+from openajar.core.models import LaneInfo, LaneSpec, LaneState, Principal
+from openajar.core.runtime import Runtime
+from openajar.workspaces.service import WorkspaceService, build
 
 
 class FakeLanes:
@@ -34,7 +34,7 @@ class FakeLanes:
         if spec.id in self.lanes:
             raise LaneExists(f"lane {spec.id} already exists")
         if spec.proxy_label and spec.proxy_label not in self.proxies:
-            raise InvalidRequest(f"unknown proxy {spec.proxy_label!r}. Add it first with: agentos proxy add")
+            raise InvalidRequest(f"unknown proxy {spec.proxy_label!r}. Add it first with: openajar proxy add")
         if spec.id in self.fail_on:
             raise EngineError(f"the browser for {spec.id} did not start")
         info = LaneInfo(spec=spec)

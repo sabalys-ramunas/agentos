@@ -15,6 +15,7 @@
  * - Money and the irreversible are decided one at a time, with a second step.
  */
 import { Link, useParams, useSearch } from '@tanstack/react-router';
+import { ListChecks } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAnswerQuestion, useDecideBrand } from '@/api/hooks';
@@ -22,7 +23,8 @@ import { isCancelled } from '@/api/http';
 import type { Approval, BrandProposal, Question } from '@/api/types';
 import { InstallPrompt, markInstallMoment } from '@/components/install-prompt';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/ui/misc';
+import { Kbd, PageHeader } from '@/components/ui/misc';
+import { SegmentedTab, SegmentedTabList, TabPanel, Tabs } from '@/components/ui/tabs';
 import { QueryView } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { describeError, isContentChanged } from '@/lib/errors';
@@ -42,7 +44,8 @@ import { StoppedRuns } from './stopped-runs';
 import { DecidedList, FailedStrip, OutcomeBar } from './outcome';
 import { useNarrow } from './use-narrow';
 import { doingOf, rowTitleOf, whereOf } from './words';
-import { GroupHeader, HandCard, ListSkeleton, batchWords, batchable } from './queue-rows';
+import { HandCard, ListSkeleton, batchWords, batchable } from './queue-rows';
+import { waitedShort } from './queue-words';
 import { BatchBar, QueueCard } from './queue-card';
 import { OpenRequest, RequestColumn } from './request-pane';
 import { useQueue } from './use-queue';
@@ -110,6 +113,7 @@ export function NeedsYou() {
   const decideBrand = useDecideBrand(org);
   // On a phone the queue and the open request are two screens: a row, or a link to one item, opens it.
   const [opened, setOpened] = useState(Boolean(linked));
+  const [handsTab, setHandsTab] = useState(false);
 
   const onUndone = useCallback((ids: string[]) => {
     setDecided((current) => new Set([...current].filter((id) => !ids.includes(id))));
@@ -299,9 +303,24 @@ export function NeedsYou() {
   );
 
   const open = (id: string) => {
+    setHandsTab(false);
     setFocusId(id);
     setOpened(true);
   };
+  // Three tabs, as drawn. J and K still walk every item, and the tab follows the open one: a brand change opens
+  // under Brand. Choosing a tab opens its first item, so the request beside the list always belongs to the tab.
+  const tab: 'decide' | 'brand' | 'hands' = handsTab ? 'hands' : focusedBrand ? 'brand' : 'decide';
+  const decideCount = flat.length + queue.questions.length + queue.openCodes.length;
+  const chooseTab = (value: string) => {
+    if (value === 'hands') {
+      setHandsTab(true);
+      return;
+    }
+    setHandsTab(false);
+    const first = value === 'brand' ? queue.brands[0]?.id : order.find((id) => !queue.brands.some((item) => item.id === id));
+    if (first) setFocusId(first);
+  };
+  const tabs = hasList || queue.hands.length > 0;
   const somethingOpen = shown.any;
   // On a phone: the queue, or the open request as its own screen. On a desk: both.
   const showQueue = !narrow || !opened || !somethingOpen;
@@ -339,9 +358,16 @@ export function NeedsYou() {
         title="Needs you"
         description={headerWords(count)}
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            {hasList ? (
+              <span className="hidden items-center gap-1 text-secondary text-faint lg:inline-flex" aria-hidden="true">
+                <Kbd>J</Kbd>
+                <Kbd>K</Kbd>
+                move
+              </span>
+            ) : null}
             {canDecide && flat.length + queue.questions.length > 1 ? (
-              <Button asChild>
+              <Button asChild icon={<ListChecks className="size-4" />}>
                 <Link to="/$org/approve" params={{ org }}>
                   Go through them one by one
                 </Link>
@@ -363,50 +389,80 @@ export function NeedsYou() {
       />
       <QueryView query={approvals} skeleton={<ListSkeleton />}>
         {() => (
-          <div className="grid gap-8">
-            {requestAlone ? null : failedStrip}
-            <div className={cn('grid items-start gap-6', hasList && 'lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]')}>
-              {hasList && showQueue ? (
-                <QueueCard
-                  queue={queue}
-                  open={shown.rows}
-                  whoOf={whoOf}
-                  canDecide={canDecide}
-                  changed={changed}
-                  selecting={selecting}
-                  selected={selected}
-                  onHover={setHovering}
-                  onChooseSeveral={() => {
-                    setSelecting((on) => !on);
-                    setSelected(new Set());
-                  }}
-                  onOpen={open}
-                  onSelect={toggle}
-                />
-              ) : null}
-              {showRequest ? (
-                <RequestColumn
-                  org={org}
-                  queue={queue}
-                  request={request}
-                  narrow={narrow}
-                  alone={requestAlone}
-                  canDecide={canDecide}
-                  failedStrip={failedStrip}
-                  onBack={() => setOpened(false)}
-                />
-              ) : null}
-            </div>
-            {showQueue ? (
-              <DecidedList
-                org={org}
-                items={queue.decidedHere}
-                nameOf={(lane) => ({ name: businessOf(lane) || null, color: colorOf(lane) })}
-              />
+          <Tabs value={tab} onValueChange={chooseTab}>
+            {tabs && !requestAlone ? (
+              <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <SegmentedTabList aria-label="What needs you">
+                  <SegmentedTab value="decide" count={decideCount}>
+                    To decide
+                  </SegmentedTab>
+                  {queue.brands.length ? (
+                    <SegmentedTab value="brand" count={queue.brands.length}>
+                      Brand
+                    </SegmentedTab>
+                  ) : null}
+                  {queue.hands.length ? (
+                    <SegmentedTab value="hands" count={queue.hands.length}>
+                      Accounts that need a hand
+                    </SegmentedTab>
+                  ) : null}
+                </SegmentedTabList>
+                {queue.oldest && tab !== 'hands' ? <span className="text-secondary text-faint max-sm:hidden">The oldest for {waitedShort(queue.oldest)}</span> : null}
+              </div>
             ) : null}
-            <StoppedRuns org={org} runs={queue.stopped} businessOf={businessOf} />
-            <Hands org={org} queue={queue} whoOf={whoOf} />
-          </div>
+            <TabPanel value={tab} className="outline-none">
+              {tab === 'hands' ? (
+                <Hands org={org} queue={queue} whoOf={whoOf} />
+              ) : (
+                <div className="grid gap-8">
+                  {requestAlone ? null : failedStrip}
+                  <div className={cn('grid items-start gap-6', hasList && 'lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]')}>
+                    {hasList && showQueue ? (
+                      <QueueCard
+                        queue={queue}
+                        tab={tab}
+                        open={shown.rows}
+                        whoOf={whoOf}
+                        canDecide={canDecide}
+                        changed={changed}
+                        selecting={selecting}
+                        selected={selected}
+                        onHover={setHovering}
+                        onChooseSeveral={() => {
+                          setSelecting((on) => !on);
+                          setSelected(new Set());
+                        }}
+                        onOpen={open}
+                        onSelect={toggle}
+                      />
+                    ) : null}
+                    {showRequest ? (
+                      <RequestColumn
+                        org={org}
+                        queue={queue}
+                        request={request}
+                        narrow={narrow}
+                        alone={requestAlone}
+                        canDecide={canDecide}
+                        failedStrip={failedStrip}
+                        onBack={() => setOpened(false)}
+                      />
+                    ) : null}
+                  </div>
+                  {showQueue ? (
+                    <DecidedList
+                      org={org}
+                      items={queue.decidedHere}
+                      nameOf={(lane) => ({ name: businessOf(lane) || null, color: colorOf(lane) })}
+                    />
+                  ) : null}
+                  <StoppedRuns org={org} runs={queue.stopped} businessOf={businessOf} />
+                  {/* Nothing to decide: the accounts that need a hand still show, under All clear. */}
+                  {hasList ? null : <Hands org={org} queue={queue} whoOf={whoOf} />}
+                </div>
+              )}
+            </TabPanel>
+          </Tabs>
         )}
       </QueryView>
       <BatchBar chosen={chosen} onClear={() => setSelected(new Set())} onNo={() => run(chosen, 'deny')} onYes={() => approve(chosen)} />
@@ -442,8 +498,8 @@ function Hands({ org, queue, whoOf }: { org: string; queue: ReturnType<typeof us
   if (!hands.length) return null;
   return (
     <section aria-label="Accounts that need a hand">
-      <GroupHeader name="Accounts that need a hand" why="No rush. The agent cannot do these for you." count={hands.length} />
-      <ul className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      <p className="mb-3 text-secondary text-muted">No rush. The agent cannot do these for you.</p>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {hands.map((lane) => (
           <li key={lane.id}>
             <HandCard org={org} lane={lane} business={businessOf(lane.id) || null} nameOf={whoOf} />

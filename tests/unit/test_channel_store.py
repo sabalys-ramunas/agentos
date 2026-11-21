@@ -1,6 +1,6 @@
-"""The channel's SQLite file (agentos.node.channel.store) as other code sees it: the rows each call
+"""The channel's SQLite file (openajar.node.channel.store) as other code sees it: the rows each call
 writes, a file an older build wrote, and the file's mode. Pinned before the store moved onto
-agentos.core.sqlite, so the move changes no table, no stored value and no file."""
+openajar.core.sqlite, so the move changes no table, no stored value and no file."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import json
 import sqlite3
 import threading
 
-from agentos.node.channel.store import DB_NAME, SCHEMA, ChannelStore
+from openajar.node.channel.store import DB_NAME, SCHEMA, ChannelStore
 
 
 def rows(path, sql):

@@ -10,8 +10,8 @@ import struct
 
 import pytest
 
-from agentos.dev.display import PIXEL_FORMAT, SERVER_FORMAT, VncServer
-from agentos.dev.image import Raster
+from openajar.dev.display import PIXEL_FORMAT, SERVER_FORMAT, VncServer
+from openajar.dev.image import Raster
 
 
 def picture(color: tuple[int, int, int]) -> Raster:

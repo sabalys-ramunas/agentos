@@ -87,7 +87,7 @@ export function CheckPage() {
   const navigate = useNavigate({ from: '/$org/checks/$id' });
   const query = useStudioRun(org, id);
   const run = query.data;
-  usePageCrumb(run ? pagePath(run.url).path : undefined);
+  usePageCrumb(run ? `${pagePath(run.url).host}${pagePath(run.url).path}` : undefined);
 
   const all = useMemo(() => (run ? numbered(run.groups) : []), [run]);
   const findings = useMemo(() => atLeast(all, search.severity), [all, search.severity]);

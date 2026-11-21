@@ -40,7 +40,7 @@ export interface NavItem {
  *   You: Needs you, History, Settings
  *
  * A new place goes into one of these groups, with a key of its own. Environments (2026-11-13) is the
- * first place of work after Home: an agent's own cloud computer is what agentos is for.
+ * first place of work after Home: an agent's own cloud computer is what openajar is for.
  */
 export const NAV: NavItem[] = [
   { label: PLACES.home.word, to: '/$org', icon: House, key: 'h', group: 'work' },

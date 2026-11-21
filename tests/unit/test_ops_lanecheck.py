@@ -1,4 +1,4 @@
-"""The lane check (agentos.stealth.lanecheck): its rules, the cookie reader, the checker end to end against a
+"""The lane check (openajar.stealth.lanecheck): its rules, the cookie reader, the checker end to end against a
 fake host, the health monitor's use of it, the browser_check tool, the panel routes and the CLI."""
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ import pytest
 from test_ops_support import PROXY_PASS, PROXY_USER, FakeHost, GiB, fingerprint, make_home
 from typer.testing import CliRunner
 
-from agentos.core.errors import LaneNotFound
-from agentos.core.models import (
+from openajar.core.errors import LaneNotFound
+from openajar.core.models import (
     AccountRef,
     ControlState,
     Effect,
@@ -28,14 +28,14 @@ from agentos.core.models import (
     ProxyConfig,
     Signal,
 )
-from agentos.node.store import LaneStore, QuarantineRecord, SignalRecord
-from agentos.ops.health import CRITICAL, HealthMonitor
-from agentos.stealth import lanecheck as lc
-from agentos.stealth import lanecookies as lc_cookies
-from agentos.stealth import lanefacts as lc_facts
-from agentos.stealth import lanereport as lc_report
-from agentos.stealth import lanerules as lc_rules
-from agentos.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
+from openajar.node.store import LaneStore, QuarantineRecord, SignalRecord
+from openajar.ops.health import CRITICAL, HealthMonitor
+from openajar.stealth import lanecheck as lc
+from openajar.stealth import lanecookies as lc_cookies
+from openajar.stealth import lanefacts as lc_facts
+from openajar.stealth import lanereport as lc_report
+from openajar.stealth import lanerules as lc_rules
+from openajar.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 CFG = """// camoufox.cfg as shipped (the parts the check reads)
@@ -75,7 +75,7 @@ def signed_in(profile: Path, user_id: str = USER_ID, *, wal: bool = False) -> sq
 
 
 class Home:
-    """An AGENTOS_HOME with a real lane store and a fake host where everything is healthy."""
+    """An OPENAJAR_HOME with a real lane store and a fake host where everything is healthy."""
 
     def __init__(self, tmp_path: Path):
         self.cfg = make_home(tmp_path, lanes={})
@@ -232,7 +232,7 @@ def test_cookie_reader_reads_a_copy_and_never_the_file(tmp_path):
         found = lc_cookies.read_cookie_db(profile, ["instagram.com"], now=now, scratch=tmp_path)
         assert sorted(c["name"] for c in found) == ["ms", "sessionid"]
         assert sorted(p.name for p in profile.iterdir()) == before  # nothing created next to the live file
-        assert not [p for p in tmp_path.iterdir() if p.name.startswith("agentos-cookies-")]  # the copy is gone
+        assert not [p for p in tmp_path.iterdir() if p.name.startswith("openajar-cookies-")]  # the copy is gone
         writer.execute("INSERT INTO moz_cookies (name, value, host, path, expiry) VALUES ('new', 'v', "
                        "'.instagram.com', '/', ?)", (int(now + 60),))  # the browser keeps writing
         assert "new" in {c["name"] for c in lc_cookies.read_cookie_db(profile, ["instagram.com"], now=now)}
@@ -513,8 +513,8 @@ class Ctx:
 
 
 async def test_lane_check_tool(home):
-    from agentos.core.runtime import Runtime
-    from agentos.stealth.tools import NEXT, tool_specs
+    from openajar.core.runtime import Runtime
+    from openajar.stealth.tools import NEXT, tool_specs
 
     leaky(home.lane())
     home.lane("other/ig", cookies=False)
@@ -539,8 +539,8 @@ async def test_lane_check_tool(home):
 def test_panel_routes(home):
     from starlette.testclient import TestClient
 
-    from agentos.api import ApiSettings, PanelStore, build_api
-    from agentos.core.runtime import Runtime
+    from openajar.api import ApiSettings, PanelStore, build_api
+    from openajar.core.runtime import Runtime
 
     leaky(home.lane())
     home.lane("biz/ig", cookies=False)
@@ -563,10 +563,10 @@ def test_panel_routes(home):
 # ---- the CLI ---------------------------------------------------------------------------------------
 
 def test_cli_offline_exit_codes(home, monkeypatch):
-    from agentos.cli import app
+    from openajar.cli import app
 
     home.lane()
-    monkeypatch.setenv("AGENTOS_HOME", str(home.cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home.cfg.home))
     runner = CliRunner()
     ok = runner.invoke(app, ["lane", "check", "biz/instagram", "--offline"])
     assert ok.exit_code == 0, ok.output
@@ -599,7 +599,7 @@ def test_store_facts_reads_an_old_schema(tmp_path):
 
 
 def test_the_lane_check_reports_when_the_session_cookie_expires():
-    from agentos.node import sites
+    from openajar.node import sites
 
     ig = sites.site("instagram")
     assert lc_cookies.session_expiry(ig, [{"name": "sessionid", "value": "x", "expires": 1_800_000_000}]) \

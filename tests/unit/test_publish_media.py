@@ -1,4 +1,4 @@
-"""Media a publish names, bound by the file the node saw uploaded (agentos.node.publish, AUD-03,
+"""Media a publish names, bound by the file the node saw uploaded (openajar.node.publish, AUD-03,
 docs/design/egress-guard.md section 8.2): Reddit's S3 uploads through its upload lease, LinkedIn's
 media registrations (the urn its answer names binds the file seen at the upload URL it names), and
 stickers and GIFs of a site's own catalog, bound by id with a plain label.
@@ -18,8 +18,8 @@ from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FakeRequest, FakeRoute, make_guard
 from test_publish_normalize import facebook_comment, linkedin, linkedin_post, meta_form, rich
 
-from agentos.node import egress, publish
-from agentos.policy.cards import _media_rows
+from openajar.node import egress, publish
+from openajar.policy.cards import _media_rows
 
 PHOTO = b"\x89PNG\r\n\x1a\n the photo's bytes"
 S3 = "https://reddit-uploaded-media.s3-accelerate.amazonaws.com/"

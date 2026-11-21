@@ -7,11 +7,11 @@ import zlib
 
 import pytest
 
-from agentos.core.errors import RefNotFound
-from agentos.core.models import ActionKind, Signal
-from agentos.dev.image import Raster, encode_png
-from agentos.dev.web import CHALLENGE_URL, HEIGHT, WIDTH, DevInteraction, frame_of_page, new_tab
-from agentos.runner.fakes import BASE
+from openajar.core.errors import RefNotFound
+from openajar.core.models import ActionKind, Signal
+from openajar.dev.image import Raster, encode_png
+from openajar.dev.web import CHALLENGE_URL, HEIGHT, WIDTH, DevInteraction, frame_of_page, new_tab
+from openajar.runner.fakes import BASE
 
 
 def ref_for(text: str, name: str) -> str:

@@ -120,7 +120,7 @@ def user_data(tmp_path):
     text = (HETZNER / "cloud-init.yaml").read_text()
     text = text.replace("ADMIN_SSH_KEY=CHANGE-ME", f"ADMIN_SSH_KEY={FAKE_KEY}", 1)
     text = text.replace("JOIN_TOKEN=\n", f"JOIN_TOKEN={SENTINEL_TOKEN}\n", 1)
-    text = text.replace("AGENTOS_GIT_URL=CHANGE-ME", "AGENTOS_GIT_URL=https://git.example.com/agentos.git", 1)
+    text = text.replace("AGENTOS_GIT_URL=CHANGE-ME", "AGENTOS_GIT_URL=https://git.example.com/openajar.git", 1)
     path = tmp_path / "my-node.yaml"
     path.write_text(text)
     path.chmod(0o600)
@@ -284,9 +284,9 @@ POWER = MAC / "power.sh"
 def test_the_launch_agent_template_is_a_plist_with_the_placeholders():
     data = plistlib.loads(PLIST.read_bytes())
     assert data["Label"] == "dev.agentos.controller"
-    assert data["ProgramArguments"] == ["__AGENTOS_BIN__", "controller", "serve"]
+    assert data["ProgramArguments"] == ["__OPENAJAR_BIN__", "controller", "serve"]
     assert data["RunAtLoad"] is True and data["KeepAlive"] is True
-    assert data["EnvironmentVariables"]["AGENTOS_HOME"] == "__AGENTOS_HOME__"
+    assert data["EnvironmentVariables"]["OPENAJAR_HOME"] == "__OPENAJAR_HOME__"
     assert data["StandardErrorPath"] == "__LOG_DIR__/controller.log"
 
 
@@ -297,17 +297,17 @@ def test_plutil_accepts_the_launch_agent_template():
 
 def test_render_fills_the_paths_and_keeps_special_characters(tmp_path):
     out = tmp_path / "rendered.plist"
-    binary = "/Users/me/agentos & co/.venv/bin/agentos"
-    home, logs = "/Users/me/.agentos", "/Users/me/Library/Logs/agentos"
+    binary = "/Users/me/openajar & co/.venv/bin/openajar"
+    home, logs = "/Users/me/.openajar", "/Users/me/Library/Logs/openajar"
     r = subprocess.run([sys.executable, str(RENDER), str(PLIST), str(out), binary, home, logs],
                        check=False, capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
     data = plistlib.loads(out.read_bytes())
     assert data["ProgramArguments"][0] == binary
-    assert data["EnvironmentVariables"]["AGENTOS_HOME"] == home
+    assert data["EnvironmentVariables"]["OPENAJAR_HOME"] == home
     assert data["WorkingDirectory"] == home
     assert data["StandardOutPath"] == f"{logs}/controller.log"
-    assert "__AGENTOS" not in out.read_text() and "__LOG_DIR__" not in out.read_text()
+    assert "__OPENAJAR" not in out.read_text() and "__LOG_DIR__" not in out.read_text()
 
 
 def test_render_refuses_the_wrong_number_of_arguments(tmp_path):

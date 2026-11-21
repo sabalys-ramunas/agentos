@@ -10,14 +10,14 @@ import pytest
 from starlette.testclient import TestClient
 from test_commit_gate import LANE, Node, pending
 
-from agentos.api import ApiSettings, build_api
-from agentos.core.models import AccountRef, Effect, LaneSpec
-from agentos.core.tools import ClientAnswer, elicitor_var
-from agentos.node import commitgate
-from agentos.policy import confirm_chat
-from agentos.policy.cards import publish_card
-from agentos.policy.confirm_chat import prompt_text
-from agentos.policy.tools import approval_confirm
+from openajar.api import ApiSettings, build_api
+from openajar.core.models import AccountRef, Effect, LaneSpec
+from openajar.core.tools import ClientAnswer, elicitor_var
+from openajar.node import commitgate
+from openajar.policy import confirm_chat
+from openajar.policy.cards import publish_card
+from openajar.policy.confirm_chat import prompt_text
+from openajar.policy.tools import approval_confirm
 
 CAPTION = "Autumn menu is here."
 
@@ -194,7 +194,7 @@ async def test_chat_off_still_stops_a_publish(node):
 async def test_a_call_that_is_not_a_publish_after_untrusted_text_still_never_takes_chat(node):
     await node.compose(CAPTION)  # the agent has read the page
     ctx = node.policy.context_for_token(node.token, tool="lane_post", lane_id=LANE)
-    from agentos.core.errors import ApprovalPending
+    from openajar.core.errors import ApprovalPending
 
     node.policy.ask_first.set("lane", LANE, True, by="owner", person=True)
     with pytest.raises(ApprovalPending) as e:

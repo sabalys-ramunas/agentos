@@ -18,10 +18,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos import runas
-from agentos.runas import Identity, RunasError, Server, check_code_owner, check_identities, parse_request
+from openajar import runas
+from openajar.runas import Identity, RunasError, Server, check_code_owner, check_identities, parse_request
 
-CALLER = Identity("agentos", 990, 990)
+CALLER = Identity("openajar", 990, 990)
 BRAIN = Identity("agentos-brain", 991, 991)
 
 
@@ -501,7 +501,7 @@ def test_the_unit_runs_the_helper_without_site():
     unit = (Path(__file__).resolve().parents[2] / "deploy" / "agentos-runas.service").read_text()
     for line in unit.splitlines():
         if line.startswith(("ExecStart=", "ExecStartPre=", "ExecStopPost=")):
-            assert " -I -S -B " in line and "src/agentos/runas.py" in line and " -m " not in line, line
+            assert " -I -S -B " in line and "src/openajar/runas.py" in line and " -m " not in line, line
     assert "ExecStopPost=" in unit and "RuntimeDirectoryPreserve=yes" in unit
 
 
@@ -560,7 +560,7 @@ def test_env_fd_is_close_on_exec_and_reads_from_the_start():
 
 
 def test_names_the_loader_could_use_reach_the_program_untouched():
-    env = {"PATH": "/usr/bin:/bin", "f": "1", "kv": "zz", "g": "0</dev/null; touch /tmp/agentos-never",
+    env = {"PATH": "/usr/bin:/bin", "f": "1", "kv": "zz", "g": "0</dev/null; touch /tmp/openajar-never",
            "IFS": "x", "POSIXLY_CORRECT": "1", "SHLVL": "3"}
     got = dict(kv.split("=", 1) for kv in _load(env, "/usr/bin/env", "-0").decode().split("\0") if kv)
     assert {k: got.get(k) for k in ("f", "kv", "g", "IFS", "POSIXLY_CORRECT")} == \

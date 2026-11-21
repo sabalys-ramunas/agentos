@@ -16,14 +16,14 @@ import pytest
 from fakes import FakeInteraction
 from test_lanes import PROXY, Clock, FakeDisplays, FakeEngine
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentPaused, InvalidRequest, LaneQuarantined
-from agentos.core.models import ControlState, LaneSpec, LaneState, ProxyConfig, Signal
-from agentos.node import lanes as lanes_mod
-from agentos.node.flow_driver import LaneAgentPaused, control_gate
-from agentos.node.lanes import HOLD_EXPIRED_BY, LaneManagerImpl, _as_hold
-from agentos.node.lanes import quarantine as lanes_quarantine
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.errors import AgentPaused, InvalidRequest, LaneQuarantined
+from openajar.core.models import ControlState, LaneSpec, LaneState, ProxyConfig, Signal
+from openajar.node import lanes as lanes_mod
+from openajar.node.flow_driver import LaneAgentPaused, control_gate
+from openajar.node.lanes import HOLD_EXPIRED_BY, LaneManagerImpl, _as_hold
+from openajar.node.lanes import quarantine as lanes_quarantine
+from openajar.node.store import LaneStore
 
 GATEWAY = ProxyConfig(label="gw", host="gate.proxy.test", port=7000, username="u", password="p")
 NODE_IP = "192.0.2.50"
@@ -93,7 +93,7 @@ async def test_a_hold_stops_agents_and_flows_at_the_gate_and_says_why(tmp_path):
     assert seen == [("a/one", ControlState.PAUSED, "needs_human:captcha on www.reddit.com")]
     for kind in ("agent", "flow", "brain"):
         message = await agent_blocked(t.mgr, "a/one", kind)
-        assert "agentos paused a/one itself (no person stopped you)" in message and "needs_human:captcha" in message
+        assert "openajar paused a/one itself (no person stopped you)" in message and "needs_human:captcha" in message
         assert "until the human solves it in the live view and hands the browser back" in message
         assert "\u2014" not in message
     with pytest.raises(LaneAgentPaused):
@@ -273,10 +273,10 @@ async def test_a_policy_that_fails_holds_the_lane_for_a_human(tmp_path):
     assert (await t.mgr.report_signal("a/one", Signal.BLOCKED)).hold == "needs_human:blocked"
 
 
-async def test_the_default_policy_is_agentos_node_holds_when_it_exists(tmp_path, monkeypatch):
+async def test_the_default_policy_is_openajar_node_holds_when_it_exists(tmp_path, monkeypatch):
     t = build(tmp_path)
-    assert lanes_mod.default_hold_policy() is None or "agentos.node.holds" in sys.modules
-    module = types.ModuleType("agentos.node.holds")
+    assert lanes_mod.default_hold_policy() is None or "openajar.node.holds" in sys.modules
+    module = types.ModuleType("openajar.node.holds")
     calls = []
 
     def hold_for(signal, *, now):
@@ -284,7 +284,7 @@ async def test_the_default_policy_is_agentos_node_holds_when_it_exists(tmp_path,
         return SimpleNamespace(reason=f"needs_human:{signal.value}", until=None)
 
     module.hold_for = hold_for
-    monkeypatch.setitem(sys.modules, "agentos.node.holds", module)
+    monkeypatch.setitem(sys.modules, "openajar.node.holds", module)
     mgr = again(t)
     assert mgr.hold_policy is hold_for
     await mgr.create(LaneSpec(id="a/one"))
@@ -329,13 +329,13 @@ class ChallengeReads(FakeInteraction):
     """Snapshots and waits that report the page's signal, as the real interaction's do."""
 
     async def snapshot(self, page):
-        from agentos.core.models import SnapshotResult
+        from openajar.core.models import SnapshotResult
 
         return SnapshotResult(url=page.url, title="t", text="- button [ref=e1]", ref_count=1, signal=self.signal_value)
 
 
 async def test_every_page_read_that_sees_a_challenge_holds_the_lane(tmp_path):
-    from agentos.node.interaction import WaitFor
+    from openajar.node.interaction import WaitFor
 
     for read in ("snapshot", "wait", "screenshot"):
         t = build(tmp_path / read, policy=policy)
@@ -556,7 +556,7 @@ async def test_an_environment_tunnel_exits_from_its_vm_and_is_never_quarantined_
     """An environment's browser goes through a SOCKS socket on the node (127.0.0.1) and leaves from
     the VM, whose IP is neither the socket's nor fixed. It carries no account, so the exit is not
     judged (a Hetzner VM's lane was quarantined for exactly this, 2026-11-13)."""
-    from agentos.core.models import ProxyConfig
+    from openajar.core.models import ProxyConfig
 
     async def node_ip():
         return NODE_IP
@@ -688,7 +688,7 @@ async def test_a_quarantine_while_the_open_waits_for_a_slot_ends_with_no_browser
 
 
 async def test_an_agent_close_that_waited_loses_to_a_take_over(tmp_path):
-    from agentos.core.errors import HumanInControl
+    from openajar.core.errors import HumanInControl
 
     t = build(tmp_path)
     await t.mgr.create(LaneSpec(id="a/one"))
@@ -969,7 +969,7 @@ async def test_a_bad_signal_the_lane_cannot_be_held_for_stops_the_call_that_read
 
 
 def test_a_broken_holds_module_holds_every_bad_signal_for_a_human(monkeypatch):
-    from agentos.node.lanes import control as lanes_control
+    from openajar.node.lanes import control as lanes_control
 
     def importer(error):
         def import_module(name):
@@ -986,7 +986,7 @@ def test_a_broken_holds_module_holds_every_bad_signal_for_a_human(monkeypatch):
     assert lanes_control.default_hold_policy() is lanes_mod.hold_for_a_human  # there, but no hold_for
     # a build without the module at all holds nothing, as documented
     monkeypatch.setattr(lanes_control, "importlib",
-                        importer(ModuleNotFoundError("x", name="agentos.node.holds")))
+                        importer(ModuleNotFoundError("x", name="openajar.node.holds")))
     assert lanes_control.default_hold_policy() is None
 
 

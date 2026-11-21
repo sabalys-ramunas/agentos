@@ -8,12 +8,12 @@ import io
 
 import pytest
 
-from agentos.core.errors import NotFound
-from agentos.studio.contracts import Capture, ComponentRef, Element, Rect, Screen, Shot, Target
-from agentos.studio.diff import NoiseMask, ScreenMask, diff_captures, noise_mask
-from agentos.studio.diff.structure import compare, match
-from agentos.studio.diff.words import hex_color, label, quote
-from agentos.studio.store import Manifest, StudioStore, iso_now, new_capture_id
+from openajar.core.errors import NotFound
+from openajar.studio.contracts import Capture, ComponentRef, Element, Rect, Screen, Shot, Target
+from openajar.studio.diff import NoiseMask, ScreenMask, diff_captures, noise_mask
+from openajar.studio.diff.structure import compare, match
+from openajar.studio.diff.words import hex_color, label, quote
+from openajar.studio.store import Manifest, StudioStore, iso_now, new_capture_id
 
 pil = pytest.importorskip("PIL.Image")
 from PIL import ImageDraw
@@ -102,7 +102,7 @@ def test_a_heading_that_grew_is_the_cause_and_what_it_pushed_points_at_it(store)
 
 
 def test_a_restyle_names_tokens_only_when_a_token_set_is_given(store):
-    from agentos.studio.tokens import from_css
+    from openajar.studio.tokens import from_css
     tokens = from_css(":root { --color-blue-600: #2563eb; --color-blue-700: #1d4ed8; }")
     a, b = page(), page(button_bg="#1d4ed8")
     ca, cb = keep(store, {S: (a, png(a))}), keep(store, {S: (b, png(b))})
@@ -236,7 +236,7 @@ def test_words():
 def test_matching_works_out_each_elements_content_once(monkeypatch):
     """Many free siblings of one kind: every one is compared with every candidate, round after round,
     and each element's content is still worked out only once."""
-    from agentos.studio.diff import structure
+    from openajar.studio.diff import structure
 
     calls = []
     real = structure._content

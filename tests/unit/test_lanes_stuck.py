@@ -10,10 +10,10 @@ import pytest
 from test_lanes import make
 from test_lanes_deadlines import LANE, agent, hang_page, lane, stuck_call
 
-from agentos.core import progress
-from agentos.core.errors import EngineError, LaneBusy
-from agentos.environments.probes import load_words
-from agentos.node.lanes import access as access_mod
+from openajar.core import progress
+from openajar.core.errors import EngineError, LaneBusy
+from openajar.environments.probes import load_words
+from openajar.node.lanes import access as access_mod
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +46,7 @@ async def test_a_stuck_call_ends_and_frees_the_lane_even_when_the_close_hangs(tm
     with pytest.raises(EngineError) as err:
         await asyncio.wait_for(stuck_call(mgr, deadline_s=0.2), 3)
     assert loop.time() - t0 < 2  # the call does not wait for the close
-    assert "agentos is closing the browser" in err.value.message
+    assert "openajar is closing the browser" in err.value.message
     await asyncio.sleep(0.7)  # CLOSE_WAIT_S later the lane is free, while the close still hangs
     assert not mgr._lanes[LANE].access.busy()
     release.set()
@@ -127,7 +127,7 @@ def test_the_load_words():
 
 
 async def test_a_session_close_that_hangs_is_abandoned_after_its_timeout(tmp_path):
-    from agentos.node.camoufox.session import CamoufoxSession
+    from openajar.node.camoufox.session import CamoufoxSession
 
     class Ctx:
         async def close(self):

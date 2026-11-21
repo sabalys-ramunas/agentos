@@ -240,7 +240,7 @@ export function PasswordStep({ provider, go }: { provider: string; go: Go }) {
   return (
     <div className="max-w-xl">
       <p className="text-lede text-pretty text-muted">
-        It is a separate password, 16 letters long, that you make for agentos. <span className="text-fg">Your normal {provider} password stays yours.</span> You can delete this one any time.
+        It is a separate password, 16 letters long, that you make for openajar. <span className="text-fg">Your normal {provider} password stays yours.</span> You can delete this one any time.
       </p>
       <ol className="mt-4 rounded-lg border border-line px-4">
         <Numbered number={1}>
@@ -258,8 +258,8 @@ export function PasswordStep({ provider, go }: { provider: string; go: Go }) {
         <Numbered number={2}>
           <span className="flex flex-wrap items-center gap-2">
             Give it a name, such as
-            <button type="button" onClick={() => void copy('agentos')} className="mono inline-flex h-6 items-center gap-1 rounded-sm bg-pressed px-2 text-caption hover:bg-fill-strong">
-              agentos
+            <button type="button" onClick={() => void copy('openajar')} className="mono inline-flex h-6 items-center gap-1 rounded-sm bg-pressed px-2 text-caption hover:bg-fill-strong">
+              openajar
               {copied ? <CheckIcon aria-hidden="true" className="size-3" /> : <Copy aria-hidden="true" className="size-3 text-faint" />}
             </button>
             and press Create.

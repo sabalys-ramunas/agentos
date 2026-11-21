@@ -11,15 +11,15 @@ import time
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.core import signing
-from agentos.core.models import ControlState
-from agentos.node.channel import node as channel_node
-from agentos.node.channel import signed as channel_signed
-from agentos.node.channel import wire
-from agentos.node.channel.node import Backoff
-from agentos.policy import tokens
-from agentos.policy.grants import GrantBlock, Specials
-from agentos.policy.util import new_id
+from openajar.core import signing
+from openajar.core.models import ControlState
+from openajar.node.channel import node as channel_node
+from openajar.node.channel import signed as channel_signed
+from openajar.node.channel import wire
+from openajar.node.channel.node import Backoff
+from openajar.policy import tokens
+from openajar.policy.grants import GrantBlock, Specials
+from openajar.policy.util import new_id
 
 
 def grant(fake, *, workspaces=("*",), ceiling="irreversible", exp=None, admin=None):
@@ -503,7 +503,7 @@ async def test_an_unexpected_error_fails_that_message_only(wired, monkeypatch):
 
 async def test_a_slow_lane_control_does_not_stall_the_reader_and_keeps_its_order(wired, monkeypatch):
     fake, runtime, peer = wired
-    from agentos.node import viewer_actions
+    from openajar.node import viewer_actions
 
     applied = []
     real = viewer_actions.apply_action

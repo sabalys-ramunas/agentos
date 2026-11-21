@@ -1,6 +1,7 @@
+import { Card } from '@/components/ui/card';
 import { Link, Outlet, useLocation, useNavigate, useParams } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAccess } from '@/api/hooks';
 import { cn } from '@/lib/cn';
 import type { Action } from '@/lib/permissions';
@@ -81,25 +82,39 @@ function useSections(org: string) {
 
 function SideNav({ org }: { org: string }) {
   const sections = useSections(org);
+  const nav = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  // In a short window the list scrolls; the open section is kept in sight.
+  useEffect(() => {
+    nav.current?.querySelector('[data-status="active"]')?.scrollIntoView?.({ block: 'nearest' });
+  }, [pathname]);
   return (
-    <nav aria-label="Settings" className="sticky top-[calc(var(--topbar-height)+40px)] hidden w-48 shrink-0 self-start lg:block">
+    <nav
+      ref={nav}
+      aria-label="Settings"
+      // A short window: the list scrolls inside itself, so the last section stays reachable.
+      className="sticky top-[calc(var(--topbar-height)+24px)] -mt-3 hidden max-h-[calc(100dvh-var(--topbar-height)-48px)] w-52 shrink-0 self-start overflow-y-auto pb-6 lg:block"
+    >
       {sections.map((section) => (
-        <div key={section.title} className="mb-6">
-          <p className="mb-1 px-2 text-caption text-faint">{section.title}</p>
-          {section.items.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              params={{ org }}
-              className={cn(
-                'flex h-8 items-center rounded-md px-2 text-secondary text-muted',
-                'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg',
-                'data-[status=active]:bg-pressed data-[status=active]:text-fg',
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div key={section.title} className="grid">
+          <p className="px-3 pt-3 pb-1 text-caption text-faint">{section.title}</p>
+          <ul className="grid">
+            {section.items.map((item) => (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  params={{ org }}
+                  className={cn(
+                    'focus-inset flex h-8 items-center truncate rounded-lg px-3 text-secondary text-muted',
+                    'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg',
+                    'data-[status=active]:bg-accent-soft data-[status=active]:font-semibold data-[status=active]:text-accent-text',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       ))}
     </nav>
@@ -115,15 +130,19 @@ export function SettingsLayout() {
   return (
     <>
       {isIndex || nested ? null : (
-        <Link to="/$org/settings" params={{ org }} className="mb-4 inline-flex items-center gap-1 text-secondary text-faint hover:text-fg lg:hidden">
+        <Link
+          to="/$org/settings"
+          params={{ org }}
+          className="-ml-1 mb-4 inline-flex h-8 items-center gap-1 rounded-full pr-3 pl-1 text-secondary text-muted hover:bg-hover hover:text-fg lg:hidden"
+        >
           <ChevronLeft className="size-4" />
           Settings
         </Link>
       )}
-      <h1 className={cn('mb-8 text-page-title-compact font-semibold', !isIndex && 'hidden lg:block')}>Settings</h1>
-      <div className="flex gap-10">
+      <h1 className={cn('mb-6 text-page-title-compact md:text-page-title lg:mb-8', !isIndex && 'hidden lg:block')}>Settings</h1>
+      <div className="flex gap-8">
         <SideNav org={org} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 max-w-180 flex-1">
           <Outlet />
         </div>
       </div>
@@ -144,18 +163,26 @@ export function SettingsIndex() {
   return (
     <div className="grid gap-6 lg:hidden">
       {sections.map((section) => (
-        <section key={section.title}>
-          <h2 className="mb-2 text-secondary text-faint font-semibold">{section.title}</h2>
-          <ul className="divide-y divide-line rounded-xl border border-line">
+        <section key={section.title} aria-labelledby={`settings-${section.title}`}>
+          <h2 id={`settings-${section.title}`} className="mb-2 px-1 text-caption text-faint">
+            {section.title}
+          </h2>
+          <Card className="overflow-hidden">
+          <ul className="divide-y divide-line">
             {section.items.map((item) => (
               <li key={item.to}>
-                <Link to={item.to} params={{ org }} className="flex h-12 items-center justify-between px-4 text-body">
-                  {item.label}
-                  <ChevronRight className="size-4 text-faint" />
+                <Link
+                  to={item.to}
+                  params={{ org }}
+                  className="focus-inset flex h-13 items-center gap-3 pr-3 pl-4 text-body active:bg-pressed"
+                >
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  <ChevronRight aria-hidden className="size-4 shrink-0 text-faint" />
                 </Link>
               </li>
             ))}
           </ul>
+          </Card>
         </section>
       ))}
     </div>

@@ -1,4 +1,4 @@
-$ agentos lane check --all --offline
+$ openajar lane check --all --offline
 exit 1
 personal/reddit: WARN (lane cold, checked <HM> UTC)
   UNKNOWN Proxy: Proxy lt1 was not probed (offline).

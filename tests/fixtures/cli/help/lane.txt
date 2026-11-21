@@ -1,5 +1,5 @@
 
- Usage: agentos lane [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar lane [OPTIONS] COMMAND [ARGS]...
 
  Browser lanes: one logged-in account each.
 
@@ -13,7 +13,7 @@
 │ import               Create a lane from an existing logged-in profile (for   │
 │                      example, one from the first prototype).                 │
 │ delete               Remove a lane that is not running. Its profile and      │
-│                      files move to AGENTOS_HOME/trash, nothing               │
+│                      files move to OPENAJAR_HOME/trash, nothing              │
 │                      is erased.                                              │
 │ set-proxy            Move a lane that is not running to another proxy. The   │
 │                      lane's sites see a new IP next time, so do this         │
@@ -26,7 +26,7 @@
 │                      a new computer to its site: expect a re-login           │
 │                      or a checkpoint (the site asks the account owner a      │
 │                      question). That needs --yes. To share a lane's own      │
-│                      fingerprint instead, make the device from it: agentos   │
+│                      fingerprint instead, make the device from it: openajar  │
 │                      device create <name> --from-lane <lane>.                │
 │ sites                The lane's site list: the only hosts its pages may load │
 │                      documents from (every navigation, redirect,             │
@@ -59,8 +59,8 @@
 │                      files it under that name). Either one applies           │
 │                      to exactly that host, path and method, on this lane     │
 │                      only unless `--all-lanes`. Stored on this node          │
-│                      (AGENTOS_HOME/gate-shapes.json), each change written to │
-│                      the action log; every lane's gate reads it              │
+│                      (OPENAJAR_HOME/gate-shapes.json), each change written   │
+│                      to the action log; every lane's gate reads it           │
 │                      within seconds. `--observed` adds what observe mode saw │
 │                      that no commit or write rule matched (a publish         │
 │                      the gate takes for a read): name one with               │
@@ -76,7 +76,7 @@
 │                      (its publishes are not gated). Read from the lanes'     │
 │                      request logs (names and shapes only, never a            │
 │                      value). Fix a stale rule without a code change:         │
-│                      `agentos lane gate-log <lane> --as-commit               │
+│                      `openajar lane gate-log <lane> --as-commit              │
 │                      <kind>.<detail> --shape <id>`.                          │
 │ pace                 A lane's posting pace: its waking hours, read on the    │
 │                      lane's own clock (its proxy's region from its           │
@@ -99,7 +99,7 @@
 │                      and nothing acts until you hand it back.                │
 │ deny                 Refuse an agent's request for control back. You keep    │
 │                      control.                                                │
-│ login                Log a lane in by typing into the terminal: agentos      │
+│ login                Log a lane in by typing into the terminal: openajar     │
 │                      reads each sign-in step, asks you for exactly           │
 │                      its fields (passwords and codes hidden), and types them │
 │                      into the lane's browser at a person's pace.             │
@@ -135,7 +135,7 @@
 │                      expected account, and any hold. Never warms a lane,     │
 │                      opens a page or contacts an account's site.             │
 │                      Exits 1 when any lane fails a check.                    │
-│ health               One grade per lane from the checks agentos already      │
+│ health               One grade per lane from the checks openajar already     │
 │                      runs: Looks normal, Check this or Stop, with            │
 │                      countable facts and each finding's fix. It reports      │
 │                      consistency, leaks and the challenges sites             │

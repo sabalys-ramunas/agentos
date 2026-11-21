@@ -76,7 +76,7 @@ function StepUpLink({ token }: { token: string }) {
         description="Go back to the tab where you started, and it carries on by itself. You can close this one."
       >
         <Button size="lg" className="w-full" asChild>
-          <Link to="/">Open agentos</Link>
+          <Link to="/">Open openajar</Link>
         </Button>
       </AuthLayout>
     );
@@ -93,7 +93,7 @@ function StepUpLink({ token }: { token: string }) {
       }
     >
       <Button size="lg" className="w-full" asChild>
-        <Link to="/">Open agentos</Link>
+        <Link to="/">Open openajar</Link>
       </Button>
     </AuthLayout>
   );

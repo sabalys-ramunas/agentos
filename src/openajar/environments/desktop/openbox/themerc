@@ -1,0 +1,113 @@
+# openajar: the desktop's window frames for openbox (original work, the Dawn design). Light title bars with a
+# soft top-down fade, a 1 px edge, square corners and no shadow; Inter titles; small grey buttons.
+border.width: 1
+padding.width: 11
+padding.height: 9
+window.handle.width: 0
+window.client.padding.width: 0
+window.client.padding.height: 0
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.separator.width: 1
+menu.separator.padding.width: 8
+menu.separator.padding.height: 4
+
+window.active.border.color: #b9bac2
+window.inactive.border.color: #c9cad0
+window.active.title.separator.color: #d6d6db
+window.inactive.title.separator.color: #dedee2
+window.active.client.color: #ffffff
+window.inactive.client.color: #ffffff
+
+window.active.title.bg: gradient vertical
+window.active.title.bg.color: #f8f8f9
+window.active.title.bg.colorTo: #ebebee
+window.inactive.title.bg: flat solid
+window.inactive.title.bg.color: #f4f4f6
+window.active.label.bg: parentrelative
+window.inactive.label.bg: parentrelative
+window.active.label.text.color: #1f2024
+window.inactive.label.text.color: #8a8c95
+window.label.text.justify: center
+window.active.handle.bg: flat solid
+window.active.handle.bg.color: #ebebee
+window.inactive.handle.bg: flat solid
+window.inactive.handle.bg.color: #f4f4f6
+window.active.grip.bg: flat solid
+window.active.grip.bg.color: #ebebee
+window.inactive.grip.bg: flat solid
+window.inactive.grip.bg.color: #f4f4f6
+
+window.active.button.unpressed.bg: parentrelative
+window.active.button.unpressed.image.color: #6b6e77
+window.active.button.hover.bg: flat solid
+window.active.button.hover.bg.color: #dcdce1
+window.active.button.hover.image.color: #1f2024
+window.active.button.pressed.bg: flat solid
+window.active.button.pressed.bg.color: #cfcfd5
+window.active.button.pressed.image.color: #1f2024
+window.active.button.disabled.bg: parentrelative
+window.active.button.disabled.image.color: #c2c3c9
+window.active.button.toggled.unpressed.bg: parentrelative
+window.active.button.toggled.unpressed.image.color: #6b6e77
+window.active.button.toggled.hover.bg: flat solid
+window.active.button.toggled.hover.bg.color: #dcdce1
+window.active.button.toggled.hover.image.color: #1f2024
+window.active.button.toggled.pressed.bg: flat solid
+window.active.button.toggled.pressed.bg.color: #cfcfd5
+window.active.button.toggled.pressed.image.color: #1f2024
+window.inactive.button.unpressed.bg: parentrelative
+window.inactive.button.unpressed.image.color: #a3a5ad
+window.inactive.button.hover.bg: flat solid
+window.inactive.button.hover.bg.color: #e4e4e8
+window.inactive.button.hover.image.color: #1f2024
+window.inactive.button.pressed.bg: flat solid
+window.inactive.button.pressed.bg.color: #d6d6db
+window.inactive.button.pressed.image.color: #1f2024
+window.inactive.button.disabled.bg: parentrelative
+window.inactive.button.disabled.image.color: #d0d1d6
+window.inactive.button.toggled.unpressed.bg: parentrelative
+window.inactive.button.toggled.unpressed.image.color: #a3a5ad
+window.inactive.button.toggled.hover.bg: flat solid
+window.inactive.button.toggled.hover.bg.color: #e4e4e8
+window.inactive.button.toggled.hover.image.color: #1f2024
+window.inactive.button.toggled.pressed.bg: flat solid
+window.inactive.button.toggled.pressed.bg.color: #d6d6db
+window.inactive.button.toggled.pressed.image.color: #1f2024
+
+# the close button turns red under the pointer, as people expect
+window.active.button.close.hover.bg: flat solid
+window.active.button.close.hover.bg.color: #e5484d
+window.active.button.close.hover.image.color: #ffffff
+window.active.button.close.pressed.bg: flat solid
+window.active.button.close.pressed.bg.color: #c53a3f
+window.active.button.close.pressed.image.color: #ffffff
+window.inactive.button.close.hover.bg: flat solid
+window.inactive.button.close.hover.bg.color: #e5484d
+window.inactive.button.close.hover.image.color: #ffffff
+
+menu.border.width: 1
+menu.border.color: #c9cad0
+menu.title.bg: flat solid
+menu.title.bg.color: #f4f4f6
+menu.title.text.color: #6b6e77
+menu.title.text.justify: left
+menu.items.bg: flat solid
+menu.items.bg.color: #ffffff
+menu.items.text.color: #1f2024
+menu.items.disabled.text.color: #a3a5ad
+menu.items.active.bg: flat solid
+menu.items.active.bg.color: #6d4aff
+menu.items.active.text.color: #ffffff
+menu.items.active.disabled.text.color: #e4e0ff
+menu.separator.color: #e3e3e7
+
+osd.border.width: 1
+osd.border.color: #c9cad0
+osd.bg: flat solid
+osd.bg.color: #f8f8f9
+osd.label.text.color: #1f2024
+osd.hilight.bg: flat solid
+osd.hilight.bg.color: #6d4aff
+osd.unhilight.bg: flat solid
+osd.unhilight.bg.color: #dcdce1

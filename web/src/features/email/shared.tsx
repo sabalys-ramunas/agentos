@@ -12,7 +12,8 @@ export function EmailTabs({ org, here, newCount, waiting }: { org: string; here:
   const items = [item('mailboxes', 'Mailboxes'), item('new-mail', 'New mail', newCount), item('leads', 'Leads', waiting)];
   const to = { mailboxes: '/$org/email', 'new-mail': '/$org/email/new-mail', leads: '/$org/email/leads' } as const;
   return (
-    <nav aria-label="Email" className="scrollbar-none mb-8 flex gap-6 overflow-x-auto border-b border-line">
+    // The three views as the drawings' segmented well, each with its count; the chosen one is the card.
+    <nav aria-label="Email" className="scrollbar-none mb-8 inline-flex max-w-full gap-px overflow-x-auto rounded-full border border-line bg-inset p-1">
       {items.map(({ place, word, count }) => (
         <Link
           key={place}
@@ -20,12 +21,12 @@ export function EmailTabs({ org, here, newCount, waiting }: { org: string; here:
           params={{ org }}
           aria-current={place === here ? 'page' : undefined}
           className={cn(
-            'focus-inset -mb-px flex h-10 items-center gap-2 border-b text-body whitespace-nowrap transition-colors duration-(--duration-base) ease-standard',
-            place === here ? 'border-fg text-fg' : 'border-transparent text-faint hover:text-fg',
+            'flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-label whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard',
+            place === here ? 'border-line bg-card font-semibold text-fg shadow-lift' : 'border-transparent text-muted hover:text-fg',
           )}
         >
           {word}
-          {count ? <span className="tabular rounded-sm bg-pressed px-1 text-caption text-muted">{count}</span> : null}
+          {count ? <span className="tabular text-secondary font-normal text-faint">{count}</span> : null}
         </Link>
       ))}
     </nav>

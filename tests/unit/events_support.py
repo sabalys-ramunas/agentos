@@ -7,14 +7,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from agentos.agents.models import AgentState, TurnStatus
-from agentos.agents.ports import TurnReceipt, TurnRequest
-from agentos.core.errors import LaneNotFound, NotFound, PolicyDenied
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, Principal
-from agentos.events.dispatcher import EventSettings
-from agentos.events.models import QuietHours
-from agentos.events.service import build
-from agentos.runner.fakes import BASE, FakeClock, FakeNotifier, Harness
+from openajar.agents.models import AgentState, TurnStatus
+from openajar.agents.ports import TurnReceipt, TurnRequest
+from openajar.core.errors import LaneNotFound, NotFound, PolicyDenied
+from openajar.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, Principal
+from openajar.events.dispatcher import EventSettings
+from openajar.events.models import QuietHours
+from openajar.events.service import build
+from openajar.runner.fakes import BASE, FakeClock, FakeNotifier, Harness
 
 OWNER = {"kind": "human", "id": "owner", "owner": "owner"}
 # 12:00 in Vilnius on a Wednesday: outside the node's default quiet hours
@@ -82,7 +82,7 @@ class Ctx:
 
 
 class Policy:
-    """context_for_grant / mint_child_token / revoke, the methods agentos.events uses."""
+    """context_for_grant / mint_child_token / revoke, the methods openajar.events uses."""
 
     def __init__(self) -> None:
         self.minted: list[dict[str, Any]] = []

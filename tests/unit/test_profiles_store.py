@@ -9,8 +9,8 @@ import stat
 
 from test_profiles import data
 
-from agentos.profiles.models import Profile, ProfileState
-from agentos.profiles.store import ProfileStore
+from openajar.profiles.models import Profile, ProfileState
+from openajar.profiles.store import ProfileStore
 
 
 def _fill(store: ProfileStore) -> dict:

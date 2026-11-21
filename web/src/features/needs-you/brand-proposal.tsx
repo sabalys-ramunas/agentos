@@ -13,11 +13,11 @@ import type { BrandProposal } from '@/api/types';
 import { AgentMark } from '@/components/brand/identity';
 import { Button } from '@/components/ui/button';
 import { IfYes } from '@/components/ui/if-yes';
-import { KindEyebrow, KindTile } from '@/components/ui/kind';
 import { Status } from '@/components/ui/status';
 import { Swatch } from '@/components/ui/swatch';
 import { principalName } from '@/lib/principal';
 import { brandColours, brandIfYes } from './if-yes';
+import { KindEyebrow } from '@/components/ui/kind';
 import { decideBar, queueRow, waitedShort } from './queue-words';
 
 export function brandTitle(proposal: BrandProposal): string {
@@ -35,10 +35,12 @@ export function BrandRow({ proposal, focused, onFocus }: { proposal: BrandPropos
       aria-label={`${brandTitle(proposal)}, ${line}`}
       className={queueRow(focused)}
     >
-      <KindTile kind="design" size="sm" />
       <span className="grid min-w-0 flex-1 gap-1">
-        <span title={brandTitle(proposal)} className="truncate text-label">
-          {brandTitle(proposal)}
+        <span className="flex min-w-0 items-center gap-2">
+          <span title={brandTitle(proposal)} className="truncate text-label">
+            {brandTitle(proposal)}
+          </span>
+          <span className="ml-auto shrink-0 font-mono text-code-caption text-faint tabular">{waitedShort(proposal.created_at)}</span>
         </span>
         <IfYes title={line}>
           <span title={line} className="truncate">
@@ -46,7 +48,6 @@ export function BrandRow({ proposal, focused, onFocus }: { proposal: BrandPropos
           </span>
         </IfYes>
       </span>
-      <span className="shrink-0 font-mono text-code-caption text-faint tabular">{waitedShort(proposal.created_at)}</span>
     </button>
   );
 }

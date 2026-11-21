@@ -92,14 +92,14 @@ export function DigestPreview({ org, period, timezone }: { org: string; period: 
   const chart = bars(metrics.data?.buckets ?? [], weekly, timezone);
   const tallest = Math.max(1, ...chart.map((bar) => bar.events));
   const word = weekly ? 'week' : 'day';
-  const subject = `Your ${word} on agentos · ${name}${waiting.length ? ` · ${waiting.length} need you` : ''}`;
+  const subject = `Your ${word} on openajar · ${name}${waiting.length ? ` · ${waiting.length} need you` : ''}`;
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-4 p-6 pb-4">
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
         <div className="min-w-0">
-          <h2 className="text-section-title">Digest preview</h2>
-          <p className="mt-1 text-body text-muted">
+          <h3 className="text-section-title">Digest preview</h3>
+          <p className="mt-1 text-secondary text-muted">
             {period === 'off' ? 'The digest is off. If you turn it on, the next one would read like this.' : `Your next ${period} digest, if it went out now.`}
           </p>
         </div>
@@ -107,7 +107,7 @@ export function DigestPreview({ org, period, timezone }: { org: string; period: 
       </div>
       <div className={cn('mx-6 mb-6 overflow-hidden rounded-lg border border-line', period === 'off' && 'opacity-70')}>
         <div className="border-b border-line bg-inset px-4 py-3">
-          <p className="text-caption text-faint">From agentos</p>
+          <p className="text-caption text-faint">From openajar</p>
           {loading ? <Skeleton className="mt-1 h-5 w-2/3" /> : <p className="mt-1 truncate text-label">{subject}</p>}
         </div>
         {loading ? (

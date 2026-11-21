@@ -1,4 +1,4 @@
-"""Pins the freeze's sweep (agentos.policy.freeze.revoke_reaching): which grants and standing
+"""Pins the freeze's sweep (openajar.policy.freeze.revoke_reaching): which grants and standing
 approvals a lane, workspace or node freeze revokes, which it keeps, and what it reports when the
 store fails. The policy is a stand-in that records every revoke; the grant rows are real blocks."""
 
@@ -10,10 +10,10 @@ from types import SimpleNamespace
 from pinned import check, outcome
 from pinned_grants_blocks import block
 
-from agentos.core.models import Effect
-from agentos.policy.errors import Conflict
-from agentos.policy.freeze import Reach, revoke_reaching
-from agentos.policy.grants import Subject
+from openajar.core.models import Effect
+from openajar.policy.errors import Conflict
+from openajar.policy.freeze import Reach, revoke_reaching
+from openajar.policy.grants import Subject
 
 NOW = 1_800_000_000
 

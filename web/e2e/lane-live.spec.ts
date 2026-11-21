@@ -123,7 +123,7 @@ test('the terminal opens on take over, runs a command, and ends with exit', asyn
   await expect(rows).toContainText('Type help.');
   await page.keyboard.type('whoami');
   await page.keyboard.press('Enter');
-  await expect(rows).toContainText('agentos');
+  await expect(rows).toContainText('openajar');
   // Typing in the shell never fires the panel's shortcuts, Ctrl-K included.
   await page.keyboard.press('Control+k');
   await expect(page.getByRole('dialog', { name: 'Search and commands' })).toHaveCount(0);
@@ -167,8 +167,8 @@ test.describe('on a phone', () => {
     await expect(toolbar(page).getByText('100%')).toBeVisible();
 
     const before = await field(page);
-    await page.getByRole('button', { name: 'Type into the lane' }).click();
-    await page.getByRole('textbox', { name: 'Text to send to the lane' }).fill('482913');
+    await page.getByRole('button', { name: 'Type into the screen' }).click();
+    await page.getByRole('textbox', { name: 'Text to send to the screen' }).fill('482913');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect.poll(() => field(page)).not.toBe(before);
 

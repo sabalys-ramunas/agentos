@@ -15,16 +15,16 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fakes import FakeInteraction, FakeLaneManager
 from websockets.asyncio.server import ServerConnection, serve
 
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.core.models import ControlState, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.mcp import providers as mcp_providers
-from agentos.node.channel import wire
-from agentos.node.channel.identity import NodeKey
-from agentos.node.channel.node import Timings
-from agentos.node.daemon import build_node_app, build_services, start_services, stop_services
-from agentos.policy.ceiling import ControllerCeiling
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.core.models import ControlState, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.mcp import providers as mcp_providers
+from openajar.node.channel import wire
+from openajar.node.channel.identity import NodeKey
+from openajar.node.channel.node import Timings
+from openajar.node.daemon import build_node_app, build_services, start_services, stop_services
+from openajar.policy.ceiling import ControllerCeiling
 
 NODE_ID = "node_01TESTNODE00000000000000"
 FAST = Timings(ping_interval=0.5, dead_after=3.0, heartbeat=0.3, backoff_min=0.05, backoff_max=0.2, handshake=3.0,
@@ -184,7 +184,7 @@ async def node_runtime(home: Path, fake: FakeController | None = None, *, lanes=
     for lane in lanes:
         await manager.create(LaneSpec(id=lane))
     runtime = Runtime(config=config, lanes=manager, interaction=FakeInteraction())
-    build_services(runtime, ["agentos.policy.service", "agentos.node.channel.service"])
+    build_services(runtime, ["openajar.policy.service", "openajar.node.channel.service"])
     build_node_app(config, runtime, providers=providers or [*mcp_providers.tool_providers(), extra_tools])
     channel = runtime.get("channel")
     if channel is not None:

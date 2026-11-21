@@ -39,7 +39,7 @@ The owner's idea is right about the sites and overstated about custody.
 | CTAP2 software authenticator over uhid | The [fido2-hid-bridge README](https://github.com/BryanJacobs/fido2-hid-bridge) names Firefox as a USB-HID application, so USB HID keys reach it on Linux (not checked against Mozilla's docs). Software options are community projects: [soft-fido2](https://lib.rs/crates/soft-fido2) (pure software; license unclear across sources) and [fidorium](https://docs.rs/crate/fidorium/latest/source/README.md) (TPM 2.0 backed). fido2-hid-bridge is not software: it relays to a physical PC/SC key. Firefox testing not stated. | Root or a udev group on `/dev/uhid`, the uhid module, and a VM that exposes it. | Looks like a USB HID device. Kernel-level and fragile. Untested. |
 | Browser extension wrapping `navigator.credentials` | Not tested. | Extension install by policy. | Keys in the profile. My assessment, not tested: page-side checks on native functions can expose a wrapper. |
 
-**Camoufox specifics.** Camoufox's [Python README](https://github.com/daijro/camoufox/blob/main/python/README.md) documents a `firefox_user_prefs` launch option, so WebAuthn prefs can be set at launch. Its README does not name the Firefox base it is built on. The repo's fingerprint code targets Firefox 158 (`src/agentos/node/fingerprint.py`, `tests/unit/test_ops_fingerprint.py`), which is the expected base. I did not check the build the node has installed.
+**Camoufox specifics.** Camoufox's [Python README](https://github.com/daijro/camoufox/blob/main/python/README.md) documents a `firefox_user_prefs` launch option, so WebAuthn prefs can be set at launch. Its README does not name the Firefox base it is built on. The repo's fingerprint code targets Firefox 158 (`src/openajar/node/fingerprint.py`, `tests/unit/test_ops_fingerprint.py`), which is the expected base. I did not check the build the node has installed.
 
 ## 2. Storage and consent
 
@@ -78,25 +78,25 @@ Under A, the approval cannot bind to the challenge. The challenge only exists on
 
 - **YubiKey at the lane host.** The key needs a touch per sign-in, which is a strong consent. A cloud VM cannot take a USB key, and USB/IP over the mesh is possible in principle but unverified. A key at the owner's home works only if the lane runs there.
 - **Hardware key support on the sites.** Facebook documents FIDO2 security keys ([security keys on Facebook](https://www.facebook.com/help/401566786855239)). Google accepts a security key for 2-Step Verification ([Google help](https://support.google.com/accounts/answer/6103523?hl=en&co=GENIE.Platform%3DDesktop)).
-- **TOTP is already built** (`src/agentos/vault/totp.py`). A seed on the node is a second factor only, and a real-time reverse proxy can phish the code. It works on Instagram, which has no passkey.
+- **TOTP is already built** (`src/openajar/vault/totp.py`). A seed on the node is a second factor only, and a real-time reverse proxy can phish the code. It works on Instagram, which has no passkey.
 - **Verdict for the owner's case.** Passkeys beat TOTP against phishing and against a site breach. A node-held passkey does not beat a node-held TOTP seed on custody, and on a site that allows passkey-only sign-in it is a single factor. So: TOTP for sites without passkeys (Instagram), passkeys only as a second factor on the others, and a touched hardware key for the highest-value accounts if the owner can reach one.
 
 ## Proposed design
 
-**Vault entry.** A new `EntryKind.PASSKEY` in `src/agentos/vault/models.py`, next to `PASSWORD`, `TOTP`, `COOKIE`, `API_KEY` and `NOTE`. Fields: `rp_id`, `credential_id`, `user_handle`, a display name, `sign_count`, the lane binding, `created_via` (node or phone), `last_used`, and the private key (PKCS#8) in the sealed store. `EntryMeta` exposes only `rp_id`, the lane and dates, never the key.
+**Vault entry.** A new `EntryKind.PASSKEY` in `src/openajar/vault/models.py`, next to `PASSWORD`, `TOTP`, `COOKIE`, `API_KEY` and `NOTE`. Fields: `rp_id`, `credential_id`, `user_handle`, a display name, `sign_count`, the lane binding, `created_via` (node or phone), `last_used`, and the private key (PKCS#8) in the sealed store. `EntryMeta` exposes only `rp_id`, the lane and dates, never the key.
 
-**Policy.** A new `Sink.WEBAUTHN` in `src/agentos/vault/policy.py`, with reasons `RP_MISMATCH` and `APPROVAL_REQUIRED`. The rp_id must match the registrable domain of the top origin, the same check `check_origin` already makes for passwords, and the lane must be bound.
+**Policy.** A new `Sink.WEBAUTHN` in `src/openajar/vault/policy.py`, with reasons `RP_MISMATCH` and `APPROVAL_REQUIRED`. The rp_id must match the registrable domain of the top origin, the same check `check_origin` already makes for passwords, and the lane must be bound.
 
 **Signing path.** The lane reaches its login step. The node asks for a standing approval (count 1, 5 minutes, lane and rp_id). The phone approves. The node loads the credential into the lane's authenticator (Playwright's `credentials` API, or Marionette's add-credential command if the spike favours it). Playwright's `credentials.create()` takes the private key directly (1.61 release notes), so the seed comes from the sealed entry and never from a profile file; the W3C automation extension defines the same add and get commands ([WebAuthn L3, User Agent Automation](https://www.w3.org/TR/webauthn-3/)). The page calls `get()`, the browser signs, and the node removes the credential, records the sign count and writes a trace line with rp_id, lane, approval id and time. The window closes after one use or at the TTL. A denial or timeout fails the login with a clear reason.
 
 **Components that change:**
 
 - **vault**: `models.py` (kind), the sealed store (private key), a CXF exporter, `policy.py` (sink, reasons, rp_id check), `api.py` (add and remove routes; never return the key).
-- **node**: the Camoufox engine (`src/agentos/node/camoufox/engine.py`) opens and closes the authenticator window and sets WebAuthn prefs through `firefox_user_prefs`. The typist does not change: a passkey is not a field.
-- **approvals**: a new kind `passkey_sign_in` in `src/agentos/policy/approvals.py`, with a content hash over lane, rp_id, credential reference and TTL.
-- **notifier**: `src/agentos/policy/notifier.py` pushes the site and lane name with the signed approve link, never key material.
+- **node**: the Camoufox engine (`src/openajar/node/camoufox/engine.py`) opens and closes the authenticator window and sets WebAuthn prefs through `firefox_user_prefs`. The typist does not change: a passkey is not a field.
+- **approvals**: a new kind `passkey_sign_in` in `src/openajar/policy/approvals.py`, with a content hash over lane, rp_id, credential reference and TTL.
+- **notifier**: `src/openajar/policy/notifier.py` pushes the site and lane name with the signed approve link, never key material.
 - **panel**: passkeys per lane (rp_id, created, last used, approvals), with revoke. Revoke removes the entry and reminds the owner to remove it on the site.
-- **fingerprint**: a virtual authenticator can change what `PublicKeyCredential` reports. Re-test the pinned fingerprint before enabling the window (`src/agentos/node/fingerprint.py`).
+- **fingerprint**: a virtual authenticator can change what `PublicKeyCredential` reports. Re-test the pinned fingerprint before enabling the window (`src/openajar/node/fingerprint.py`).
 
 ## Risks to the owner's accounts
 

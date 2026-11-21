@@ -12,9 +12,9 @@ from typing import Self
 
 import pytest
 
-from agentos.core.models import ViewerInfo
-from agentos.node import vnc_relay
-from agentos.node.vnc_relay import (
+from openajar.core.models import ViewerInfo
+from openajar.node import vnc_relay
+from openajar.node.vnc_relay import (
     CLOSE_LANE_NOT_RUNNING,
     CLOSE_NORMAL,
     CLOSE_PROTOCOL,
@@ -553,7 +553,7 @@ async def test_relay_unreachable_vnc():
 
 
 async def test_relay_reaches_x11vnc_over_its_unix_socket():
-    directory = tempfile.mkdtemp(prefix="agentos-t-")  # tmp_path can pass macOS's 104 byte socket limit
+    directory = tempfile.mkdtemp(prefix="openajar-t-")  # tmp_path can pass macOS's 104 byte socket limit
     try:
         async with FakeVnc(path=os.path.join(directory, "display-150.sock")) as vnc:
             ws = FakeWebSocket()

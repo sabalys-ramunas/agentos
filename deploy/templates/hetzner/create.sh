@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates a Hetzner Cloud server from the agentos node template. It calls the hcloud CLI, which
+# Creates a Hetzner Cloud server from the openajar node template. It calls the hcloud CLI, which
 # already holds your API token (hcloud context create). This script never reads, prints or stores
 # a token, and it writes no files: the user data goes to Hetzner exactly as it is in FILE.
 #
@@ -71,9 +71,9 @@ hcloud server create --name "$name" --type "$type" --location "$location" --imag
 
 cat <<EOF
 
-Created $name. The first boot takes several minutes, because it builds agentos.
+Created $name. The first boot takes several minutes, because it builds openajar.
 Find its address with: hcloud server ip $name
 Then sign in as the admin user (ADMIN_USER, agentos-admin unless you changed it), wait with
   cloud-init status --wait
-and read ~/agentos-doctor.txt. docs/NODE-TEMPLATES.md has the rest.
+and read ~/openajar-doctor.txt. docs/NODE-TEMPLATES.md has the rest.
 EOF

@@ -19,15 +19,15 @@ from test_node_panel import Node, bearer
 from typer.testing import CliRunner
 from workflow_support import LIST, MAIL, OWNER, action, commit_flow, make_node, read_flow, workflow
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, LaneSpec
-from agentos.events.service import build as build_events
-from agentos.mcp import providers as mcp_providers
-from agentos.node.channel import reports, wire
-from agentos.node.channel.workflows import WorkflowSync, relay_hook, relay_unsubscribe
-from agentos.runner.schedules import sign_webhook
-from agentos.runner.workflows import tools as wf_tools
-from agentos.runner.workflows.templates import TEMPLATES
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, LaneSpec
+from openajar.events.service import build as build_events
+from openajar.mcp import providers as mcp_providers
+from openajar.node.channel import reports, wire
+from openajar.node.channel.workflows import WorkflowSync, relay_hook, relay_unsubscribe
+from openajar.runner.schedules import sign_webhook
+from openajar.runner.workflows import tools as wf_tools
+from openajar.runner.workflows.templates import TEMPLATES
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 READ = "biz-a.social.read"
@@ -178,7 +178,7 @@ async def test_an_agent_takes_back_only_its_own_draft_that_never_ran_or_was_prop
         await wf_tools.workflow_get(ctx, id=draft["id"])
     # a person's workflow, a proposed one and one that ran are a person's to delete
     persons = node.wf.save(workflow(action("look", READ), name="Persons"), OWNER)["id"]
-    with pytest.raises(PolicyDenied, match="only a person deletes it now: agentos routines workflows remove"):
+    with pytest.raises(PolicyDenied, match="only a person deletes it now: openajar routines workflows remove"):
         await wf_tools.workflow_discard(ctx, id=persons)
     _, asked, _ = proposed(node, SCHEDULE)
     with pytest.raises(PolicyDenied, match="proposed"):
@@ -253,7 +253,7 @@ async def test_a_newsletter_runs_on_its_own_after_a_persons_yes(node):
     _with_every_tag(node)
     made = node.wf.from_template("newsletter", "biz-a")
     next(s for s in made["steps"] if s["id"] == "send")["send"]["list"] = LIST
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     output = engine.Walk._output
     engine.Walk._output = lambda self, child, op: ({"subject": "News", "body": "This week"}, set())
@@ -336,7 +336,7 @@ async def full_node(home, name, ctl, lanes):
     from channel_support import FAST, RunningNode, extra_tools, join_node
     from fakes import FakeInteraction
 
-    from agentos.node.daemon import build_services, node_runtime, serve
+    from openajar.node.daemon import build_services, node_runtime, serve
 
     config = await join_node(home, name, ctl)
     manager = ControlLanes(config)
@@ -344,8 +344,8 @@ async def full_node(home, name, ctl, lanes):
         await manager.create(LaneSpec(id=lane))
     interaction = FakeInteraction()
     runtime = node_runtime(config, manager, interaction)
-    build_services(runtime, ["agentos.policy.service", "agentos.freeze.service", "agentos.runner.service",
-                             "agentos.events.service", "agentos.node.channel.service"])
+    build_services(runtime, ["openajar.policy.service", "openajar.freeze.service", "openajar.runner.service",
+                             "openajar.events.service", "openajar.node.channel.service"])
     channel = runtime.get("channel")
     channel.timings = dataclasses.replace(FAST, doctor_after=600.0)
     channel._backoff.low, channel._backoff.high = FAST.backoff_min, FAST.backoff_max
@@ -546,9 +546,9 @@ async def test_a_workflow_message_with_a_bad_signature_is_refused(tmp_path):
 # ---- files ----
 
 def test_a_workflow_file_applies_and_comes_back_the_same(tmp_path, monkeypatch):
-    from agentos.runner.workflows import cli
+    from openajar.runner.workflows import cli
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     definition = {"name": "From a file", "workspace": "biz-a", "trigger": {"kind": "webhook"},
                   "steps": [{"id": "n", "kind": "notify", "label": "tell you", "message": "It ran."}]}
@@ -568,10 +568,10 @@ def test_a_workflow_file_applies_and_comes_back_the_same(tmp_path, monkeypatch):
 
 def test_a_person_removes_a_workflow_with_either_remove(tmp_path, monkeypatch):
     """QA 2026-11-15 P1-1: `routines workflows remove`, and `flows remove` with a workflow id."""
-    from agentos.runner import cli as runner_cli
-    from agentos.runner.workflows import cli
+    from openajar.runner import cli as runner_cli
+    from openajar.runner.workflows import cli
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     runner = CliRunner()
     for name in ("One", "Two"):
@@ -590,9 +590,9 @@ def test_a_person_removes_a_workflow_with_either_remove(tmp_path, monkeypatch):
 
 
 def test_an_error_in_a_file_says_which_step(tmp_path, monkeypatch):
-    from agentos.runner.workflows import cli
+    from openajar.runner.workflows import cli
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     path = tmp_path / "bad.json"
     path.write_text(json.dumps({"name": "Bad", "workspace": "biz-a", "trigger": {"kind": "webhook"},

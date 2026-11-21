@@ -1,7 +1,7 @@
 /**
  * The sign-in of one account, on the login queue. The password is typed on this computer, in a form it
  * serves, and never in the app. A login already saved in the vault signs in from it with no form and asks
- * nobody: the vault's entry is the owner's permission (agentos Cloud and the computer both hold that rule).
+ * nobody: the vault's entry is the owner's permission (openajar Cloud and the computer both hold that rule).
  */
 import { Link } from '@tanstack/react-router';
 import { ArrowUpRight } from 'lucide-react';
@@ -13,11 +13,11 @@ import { StatusDot } from '@/components/ui/status';
 import { InlineError } from '@/components/ui/states';
 
 const WORDS: Record<LoginState, (saved: boolean) => string> = {
-  none: (saved) => (saved ? 'Saved in the vault. agentos signs in from it and asks nobody.' : 'Not signed in yet. You type the password on this computer, in a form it serves.'),
-  working: () => 'agentos is opening the sign-in page.',
+  none: (saved) => (saved ? 'Saved in the vault. openajar signs in from it and asks nobody.' : 'Not signed in yet. You type the password on this computer, in a form it serves.'),
+  working: () => 'openajar is opening the sign-in page.',
   ask: () => 'Type the password on this computer. It goes into the lane and nowhere else.',
   waiting: () => 'Approve the sign-in on your phone, then press the button.',
-  stopped: () => 'The site asks a robot check, or a step agentos cannot read. Take over the lane and do that step yourself.',
+  stopped: () => 'The site asks a robot check, or a step openajar cannot read. Take over the lane and do that step yourself.',
   paused: () => 'You have the lane. Hand it back to go on from the form.',
   signed_in: (saved) => (saved ? 'Signed in. The login is saved in the vault.' : 'Signed in. You can save this login to the vault from the form.'),
   cancelled: () => 'The sign-in was stopped. Nothing else was typed.',

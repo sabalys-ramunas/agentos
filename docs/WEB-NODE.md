@@ -4,7 +4,7 @@
 A node speaks that API too, so the same screens run on a person's own computer with nothing branching
 in them. To the app, a node is one org, `local`, with one computer in it.
 
-A node serves `web/dist` (or the build `AGENTOS_PANEL_DIR` points at). The older `panel/` UI was removed
+A node serves `web/dist` (or the build `OPENAJAR_PANEL_DIR` points at). The older `panel/` UI was removed
 on 2026-11-14.
 
 ## Build it and open it
@@ -16,9 +16,9 @@ Node.js 22 or later, and pnpm 10.33.0 (`corepack enable && corepack prepare pnpm
 cd web && pnpm install --frozen-lockfile && pnpm build   # writes web/dist
 ```
 
-Start agentos again, then run `agentos panel login` on the
+Start openajar again, then run `openajar panel login` on the
 node for a one-time sign-in link; from your computer, reach a remote node first with
-`ssh -N -L 7400:localhost:7400 <your node>`. `agentos dev up` prints its own link. The node's installer
+`ssh -N -L 7400:localhost:7400 <your node>`. `openajar dev up` prints its own link. The node's installer
 (`deploy/install-node.sh`) builds `web/` by itself whenever its sources changed and Node.js is there, and
 keeps the last good build when a new one fails. Without a build, `/` says how to make one. The dev loop
 on the mock or against a dev node: [web/README.md](../web/README.md).
@@ -27,8 +27,8 @@ on the mock or against a dev node: [web/README.md](../web/README.md).
 
 | What | Where |
 |---|---|
-| A route of the contract | `src/agentos/api/web/<area>.py`, with `routes(api)`. Found by itself, so no registry to edit |
-| Shared helpers | `src/agentos/api/web/base.py` |
+| A route of the contract | `src/openajar/api/web/<area>.py`, with `routes(api)`. Found by itself, so no registry to edit |
+| Shared helpers | `src/openajar/api/web/base.py` |
 | Its tests | `tests/unit/web/test_<area>.py`, using the `client` and `node` fixtures |
 | What the app expects | `web/src/api/client.ts` (calls), `web/src/api/types.ts` (shapes), `web/src/mocks/` (how it behaves) |
 | Design rules | `web/DESIGN.md`. Read it before touching a screen |
@@ -43,7 +43,7 @@ node route inside this request, with the same cookie and CSRF header, so auth, p
 where they are, and a refusal goes back to the app as it was.
 
 ```python
-from agentos.api.web.base import org_route, read, write
+from openajar.api.web.base import org_route, read, write
 
 def routes(api):
     async def workspaces(request):
@@ -56,7 +56,7 @@ def routes(api):
 `org_route` takes `endpoint`'s `owner=True`, `cap="..."` and `public=True`. Use them when a route has no
 node route under it to do the checking. A person-only route refuses tokens (see `routes_worker.py`).
 
-If the node has no route for a call, add a real one on the node first (`src/agentos/api/routes_*.py`,
+If the node has no route for a call, add a real one on the node first (`src/openajar/api/routes_*.py`,
 or a service method) and test it. Then shape it here.
 
 ## Telling the truth
@@ -71,19 +71,19 @@ or a service method) and test it. Then shape it here.
 ## Checking your work
 
 ```bash
-export AGENTOS_PYTHON=/path/to/agentos/.venv/bin/python
+export OPENAJAR_PYTHON=/path/to/openajar/.venv/bin/python
 cd web && pnpm install --frozen-lockfile --offline
 
 node scripts/dev-node.mjs --port 7461 &               # real services, fake lanes, no browser
 node scripts/contract.mjs --port 7461 --only /lanes   # every GET checked against its type
-PYTHONPATH=../src $AGENTOS_PYTHON ../tests/unit/web/test_every_call.py lanes   # writes too: is it served?
+PYTHONPATH=../src $OPENAJAR_PYTHON ../tests/unit/web/test_every_call.py lanes   # writes too: is it served?
 
-cd .. && PYTHONPATH=src $AGENTOS_PYTHON -m pytest tests/unit/web -q
+cd .. && PYTHONPATH=src $OPENAJAR_PYTHON -m pytest tests/unit/web -q
 cd web && pnpm typecheck && pnpm lint && pnpm test
 ```
 
 Three checks go further than tests, against a dev node serving the real build
-(`pnpm build`, then `AGENTOS_PANEL_DIR=$PWD/dist node scripts/dev-node.mjs --port 7461`):
+(`pnpm build`, then `OPENAJAR_PANEL_DIR=$PWD/dist node scripts/dev-node.mjs --port 7461`):
 
 - `node scripts/contract.mjs --port 7461`: every GET against the type its screen reads.
 - `node scripts/walk-node.mjs --port 7461 --app http://localhost:7461 --widths 1440,375`: every page in a real
@@ -92,7 +92,7 @@ Three checks go further than tests, against a dev node serving the real build
   node's data, so start a fresh one for each run.
 
 Restart the dev node after changing Python. To see it in a browser, sign in with a code from the dev
-node's output: `AGENTOS_API_TARGET=http://127.0.0.1:7461 VITE_API_MODE=live pnpm dev --port 5321`, then open
+node's output: `OPENAJAR_API_TARGET=http://127.0.0.1:7461 VITE_API_MODE=live pnpm dev --port 5321`, then open
 `http://localhost:5321/login#code=...`. Use your own ports so agents do not collide.
 
 Run targeted tests while you work. The full suites are for gates. Port 5310, Vite's port here, is where a

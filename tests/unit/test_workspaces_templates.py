@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import parse_lane_id
-from agentos.workspaces.models import check_lane_name, check_workspace_id
-from agentos.workspaces.templates import TemplateInvalid, builtin_templates, load_templates, parse_template
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import parse_lane_id
+from openajar.workspaces.models import check_lane_name, check_workspace_id
+from openajar.workspaces.templates import TemplateInvalid, builtin_templates, load_templates, parse_template
 
 GOOD = '''
 title = "Shop"

@@ -13,4 +13,4 @@
       - link "Overlay" [ref=f9e9] [cursor=pointer]:
         - /url: /overlay.html
   - main:
-    - paragraph: Static pages for agentos interaction tests. Nothing here talks to the internet.
+    - paragraph: Static pages for openajar interaction tests. Nothing here talks to the internet.

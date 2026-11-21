@@ -1,4 +1,4 @@
-"""Fail closed when the action log cannot be written (agentos.policy.audit_health).
+"""Fail closed when the action log cannot be written (openajar.policy.audit_health).
 
 A call above READ is refused with audit_unwritable once nothing has been recorded for
 audit_fail_closed_s; reads keep working; the health monitor warns before that; a working
@@ -12,11 +12,11 @@ import types
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import ApprovalPending, AuditUnwritable
-from agentos.core.models import Effect
-from agentos.ops.health import HealthMonitor
-from agentos.policy import audit_health
+from openajar.core.config import NodeConfig
+from openajar.core.errors import ApprovalPending, AuditUnwritable
+from openajar.core.models import Effect
+from openajar.ops.health import HealthMonitor
+from openajar.policy import audit_health
 
 THRESHOLD = 120
 NOW = 1_800_000_000.0

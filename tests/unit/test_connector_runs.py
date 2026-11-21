@@ -20,14 +20,14 @@ from connector_samples import (
 )
 from pydantic import ValidationError
 
-from agentos.core.driver import DriverTimeout
-from agentos.core.locator import Locator
-from agentos.core.models import ControlState, RunStatus
-from agentos.core.template import TemplateError
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.fakes import OWNER, FakeLanes, FakeNotifier, Harness
-from agentos.runner.models import FlowDefinition, NodeInstall, StepStatus
+from openajar.core.driver import DriverTimeout
+from openajar.core.locator import Locator
+from openajar.core.models import ControlState, RunStatus
+from openajar.core.template import TemplateError
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.fakes import OWNER, FakeLanes, FakeNotifier, Harness
+from openajar.runner.models import FlowDefinition, NodeInstall, StepStatus
 
 CAPTION = "Autumn at the lake"
 PARAMS = {"caption": CAPTION, "image": "photo.jpg"}  # the binding fills acts_as_id and account_language
@@ -116,7 +116,7 @@ async def test_a_wrong_surface_is_read_from_an_href(tmp_path):
     site = connector_site()
 
     def compose_with_actor(s, d, inner=site.routes["https://social.example/compose"]):
-        from agentos.runner.fakes import El
+        from openajar.runner.fakes import El
 
         page = inner(s, d)
         page.children[0].children.insert(0, El("link", "Posting as", attrs={"href": "/u/biz-other"}))

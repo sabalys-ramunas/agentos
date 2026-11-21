@@ -4,11 +4,11 @@ Every one reaches the node through the recording proxy (proxy.py) with the agent
 a fresh empty folder per session, with nothing else to work with:
 
 - `perfect`, `careless`: the task's own scripts, over a Python MCP client (tasks.Agent).
-- `claude`: `claude -p` with only the agentos MCP server (`--strict-mcp-config`), no built-in tools
-  (`--tools ""`), the agentos-environment skill appended to its system prompt, no user settings
+- `claude`: `claude -p` with only the openajar MCP server (`--strict-mcp-config`), no built-in tools
+  (`--tools ""`), the openajar-environment skill appended to its system prompt, no user settings
   (`--setting-sources project`, in an empty folder), `--output-format stream-json`, and Claude
   Code's own `--max-budget-usd` as each session's hard cap.
-- `codex`: `codex exec --json` with a scratch CODEX_HOME whose config.toml names only the agentos
+- `codex`: `codex exec --json` with a scratch CODEX_HOME whose config.toml names only the openajar
   server (the token in an environment variable, `bearer_token_env_var`), the skill as AGENTS.md in
   its folder, and the person's Codex sign-in linked in when there is one. Built to Codex's
   documented CLI; untested here (Codex is not installed on the machine this was written on).
@@ -34,19 +34,19 @@ from typing import Any
 from env_eval.metrics import claude_metrics, codex_metrics
 
 REPO = Path(__file__).resolve().parents[2]
-SKILL = "client/skills/agentos-environment/SKILL.md"
-SERVER = "agentos"
+SKILL = "client/skills/openajar-environment/SKILL.md"
+SERVER = "openajar"
 FOOTER = ('\n\nWhen you are done, end with one line of JSON: {"status": "done" or "blocked", "summary": "<one or '
           'two sentences: what you did and what the human should know>"}.')
 
 
 def skill_path(src: Path | None) -> Path:
-    return (src or REPO / "src") / "agentos" / SKILL
+    return (src or REPO / "src") / "openajar" / SKILL
 
 
 def _env() -> dict[str, str]:
     env = dict(os.environ)
-    for k in ("AGENTOS_URL", "AGENTOS_TOKEN", "AGENTOS_HOME"):
+    for k in ("OPENAJAR_URL", "OPENAJAR_TOKEN", "OPENAJAR_HOME"):
         env.pop(k, None)
     return env
 
@@ -106,7 +106,7 @@ async def claude(prompt: str, *, url: str, token: str, model: str, skill: Path, 
 
 
 def codex_config(url: str) -> str:
-    return (f"[mcp_servers.{SERVER}]\nurl = {json.dumps(url)}\nbearer_token_env_var = \"AGENTOS_EVAL_TOKEN\"\n"
+    return (f"[mcp_servers.{SERVER}]\nurl = {json.dumps(url)}\nbearer_token_env_var = \"OPENAJAR_EVAL_TOKEN\"\n"
             "startup_timeout_sec = 30\ntool_timeout_sec = 300\n")
 
 
@@ -123,7 +123,7 @@ async def codex(prompt: str, *, url: str, token: str, model: str, skill: Path, t
         if auth.exists():
             (home / "auth.json").symlink_to(auth)  # the person's own sign-in, never copied
         (work / "AGENTS.md").write_text(skill.read_text())
-        env = {**_env(), "CODEX_HOME": str(home), "AGENTOS_EVAL_TOKEN": token}
+        env = {**_env(), "CODEX_HOME": str(home), "OPENAJAR_EVAL_TOKEN": token}
         argv = ["codex", "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "-C", str(work)]
         if model:
             argv += ["--model", model]

@@ -13,12 +13,12 @@ import idna
 import pytest
 from test_policy_support import T0, make_service
 
-from agentos.core import globs
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect, Principal
-from agentos.policy import tokens
-from agentos.policy.context import CallMeta
-from agentos.policy.errors import Denied
+from openajar.core import globs
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect, Principal
+from openajar.policy import tokens
+from openajar.policy.context import CallMeta
+from openajar.policy.errors import Denied
 
 LANE = "biz-a/x"
 
@@ -224,7 +224,7 @@ async def test_backslash_userinfo_url_is_not_read_as_the_allowed_host(svc):
 
 def test_pay_approve_link_is_not_published_to_a_guessable_public_topic(svc):
     try:
-        svc.notifier.update_config({"ntfy": {"topic": "agentos"}, "public_base_url": "https://node.example"})
+        svc.notifier.update_config({"ntfy": {"topic": "openajar"}, "public_base_url": "https://node.example"})
     except (ValueError, InvalidRequest):
         return  # fixed: a guessable public topic is refused when links are on
     ap = svc.approvals.create_action(

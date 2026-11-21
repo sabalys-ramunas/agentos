@@ -1,6 +1,6 @@
 """The router is pure: every rule tested on its own."""
 
-from agentos.brains.models import (
+from openajar.brains.models import (
     BrainKind,
     BrainState,
     BrainView,
@@ -11,7 +11,7 @@ from agentos.brains.models import (
     Privacy,
     Requirements,
 )
-from agentos.brains.router import route
+from openajar.brains.router import route
 
 
 def view(name, kind, *, state=BrainState.READY, seats=1, used=0, ctx=200_000, vision=True, tier=3, order=100,

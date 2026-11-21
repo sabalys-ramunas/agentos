@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 
-from agentos.studio.contracts import CheckContext, ComponentRule, Screen, Theme, TokenSet
-from agentos.studio.tokens import (
+from openajar.studio.contracts import CheckContext, ComponentRule, Screen, Theme, TokenSet
+from openajar.studio.tokens import (
     adherence,
     analyse,
     check_and_adherence,
@@ -23,7 +23,7 @@ from agentos.studio.tokens import (
     system_check,
     tokens_from_page,
 )
-from agentos.studio.tokens.color import delta_e, parse_color
+from openajar.studio.tokens.color import delta_e, parse_color
 
 pw = pytest.importorskip("playwright.async_api")
 
@@ -249,7 +249,7 @@ SNAPSHOT = """() => {
     if (el.shadowRoot) walk(el.shadowRoot);
   } };
   walk(document);
-  return {styles: out, n: document.querySelectorAll('style').length, key: '__agentosStudioTokens' in window,
+  return {styles: out, n: document.querySelectorAll('style').length, key: '__openajarStudioTokens' in window,
           frames: document.querySelectorAll('iframe').length};
 }"""
 

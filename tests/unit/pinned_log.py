@@ -8,7 +8,7 @@ import sqlite3
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.policy.auditlog import (
+from openajar.policy.auditlog import (
     ROW_COLUMNS,
     SIG_CTX,
     canonical,
@@ -19,7 +19,7 @@ from agentos.policy.auditlog import (
     row_hash,
     sign,
 )
-from agentos.policy.tokens import key_id
+from openajar.policy.tokens import key_id
 
 AT = "2026-11-14T00:00:00Z"
 

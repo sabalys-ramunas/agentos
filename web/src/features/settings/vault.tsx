@@ -1,5 +1,5 @@
 import { useParams } from '@tanstack/react-router';
-import { ArrowUpRight, LockKeyhole, Search, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Lock, LockKeyhole, LockOpen, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useLockVault, useProviders, useRemoveVaultEntry, useVault, useVaultStatus } from '@/api/hooks';
@@ -8,6 +8,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Field, Input } from '@/components/ui/field';
+import { cn } from '@/lib/cn';
 import { Select } from '@/components/ui/select';
 import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
@@ -30,7 +31,15 @@ function StatusLine({ status }: { status: VaultStatus | undefined }) {
         : status.state === 'uninitialized'
           ? 'There is no vault on this computer yet.'
           : `The vault could not be read${status.error ? `: ${status.error.message}` : '.'}`;
-  return <p className="mb-4 text-body text-muted">{words}</p>;
+  const locked = status.state !== 'unsealed';
+  return (
+    <p role="status" className={cn('mb-4 flex items-start gap-3 rounded-lg border px-4 py-3 text-secondary', locked && status.state !== 'uninitialized' ? 'border-warn-line bg-warn-fill text-warn' : 'border-line bg-inset text-muted')}>
+      <span className="flex h-5 shrink-0 items-center">
+        {locked ? <Lock aria-hidden className="size-4" /> : <LockOpen aria-hidden className="size-4" />}
+      </span>
+      {words}
+    </p>
+  );
 }
 
 function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -64,7 +73,7 @@ function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; on
         onOpenChange(next);
       }}
       title="Add a saved login"
-      description="You type the secret on this computer, in a page it serves. agentos Cloud never sees it."
+      description="You type the secret on this computer, in a page it serves. openajar Cloud never sees it."
       footer={
         form.link ? (
           <Button asChild>
@@ -143,10 +152,12 @@ export function VaultSettings() {
             ) : null}
             {unlocked ? (
               <>
-                <Button variant="ghost" loading={lock.isPending} onClick={() => lock.mutate()}>
+                <Button loading={lock.isPending} icon={<Lock className="size-4" />} onClick={() => lock.mutate()}>
                   Lock
                 </Button>
-                <Button onClick={() => setAdding(true)}>Add a saved login</Button>
+                <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
+                  Add a saved login
+                </Button>
               </>
             ) : null}
           </div>
@@ -154,7 +165,7 @@ export function VaultSettings() {
       />
       {unlock.failed ? <InlineError className="mb-4">That did not start. Nothing was changed.</InlineError> : null}
       {unlock.link && sealed ? (
-        <p className="mb-4 text-body text-muted" role="status">
+        <p className="mb-4 text-secondary text-muted" role="status">
           {FORM_WORDS[unlock.stage ?? 'waiting']}{' '}
           <a className="underline underline-offset-2" href={unlock.link} target="_blank" rel="noreferrer">
             Open the page again
@@ -164,8 +175,8 @@ export function VaultSettings() {
       <StatusLine status={status.data} />
       {vault.data?.length ? (
         <div className="relative mb-4 max-w-xs">
-          <Search className="pointer-events-none absolute top-2 left-2 size-4 text-faint" />
-          <Input aria-label="Filter vault" placeholder="Filter by name or domain" className="pl-8" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Search aria-hidden className="pointer-events-none absolute top-3 left-3 size-4 text-faint" />
+          <Input type="search" aria-label="Filter vault" placeholder="Filter by name or domain" className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} />
         </div>
       ) : null}
       <Card className="overflow-hidden">

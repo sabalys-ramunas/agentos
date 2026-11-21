@@ -9,13 +9,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from events_support import OWNER, World, check_flow, no_quiet
 
-from agentos.api.events import EventBus
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import RunStatus
-from agentos.events.models import DeliveryState
-from agentos.runner.fakes import BASE, El, FakeCtx
-from agentos.runner.schedules import sign_webhook
-from agentos.runner.tools import flow_run
+from openajar.api.events import EventBus
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import RunStatus
+from openajar.events.models import DeliveryState
+from openajar.runner.fakes import BASE, El, FakeCtx
+from openajar.runner.schedules import sign_webhook
+from openajar.runner.tools import flow_run
 
 S = DeliveryState
 VILNIUS_0059 = datetime(2026, 11, 3, 22, 59, tzinfo=UTC)  # Wednesday 00:59 in Vilnius
@@ -185,7 +185,7 @@ async def test_run_finished_carries_the_delivery_cause(tmp_path):
 
 
 async def test_flow_run_not_before_waits_for_its_slot_even_when_approved_early(tmp_path):
-    from agentos.runner.fakes import FakeApprovals, FakePolicy
+    from openajar.runner.fakes import FakeApprovals, FakePolicy
 
     w = World(tmp_path, policy=False)
     approvals = FakeApprovals()

@@ -81,7 +81,7 @@ TASK = Task(
     settings={"network": "limited"},
     internet=True,
     requires=("browser_record",),
-    sessions=[Session("In agentos, change the home page heading of {repo} from Autumn sale to Winter sale, record a "
+    sessions=[Session("In openajar, change the home page heading of {repo} from Autumn sale to Winter sale, record a "
                       "short video in the browser that shows the page with it, push the change on a branch and open "
                       "the pull request with the recording in it.")],
     check=check, perfect=perfect, careless=careless,

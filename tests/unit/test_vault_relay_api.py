@@ -15,15 +15,15 @@ import pytest
 from fakes import FakeInteraction, FakeLaneManager
 from test_vault_support import FakeTypist, Page, fld, login_form, make_vault, private_home
 
-from agentos.api import ApiSettings, build_api
-from agentos.api.auth import PanelStore
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.daemon import build_services, node_runtime
-from agentos.vault.login import login_flow
+from openajar.api import ApiSettings, build_api
+from openajar.api.auth import PanelStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.daemon import build_services, node_runtime
+from openajar.vault.login import login_flow
 
 TOKEN = "node-token-for-the-code-card-tests"
-SERVICES = ["agentos.api.events", "agentos.policy.service", "agentos.vault.service"]
+SERVICES = ["openajar.api.events", "openajar.policy.service", "openajar.vault.service"]
 LANE = "biz-a/instagram"
 IG = "https://www.instagram.com"
 CODE = "Z7Q4K9"           # letters too, so no timestamp or counter can match it by chance
@@ -175,7 +175,7 @@ async def test_a_grant_cannot_answer_its_own_code_card(node):
         _, admin_token = node.policy.issue(subject={"id": "va-dana", "kind": "panel"}, workspaces=["*"],
                                                  ceiling="commit", admin=True)
         assert (await client.get("/api/codes", headers={"Authorization": f"Bearer {admin_token}"})).json()
-        # a code card is answered by a person (agentos.core.presence): an approver's token is not one
+        # a code card is answered by a person (openajar.core.presence): an approver's token is not one
         refused = await client.post(f"/api/codes/{card['id']}", json={"code": CODE},
                                     headers={"Authorization": f"Bearer {admin_token}"})
         assert refused.status_code == 403 and refused.json()["error"]["code"] == "presence_required"

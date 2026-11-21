@@ -1,4 +1,4 @@
-"""The commit gate reads what a publish request will publish (agentos.node.publish, AUD-03): one
+"""The commit gate reads what a publish request will publish (openajar.node.publish, AUD-03): one
 recorded request shape per verified commit rule (a canary run of 2026-11-04: the field names the
 throwaway accounts' real publishes sent; values are made up), sent twice the way a site sends one
 post twice (new nonces, tokens, timestamps and client ids each time). The digest must be the same
@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 
 import pytest
 
-from agentos.node import egress, publish
+from openajar.node import egress, publish
 
 _n = itertools.count(1)
 

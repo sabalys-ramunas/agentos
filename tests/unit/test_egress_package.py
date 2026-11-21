@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from test_egress import FakeRequest, make_guard, settle
 
-from agentos.node import egress
-from agentos.node.egress import Driver, EffectRule, classify
+from openajar.node import egress
+from openajar.node.egress import Driver, EffectRule, classify
 
 LIKE = EffectRule("test.like", "test", "www.instagram.com", r"/split-test/like$", effect="write")
 URL = "https://www.instagram.com/split-test/like"

@@ -11,8 +11,3 @@ export function setTheme(choice: ThemeChoice) {
   if (choice === 'system') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = choice;
 }
-
-export function nextTheme(): ThemeChoice {
-  const order: ThemeChoice[] = ['system', 'light', 'dark'];
-  return order[(order.indexOf(stored.get()) + 1) % order.length] ?? 'system';
-}

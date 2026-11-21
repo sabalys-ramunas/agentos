@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from agentos.dev.slotnode import IP_HOST, SITE, SITE_HOST, StandInProxy
+from openajar.dev.slotnode import IP_HOST, SITE, SITE_HOST, StandInProxy
 
 ROOT = Path(__file__).resolve().parents[2]
 

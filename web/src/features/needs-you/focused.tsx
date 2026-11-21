@@ -1,11 +1,11 @@
 import type { Approval } from '@/api/types';
-import { KindEyebrow } from '@/components/ui/kind';
-import { Status } from '@/components/ui/status';
+import { Badge } from '@/components/ui/badge';
+import { StatusDot } from '@/components/ui/status';
 import { needsProof } from '@/lib/confirm';
 import { DecisionButtons, DecisionCard, DoneState, TechnicalDetails, useShown } from './decision-card';
 import { useNarrow } from './use-narrow';
 import { doingOf } from './words';
-import { kindLabel, tileOf } from './if-yes';
+import { stakeOf } from './kinds';
 import { waitedShort } from './queue-words';
 
 /** The item on screen: the card, its buttons or its done state, and the technical details. */
@@ -48,29 +48,36 @@ export function Focused({
   ) : (
     <p className="text-secondary text-faint sm:text-right">You can see this, but your role cannot answer it.</p>
   );
+  // The ask's state, as drawn: money and what can't be undone say so in amber; anything else waits for you.
+  const stake = stakeOf(approval);
+  const heavy = stake.key === 'money' || stake.key === 'final';
+  const status = done ? null : (
+    <Badge tone={heavy ? 'warn' : 'live'}>
+      <StatusDot tone={heavy ? 'warn' : 'live'} />
+      {heavy ? stake.name : 'Waiting for you'}
+    </Badge>
+  );
   return (
-    <div className="grid">
-      <header className="flex min-h-13 flex-wrap items-center gap-3 border-b border-line px-5 py-2">
-        <KindEyebrow kind={tileOf(approval)} label={kindLabel(approval)} />
-        <span className="ml-auto flex items-center gap-3">
-          {done ? null : <Status status={{ label: 'Waiting', tone: 'warn' }} />}
-          <span className="text-caption text-faint">{waitedShort(approval.created_at)} ago</span>
-        </span>
-      </header>
-      <div className="p-4 sm:p-5 lg:p-6">
-        <DecisionCard
-          org={org}
-          approval={approval}
-          shown={shown}
-          color={color}
-          layout={narrow ? 'stack' : 'split'}
-          stickyActions={narrow}
-          done={done}
-          changed={changed}
-          actions={actions}
-          technical={<TechnicalDetails org={org} approval={approval} open={techOpen} onToggle={onToggleTech} allowAgain={allowAgain} />}
-        />
-      </div>
+    <div className={narrow ? 'p-4 sm:p-5' : 'p-6'}>
+      <DecisionCard
+        org={org}
+        approval={approval}
+        shown={shown}
+        color={color}
+        layout={narrow ? 'stack' : 'split'}
+        stickyActions={narrow}
+        band={!narrow}
+        status={
+          <span className="flex items-center gap-3">
+            <span className="text-caption text-faint max-sm:hidden">{waitedShort(approval.created_at)} ago</span>
+            {status}
+          </span>
+        }
+        done={done}
+        changed={changed}
+        actions={actions}
+        technical={<TechnicalDetails org={org} approval={approval} open={techOpen} onToggle={onToggleTech} allowAgain={allowAgain} />}
+      />
     </div>
   );
 }

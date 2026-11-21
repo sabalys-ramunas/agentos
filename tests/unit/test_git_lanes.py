@@ -1,4 +1,4 @@
-"""Git from inside an env lane and a brain task (agentos.git.service with agentos.env and agentos.brains):
+"""Git from inside an env lane and a brain task (openajar.git.service with openajar.env and openajar.brains):
 a command a grant starts gets git config that points the declared hosts at the gateway with its own
 token, clones and pushes through it, and never sees the deploy key, in its environment or its files.
 The lane's token ends when the lane goes cold. On the fake host, workloads run on this machine."""
@@ -13,14 +13,14 @@ import pytest
 from test_policy_support import Clock, make_service
 from test_vault_support import make_vault, private_home
 
-from agentos.core.models import Effect
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.git import keys
-from agentos.git.gateway import Refused
-from agentos.git.service import GitService
+from openajar.core.models import Effect
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.git import keys
+from openajar.git.gateway import Refused
+from openajar.git.service import GitService
 
 HOST, REPO, LANE = "example.test", "owner/app", "dev/code"
 
@@ -124,8 +124,8 @@ async def test_the_lane_token_ends_when_the_lane_goes_cold(node):
 
 
 async def test_the_tools_pass_the_callers_grant(node):
-    from agentos.core.models import Principal
-    from agentos.env import tool_specs
+    from openajar.core.models import Principal
+    from openajar.env import tool_specs
 
     class Ctx:
         principal = Principal(id="agent-1")
@@ -146,10 +146,10 @@ async def test_the_tools_pass_the_callers_grant(node):
 async def test_a_brain_task_gets_a_gitconfig_and_its_bundle_clones_through_the_gateway(node, tmp_path):
     import asyncio
 
-    from agentos.brains import bundle
-    from agentos.brains.models import ContextBundle, GitRef
-    from agentos.git.service import gitconfig_text
-    from agentos.git.upstream import config_env
+    from openajar.brains import bundle
+    from openajar.brains.models import ContextBundle, GitRef
+    from openajar.git.service import gitconfig_text
+    from openajar.git.upstream import config_env
 
     pairs = await node["git"].task_pairs("bt_1", grant_id=node["grant"].id, workspace="dev", lanes=[], ttl_s=600)
     assert pairs and pairs[-1][1].startswith("x-agentos-git: agtg_")
@@ -168,8 +168,8 @@ async def test_a_brain_task_gets_a_gitconfig_and_its_bundle_clones_through_the_g
 
 
 async def test_git_remotes_tool_says_what_the_node_can_reach_and_never_a_secret(node):
-    from agentos.core.errors import PolicyDenied
-    from agentos.git.tools import tool_specs
+    from openajar.core.errors import PolicyDenied
+    from openajar.git.tools import tool_specs
 
     [spec] = tool_specs(node["rt"])
     ctx = node["policy"].context_for_grant(node["grant"].id, tool="git_remotes")
@@ -179,8 +179,8 @@ async def test_git_remotes_tool_says_what_the_node_can_reach_and_never_a_secret(
     assert out["check"]["can_push"] and out["check"]["owner_runs_on_the_node"] == []
     other = await spec.handler(ctx, workspace="dev", remote="https://github.com/me/other")
     assert other["check"]["can_fetch"] is False
-    assert other["check"]["owner_runs_on_the_node"] == ["agentos git remote allow dev github.com/me/other",
-                                                        "agentos git key add --host github.com --repo me/other"]
+    assert other["check"]["owner_runs_on_the_node"] == ["openajar git remote allow dev github.com/me/other",
+                                                        "openajar git key add --host github.com --repo me/other"]
     assert "PRIVATE" not in json.dumps(out) and node["private"].splitlines()[1] not in json.dumps(out)
     with pytest.raises(PolicyDenied):
         await spec.handler(ctx, workspace="prod")

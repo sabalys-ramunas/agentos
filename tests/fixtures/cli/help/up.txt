@@ -1,15 +1,15 @@
 
- Usage: agentos up [OPTIONS]
+ Usage: openajar up [OPTIONS]
 
  Set up and start this box, then print a sign-in link.
 
- The first time, it writes node.toml (as `agentos node init`) and
+ The first time, it writes node.toml (as `openajar node init`) and
  controller.toml.
 
  It runs a controller and this node, joined, and prints the panel and a
  one-time sign-in link.
 
- Safe to run again: settings and tokens are kept. By hand: `agentos connect
+ Safe to run again: settings and tokens are kept. By hand: `openajar connect
  --by-hand`.
 
  With Claude Code or Codex on this machine (or `--here`), they connect to it

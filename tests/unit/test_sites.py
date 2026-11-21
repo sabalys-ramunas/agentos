@@ -1,4 +1,4 @@
-"""The site table (agentos.node.sites): hosts, URL rules, session and identity cookies, expectations."""
+"""The site table (openajar.node.sites): hosts, URL rules, session and identity cookies, expectations."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import re
 
 import pytest
 
-from agentos.core.models import AccountRef, LaneSpec, Signal
-from agentos.node import sites
-from agentos.node.sites import (
+from openajar.core.models import AccountRef, LaneSpec, Signal
+from openajar.node import sites
+from openajar.node.sites import (
     SITES,
     VENDORS,
     Cookie,

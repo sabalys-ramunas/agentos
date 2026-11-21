@@ -20,6 +20,8 @@ interface SelectProps {
   size?: 'sm' | 'md';
   'aria-label'?: string;
   'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  'aria-required'?: boolean;
   ref?: Ref<HTMLButtonElement>;
 }
 
@@ -32,7 +34,8 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
           'inline-flex w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-card text-left text-fg',
           'transition-colors duration-(--duration-fast) ease-standard hover:border-control',
           'data-[placeholder]:text-faint disabled:cursor-not-allowed disabled:border-line disabled:bg-inset disabled:text-disabled',
-          size === 'sm' ? 'h-8 px-2 text-secondary md:h-7' : 'h-8 px-3 text-body',
+          'aria-invalid:border-bad-dot data-[state=open]:border-(--focus-ring)',
+          size === 'sm' ? 'h-8 px-3 text-secondary' : 'h-10 px-3 text-body',
           className,
         )}
         {...aria}
@@ -58,11 +61,11 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
               <Primitive.Item
                 key={option.value}
                 value={option.value}
-                className="flex h-8 cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-body text-fg outline-none select-none data-[highlighted]:bg-hover"
+                className="flex h-9 cursor-pointer items-center justify-between gap-4 rounded-sm px-2 text-body text-fg outline-none select-none data-[highlighted]:bg-hover data-[state=checked]:text-accent-text"
               >
                 <Primitive.ItemText>{option.label}</Primitive.ItemText>
                 <Primitive.ItemIndicator>
-                  <Check className="size-4 text-muted" />
+                  <Check className="size-4 text-accent-text" />
                 </Primitive.ItemIndicator>
               </Primitive.Item>
             ))}

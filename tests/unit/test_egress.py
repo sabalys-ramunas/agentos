@@ -1,4 +1,4 @@
-"""The lane egress guard (agentos.node.egress) and the route dispatcher (agentos.node.routes),
+"""The lane egress guard (openajar.node.egress) and the route dispatcher (openajar.node.routes),
 with fake requests, frames and contexts. The real browser is in tests/node/test_egress_node.py."""
 
 from __future__ import annotations
@@ -9,10 +9,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.errors import EgressRefused
-from agentos.core.models import ActionKind, Effect, LaneSpec, validate_sites
-from agentos.node import egress
-from agentos.node.egress import (
+from openajar.core.errors import EgressRefused
+from openajar.core.models import ActionKind, Effect, LaneSpec, validate_sites
+from openajar.node import egress
+from openajar.node.egress import (
     EFFECT_RULES,
     SUGGESTED_SITES,
     Driver,
@@ -21,7 +21,7 @@ from agentos.node.egress import (
     classify,
     judge,
 )
-from agentos.node.routes import RouteDispatcher, glob_match
+from openajar.node.routes import RouteDispatcher, glob_match
 
 SITES = ("instagram.com", "*.instagram.com", "*.cdninstagram.com")
 AGENT = Driver(kind="agent", id="claude", grant_id="g1", lists=(("*.instagram.com", "instagram.com"),),
@@ -615,9 +615,9 @@ async def test_the_dispatcher_runs_guards_first_and_owners_in_order():
 
 
 async def test_the_lane_signer_installs_through_the_dispatcher(tmp_path):
-    from agentos.webbotauth import keys, settings
-    from agentos.webbotauth.route import LaneSigner
-    from agentos.webbotauth.settings import LaneIdentity
+    from openajar.webbotauth import keys, settings
+    from openajar.webbotauth.route import LaneSigner
+    from openajar.webbotauth.settings import LaneIdentity
 
     lane = "biz-a/instagram"
     ident = LaneIdentity(lane_id=lane, signature_agent="https://agent.example/.well-known/http-message-signatures-directory")

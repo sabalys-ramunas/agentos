@@ -1,8 +1,8 @@
 // Memory: what agents remember about a workspace's work. The owner in person reads, confirms, reviews and
-// forgets it (src/agentos/api/routes_memory.py, shaped by src/agentos/api/web/memory.py). Its text was written
+// forgets it (src/openajar/api/routes_memory.py, shaped by src/openajar/api/web/memory.py). Its text was written
 // by agents after reading pages, so it is always shown as plain text and never as markup or a link.
 
-/** Who wrote it, and how far it is trusted: the owner, agentos itself, an agent, or an agent that read a page. */
+/** Who wrote it, and how far it is trusted: the owner, openajar itself, an agent, or an agent that read a page. */
 export type MemoryTrust = 'owner' | 'node' | 'agent' | 'untrusted';
 export type MemoryType = 'fact' | 'document' | 'decision' | 'preference' | 'contact' | 'run_summary';
 export type MemoryState = 'live' | 'expired' | 'forgotten';
@@ -16,7 +16,7 @@ export interface MemoryWorkspace {
   content_bytes_cap: number;
   /** Agent and untrusted entries nobody has looked at yet. */
   waiting: number;
-  /** The record's hash chain checks out. False means it was changed outside agentos: say so, plainly. */
+  /** The record's hash chain checks out. False means it was changed outside openajar: say so, plainly. */
   chain_ok: boolean;
   /** Entries erased for good. Their titles and text are gone; the record of the erasing stays. */
   forgotten: number;

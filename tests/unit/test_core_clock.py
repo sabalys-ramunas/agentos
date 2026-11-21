@@ -1,4 +1,4 @@
-"""agentos.core.clock: one set of time helpers, pinned byte for byte against the private copies it
+"""openajar.core.clock: one set of time helpers, pinned byte for byte against the private copies it
 replaced (each copy is kept here as it was, next to the call that took its place)."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from agentos.core import clock
+from openajar.core import clock
 
 MOMENTS = [
     datetime(2026, 11, 14, 9, 30, 0, tzinfo=UTC),

@@ -182,7 +182,7 @@ class RfbServer {
         return true;
       case 'init': {
         if (!this.take(1)) return false;
-        const name = new TextEncoder().encode('agentos mock');
+        const name = new TextEncoder().encode('openajar mock');
         const init = new DataView(new ArrayBuffer(24 + name.length));
         init.setUint16(0, WIDTH);
         init.setUint16(2, HEIGHT);
@@ -287,7 +287,7 @@ const SHELL_HELP = 'Commands: help, ls, whoami, date, uptime, clear, exit. Nothi
 function shell(lane: string, send: (text: string) => void, close: (code: number, reason: string) => void) {
   const prompt = () => `\x1b[2m${lane}\x1b[0m $ `;
   let line = '';
-  send(`agentos mock terminal on ${lane}. Type help.\r\n${prompt()}`);
+  send(`openajar mock terminal on ${lane}. Type help.\r\n${prompt()}`);
   const run = (command: string) => {
     switch (command) {
       case '':
@@ -297,7 +297,7 @@ function shell(lane: string, send: (text: string) => void, close: (code: number,
       case 'ls':
         return 'downloads  notes.md  profile  screenshots\r\n';
       case 'whoami':
-        return 'agentos\r\n';
+        return 'openajar\r\n';
       case 'date':
         return `${new Date().toUTCString()}\r\n`;
       case 'uptime':

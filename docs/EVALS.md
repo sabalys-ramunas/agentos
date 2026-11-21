@@ -1,6 +1,6 @@
-# Evals: is agentos getting better for the agents that use it?
+# Evals: is openajar getting better for the agents that use it?
 
-The environments eval runs the loop an agent really does in agentos (open a machine, change code,
+The environments eval runs the loop an agent really does in openajar (open a machine, change code,
 run tests, start a dev server, look at the page, push, open the pull request, close or save and
 come back) against a node on this computer, and measures three things: did the work get done (the
 experience), how long it took (speed), and how many tokens of tool output the agent had to read
@@ -8,14 +8,16 @@ experience), how long it took (speed), and how many tokens of tool output the ag
 the skill or the machine's setup, and compare.
 
 It lives in `tests/env_eval/`. It needs Docker and the environment image
-(`uv run agentos environments setup --pull`, once). Nothing in a run reaches a real repository or
+(`uv run openajar environments setup --pull`, once). Nothing in a run reaches a real repository or
 a cloud: the repositories are local bare repositories, GitHub's pull request API is a stand-in, and
 every machine is a container. The one thing that leaves this computer is task 5's `npm install`
 of one small public package. The free suite costs nothing; a model run costs what its model
 reads and writes (see "Paid runs").
 
-The studio has its own eval of the same kind (`tests/studio_eval/`, for `ui_check` and friends),
-and the lanes have their benchmarks ([BENCH.md](BENCH.md)).
+Since 0.5.0 it is the one eval suite: the second one, `evals/` (built on 2026-11-20 while 0.4.0 was
+released elsewhere), was merged into it ("What came from evals/" at the end). The studio has its own
+eval of the same kind (`tests/studio_eval/`, for `ui_check` and friends), and the lanes have their
+benchmarks ([BENCH.md](BENCH.md)).
 
 ## Run it
 
@@ -28,6 +30,8 @@ uv run python tests/env_eval/run.py compare                   # the newest run a
 uv run python tests/env_eval/run.py compare --against 5693c8e # ... or against a commit's run
 uv run python tests/env_eval/run.py list                      # the tasks
 uv run python tests/env_eval/run.py clean                     # what a killed run left in Docker
+uv run python tests/env_eval/run.py smoke                     # the budgets: no node, no Docker, no model
+make eval-smoke                                               # the same
 ```
 
 A run prints each task as it goes, then a table, then what changed against the previous run of the
@@ -44,13 +48,13 @@ finishes every task and `careless` none (that proves the checkers), or when a mo
 
 For each task (and each repeat) the harness, `tests/env_eval/node.py`:
 
-1. Makes a scratch home with agentos's local node (`agentos local serve`'s composition, with the
+1. Makes a scratch home with openajar's local node (`openajar local serve`'s composition, with the
    environment's browser on the machine), the docker provider, the task's `environments.toml`, and
-   an agent grant as `agentos local` gives Claude Code. It is never your `~/.agentos`, and it never
+   an agent grant as `openajar local` gives Claude Code. It is never your `~/.openajar`, and it never
    registers anything with your Claude Code or Codex.
 2. Commits the task's fixture (`tests/env_eval/repos/<name>/`) into a new bare repository and
    declares it for environments as `github.com/evals/<name>` through the git gateway
-   (`agentos git remote allow env ... --url <path>`, as an owner does), with a made-up token in the
+   (`openajar git remote allow env ... --url <path>`, as an owner does), with a made-up token in the
    vault. Pushes go to that bare repository; `environment_pull_request` goes to the stand-in
    (`ghstub.py`), which checks the branch is really there.
 3. Starts the node and runs the agent, one session per prompt, each in a fresh empty folder with a
@@ -59,17 +63,17 @@ For each task (and each repeat) the harness, `tests/env_eval/node.py`:
 4. Runs the task's checker over the real end state, then stops the node and removes every container,
    network and image it made (also after an error or Ctrl-C), and the scratch home.
 
-The docker provider's image is tagged `agentos-eval-<id>:base` for each node, so every save, snapshot
+The docker provider's image is tagged `openajar-eval-<id>:base` for each node, so every save, snapshot
 and prepared machine of a run is an image of that repository alone and goes with it.
 
 ## The agents
 
 | Agent | What it is | Costs |
 |---|---|---|
-| `perfect` | A script that does what the `agentos-environment` skill teaches. It must finish every task, and it is a repeatable benchmark of the canonical loop: its time and the tokens of tool output it reads. | nothing |
+| `perfect` | A script that does what the `openajar-environment` skill teaches. It must finish every task, and it is a repeatable benchmark of the canonical loop: its time and the tokens of tool output it reads. | nothing |
 | `careless` | A script that takes a plausible wrong turn per task (leaves the machine running, sleeps instead of waiting on the port, retries a refused host, opens a new machine instead of resuming). It must finish none. | nothing |
-| `claude` | `claude -p` with only the agentos MCP server (`--strict-mcp-config`), no built-in tools (`--tools ""`), the `agentos-environment` skill appended to its system prompt, no user settings (`--setting-sources project` in an empty folder), `--model`, `--output-format stream-json`, and `--max-budget-usd` as each session's hard cap. | the model's tokens |
-| `codex` | `codex exec --json` with a scratch `CODEX_HOME` whose `config.toml` names only the agentos server (the token in `AGENTOS_EVAL_TOKEN`, `bearer_token_env_var`), the skill as `AGENTS.md` in its folder, `--sandbox read-only`, and your Codex sign-in linked in. Built to Codex's documented CLI and not yet run against a real Codex. | the model's tokens |
+| `claude` | `claude -p` with only the openajar MCP server (`--strict-mcp-config`), no built-in tools (`--tools ""`), the `openajar-environment` skill appended to its system prompt, no user settings (`--setting-sources project` in an empty folder), `--model`, `--output-format stream-json`, and `--max-budget-usd` as each session's hard cap. | the model's tokens |
+| `codex` | `codex exec --json` with a scratch `CODEX_HOME` whose `config.toml` names only the openajar server (the token in `OPENAJAR_EVAL_TOKEN`, `bearer_token_env_var`), the skill as `AGENTS.md` in its folder, `--sandbox read-only`, and your Codex sign-in linked in. Built to Codex's documented CLI and not yet run against a real Codex. | the model's tokens |
 | `cmd` | Any other command, with `--agent-cmd 'mytool --mcp {mcp_config} {prompt}'`. It gets {prompt}, {mcp_config} (a Claude-style MCP JSON file), {url}, {token_file}, {skill}, {model} and {transcript}; stdout is read as stream-json when it is that. | yours |
 
 A model agent's prompt is the task's prompt as a human would type it, and one line asking it to end
@@ -85,13 +89,19 @@ scripts.
 |---|---|---|
 | `t01_fix_push_pr` | fix the failing tests, push the fix on a branch, open the pull request | a new branch is in the bare repository; its tests pass in a clean checkout here; the stand-in has a pull request for it; main is unchanged; every environment is closed and its container gone |
 | `t02_dev_server_proof` | start the dev server, check the home page in the browser, keep a screenshot as proof | the node keeps a proof with a title, of `localhost:3000`; the environment's browser showed the app's page; closed and gone |
-| `t03_continue_tomorrow` | day one: start, keep the machine, leave a note; day two: "continue Todo export in agentos", push, open the pull request | day two's open resumed the save (no second machine); the note came back naming what was next (the second prompt does not say it); every test passes at the pushed branch; a pull request; closed and gone |
-| `t04_prepared_warm` | three times: open the storefront (it has `.agentos/environment.toml`) and say its first price | the app listened at each open; the second booted from the prepared machine (the harness waits for the build); the third took the warm machine (the harness turns `warm = 1` on and waits for one); every answer names the price; closed and gone. The three open times are the point: `open1_s`, `open2_s`, `open3_s` |
-| `t05_blocked_host` | on a `limited` network: install the dependencies (npm is allowed) and run a script that calls a host that is not | the script got past its dependency; the node refused the host; the script ran at most twice (no retry loop); the answer names the host and the owner's command (`agentos environments allow --host ...`); closed and gone |
-| `t06_checkpoint_rollback` | a risky change: checkpoint first, roll back if the tests fail | a checkpoint before the first edit; a rollback; the tests ran and passed after it; nothing broken pushed; the answer says the tests failed. Needs `environment_checkpoint`: skipped on an agentos without it |
+| `t03_continue_tomorrow` | day one: start, keep the machine, leave a note; day two: "continue Todo export in openajar", push, open the pull request | day two's open resumed the save (no second machine); the note came back naming what was next (the second prompt does not say it); every test passes at the pushed branch; a pull request; closed and gone |
+| `t04_prepared_warm` | three times: open the storefront (it has `.openajar/environment.toml`) and say its first price | the app listened at each open; the second booted from the prepared machine (the harness waits for the build); the third took the warm machine (the harness turns `warm = 1` on and waits for one); every answer names the price; closed and gone. The three open times are the point: `open1_s`, `open2_s`, `open3_s` |
+| `t05_blocked_host` | on a `limited` network: install the dependencies (npm is allowed) and run a script that calls a host that is not | the script got past its dependency; the node refused the host; the script ran at most twice (no retry loop); the answer names the host and the owner's command (`openajar environments allow --host ...`); closed and gone |
+| `t06_checkpoint_rollback` | a risky change: checkpoint first, roll back if the tests fail | a checkpoint before the first edit; a rollback; the tests ran and passed after it; nothing broken pushed; the answer says the tests failed. Needs `environment_checkpoint`: skipped on an openajar without it |
 | `t07_video_proof` | on a `limited` network: change the heading, record the page in the browser, push and open the pull request with the recording | a recording kept as proof with a title; the browser showed the new heading; a branch with it; a pull request for it; the recording's files reached the stand-in's `agentos-proofs` branch and the body shows its GIF; closed and gone. Needs `browser_record`. A machine from an image without ffmpeg installs it on the first recording, through the proxy |
 
-A task can name tools it needs (`requires`); on a node without them it is skipped and says so. The
+| `t08_probes` | (the scripts only) one call each, for what testers found wrong: a command cut off by its time limit, a command with no `cwd`, a relative `cwd`, a `cwd` that does not exist, two million characters of output, a command that reads input with none given | each call came back as the 2026-11-20 review's fixes say it must (the next step named, no wrapper's line; `/work`; `/work/probe-dir`; an error with a fix line; cut and marked; a quick failure); closed and gone |
+| `t09_slow_command` | run the release build (about 80 s, longer than a command waits by default) and say its build id | the build's last line reached the agent through `terminal_exec` or `terminal_job_read`; the answer has the id; closed and gone |
+| `t10_checkout_form` | start a shop on the machine and order with its browser: a quantity, text, an email, a select, radio buttons and check boxes; leave the machine open | the shop itself recorded exactly one order with the right products, quantities, buyer, delivery and gift wrap (read on the machine the agent left open, `ctx.on_machine`); the answer has its number |
+| `t11_desktop_app` | type a command into the desktop's own Terminal window, where the human watches; leave the machine open | the file the command writes is on the machine; the line went in through `screen_act`; the agent's terminal tool did not write it. Needs `screen_act` |
+
+A task can name tools it needs (`requires`); on a node without them it is skipped and says so. A task
+the scripts alone can run (`scripted_only`, the probes) is skipped for a model agent. The
 stand-in answers the Git Data API calls the proofs make (blobs, trees, commits, the ref) in memory.
 
 To add a task: a fixture under `repos/` if none fits, then one file in `tasks/`. Run the scripts
@@ -164,9 +174,41 @@ so a run that is one second or a hundred tokens off is not flagged:
 `compare` exits 1 on a regression; `run.py --fail-on-regression` does the same for a run. Times on
 Docker move with what else the computer does: for a speed claim, `--repeat 3` both sides.
 
+### How sure a number is
+
+The scripts are deterministic, so one run a side shows a broken task. A model is not: with
+`--repeat`, a task's `finished` rate changes for real only when Fisher's exact test gives p below
+0.05, and "likely" below 0.15 (`env_eval.stats`); anything else is "same", with the numbers. The
+compare prints the strength and p beside the change. With 3 runs a side, 3 of 3 against 0 of 3 is only
+likely (p = 0.10); with 5 a side it is real (p = 0.008), which is why a release compares 5 runs.
+Seconds and tokens keep their thresholds and noise floors above; on a loaded computer read the times
+as provisional.
+
+## The smoke checks
+
+`run.py smoke` (and `make eval-smoke`) reads the product's own definitions, with no node, no Docker
+and no model, and holds them to `tests/env_eval/budgets.toml`: every error in the catalog has a step
+for the agent and a fix for the person; the environment skill's length; the everyday tool list's
+count, its longest description, all of them together, and its arguments with no description (none).
+They are read by every agent in every chat, so their size is a cost. The limits are ratchets, a little
+above the product today: lower one when the product shrinks, raise one only with a reason in the
+commit. They run in CI with the unit tests (`tests/unit/test_env_eval.py`), next to the default list's
+token budget in `tests/unit/test_toolsets.py`.
+
+## Gate a release with it
+
+1. On the release candidate, on a quiet computer: `make eval-smoke`, then `make eval`. `perfect`
+   finishes every task, `careless` none, and the compare against the last release's run shows no
+   regression.
+2. `--agent claude --model <the day-to-day model> --repeat 5` on the tasks a change touched (all of
+   them for a minor release), compared with the same against the release before: no task regresses,
+   real or likely. Read the transcript of a task that sometimes passes.
+3. Every real bug a tester finds becomes a check: a probe in `t08_probes` when one call shows it, a
+   task when it needs an agent's judgement.
+
 ## A/B between two commits
 
-`--ref <commit>` runs the suite on another commit's agentos under this harness: a temporary
+`--ref <commit>` runs the suite on another commit's openajar under this harness: a temporary
 worktree of that commit (removed afterwards), whose `src/` the node, the owner commands and the
 skill come from. The tasks, checkers and metrics stay this checkout's, so both sides are measured
 the same way:
@@ -269,3 +311,53 @@ One run each, so a direction: the trims cost nothing measurable once `on` keeps 
 words of `on` matter more than their tokens.
 The scripts' times of the last free run are slower across the board because the whole unit suite ran
 on the same machine at the time; no tool on their paths changed.
+
+## What came from evals/
+
+A second suite, `evals/`, was built on 2026-11-20 beside the private line's desktop work, while the
+released 0.4.0 shipped this one. 0.5.0 keeps one: this one, because people run it (`make eval`,
+`run.py` and its flags, `bench/evals.jsonl`). From `evals/` it took what this one lacked:
+
+| From evals/ | Here |
+|---|---|
+| the static checks and their budgets (in CI) | `run.py smoke`, `tests/env_eval/budgets.toml`, `tests/unit/test_env_eval.py` |
+| how sure a change is: Wilson's interval, Fisher's exact test, real and likely | `env_eval.stats`, used by the compare for `finished` over repeats |
+| probes, one call each, for what testers found | `t08_probes` |
+| `recover-slow-command`, `browse-checkout-form` and its shop fixture | `t09_slow_command`, `t10_checkout_form`, `tests/env_eval/repos/shopsite/` |
+| the desktop and its apps (planned there, never built) | `t11_desktop_app` |
+| a checker that reads the machine the agent left open | `Ctx.on_machine` |
+
+Left behind, with why: its own runner, drivers, MCP client and results folder (this harness has its
+recording proxy, its agents and `bench/evals.jsonl`); its fixture image built on the machine image (the
+fixtures here are repositories cloned like a user's); the tasks that repeat this suite's
+(`open-run-close`, `build-test-fix`, `git-branch-push` are t01's loop, `save-resume` is t03,
+`devserver-fix-ui` is t02); the two that need the live web (`repo-open-live`, `repo-install-test-live`);
+and four still to port, in this order: `machine-dies` (the harness kills the machine mid-build),
+`files-in-out` (upload and download), `browse-wait-dialog` and `browse-find-price`. They are in the
+private repository's history. Its first smoke baseline of 2026-11-21 measured `evals/`'s
+own checks; the baseline here is this harness's run below.
+
+## The 0.5.0 baseline
+
+The free suite on the merged 0.5.0 tree, 2026-11-21, on a Mac with Docker Desktop, from a machine image
+built from this tree (`OPENAJAR_EVAL_IMAGE=openajar-env:0.5.0-rc`: the desktop and ffmpeg in one image).
+`perfect` finished 11 of 11, `careless` none. The computer was busy (a load average far above its
+CPUs), so read the seconds as provisional.
+
+| Task | Seconds | Ready s | Opens s | Calls | Tokens read |
+|---|---|---|---|---|---|
+| t01_fix_push_pr | 13.5 | 4.1 | 3.7 | 8 | 2,147 |
+| t02_dev_server_proof | 20.4 | 3.5 | 3.5 | 8 | 2,265 |
+| t03_continue_tomorrow | 19.8 | 3.7 | 3.7 new, 3.7 resumed | 11 | 4,055 |
+| t04_prepared_warm | 64.4 | 16.6 | 16.6 cold, 4.0 prepared, 2.5 warm | 12 | 4,699 |
+| t05_blocked_host | 11.5 | 3.6 | 3.5 | 4 | 1,700 |
+| t06_checkpoint_rollback | 12.3 | 3.7 | 3.7 | 7 | 2,175 |
+| t07_video_proof | 24.6 | 3.3 | 3.2 | 12 | 3,005 |
+| t08_probes | 11.9 | 2.7 | 2.6 | 9 | 5,929 |
+| t09_slow_command | 91.2 | 3.6 | 3.5 | 4 | 1,681 |
+| t10_checkout_form | 60.7 | 3.7 | 3.7 | 19 | 3,877 |
+| t11_desktop_app | 19.7 | 2.6 | 2.6 | 7 | 3,459 |
+
+Each session starts with 30 tools of about 7,140 tokens and instructions of about 950. The desktop
+adds nothing a script waits for: opens stay at 3 to 4 s, as in 0.4.0's runs. The `perfect` wrong turns
+(3) are the probes' own refused `cwd` and the desktop task's check of its file with `cat`.

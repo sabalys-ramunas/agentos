@@ -114,13 +114,25 @@ describe('the rail and the tab bar', () => {
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
   });
 
-  it('lists every place in the command bar with its keys', async () => {
+  it('offers the six most used places in the command bar, and every place with its keys once you type', async () => {
     const { user } = renderApp('/northwind-group');
     await screen.findAllByRole('navigation', { name: 'Main' });
     await user.click(screen.getAllByRole('button', { name: 'Search or run a command' })[0]!);
     const dialog = await screen.findByRole('dialog', { name: 'Search or run a command' });
-    for (const item of NAV) expect(within(dialog).getByRole('option', { name: new RegExp(`^${item.label}G${item.key.toUpperCase()}$`, 'i') })).toBeInTheDocument();
-    await user.type(within(dialog).getByRole('combobox'), 'cloud');
+    const first = ['h', 'v', 'n', 'r', 'c', 'm'];
+    for (const item of NAV) {
+      const option = within(dialog).queryByRole('option', { name: new RegExp(`^${item.label}G${item.key.toUpperCase()}$`, 'i') });
+      if (first.includes(item.key)) expect(option).toBeInTheDocument();
+      else expect(option).toBeNull();
+    }
+    const input = within(dialog).getByRole('combobox');
+    for (const item of NAV.filter((place) => !first.includes(place.key))) {
+      await user.clear(input);
+      await user.type(input, item.label);
+      expect(await within(dialog).findByRole('option', { name: new RegExp(`^${item.label}G${item.key.toUpperCase()}$`, 'i') })).toBeInTheDocument();
+    }
+    await user.clear(input);
+    await user.type(input, 'cloud');
     expect(await within(dialog).findByRole('option', { name: /^Cloud server/ })).toBeInTheDocument();
-  });
+  }, 15_000);
 });

@@ -9,7 +9,7 @@ import random
 
 import pytest
 
-from agentos.node import human, human_fields
+from openajar.node import human, human_fields
 
 
 class Keyboard:

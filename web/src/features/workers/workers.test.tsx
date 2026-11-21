@@ -75,7 +75,7 @@ describe('what the hosted panel must never hold', () => {
   });
 
   it('keeps the real command to the one place it is written, and behind Technical details', () => {
-    expect(addCommand(SERVICES[0]!)).toBe('agentos brains add typesafe --kind metered --provider typesafe --stdin');
+    expect(addCommand(SERVICES[0]!)).toBe('openajar brains add typesafe --kind metered --provider typesafe --stdin');
     expect(read('add-service.tsx')).toMatch(/label="Technical details" open=\{technical\}/);
   });
 });
@@ -117,7 +117,7 @@ describe('words', () => {
   });
 
   it('keeps engine words out of what a person reads', () => {
-    const words = (read('words.ts').replace(/\/\*\*[\s\S]*?\*\//g, '').replaceAll("\\'", '').replace(/\$\{[^}]*\}/g, '').replace(/^import .*$/gm, '').match(/'[^'\n]*'|`[^`\n]*`/g) ?? []).filter((text) => !text.includes('agentos brains add')).join(' ');
+    const words = (read('words.ts').replace(/\/\*\*[\s\S]*?\*\//g, '').replaceAll("\\'", '').replace(/\$\{[^}]*\}/g, '').replace(/^import .*$/gm, '').match(/'[^'\n]*'|`[^`\n]*`/g) ?? []).filter((text) => !text.includes('openajar brains add')).join(' ');
     expect(words.length).toBeGreaterThan(500);
     expect(words).not.toMatch(/\bjev\b|\btokens?\b|\bmilliseconds?\b|\bplugins?\b|\bbrains?\b|\bescalat/i);
     expect(words).not.toMatch(/ladder/i);

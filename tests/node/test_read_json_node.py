@@ -10,9 +10,9 @@ import asyncio
 
 import pytest
 
-from agentos.core.driver import parse_json
-from agentos.node.flow_driver import PlaywrightFlowDriver
-from agentos.node.interaction import PlaywrightInteraction
+from openajar.core.driver import parse_json
+from openajar.node.flow_driver import PlaywrightFlowDriver
+from openajar.node.interaction import PlaywrightInteraction
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 

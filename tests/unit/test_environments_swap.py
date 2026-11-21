@@ -1,4 +1,4 @@
-"""The node's TLS swap for app secrets (agentos.environments.swap), end to end in this process: a test
+"""The node's TLS swap for app secrets (openajar.environments.swap), end to end in this process: a test
 HTTPS upstream with its own CA, the swap in front of it, and a client that trusts only the
 environment's CA. The placeholder becomes the value for the bound host only; keep-alive, chunked
 bodies and Basic credentials work; no value reaches a log."""
@@ -13,7 +13,7 @@ import ssl
 import h11
 import pytest
 
-from agentos.environments.swap import Binding, EnvCA, SwapProxy, swap_request
+from openajar.environments.swap import Binding, EnvCA, SwapProxy, swap_request
 
 HOST = "api.example.test"
 OTHER = "other.example.test"

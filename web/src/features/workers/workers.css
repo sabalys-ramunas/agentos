@@ -148,7 +148,7 @@
   opacity: 0.45;
 }
 
-/* Where a key goes. You, the computer and the AI service stand in a line, and agentos Cloud to one side. */
+/* Where a key goes. You, the computer and the AI service stand in a line, and openajar Cloud to one side. */
 .key-node {
   fill: var(--background);
   stroke: var(--border);

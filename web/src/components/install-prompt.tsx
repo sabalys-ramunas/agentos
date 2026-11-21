@@ -1,5 +1,5 @@
 /**
- * Offers to install agentos once it has earned it: after the person has decided something here,
+ * Offers to install openajar once it has earned it: after the person has decided something here,
  * never on a first visit, and not again for a month after "Not now". On iPhone and iPad, where
  * there is no install dialog, it says the two taps instead.
  */
@@ -51,10 +51,10 @@ export function InstallPrompt() {
   if (!earned || resting || install.installed || (!install.canPrompt && !install.manual)) return null;
   const later = () => dismissed.set(String(Date.now()));
   return (
-    <aside aria-label="Install agentos" className="mb-6 flex animate-fade-in items-start gap-4 rounded-xl border border-line bg-inset p-4">
+    <aside aria-label="Install openajar" className="mb-6 flex animate-fade-in items-start gap-4 rounded-xl border border-line bg-inset p-4">
       <Logo className="size-8 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="text-label">Install agentos</p>
+        <p className="text-label">Install openajar</p>
         <p className="mt-1 text-secondary text-muted">
           {install.manual ? (
             <>

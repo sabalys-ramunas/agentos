@@ -15,8 +15,9 @@ interface SelectionBarProps {
 }
 
 /**
- * The ink bar over a table while rows are selected: how many, what can be done, and Clear (Esc).
- * It rises in, and Esc anywhere clears the selection.
+ * The ink bar while rows are selected: how many, what can be done, and Clear (Esc). It floats at the foot of the
+ * view (sticky, above the phone's tab bar), so choosing a row never pushes the table down; put it after the table.
+ * The count is said through a live region that is always in the page, so the first choice is announced too.
  */
 export function SelectionBar({ count, noun, actions, onClear, className }: SelectionBarProps) {
   useEffect(() => {
@@ -27,23 +28,30 @@ export function SelectionBar({ count, noun, actions, onClear, className }: Selec
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [count, onClear]);
-  if (count === 0) return null;
+  const words = `${count} ${count === 1 ? noun[0] : noun[1]} selected`;
   return (
-    <div
-      role="toolbar"
-      aria-label="Selection"
-      className={cn(
-        'flex animate-selection-rise flex-wrap items-center gap-2 bg-inverse py-2 pr-3 pl-5 text-secondary text-on-inverse',
-        className,
-      )}
-    >
-      <span aria-live="polite" className="mr-auto font-medium">
-        {count} {count === 1 ? noun[0] : noun[1]} selected
+    <>
+      <span aria-live="polite" className="sr-only">
+        {count ? words : ''}
       </span>
-      {actions}
-      <Button variant="inverse" size="sm" onClick={onClear} icon={<X className="size-4" />} shortcut="Esc">
-        Clear
-      </Button>
-    </div>
+      {count ? (
+        <div
+          role="toolbar"
+          aria-label="Selection"
+          className={cn(
+            'sticky bottom-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+16px)] z-20 flex animate-selection-rise flex-wrap items-center gap-2 rounded-xl bg-inverse py-2 pr-2 pl-4 text-secondary text-on-inverse shadow-popover md:bottom-6',
+            className,
+          )}
+        >
+          <span aria-hidden="true" className="tabular mr-auto font-medium">
+            {words}
+          </span>
+          {actions}
+          <Button variant="inverse" size="sm" onClick={onClear} icon={<X className="size-4" />} shortcut="Esc">
+            Clear
+          </Button>
+        </div>
+      ) : null}
+    </>
   );
 }

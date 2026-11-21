@@ -117,7 +117,7 @@ function AccountIdentity({ org, node, account, owner, title }: { org: string; no
       {account.state === 'none' ? (
         <div className="text-secondary">
           <p>Making one takes a terminal on the machine. Technical details has the command.</p>
-          <TypedCommand command={`agentos identity init ${account.lane} --agent <https URL>`} />
+          <TypedCommand command={`openajar identity init ${account.lane} --agent <https URL>`} />
         </div>
       ) : null}
 
@@ -170,7 +170,7 @@ export function IdentityPanel({ org, node, owner }: { org: string; node: string;
             .
           </p>
           <p>Making an identity takes a terminal on the machine. Technical details has the command.</p>
-          <TypedCommand command="agentos identity init <account> --agent <https URL>" />
+          <TypedCommand command="openajar identity init <account> --agent <https URL>" />
         </Card>
       ) : null}
       {owner && configured.length ? <p className="text-caption text-faint">Changes take effect when the account next opens.</p> : null}

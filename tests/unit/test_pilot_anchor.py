@@ -7,9 +7,9 @@ from typing import Any
 import pytest
 from testkit.pilot import FakeTools, ScriptedDecider, step
 
-from agentos.pilot import Pilot, Request, Status, Value
-from agentos.pilot.anchor import Target, anchors_of, check, line_sha256
-from agentos.pilot.page import parse_page
+from openajar.pilot import Pilot, Request, Status, Value
+from openajar.pilot.anchor import Target, anchors_of, check, line_sha256
+from openajar.pilot.page import parse_page
 
 TWO_POSTS = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 4 refs
@@ -203,7 +203,7 @@ async def test_words_typed_into_another_post_spoil_the_run() -> None:
 
 
 async def test_a_signed_out_lane_after_an_approval_holds_the_run() -> None:
-    from agentos.pilot import State
+    from openajar.pilot import State
 
     pending = {"status": "approval_pending", "approval_id": "ap_1", "summary": "Like"}
     out = TWO_POSTS.replace("signal: ok", "signal: logged_out")
@@ -217,7 +217,7 @@ async def test_a_signed_out_lane_after_an_approval_holds_the_run() -> None:
 
 
 async def test_an_approved_click_that_now_matches_two_controls_sends_nothing() -> None:
-    from agentos.pilot import State
+    from openajar.pilot import State
 
     items = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 2 refs

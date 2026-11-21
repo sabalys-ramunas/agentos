@@ -11,8 +11,8 @@ from __future__ import annotations
 import pytest
 from testkit.workspaces import FakeCtx, Harness
 
-from agentos.core.errors import InvalidRequest
-from agentos.workspaces import tools as ws_tools
+from openajar.core.errors import InvalidRequest
+from openajar.workspaces import tools as ws_tools
 
 # The labels the Harness has by default. An error that names any of them leaks the node's labels.
 EXISTING_LABELS = ("lt1", "lt2")

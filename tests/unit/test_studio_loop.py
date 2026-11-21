@@ -19,10 +19,10 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from agentos.core.runtime import Runtime
-from agentos.studio import tools
-from agentos.studio.browser import BlankPage, ReviewPool, studio_status
-from agentos.studio.contracts import Screen, Target
+from openajar.core.runtime import Runtime
+from openajar.studio import tools
+from openajar.studio.browser import BlankPage, ReviewPool, studio_status
+from openajar.studio.contracts import Screen, Target
 
 pytest.importorskip("playwright.async_api")
 pytestmark = pytest.mark.asyncio(loop_scope="module")

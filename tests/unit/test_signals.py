@@ -6,9 +6,9 @@ import re
 
 import pytest
 
-from agentos.core.models import AccountRef, LaneSpec, NavigateResult, Signal, SnapshotResult
-from agentos.node import interaction as ia_mod
-from agentos.node.interaction import (
+from openajar.core.models import AccountRef, LaneSpec, NavigateResult, Signal, SnapshotResult
+from openajar.node import interaction as ia_mod
+from openajar.node.interaction import (
     PlaywrightInteraction,
     bind_lane,
     is_challenge_url,
@@ -16,8 +16,8 @@ from agentos.node.interaction import (
     last_report,
     take_report,
 )
-from agentos.node.interaction.readback import _MARKERS_JS
-from agentos.node.sites import (
+from openajar.node.interaction.readback import _MARKERS_JS
+from openajar.node.sites import (
     MARKER_SELECTORS,
     Frame,
     LaneExpectation,
@@ -26,7 +26,7 @@ from agentos.node.sites import (
     classify_signal,
     vendor_rule,
 )
-from agentos.node.tools import INSTRUCTIONS, page_result, signal_lines
+from openajar.node.tools import INSTRUCTIONS, page_result, signal_lines
 
 EM_DASH = "—"
 A, B, OK, U = Signal.CAPTCHA, Signal.BLOCKED, Signal.OK, Signal.UNKNOWN

@@ -2,8 +2,8 @@
 
     uv run python scripts/capture_outlines.py
 
-Runs agentos.node.snapshot.take_snapshot, the code browser_snapshot uses, against local files
-only. The tests of agentos.runner.siteapis.discover read what this writes, so a change to the
+Runs openajar.node.snapshot.take_snapshot, the code browser_snapshot uses, against local files
+only. The tests of openajar.runner.siteapis.discover read what this writes, so a change to the
 outline format shows up there once the outlines are captured again.
 """
 
@@ -16,7 +16,7 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
-from agentos.node.snapshot import take_snapshot
+from openajar.node.snapshot import take_snapshot
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "tests" / "fixtures" / "site"

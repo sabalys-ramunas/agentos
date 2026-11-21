@@ -205,7 +205,7 @@
       "tools": [
        {
         "name": "whoami",
-        "description": "Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, account browser counts by st...",
+        "description": "Which openajar node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, account browser counts by st...",
         "input_schema": {
          "properties": {},
          "title": "whoamiArguments",
@@ -290,9 +290,9 @@
      "payload": {
       "programs": [
        {
-        "name": "agentos",
+        "name": "openajar",
         "version": "<version>",
-        "source": "agentos",
+        "source": "openajar",
         "scope": "node",
         "lanes": []
        },
@@ -880,12 +880,12 @@
      "kind": "node",
      "payload": {
       "guide": {
-       "instructions": "agentos can give you your own cloud computer: a VM with a terminal, a real browser and your repo. Take one when asked to work in agentos or on a VM, or for buil...",
+       "instructions": "openajar can give you your own cloud computer: a VM with a terminal, a real browser and your repo. Take one when asked to work in openajar or on a VM, or for buil...",
        "prompts": [
         {
          "name": "post_image",
          "title": "Post an image with a caption",
-         "description": "agentos: post on a site with an image: browser_file_put, browser_upload, the approval, the readback.",
+         "description": "openajar: post on a site with an image: browser_file_put, browser_upload, the approval, the readback.",
          "arguments": [
           {
            "name": "on",
@@ -898,12 +898,12 @@
            "required": false
           }
          ],
-         "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on <browser>. Its tools are in the accounts toolset: tools_more(toolset=\"accounts\") first i..."
+         "text": "Use the openajar MCP tools for this job.\nPost an image with a caption on <browser>. Its tools are in the accounts toolset: tools_more(toolset=\"accounts\") first i..."
         },
         {
          "name": "hand_to_human",
          "title": "Hand a browser to the human and wait",
-         "description": "agentos: let the human take the browser (login, captcha, checkpoint), then carry on.",
+         "description": "openajar: let the human take the browser (login, captcha, checkpoint), then carry on.",
          "arguments": [
           {
            "name": "on",
@@ -916,7 +916,7 @@
            "required": false
           }
          ],
-         "text": "Use the agentos MCP tools for this job.\nHand <browser> to the human, then carry on.\n1. browser_view(on=\"<browser>\"): it returns a url and an ssh tunnel command...."
+         "text": "Use the openajar MCP tools for this job.\nHand <browser> to the human, then carry on.\n1. browser_view(on=\"<browser>\"): it returns a url and an ssh tunnel command...."
         }
        ]
       }

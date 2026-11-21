@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 from test_policy_support import Clock, make_service
 
-from agentos.core.models import Effect
-from agentos.policy.grants import Grant, GrantBlock, Subject
-from agentos.policy.recipients import ApprovalFacts, GrantDirectory, NoMembers, could_control, could_decide
+from openajar.core.models import Effect
+from openajar.policy.grants import Grant, GrantBlock, Subject
+from openajar.policy.recipients import ApprovalFacts, GrantDirectory, NoMembers, could_control, could_decide
 
 
 def human(member: str, workspaces: list[str], *, approve: list[str] | None = None, max_usd: float | None = None,

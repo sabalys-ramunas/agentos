@@ -1,4 +1,4 @@
-"""Pins every module's signal set and held codes to the literal it had before agentos.core.signals.
+"""Pins every module's signal set and held codes to the literal it had before openajar.core.signals.
 
 Each old literal is written out here as it was in its module. A failure means a set's members
 changed: that changes what an engine does on a challenged account, and needs the owner's yes.
@@ -10,33 +10,33 @@ import importlib
 
 import pytest
 
-from agentos.core.models import Signal
+from openajar.core.models import Signal
 
 S = Signal
 
 # (module, name, the old literal)
 PINS = [
-    ("agentos.runner.proof", "BAD_SIGNALS",
+    ("openajar.runner.proof", "BAD_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.RATE_LIMITED, S.BLOCKED, S.LOGGED_OUT})),
-    ("agentos.stealth.lanerules", "BAD_SIGNALS",
+    ("openajar.stealth.lanerules", "BAD_SIGNALS",
      (S.CAPTCHA, S.CHECKPOINT, S.RATE_LIMITED, S.BLOCKED, S.LOGGED_OUT)),
-    ("agentos.node.interaction.waits", "STOP_SIGNALS",
+    ("openajar.node.interaction.waits", "STOP_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.LOGGED_OUT, S.BLOCKED, S.RATE_LIMITED})),
-    ("agentos.keepalive.planner", "BAD_SIGNALS",
+    ("openajar.keepalive.planner", "BAD_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.BLOCKED, S.LOGGED_OUT})),
-    ("agentos.keepalive.visit", "CHALLENGES",
+    ("openajar.keepalive.visit", "CHALLENGES",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.BLOCKED, S.RATE_LIMITED})),
-    ("agentos.node.holds", "HUMAN_SIGNALS",
+    ("openajar.node.holds", "HUMAN_SIGNALS",
      frozenset({S.CAPTCHA.value, S.CHECKPOINT.value, S.BLOCKED.value, S.LOGGED_OUT.value, "wrong_account"})),
-    ("agentos.api.lanes_view", "NEEDS_HUMAN_SIGNALS", {"captcha", "checkpoint", "logged_out", "blocked"}),
-    ("agentos.api.lanes_view", "ATTENTION_SIGNALS", {"captcha", "checkpoint", "rate_limited", "logged_out"}),
-    ("agentos.pilot.loop", "CHALLENGES", frozenset({"captcha", "checkpoint", "blocked", "rate_limited"})),
-    ("agentos.profiles.sync", "SIGNALS",
+    ("openajar.api.lanes_view", "NEEDS_HUMAN_SIGNALS", {"captcha", "checkpoint", "logged_out", "blocked"}),
+    ("openajar.api.lanes_view", "ATTENTION_SIGNALS", {"captcha", "checkpoint", "rate_limited", "logged_out"}),
+    ("openajar.pilot.loop", "CHALLENGES", frozenset({"captcha", "checkpoint", "blocked", "rate_limited"})),
+    ("openajar.profiles.sync", "SIGNALS",
      frozenset({"captcha", "checkpoint", "logged_out", "blocked", "rate_limited", "wrong_account"})),
-    ("agentos.runner.siteapis.problems", "SIGNALS",
+    ("openajar.runner.siteapis.problems", "SIGNALS",
      frozenset({"signal_captcha", "signal_checkpoint", "signal_logged_out", "signal_blocked"})),
-    ("agentos.profiles.sync", "HELD_CODES", frozenset({"pace_limited", "connector_broken"})),
-    ("agentos.runner.connectors.health", "HELD_CODES", frozenset({"wrong_account", "wrong_surface"})),
+    ("openajar.profiles.sync", "HELD_CODES", frozenset({"pace_limited", "connector_broken"})),
+    ("openajar.runner.connectors.health", "HELD_CODES", frozenset({"wrong_account", "wrong_surface"})),
 ]
 
 # Sets that were written inline in a function: (where it was, the core.signals name, the old literal)
@@ -53,10 +53,10 @@ INLINE = [
 ]
 
 MAPS = [
-    ("agentos.runner.executor", "SIGNAL_CODES",
+    ("openajar.runner.executor", "SIGNAL_CODES",
      {S.CAPTCHA: "signal_captcha", S.CHECKPOINT: "signal_checkpoint",
       S.LOGGED_OUT: "signal_logged_out", S.BLOCKED: "signal_blocked"}),
-    ("agentos.profiles.sync", "SIGNAL_CODES",
+    ("openajar.profiles.sync", "SIGNAL_CODES",
      {"signal_captcha": "captcha", "signal_checkpoint": "checkpoint", "signal_logged_out": "logged_out",
       "signal_blocked": "blocked", "rate_limited": "rate_limited", "wrong_account": "wrong_account"}),
 ]
@@ -81,7 +81,7 @@ def test_set_keeps_its_old_members(module, name, old):
 
 @pytest.mark.parametrize(("where", "name", "old"), INLINE, ids=[w for w, _, _ in INLINE])
 def test_inline_set_keeps_its_old_members(where, name, old):
-    from agentos.core import signals
+    from openajar.core import signals
 
     got = getattr(signals, name)
     assert {_value(x) for x in got} == {_value(x) for x in old}
@@ -103,7 +103,7 @@ def test_map_keeps_its_old_entries(module, name, old):
 
 def test_run_code_signal_values_are_plain_strings():
     """core.signals.signal_of returns these, stored and compared as text."""
-    from agentos.core.signals import SIGNAL_OF_RUN_CODE, signal_of
+    from openajar.core.signals import SIGNAL_OF_RUN_CODE, signal_of
 
     assert all(type(v) is str for v in SIGNAL_OF_RUN_CODE.values())
     assert signal_of("signal_captcha") == "captcha" and signal_of("wrong_account") == "wrong_account"
@@ -111,9 +111,9 @@ def test_run_code_signal_values_are_plain_strings():
 
 
 def test_held_codes_have_their_new_names():
-    from agentos.core import signals
-    from agentos.profiles import sync
-    from agentos.runner.connectors import health
+    from openajar.core import signals
+    from openajar.profiles import sync
+    from openajar.runner.connectors import health
 
     assert sync.HELD_CODES is signals.PACE_HOLD_CODES
     assert health.HELD_CODES is signals.CONNECTOR_HOLD_CODES
@@ -121,8 +121,8 @@ def test_held_codes_have_their_new_names():
 
 
 def test_every_module_set_comes_from_core_signals():
-    """Each module's set is the one object in agentos.core.signals, not a copy."""
-    from agentos.core import signals
+    """Each module's set is the one object in openajar.core.signals, not a copy."""
+    from openajar.core import signals
 
     named = {id(v) for v in vars(signals).values() if isinstance(v, frozenset | dict)}
     for module, name, _ in PINS + MAPS:
@@ -130,7 +130,7 @@ def test_every_module_set_comes_from_core_signals():
 
 
 def test_signal_sets_use_only_known_signals():
-    from agentos.core import signals
+    from openajar.core import signals
 
     known = {s.value for s in Signal} | {signals.WRONG_ACCOUNT}
     for name in ("STOP", "NEEDS_HUMAN", "HOLD_FOR_HUMAN", "CHALLENGE", "ATTENTION", "STOP_OR_WRONG_ACCOUNT", "TUI_NEED",
@@ -140,7 +140,7 @@ def test_signal_sets_use_only_known_signals():
 
 
 def test_wrong_account_matches_the_account_check():
-    from agentos.core.signals import WRONG_ACCOUNT
-    from agentos.node.sites import WRONG_ACCOUNT as SITES_WRONG_ACCOUNT
+    from openajar.core.signals import WRONG_ACCOUNT
+    from openajar.node.sites import WRONG_ACCOUNT as SITES_WRONG_ACCOUNT
 
     assert WRONG_ACCOUNT == SITES_WRONG_ACCOUNT

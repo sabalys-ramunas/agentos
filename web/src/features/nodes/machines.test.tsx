@@ -64,7 +64,7 @@ describe('Machines', () => {
     renderApp(`/${ORG}/nodes/vm_7f3a9c21`);
     const panel = await screen.findByRole('dialog', { name: 'Black Friday offer page' }, { timeout: 10_000 });
     expect(within(panel).getByText('€0.0119 an hour')).toBeInTheDocument();
-    expect(within(panel).getByText(whole('CODE', 'agentos vm destroy vm_7f3a9c21'))).toBeInTheDocument();
+    expect(within(panel).getByText(whole('CODE', 'openajar vm destroy vm_7f3a9c21'))).toBeInTheDocument();
   });
 
   it('never asks for VMs for someone who is not the owner, so no refusal shows', async () => {
@@ -84,8 +84,8 @@ describe('Machines', () => {
     expect(within(await table()).getAllByRole('row')).toHaveLength(2);
     expect(screen.getByText(whole('P', /^home-mini is your one machine at \d+% CPU/))).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'On home-mini now' })).toBeInTheDocument();
-    expect(screen.getByText(whole('CODE', 'agentos vm setup'))).toBeInTheDocument();
-    expect(screen.getByText(whole('CODE', 'agentos connect root@my-server --install'))).toBeInTheDocument();
+    expect(screen.getByText(whole('CODE', 'openajar vm setup'))).toBeInTheDocument();
+    expect(screen.getByText(whole('CODE', 'openajar connect root@my-server --install'))).toBeInTheDocument();
   });
 
   it('says plainly when there is no machine yet', async () => {

@@ -15,8 +15,7 @@ import { Field, Input } from '@/components/ui/field';
 import { InlineError, Skeleton } from '@/components/ui/states';
 import { describeError } from '@/lib/errors';
 import { passkeyError } from '@/lib/webauthn';
-import { ApprovalPicture, PhoneFrame } from '../onboarding/pictures';
-import { AuthLayout } from './layout';
+import { AuthLayout, GlassAsk, PromisePicture } from './layout';
 import { PolicyLine } from './sign-up';
 
 const DEAD: Record<string, { title: string; description: string }> = {
@@ -24,7 +23,7 @@ const DEAD: Record<string, { title: string; description: string }> = {
   already_used: { title: 'This invite was already used', description: 'Each invite works once. If you accepted it, sign in to continue.' },
 };
 
-/** What each role will do, after "<first> uses agentos so AI agents can build, check and run work for <business>." */
+/** What each role will do, after "<first> uses openajar so AI agents can build, check and run work for <business>." */
 const ROLE_WORDS: Record<Role, (first: string) => string> = {
   approver: (first) => `Most of it runs on its own. Payments, and anything set to ask first, wait for a person's yes. ${first} would like that to be you.`,
   viewer: () => 'You will see what it does, with proof, and change nothing.',
@@ -43,7 +42,7 @@ export function inviteWords(preview: InvitePreview) {
       : preview.role === 'viewer'
         ? `${first} invited you to see ${business}`
         : `${first} invited you to ${business}`;
-  const intro = `${first} uses agentos so AI agents can build, check and run work for ${business}. ${ROLE_WORDS[preview.role](first)}`;
+  const intro = `${first} uses openajar so AI agents can build, check and run work for ${business}. ${ROLE_WORDS[preview.role](first)}`;
   return { first, business, title, intro };
 }
 
@@ -105,7 +104,7 @@ export function InviteAccept() {
       : (DEAD[code] ?? { title: 'This invite does not work', description: 'Ask the person who invited you to send a new one.' });
     return (
       <AuthLayout title={copy.title} description={copy.description}>
-        <Button size="lg" className="w-full" asChild>
+        <Button size="lg" className="h-11 w-full" asChild>
           <Link to="/sign-in" search={{}}>
             Go to sign in
           </Link>
@@ -124,16 +123,13 @@ export function InviteAccept() {
   const needsSignIn = !signedIn && !byPasskey && (data.one_click === false || (join.error instanceof ApiError && join.error.code === 'sign_in_required'));
   const shows = data.role === 'approver' || data.role === 'member';
   const picture = shows ? (
-    <div
-      aria-hidden="true"
-      className="hidden min-h-dvh flex-col items-center justify-center gap-4 border-l border-line bg-inset bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] lg:flex"
-    >
-      <p className="text-secondary text-muted">This is what it looks like when you are asked</p>
-      <PhoneFrame>
-        <ApprovalPicture business={words.business} small className="border-0 p-0 shadow-none" />
-      </PhoneFrame>
+    <div aria-hidden="true" className="grid w-full max-w-[380px] gap-3">
+      <p className="text-body text-(--sidebar-text) [text-shadow:0_1px_8px_rgb(4_6_24/0.4)]">This is what it looks like when you are asked</p>
+      <GlassAsk business={words.business} />
     </div>
-  ) : undefined;
+  ) : (
+    <PromisePicture />
+  );
 
   const passkeyFailed = joinByPasskey.isError && !isCancelled(joinByPasskey.error);
   const error = accept.isError
@@ -156,7 +152,7 @@ export function InviteAccept() {
           <Button
             variant="primary"
             size="lg"
-            className="w-full"
+            className="h-11 w-full"
             icon={<Fingerprint className="size-4" />}
             loading={joinByPasskey.isPending}
             onClick={() =>
@@ -174,7 +170,7 @@ export function InviteAccept() {
         <Button
           variant="primary"
           size="lg"
-          className="w-full"
+          className="h-11 w-full"
           loading={accept.isPending}
           onClick={() => accept.mutate(token, { onSuccess: ({ org }) => void navigate(landing(org, data.role, words.first)) })}
         >
@@ -187,7 +183,7 @@ export function InviteAccept() {
           <Button
             variant="primary"
             size="lg"
-            className="w-full"
+            className="h-11 w-full"
             loading={join.isPending}
             onClick={() => join.mutate({ token }, { onSuccess: ({ org }) => void navigate(landing(org, data.role, words.first)) })}
           >
@@ -197,7 +193,7 @@ export function InviteAccept() {
         </>
       )}
       {!signedIn && !needsSignIn ? (
-        <p className="mt-8 text-secondary text-faint">
+        <p className="mt-6 text-secondary text-muted">
           Already have an account?{' '}
           <Link to="/sign-in" search={{ next: here }} className="link">
             Sign in

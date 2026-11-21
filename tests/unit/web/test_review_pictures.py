@@ -1,10 +1,10 @@
-"""The pictures a review shows, as the app reads them (src/agentos/api/web/decisions.py `preview_image`).
+"""The pictures a review shows, as the app reads them (src/openajar/api/web/decisions.py `preview_image`).
 A card's picture is the file the node holds for it, served under the approval's own route. Nothing is
 drawn where the node holds none: the review then says what it says, with no broken picture."""
 
 from __future__ import annotations
 
-from agentos.api.web.decisions import preview_image
+from openajar.api.web.decisions import preview_image
 
 ORG = "/api/orgs/local"
 

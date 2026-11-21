@@ -1,7 +1,7 @@
-"""`agentos call <tool>` (agentos.client.call): any MCP tool from a shell, under the agents' grant.
+"""`openajar call <tool>` (openajar.client.call): any MCP tool from a shell, under the agents' grant.
 
 The approval loop runs against a scripted session; the end-to-end tests call the dev node over HTTP
-with the agent grant `agentos dev up` prints, as a connection would."""
+with the agent grant `openajar dev up` prints, as a connection would."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ import pytest
 from dev_node_support import dev_node_thread
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.client import call as call_mod
-from agentos.client.call import CallError, StillPending, call_tool, parse_arguments
-from agentos.client.errors import ClientError
-from agentos.client.mcp_http import ToolError
+from openajar.cli import app
+from openajar.client import call as call_mod
+from openajar.client.call import CallError, StillPending, call_tool, parse_arguments
+from openajar.client.errors import ClientError
+from openajar.client.mcp_http import ToolError
 
 runner = CliRunner()
 PENDING = {"status": "approval_pending", "approval_id": "ap_1", "tool": "flow_run",
@@ -142,9 +142,9 @@ def test_cli_exits_1_with_the_nodes_error(scripted):
 
 
 def test_url_needs_a_token(monkeypatch):
-    monkeypatch.delenv("AGENTOS_TOKEN", raising=False)
+    monkeypatch.delenv("OPENAJAR_TOKEN", raising=False)
     result = runner.invoke(app, ["call", "whoami", "--url", "http://127.0.0.1:9"])
-    assert result.exit_code == 1 and "--url needs the token in $AGENTOS_TOKEN" in result.output
+    assert result.exit_code == 1 and "--url needs the token in $OPENAJAR_TOKEN" in result.output
 
 
 # ---- end to end, over HTTP, with the agent grant ----
@@ -157,7 +157,7 @@ def node(tmp_path_factory):
 
 
 def test_call_reaches_the_node_as_the_agent(node, monkeypatch):
-    monkeypatch.setenv("AGENTOS_TOKEN", node.agent_token)
+    monkeypatch.setenv("OPENAJAR_TOKEN", node.agent_token)
     result = runner.invoke(app, ["call", "grant_info", "--url", f"http://127.0.0.1:{node.port}"])
     assert result.exit_code == 0, result.output
     assert "claude-code@dev" in result.output  # the agent grant, never the node's owner token
@@ -168,13 +168,13 @@ def test_call_reaches_the_node_as_the_agent(node, monkeypatch):
 
 
 def test_call_shows_a_refusal_from_the_node(node, monkeypatch):
-    monkeypatch.setenv("AGENTOS_TOKEN", node.agent_token)
+    monkeypatch.setenv("OPENAJAR_TOKEN", node.agent_token)
     result = runner.invoke(app, ["call", "flow_get", "--arg", "name=biz-a.social.gone",
                                  "--url", f"http://127.0.0.1:{node.port}"])
     assert result.exit_code == 1 and "error: not_found: flow 'biz-a.social.gone' is not saved" in result.output
 
 
 def test_a_wrong_token_is_refused(node, monkeypatch):
-    monkeypatch.setenv("AGENTOS_TOKEN", "not-a-token")
+    monkeypatch.setenv("OPENAJAR_TOKEN", "not-a-token")
     result = runner.invoke(app, ["call", "whoami", "--url", f"http://127.0.0.1:{node.port}"])
     assert result.exit_code == 1 and "the node refused the token" in result.output

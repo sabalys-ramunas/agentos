@@ -1,7 +1,7 @@
 """Studio reads a size scale named by number (font.13, --font-13) as font sizes, and counts a
 border width that equals a token as on the system even when a utility wrote it as a literal.
 
-Both were misread on agentos's own web app: its font sizes are `font.11` to `font.40` and its
+Both were misread on openajar's own web app: its font sizes are `font.11` to `font.40` and its
 borders come from Tailwind's `border` (1px, no custom property behind it)."""
 
 from __future__ import annotations
@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from agentos.studio.contracts import TokenCategory, TokenSet
-from agentos.studio.tokens import from_css, from_dtcg, from_tailwind, match
-from agentos.studio.tokens.check import Analysis, Value, adherence_from
-from agentos.studio.tokens.probe import Prov
+from openajar.studio.contracts import TokenCategory, TokenSet
+from openajar.studio.tokens import from_css, from_dtcg, from_tailwind, match
+from openajar.studio.tokens.check import Analysis, Value, adherence_from
+from openajar.studio.tokens.probe import Prov
 
 C = TokenCategory
 REPO = Path(__file__).resolve().parents[2]
@@ -68,13 +68,15 @@ def test_a_length_under_tailwinds_font_namespace_is_a_size_not_a_family():
     assert 13 in _px(ts, C.FONT_SIZE)
 
 
-def test_agentos_own_tokens_file_gives_every_font_size_and_border_width():
+def test_openajar_own_tokens_file_gives_every_font_size_and_border_width():
     path = REPO / "web" / "tokens" / "tokens.json"
     if not path.exists():
         pytest.skip("web/tokens/tokens.json is not in this checkout")
     ts = from_dtcg(path)
-    assert _px(ts, C.FONT_SIZE) == SIZES
-    assert {f"font.{n}" for n in SIZES} <= {t.name for t in ts.tokens}
+    # the web app's scale is Dawn's (web/DESIGN.md): Mono's sizes and Full's reading sizes a step larger
+    dawn = sorted([*SIZES, 15, 17, 18, 26, 34, 44])
+    assert _px(ts, C.FONT_SIZE) == dawn
+    assert {f"font.{n}" for n in dawn} <= {t.name for t in ts.tokens}
     assert _px(ts, C.BORDER_WIDTH) == [1, 1.5, 2]
 
 

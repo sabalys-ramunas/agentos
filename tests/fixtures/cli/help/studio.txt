@@ -1,5 +1,5 @@
 
- Usage: agentos studio [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar studio [OPTIONS] COMMAND [ARGS]...
 
  Studio on this computer: check the pages you build, with a real browser.
 

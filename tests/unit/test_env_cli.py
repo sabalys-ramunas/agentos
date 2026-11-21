@@ -4,10 +4,10 @@ import sys
 import pytest
 from typer.testing import CliRunner
 
-from agentos.env import manager
-from agentos.env.cli import app
-from agentos.env.host import FakeHost
-from agentos.env.sandbox import DirectLauncher
+from openajar.env import manager
+from openajar.env.cli import app
+from openajar.env.host import FakeHost
+from openajar.env.sandbox import DirectLauncher
 
 runner = CliRunner()
 
@@ -26,8 +26,8 @@ def isolating(monkeypatch):
 @pytest.fixture
 def not_isolating(monkeypatch):
     """A hardened node: agentosd is not root, so no sandbox."""
-    from agentos.env.host import NullHost
-    reason = manager.NOT_ROOT.format(user="agentos")
+    from openajar.env.host import NullHost
+    reason = manager.NOT_ROOT.format(user="openajar")
     monkeypatch.setattr(manager, "default_mechanisms", lambda paths, settings: (NullHost(reason), DirectLauncher()))
 
 
@@ -74,7 +74,7 @@ def test_a_workbench_lane_needs_the_flag_that_names_the_risk(home, not_isolating
 def test_a_hardened_node_refuses_lanes_it_can_never_run(home, not_isolating):
     r = run(home, "create", "personal/svc", "--preset", "service", "--kind", "service", "--cmd", "sleep 30")
     assert r.exit_code == 1 and "no_sandbox" in r.output, r.output
-    assert "runs it as agentos" in r.output and "migrate-service-user --rollback" in r.output
+    assert "runs it as openajar" in r.output and "migrate-service-user --rollback" in r.output
     assert "--can-read-node-secrets" in r.output and "the vault" in r.output
     assert "no terminal or service lanes" in run(home, "list").output
     r = run(home, "create", "personal/box")
@@ -82,7 +82,7 @@ def test_a_hardened_node_refuses_lanes_it_can_never_run(home, not_isolating):
 
 
 def test_runtime_owned_names_a_fix_that_fits(home, isolating, monkeypatch):
-    from agentos.env.manager import EnvManager, RuntimeOwned
+    from openajar.env.manager import EnvManager, RuntimeOwned
 
     def owned(self):
         raise RuntimeOwned("agentosd is running terminal and service lanes")
@@ -115,8 +115,8 @@ def test_services_and_images_commands(home, isolating):
 
 def test_remove_and_doctor_go_through_a_running_agentosd(home, isolating, monkeypatch):
     """QA 2026-11-10, finding 30: with agentosd running, the env runtime is its; the CLI asks it."""
-    from agentos.env import cli
-    from agentos.env.manager import EnvManager
+    from openajar.env import cli
+    from openajar.env.manager import EnvManager
     calls = []
 
     def daemon(method, path, *, person=False):

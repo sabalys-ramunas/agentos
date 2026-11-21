@@ -1,7 +1,7 @@
 import pytest
 
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.models import LaneSpec, ProxyConfig, parse_lane_id
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.models import LaneSpec, ProxyConfig, parse_lane_id
 
 
 def test_lane_id_roundtrip():

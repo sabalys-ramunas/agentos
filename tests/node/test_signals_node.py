@@ -17,16 +17,16 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from agentos.core.models import AccountRef, ActionKind, LaneSpec, Signal
-from agentos.node.interaction import PlaywrightInteraction, bind_lane, take_report
-from agentos.node.sites import account_identity
-from agentos.node.snapshot import find_refs
+from openajar.core.models import AccountRef, ActionKind, LaneSpec, Signal
+from openajar.node.interaction import PlaywrightInteraction, bind_lane, take_report
+from openajar.node.sites import account_identity
+from openajar.node.snapshot import find_refs
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "site" / "signals"
-TRAP_PORT = int(os.environ.get("AGENTOS_TEST_TRAP_PORT")
-                or int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6250")) + 1)
+TRAP_PORT = int(os.environ.get("OPENAJAR_TEST_TRAP_PORT")
+                or int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6250")) + 1)
 
 IG = "https://www.instagram.com"
 SHOP = "https://shop.signals.test"

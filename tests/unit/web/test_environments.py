@@ -1,4 +1,4 @@
-"""Environments as the app reads them (agentos.api.web.environments): the list, one in detail, close
+"""Environments as the app reads them (openajar.api.web.environments): the list, one in detail, close
 (with the 409 for unsaved work) and extend; who may (see to read, operate to close or extend, in
 workspace env); an environment outside the caller's scope is not found. The environments are records
 of the node's real environments service; what their machine would answer (ports, git) is stubbed, the
@@ -12,11 +12,11 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.api.auth import SESSION_COOKIE
-from agentos.api.members import Role
-from agentos.core import clock
-from agentos.core.models import utcnow
-from agentos.environments.models import Call, Environment, Machine
+from openajar.api.auth import SESSION_COOKIE
+from openajar.api.members import Role
+from openajar.core import clock
+from openajar.core.models import utcnow
+from openajar.environments.models import Call, Environment, Machine
 
 TOKEN = "t" * 43
 MEMBER = "m_ana0001"
@@ -109,6 +109,26 @@ def test_the_list_shows_open_ones_and_all_on_request(client: TestClient, envs: A
     assert client.get(ENVS, params={"state": "sometimes"}).status_code == 400
 
 
+PNG_1X1 = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4"
+           b"\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
+
+
+def test_the_list_gives_each_environment_a_still_from_its_newest_wide_proof(client: TestClient, envs: Any) -> None:
+    env = envs.get("e7k2").model_copy(update={"id": "eshop01", "binding": "session:eshop01"})
+    envs.store.put(env)
+    listed = {x["id"]: x for x in client.get(ENVS).json()["environments"]}
+    assert listed["eshop01"]["screen"] is None  # nothing kept yet: the app draws the picture
+    wide = envs.keep_proof(env, PNG_1X1, title="the offer page", width=1280, height=800)
+    envs.keep_proof(env, PNG_1X1, title="on a phone", width=390, height=844)  # newer, but a sliver in a screen's frame
+    e = {x["id"]: x for x in client.get(ENVS).json()["environments"]}["eshop01"]
+    assert e["screen"] == {"src": f"{ENVS}/eshop01/proofs/{wide['id']}.png", "taken_at": wide["taken_at"], "kind": "page",
+                           "width": 1280, "height": 800}
+    # The still is served by the proof route, behind the same sign-in and access as the list.
+    assert client.get(e["screen"]["src"]).content == PNG_1X1
+    add_operator(client, scopes=("env",))
+    assert as_member(client).get(e["screen"]["src"]).status_code == 404  # not their agent's environment
+
+
 def test_one_environment_in_detail(client: TestClient, envs: Any) -> None:
     body = client.get(f"{ENVS}/e7k2").json()
     assert body["ports"] == [{"port": 3000, "process": "node", "link": None}]
@@ -176,7 +196,7 @@ def test_a_member_with_env_reads_and_closes_only_their_own_agents(client: TestCl
 
 
 def test_an_agents_grant_outside_env_reads_none(client: TestClient, envs: Any) -> None:
-    from agentos.core.models import Effect
+    from openajar.core.models import Effect
 
     assert [e["id"] for e in as_token(client).get(ENVS).json()["environments"]] == ["e7k2"]  # the owner's token
     policy = client.app.state.api.runtime.get("policy")
@@ -191,7 +211,7 @@ def test_an_agents_grant_outside_env_reads_none(client: TestClient, envs: Any) -
 
 
 def test_a_computer_without_environments_says_so(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    from agentos.api.web import environments
+    from openajar.api.web import environments
 
     monkeypatch.setattr(environments, "manager", lambda api: None)
     body = client.get(ENVS).json()
@@ -202,7 +222,7 @@ def test_a_computer_without_environments_says_so(client: TestClient, monkeypatch
 def test_an_environments_lanes_are_not_accounts(client: TestClient, envs: Any) -> None:
     # env/<id> and env/<id>-browser are the agent's own computer, on Environments; Accounts and Home
     # leave them out, and workspace env with them when nothing else is in it
-    from agentos.api.web.environments import without_environments
+    from openajar.api.web.environments import without_environments
 
     api = client.app.state.api
     lanes = [{"id": "env/e7k2"}, {"id": "env/e7k2-browser"}]
@@ -246,8 +266,8 @@ def test_the_detail_has_the_bring_up_the_replay_and_the_resume(client: TestClien
 
 def test_the_prepared_machines_and_pool_are_the_owners(client: TestClient, envs: Any,
                                                        monkeypatch: pytest.MonkeyPatch) -> None:
-    from agentos.core.models import Effect
-    from agentos.environments.fleet import worst_eur_month
+    from openajar.core.models import Effect
+    from openajar.environments.fleet import worst_eur_month
 
     async def price() -> float:
         return 0.0123
@@ -282,7 +302,7 @@ def test_the_prepared_machines_and_pool_are_the_owners(client: TestClient, envs:
 
 def test_no_environments_service_is_404_for_the_prepared_machines(client: TestClient,
                                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    from agentos.api.web import environments
+    from openajar.api.web import environments
 
     monkeypatch.setattr(environments, "manager", lambda api: None)
     assert client.get(f"{ENVS}/prepared").status_code == 404

@@ -14,11 +14,11 @@ import logging
 import pytest
 from test_environments_vmbrowser import _create, routed  # noqa: F401 - the fixture
 
-from agentos.env.models import ExecResult
-from agentos.environments import vmbrowser
+from openajar.env.models import ExecResult
+from openajar.environments import vmbrowser
 
 LANE = "env/e1234567890-browser"
-# a real kernel's lines (agentos.env.oom), the kill shifted to just now by the probe's own clock
+# a real kernel's lines (openajar.env.oom), the kill shifted to just now by the probe's own clock
 OOM = """N 5000.00 1794814685
 M 3870000
 [4999.000000] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/user.slice/user-0.slice/session-9.scope,task=camoufox-bin,pid=8123,uid=0
@@ -41,7 +41,7 @@ async def test_a_connect_that_hangs_says_so_with_the_time_of_each_step(routed, q
     await mgr.start()
     try:
         await _create(mgr, LANE)
-        with caplog.at_level(logging.WARNING, logger="agentos.environments"), \
+        with caplog.at_level(logging.WARNING, logger="openajar.environments"), \
                 pytest.raises(Exception) as err:
             await mgr.open(LANE)
         text = str(getattr(err.value, "message", err.value))
@@ -144,7 +144,7 @@ async def test_a_launch_that_works_logs_the_time_of_each_step(routed, caplog):  
     await mgr.start()
     try:
         await _create(mgr, LANE)
-        with caplog.at_level(logging.INFO, logger="agentos.environments"):
+        with caplog.at_level(logging.INFO, logger="openajar.environments"):
             await mgr.open(LANE)
         line = next(r.getMessage() for r in caplog.records if "runs on environment" in r.getMessage())
         for done in ("browser server started in", "connected through the tunnel in", "context opened in",
@@ -158,7 +158,7 @@ async def test_a_launch_that_works_logs_the_time_of_each_step(routed, caplog):  
 
 
 def test_the_start_step_fits_the_lanes_wall():
-    from agentos.node.deadlines import WALL_S
+    from openajar.node.deadlines import WALL_S
 
     assert sum(vmbrowser.STEP_LIMIT_S.values()) < WALL_S
     assert set(vmbrowser.STEP_LIMIT_S) == set(vmbrowser.LAUNCH_STEPS) == set(vmbrowser.STEP_DOING)

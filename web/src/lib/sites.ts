@@ -34,7 +34,7 @@ const LIST: SiteInfo[] = [
   { key: 'github', name: 'GitHub', domains: ['github.com'] },
   { key: 'whatsapp', name: 'WhatsApp', domains: ['whatsapp.com', 'web.whatsapp.com'] },
   { key: 'bluesky', name: 'Bluesky', domains: ['bsky.app'] },
-  // Money, paperwork, shops and office work: agentos is not only for posting.
+  // Money, paperwork, shops and office work: openajar is not only for posting.
   { key: 'outlook', name: 'Outlook', domains: ['outlook.com', 'outlook.office.com', 'outlook.live.com', 'hotmail.com'] },
   { key: 'stripe', name: 'Stripe', domains: ['stripe.com', 'dashboard.stripe.com'] },
   { key: 'square', name: 'Square', domains: ['squareup.com', 'square.site', 'app.squareup.com'] },

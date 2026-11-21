@@ -10,12 +10,12 @@ from typing import Any
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, RefNotFound, ServiceUnavailable
-from agentos.core.models import Signal
-from agentos.core.runtime import Runtime
-from agentos.node import human
-from agentos.node import typist as T
-from agentos.node.typist import (
+from openajar.core.errors import InvalidRequest, RefNotFound, ServiceUnavailable
+from openajar.core.models import Signal
+from openajar.core.runtime import Runtime
+from openajar.node import human
+from openajar.node import typist as T
+from openajar.node.typist import (
     Locator,
     PlaywrightTypist,
     field_info,
@@ -25,8 +25,8 @@ from agentos.node.typist import (
     typist_factory,
     url_origin,
 )
-from agentos.vault.errors import TypistAborted
-from agentos.vault.typist import FieldInfo
+from openajar.vault.errors import TypistAborted
+from openajar.vault.typist import FieldInfo
 
 A = "https://login.example.com"
 B = "https://widgets.example.net"

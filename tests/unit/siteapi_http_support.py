@@ -13,17 +13,17 @@ import uvicorn
 from fakes import ControlFakeLaneManager, FakeInteraction
 from test_vault_support import make_vault, private_home
 
-from agentos.api import ApiSettings, build_api
-from agentos.api.auth import PanelStore
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect, LaneSpec, Principal
-from agentos.node.daemon import build_node_app, build_services, node_runtime
-from agentos.runner.fakes import El, FakeDriver, FakeSite, driver_factory
-from agentos.runner.siteapis.models import SAMPLE, install_for_test, web_surface
+from openajar.api import ApiSettings, build_api
+from openajar.api.auth import PanelStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect, LaneSpec, Principal
+from openajar.node.daemon import build_node_app, build_services, node_runtime
+from openajar.runner.fakes import El, FakeDriver, FakeSite, driver_factory
+from openajar.runner.siteapis.models import SAMPLE, install_for_test, web_surface
 
 TOKEN = "node-token-for-the-site-api-tests"
-SERVICES = ["agentos.api.events", "agentos.policy.service", "agentos.freeze.service", "agentos.vault.service",
-            "agentos.runner.service"]
+SERVICES = ["openajar.api.events", "openajar.policy.service", "openajar.freeze.service", "openajar.vault.service",
+            "openajar.runner.service"]
 API = "harbor-supplier"
 SURFACE = "harbor/supplier"
 OTHER = "harbor/second"

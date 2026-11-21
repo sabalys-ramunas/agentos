@@ -18,16 +18,16 @@ from unittest.mock import Mock
 import pytest
 from test_policy_support import T0, Clock
 
-from agentos.controller.grants import Keys
-from agentos.controller.hub import Hub, NodeSession
-from agentos.controller.store import ControllerStore
-from agentos.core.s3 import S3Object
-from agentos.core.signing import verify_controller
-from agentos.node.anchors import AnchorService, AnchorStore, fetch_s3
-from agentos.node.channel import wire
-from agentos.policy import anchors as anchor_rules
-from agentos.policy.auditlog import read_marks
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.controller.grants import Keys
+from openajar.controller.hub import Hub, NodeSession
+from openajar.controller.store import ControllerStore
+from openajar.core.s3 import S3Object
+from openajar.core.signing import verify_controller
+from openajar.node.anchors import AnchorService, AnchorStore, fetch_s3
+from openajar.node.channel import wire
+from openajar.policy import anchors as anchor_rules
+from openajar.policy.auditlog import read_marks
+from openajar.policy.traces import TraceEvent, TraceStore
 
 ORG = "org_chan"
 NODE = "node_01CHANNEL00000000000000A"
@@ -281,7 +281,7 @@ def test_with_no_target_anchoring_is_off(tmp_path, make_service, config):
 
 def test_each_head_goes_to_s3_as_a_locked_object_and_reads_back(tmp_path, clock, make_service):
     bucket = FakeBucket()
-    svc = make_service(tmp_path, audit_anchors=["s3://bkt/agentos"], s3_factory=lambda url: bucket)
+    svc = make_service(tmp_path, audit_anchors=["s3://bkt/openajar"], s3_factory=lambda url: bucket)
     heads = [anchor(1), anchor(2)]
     for head in heads:
         svc.store.add(head)
@@ -296,9 +296,9 @@ def test_each_head_goes_to_s3_as_a_locked_object_and_reads_back(tmp_path, clock,
         assert headers["content-md5"] == base64.b64encode(hashlib.md5(body).digest()).decode()
         assert anchor_rules.core(json.loads(body)) == anchor_rules.core(head)
     bucket.objects["other/readme.json"] = b"{}"  # outside the anchors prefix: not an anchor
-    fetched = fetch_s3("s3://bkt/agentos", target=bucket)
+    fetched = fetch_s3("s3://bkt/openajar", target=bucket)
     assert [anchor_rules.core(a) for a in fetched] == [anchor_rules.core(h) for h in heads]
-    assert {a["source"] for a in fetched} == {"s3://bkt/agentos"}
+    assert {a["source"] for a in fetched} == {"s3://bkt/openajar"}
 
 
 # ---- paging, retention heads, databases from before them, and status ----
@@ -600,11 +600,11 @@ async def test_status_names_each_target_and_what_waits_for_it(hub, traces, tmp_p
     session = node_session()
     bucket = FakeBucket()
     svc = make_service(tmp_path, traces=traces, channel=Link(lambda env: ask(hub, session, env)),
-                       audit_anchors=["controller", "s3://bkt/agentos"], s3_factory=lambda url: bucket)
+                       audit_anchors=["controller", "s3://bkt/openajar"], s3_factory=lambda url: bucket)
     queued_at = clock.t
     assert svc.collect() == 3
     st = svc.status()
-    assert st["on"] is True and st["targets"] == ["controller", "s3://bkt/agentos"]
+    assert st["on"] is True and st["targets"] == ["controller", "s3://bkt/openajar"]
     assert set(st["per_target"]) == {"controller", "s3"}
     for per in st["per_target"].values():
         assert per["pending"] == 3 and per["oldest_queued_at"] == queued_at
@@ -699,8 +699,8 @@ def test_a_cursor_that_is_not_a_mark_number_starts_from_the_first_page(hub, curs
 def test_the_health_monitor_shows_anchor_status_and_warns_when_heads_wait(tmp_path):
     import types
 
-    from agentos.core.config import NodeConfig
-    from agentos.ops.health import ANCHOR_WARN_S, HealthMonitor
+    from openajar.core.config import NodeConfig
+    from openajar.ops.health import ANCHOR_WARN_S, HealthMonitor
 
     monitor = HealthMonitor(NodeConfig(home=tmp_path))
     st = {"on": True, "per_target": {"controller": {"pending": 0, "last_seq": 10}}, "pending": 0,
@@ -720,7 +720,7 @@ def test_the_health_monitor_shows_anchor_status_and_warns_when_heads_wait(tmp_pa
 
 def test_the_node_channel_builds_the_messages_the_anchors_service_sends():
     """The service sits a layer below the channel, so it asks the channel object for its envelopes."""
-    from agentos.node.channel.node import NodeChannel
+    from openajar.node.channel.node import NodeChannel
 
     env = NodeChannel.envelope(SimpleNamespace(), "audit_anchor", {"anchor": {"n": 1}})
     assert isinstance(env, wire.Envelope) and env.type == "audit_anchor" and env.body == {"anchor": {"n": 1}}

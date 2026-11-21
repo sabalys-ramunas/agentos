@@ -14,12 +14,12 @@ from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_r
 from test_channel_node import grant, invoke_body, wire_key
 from typer.testing import CliRunner
 
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.node.channel import standing, wire
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.ceiling import ControllerCeiling
-from agentos.policy.freeze import Reach, revoke_reaching
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.node.channel import standing, wire
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.ceiling import ControllerCeiling
+from openajar.policy.freeze import Reach, revoke_reaching
 
 LANE = "personal/reddit"
 DAY = 86400
@@ -380,8 +380,8 @@ async def test_a_revoke_while_a_call_waits_leaves_it_for_a_person(wired):
 async def test_the_owner_revokes_one_locally_and_sees_where_it_came_from(wired, monkeypatch):
     fake, runtime, peer = wired
     await send(peer, signed(fake, upsert=[item()]))
-    monkeypatch.setenv("AGENTOS_HOME", str(runtime.get("config").home))
-    from agentos.policy.cli import app
+    monkeypatch.setenv("OPENAJAR_HOME", str(runtime.get("config").home))
+    from openajar.policy.cli import app
 
     listed = CliRunner().invoke(app, ["approvals", "standing", "list"])
     assert listed.exit_code == 0 and "sa_posts1" in listed.stdout and "from org:org_test" in listed.stdout

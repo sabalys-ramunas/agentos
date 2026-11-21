@@ -8,10 +8,10 @@ from datetime import UTC, datetime
 import pytest
 from workflow_support import LIST, MAIL, OWNER, action, make_node, workflow
 
-from agentos.core.errors import InvalidRequest
-from agentos.policy.approval_models import SEND_PAGE
-from agentos.policy.confirm import chat_refusal
-from agentos.policy.errors import SeeWholeCard
+from openajar.core.errors import InvalidRequest
+from openajar.policy.approval_models import SEND_PAGE
+from openajar.policy.confirm import chat_refusal
+from openajar.policy.errors import SeeWholeCard
 
 SEND = f"mail.send@{MAIL}"
 TEXT = {"subject": "News", "body": "Hello {{person.name}}, here is a longer note about this week's news."}
@@ -146,10 +146,10 @@ def test_the_api_serves_the_pages_and_takes_the_yes_only_with_the_token(tmp_path
     from test_api_members import owner
     from test_node_panel import Node
 
-    from agentos.core.models import Principal
-    from agentos.core.ratelimit import RateLimiter
-    from agentos.policy.approval_binding import ActionBinding
-    from agentos.policy.approvals import ask_for_action
+    from openajar.core.models import Principal
+    from openajar.core.ratelimit import RateLimiter
+    from openajar.policy.approval_binding import ActionBinding
+    from openajar.policy.approvals import ask_for_action
 
     n = Node(tmp_path)
     try:

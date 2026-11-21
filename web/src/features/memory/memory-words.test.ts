@@ -30,6 +30,6 @@ describe('the room of a workspace', () => {
     const row = { workspace: 'aster', live_entries: 3, live_entries_cap: 500, content_bytes: 0, content_bytes_cap: 0, waiting: 0, chain_ok: true, forgotten: 0 };
     expect(keptSentence(row)).toBe('3 of 500 entries kept');
     expect(recordSentence(row)).toBe('Record checks out');
-    expect(recordSentence({ ...row, chain_ok: false })).toBe('Changed outside agentos');
+    expect(recordSentence({ ...row, chain_ok: false })).toBe('Changed outside openajar');
   });
 });

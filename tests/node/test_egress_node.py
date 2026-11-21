@@ -1,6 +1,6 @@
 """The lane egress guard on a real Camoufox lane (docs/design/egress-guard.md).
 
-Run on the node:  AGENTOS_TEST_SLOT=41 scripts/node-test.sh egress tests/node/test_egress_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=41 scripts/node-test.sh egress tests/node/test_egress_node.py -q
 
 Throwaway lanes under .node-home/ of this checkout, launched through `CamoufoxEngine`, one browser
 at a time on the slot's first display. Two loopback servers on the slot's viewer ports stand in
@@ -25,23 +25,23 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import EgressRefused
-from agentos.core.models import ActionKind, LaneSpec
-from agentos.node import egress
-from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.egress import Driver, EffectRule
+from openajar.core.config import NodeConfig
+from openajar.core.errors import EgressRefused
+from openajar.core.models import ActionKind, LaneSpec
+from openajar.node import egress
+from openajar.node.camoufox.engine import CamoufoxEngine, browser_pids_under
+from openajar.node.display import DisplayManagerImpl, kill_processes
+from openajar.node.egress import Driver, EffectRule
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "410"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5410"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6410"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "410"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5410"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6410"))
 PORT = VIEWER_BASE + 6
 SITE = f"http://127.0.0.1:{PORT}"
 FOREIGN = f"http://127.0.0.2:{PORT}"
@@ -245,7 +245,7 @@ async def test_every_kind_of_refused_navigation_is_stopped(rig, rec, case):
 
 
 async def test_a_click_on_a_refused_link_or_form_sends_nothing(rig, rec):
-    from agentos.node.snapshot import take_snapshot
+    from openajar.node.snapshot import take_snapshot
 
     config, displays, engine = rig
     spec = LaneSpec(id="test/egress-act", sites=["127.0.0.1"])

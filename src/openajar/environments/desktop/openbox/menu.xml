@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+  <menu id="root-menu" label="openajar">
+    <item label="Terminal"><action name="Execute"><command>lxterminal --no-remote --working-directory=/work -e "env -u XDG_CONFIG_HOME bash -l"</command></action></item>
+    <item label="Files"><action name="Execute"><command>pcmanfm /work</command></action></item>
+  </menu>
+</openbox_menu>

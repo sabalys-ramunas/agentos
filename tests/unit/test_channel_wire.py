@@ -9,12 +9,12 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.core import signing
-from agentos.core.signing import verify_controller
-from agentos.node.channel import wire
-from agentos.node.channel.identity import KeyFileError, NodeKey, load_or_create_key
-from agentos.node.channel.node import Connection, NodeChannel
-from agentos.node.channel.store import ChannelStore
+from openajar.core import signing
+from openajar.core.signing import verify_controller
+from openajar.node.channel import wire
+from openajar.node.channel.identity import KeyFileError, NodeKey, load_or_create_key
+from openajar.node.channel.node import Connection, NodeChannel
+from openajar.node.channel.store import ChannelStore
 
 
 def test_envelope_round_trip_and_reply_lookup():
@@ -159,8 +159,8 @@ def test_the_call_cache_expires(tmp_path):
 
 
 def test_a_call_running_at_a_crash_reads_as_interrupted_after_it(tmp_path):
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
 
     store = ChannelStore(tmp_path / "channel.db")
     store.put_call("call_crashed", "running", tool="slow_tool")
@@ -191,9 +191,9 @@ class StubSocket:
 
 
 async def test_a_silent_connection_is_declared_dead(tmp_path):
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
-    from agentos.node.channel.node import Timings
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
+    from openajar.node.channel.node import Timings
 
     config = NodeConfig(home=tmp_path, controller_url="ws://localhost:1", node_id="node_x", controller_pubkey="x")
     channel = NodeChannel(config, Runtime(config=config), timings=Timings(ping_interval=0.1, dead_after=0.5))

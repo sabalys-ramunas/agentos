@@ -5,9 +5,9 @@ from fnmatch import fnmatchcase
 import pytest
 from events_support import World, no_quiet
 
-from agentos.core.errors import PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.events.tools import events_list, tool_specs, trigger_propose, triggers_list
+from openajar.core.errors import PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.events.tools import events_list, tool_specs, trigger_propose, triggers_list
 
 
 class Ctx:

@@ -14,15 +14,15 @@ import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.api.auth import SESSION_COOKIE
-from agentos.api.lane_metrics import lane_metrics
-from agentos.api.web.accounts import lane_for_app, set_by_for_app, slug, template_for_app
-from agentos.api.web.events import reshape_frame
-from agentos.core.models import RunStatus
-from agentos.dev.apifakes import demo_runtime
-from agentos.runner.models import Run
-from agentos.stealth.lanecheck import Check, LaneReport
+from openajar.api import ApiSettings, PanelStore, build_api
+from openajar.api.auth import SESSION_COOKIE
+from openajar.api.lane_metrics import lane_metrics
+from openajar.api.web.accounts import lane_for_app, set_by_for_app, slug, template_for_app
+from openajar.api.web.events import reshape_frame
+from openajar.core.models import RunStatus
+from openajar.dev.apifakes import demo_runtime
+from openajar.runner.models import Run
+from openajar.stealth.lanecheck import Check, LaneReport
 
 ORG = "/api/orgs/local"
 LANE = "biz-a/shop"

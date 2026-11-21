@@ -5,8 +5,8 @@
  * plain sentence of what it does. Running one or changing its switch happens on its own page, so
  * nothing in this list can be flipped by a slip of the finger.
  */
-import { Link, useParams, useSearch } from '@tanstack/react-router';
-import { ArrowRight, ChevronRight, Hand, Lock, Pause, Plus, Search, Sparkles } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { ArrowRight, Plus, Search, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useDeleteSchedule, useFlows, useNodes, useRoutineCatalog, useRoutineDay, useSchedules, useWorkspaces } from '@/api/hooks';
@@ -14,12 +14,14 @@ import { isNotServed } from '@/api/http';
 import type { Flow, RoutineCatalog, Schedule, Workspace } from '@/api/types';
 import { BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
-import { Count } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/field';
-import { StateGlyph } from '@/components/ui/state-badge';
+import { PageHeader } from '@/components/ui/misc';
+import { Status } from '@/components/ui/status';
+import { NoValue, Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
+import { SegmentedControl } from '@/components/ui/tabs';
 import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
 import { useActiveWorkspace } from '@/lib/active-workspace';
 import { routineAsk } from '@/lib/ask-first';
@@ -28,7 +30,7 @@ import { plural, timeAgo } from '@/lib/format';
 import { routineName } from '@/lib/principal';
 import { useTechnical } from '@/lib/technical';
 import { DayLine } from './day-line';
-import { routineSentence, routineSites, routineTitle, whenNext } from './routine-words';
+import { routineSentence, routineTitle, whenNext } from './routine-words';
 import { ScheduleDialog, SchedulesPanel } from './schedules';
 import { NO_ROUTINE } from './schedule-timeline';
 import { WeekAhead } from './week-ahead';
@@ -53,154 +55,147 @@ export function SiteStack({ sites }: { sites: string[] }) {
   );
 }
 
-function Hero({ flows, ran, checked, soonest }: { flows: Flow[]; ran: number | null; checked: number | null; soonest: Flow | undefined }) {
+/** The page's lede: what is stuck or waiting, how the day has gone, and what runs next. The list answers before it lists. */
+function Sentence({ flows, ran, checked, soonest }: { flows: Flow[]; ran: number | null; checked: number | null; soonest: Flow | undefined }) {
   const stuck = flows.filter((flow) => flow.stuck).length;
   const waiting = flows.filter((flow) => flow.waiting).length;
   const lead = stuck ? `${plural(stuck, 'routine is', 'routines are')} stuck.` : waiting ? `${plural(waiting, 'routine is', 'routines are')} waiting for you.` : 'Your routines are all running.';
   const rest = stuck || waiting ? `The other ${flows.length - stuck - waiting} are fine.` : 'Nothing needs you.';
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-headline text-balance sm:text-display">
-        {lead} <span className="text-faint">{rest}</span>
-      </h1>
-      <p className="mt-3 max-w-2xl text-lede text-pretty text-muted">
-        {ran === null ? (
-          <span className="invisible">Loading</span>
-        ) : ran === 0 ? (
-          'Nothing has run yet today.'
-        ) : (
-          <>
-            <strong className="font-semibold text-fg">{plural(ran, 'run')}</strong> so far today
-            {checked ? (
-              <>
-                , and <strong className="font-semibold text-fg">{checked}</strong> checked on the real site
-              </>
-            ) : null}
-            .
-          </>
-        )}{' '}
-        {soonest?.next_at ? (
-          <>
-            Next: {routineTitle(soonest)}, {whenNext(soonest.next_at)}.
-          </>
-        ) : null}
-      </p>
-    </div>
+    <>
+      {lead} {rest}{' '}
+      {ran === null ? null : ran === 0 ? (
+        'Nothing has run yet today.'
+      ) : (
+        <>
+          {plural(ran, 'run')} so far today{checked ? `, and ${checked} checked on the real site` : ''}.
+        </>
+      )}{' '}
+      {soonest?.next_at ? (
+        <>
+          Next: {routineTitle(soonest)}, {whenNext(soonest.next_at)}.
+        </>
+      ) : null}
+    </>
   );
 }
 
 /** One stuck or waiting routine: what happened and the one thing to do. */
 function Problem({ org, flow, business }: { org: string; flow: Flow; business: Workspace | undefined }) {
   const stuck = flow.stuck;
-  const site = (stuck ? flow.sites?.at(-1) : flow.sites?.[0]) ?? '';
   const [ws, lane] = (stuck?.lane ?? '').split('/');
+  const title = stuck ? `${routineTitle(flow)} stopped at "${stuck.label}"` : `${routineTitle(flow)} is waiting for you`;
   return (
-    <li className={cn('grid gap-4 rounded-(--radius-card) border bg-card p-4 shadow-(--shadow-card) sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center', stuck ? 'border-(--stuck-line)' : 'border-(--wait-line)')}>
-      <span className="relative hidden sm:block">
-        <SiteMark site={site} size={40} tile label={false} className="bg-card" />
-        <span className="absolute -top-1 -right-1 rounded-full bg-card p-px">
-          <StateGlyph state={stuck ? 'stuck' : 'waiting'} size={16} />
-        </span>
-      </span>
-      <div className="min-w-0">
-        <p className="flex items-center gap-2 text-caption text-faint">
-          {business ? <BusinessMark name={business.name} color={business.color} size={16} /> : null}
-          {business?.name}
-        </p>
-        <h3 className="mt-1 text-section-title">{stuck ? `${routineTitle(flow)} stopped at "${stuck.label}"` : `${routineTitle(flow)} is waiting for you`}</h3>
-        <p className="mt-1 text-body text-pretty text-muted">{stuck ? stuck.words : 'It wrote this week\'s email and will send it once you say yes.'}</p>
+    <Card role="listitem" className={cn('flex flex-col gap-4 border p-5', stuck ? 'border-bad-line' : 'border-line')}>
+      <div className="flex items-start gap-3">
+        {business ? <BusinessMark name={business.name} color={business.color} size={32} label={business.name} /> : null}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-label font-semibold text-pretty">{title}</h3>
+          <p className="mt-1 text-secondary text-pretty text-muted">{stuck ? stuck.words : "It wrote this week's email and will send it once you say yes."}</p>
+        </div>
+        <Status chip status={stuck ? { label: 'Stopped', tone: 'bad' } : { label: 'Waits for you', tone: 'live' }} className="shrink-0" />
       </div>
-      <div className="flex gap-2 sm:justify-end">
+      <div className="mt-auto flex flex-wrap justify-end gap-2">
+        <Button variant={stuck ? 'secondary' : 'ghost'} asChild>
+          <Link to="/$org/flows/$flow" params={{ org, flow: flow.id }}>
+            {stuck ? 'See what happened' : 'Open'}
+          </Link>
+        </Button>
         {stuck?.fix && ws && lane ? (
-          <Button variant="primary" asChild>
+          <Button asChild>
             <Link to="/$org/lanes/$ws/$name" params={{ org, ws, name: lane }}>
               {stuck.fix}
             </Link>
           </Button>
         ) : !stuck ? (
-          <Button variant="primary" asChild>
+          <Button asChild>
             <Link to="/$org/needs-you" params={{ org }}>
               Look and decide
             </Link>
           </Button>
         ) : null}
-        <Button asChild>
-          <Link to="/$org/flows/$flow" params={{ org, flow: flow.id }}>
-            {stuck ? 'See what happened' : 'Open'}
-          </Link>
-        </Button>
       </div>
-    </li>
+    </Card>
   );
 }
 
-/** Where it stands, on the right of a row: what it last did, and when it runs next. */
-function Facts({ flow, canDecide }: { flow: Flow; canDecide: boolean }) {
+/** How it runs, as a chip: asks you first, on its own, or paused. */
+function HowChip({ flow, canDecide }: { flow: Flow; canDecide: boolean }) {
+  if (flow.enabled === false) return <Status chip status={{ label: 'Paused', tone: 'idle' }} />;
   const ask = routineAsk(flow, canDecide);
-  const next = flow.enabled === false ? 'Paused' : flow.next_at ? `Next ${whenNext(flow.next_at)}` : flow.trigger?.kind === 'schedule' ? null : 'When it is needed';
-  return (
-    <span className="tabular block min-w-0 text-secondary md:text-right">
-      <span className="block truncate text-muted">{flow.latest ? `${flow.latest.status === 'failed' ? 'Did not work' : flow.latest.result}, ${timeAgo(flow.latest.at).toLowerCase()}` : 'Has not run yet'}</span>
-      <span className="flex items-center gap-2 truncate text-caption text-faint md:justify-end">
-        {flow.enabled === false ? <Pause aria-hidden="true" className="size-3 shrink-0" /> : null}
-        {next}
-        {ask?.asks ? (
-          <>
-            <span aria-hidden="true">·</span>
-            {ask.fixed ? <Lock aria-hidden="true" className="size-3 shrink-0" /> : <Hand aria-hidden="true" className="size-3 shrink-0" />}
-            <span>{ask.word}</span>
-          </>
-        ) : ask ? (
-          <span className="sr-only">{ask.word}</span>
-        ) : null}
-      </span>
-    </span>
-  );
-}
-
-function Row({ org, flow, catalog }: { org: string; flow: Flow; catalog: RoutineCatalog | undefined }) {
-  const canDecide = useAccess(org).can('approvals.decide');
-  return (
-    <li>
-      <Link
-        to="/$org/flows/$flow"
-        params={{ org, flow: flow.id }}
-        className="group/row -mx-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-1 rounded-lg px-2 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover md:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto]"
-      >
-        <SiteStack sites={routineSites(flow)} />
-        <span className="min-w-0">
-          <span className="block truncate text-label">{routineTitle(flow)}</span>
-          <span className="line-clamp-2 text-secondary text-pretty text-muted md:line-clamp-1">{routineSentence(flow, catalog)}</span>
-        </span>
-        <span className="col-start-2 md:col-start-auto">
-          <Facts flow={flow} canDecide={canDecide} />
-        </span>
-        <ChevronRight aria-hidden="true" className="hidden size-4 text-faint opacity-0 transition-opacity duration-(--duration-fast) ease-standard group-hover/row:opacity-100 md:block" />
-      </Link>
-    </li>
-  );
+  if (!ask) return <NoValue />;
+  return <Status chip status={{ label: ask.word, tone: ask.asks ? 'live' : 'ok' }} />;
 }
 
 function Business({ org, name, color, flows, catalog }: { org: string; name: string; color?: string | null; flows: Flow[]; catalog: RoutineCatalog | undefined }) {
   const [all, setAll] = useState(false);
+  const navigate = useNavigate();
+  const canDecide = useAccess(org).can('approvals.decide');
   const listed = all ? flows : flows.slice(0, SHOWN);
   return (
-    <section aria-label={name}>
-      <div className="mb-2 flex items-center gap-2">
-        <BusinessMark name={name} color={color} size={20} />
+    <section aria-label={name} className="grid gap-3">
+      <div className="flex items-center gap-3">
+        <BusinessMark name={name} color={color} size={24} />
         <h2 className="text-section-title">{name}</h2>
-        <Count value={flows.length} />
+        <span className="text-secondary text-faint">{plural(flows.length, 'routine')}</span>
       </div>
-      <ul className="divide-y divide-line">
-        {listed.map((flow) => (
-          <Row key={flow.id} org={org} flow={flow} catalog={catalog} />
-        ))}
-      </ul>
-      {flows.length > SHOWN ? (
-        <Button variant="ghost" size="sm" className="mt-1" onClick={() => setAll(!all)}>
-          {all ? 'Show fewer' : `Show ${flows.length - SHOWN} more`}
-        </Button>
-      ) : null}
+      <Card className="overflow-hidden">
+        <TableScroll>
+          <Table stack aria-label={`Routines of ${name}`}>
+            <thead>
+              <tr>
+                <Th>Routine</Th>
+                <Th phone="hide">Last</Th>
+                <Th phone="hide">Next</Th>
+                <Th>How</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {listed.map((flow) => {
+                const sentence = routineSentence(flow, catalog);
+                const next = flow.enabled === false ? 'Paused' : flow.next_at ? `Next ${whenNext(flow.next_at)}` : flow.trigger?.kind === 'schedule' ? null : 'When it is needed';
+                return (
+                  <Tr key={flow.id} onActivate={() => void navigate({ to: '/$org/flows/$flow', params: { org, flow: flow.id } })} className={flow.enabled === false ? '[&>td]:opacity-70' : undefined}>
+                    <Td main className="whitespace-normal">
+                      <Link
+                        to="/$org/flows/$flow"
+                        params={{ org, flow: flow.id }}
+                        aria-label={`${routineTitle(flow)}: ${sentence}`}
+                        tabIndex={-1}
+                        onClick={(event) => event.stopPropagation()}
+                        className="grid min-w-0 py-1"
+                      >
+                        <span className="truncate font-medium text-fg">{routineTitle(flow)}</span>
+                        <span title={sentence} className="line-clamp-2 text-secondary text-pretty text-muted">
+                          {sentence}
+                        </span>
+                      </Link>
+                    </Td>
+                    <Td phone="hide" className="w-64 max-w-64 whitespace-normal">
+                      <span className="line-clamp-2 text-secondary text-fg">
+                        {flow.latest ? `${flow.latest.status === 'failed' ? 'Did not work' : flow.latest.result}, ${timeAgo(flow.latest.at).toLowerCase()}` : <span className="text-faint">Has not run yet</span>}
+                      </span>
+                    </Td>
+                    <Td phone="hide" className="text-secondary text-muted tabular">
+                      {next ?? <NoValue />}
+                    </Td>
+                    <Td>
+                      <HowChip flow={flow} canDecide={canDecide} />
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </TableScroll>
+        {flows.length > SHOWN ? (
+          <div className="border-t border-line px-3 py-2">
+            <Button variant="ghost" size="sm" onClick={() => setAll(!all)}>
+              {all ? 'Show fewer' : `Show ${flows.length - SHOWN} more`}
+            </Button>
+          </div>
+        ) : null}
+      </Card>
     </section>
   );
 }
@@ -235,31 +230,27 @@ function Everything({ org, flows, workspaces }: { org: string; flows: Flow[]; wo
     { value: 'paused', label: 'Paused', count: paused.length },
   ];
   return (
-    <div className="grid gap-10">
+    <div className="grid gap-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div role="radiogroup" aria-label="Show" className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1">
-          {pills
+        <SegmentedControl
+          label="Show"
+          size="md"
+          value={show}
+          onValueChange={setShow}
+          options={pills
             .filter((pill) => pill.count > 0 || pill.value === 'all')
-            .map((pill) => (
-              <button
-                key={pill.value}
-                type="button"
-                role="radio"
-                aria-checked={show === pill.value}
-                onClick={() => setShow(pill.value)}
-                className={cn(
-                  'tabular flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-secondary transition-colors duration-(--duration-fast) ease-standard',
-                  show === pill.value ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg',
-                )}
-              >
-                {pill.label}
-                <span className="text-faint">{pill.count}</span>
-              </button>
-            ))}
-        </div>
+            .map((pill) => ({
+              value: pill.value,
+              label: (
+                <>
+                  {pill.label} <span className="tabular font-normal text-faint">{pill.count}</span>
+                </>
+              ),
+            }))}
+        />
         <div className="relative sm:w-64">
-          <Search aria-hidden="true" className="pointer-events-none absolute top-2 left-2 size-4 text-faint" />
-          <Input aria-label="Find a routine" placeholder="Find a routine" value={query} onChange={(event) => setQuery(event.target.value)} className="pl-8" />
+          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+          <Input aria-label="Find a routine" placeholder="Find a routine" value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" />
         </div>
       </div>
       {groups.length ? (
@@ -322,13 +313,38 @@ export function Flows() {
   const problems = visible.filter((flow) => flow.stuck || flow.waiting).sort((a, b) => Number(Boolean(b.stuck)) - Number(Boolean(a.stuck)));
   const soonest = visible.filter((flow) => flow.next_at).sort((a, b) => (a.next_at ?? '').localeCompare(b.next_at ?? ''))[0];
   const newRoutine = canOperate ? (
-    <Button asChild>
+    <Button variant="primary" asChild>
       <Link to="/$org/flows/new" params={{ org }} aria-label="New routine">
         <Plus className="size-4" />
         <span className="max-sm:hidden">New routine</span>
       </Link>
     </Button>
   ) : null;
+
+  // Today or the week ahead: two views of the same routines, kept in the address.
+  const views = (
+    <nav aria-label="Routines views" className="inline-flex gap-px justify-self-start rounded-full border border-line bg-inset p-1">
+      {[
+        { label: 'Today', search: {}, on: tab !== 'schedules' },
+        { label: 'The week ahead', search: { tab: 'schedules' as const }, on: tab === 'schedules' },
+      ].map((view) => (
+        <Link
+          key={view.label}
+          to="/$org/flows"
+          params={{ org }}
+          search={view.search}
+          replace
+          aria-current={view.on ? 'page' : undefined}
+          className={cn(
+            'flex h-8 items-center rounded-full border px-3 text-label transition-colors duration-(--duration-fast) ease-standard',
+            view.on ? 'border-line bg-card font-semibold text-fg shadow-lift' : 'border-transparent text-muted hover:text-fg',
+          )}
+        >
+          {view.label}
+        </Link>
+      ))}
+    </nav>
+  );
 
   if (flows.isPending) return <ListSkeleton />;
   if (isNotServed(flows.error)) return <Card><NotLive /></Card>;
@@ -356,21 +372,22 @@ export function Flows() {
   }
 
   return (
-    <div className="grid gap-10 md:gap-12">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-        <Hero flows={visible} ran={day.data?.ran_today ?? null} checked={day.data?.checked_today ?? null} soonest={soonest} />
-        {newRoutine}
-        <nav aria-label="Routines views" className="col-span-2 flex gap-1 text-secondary">
-          {[
-            { label: 'Today', search: {}, on: tab !== 'schedules' },
-            { label: 'The week ahead', search: { tab: 'schedules' as const }, on: tab === 'schedules' },
-          ].map((view) => (
-            <Link key={view.label} to="/$org/flows" params={{ org }} search={view.search} replace aria-current={view.on ? 'page' : undefined} className={cn('flex h-8 items-center rounded-full px-3 transition-colors duration-(--duration-fast) ease-standard', view.on ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg')}>
-              {view.label}
-            </Link>
+    <>
+      <PageHeader
+        title="Routines"
+        description={<Sentence flows={visible} ran={day.data?.ran_today ?? null} checked={day.data?.checked_today ?? null} soonest={soonest} />}
+        actions={newRoutine}
+      />
+      <div className="grid gap-8">
+      {/* What is stuck (today only), then the views, always in the same place so switching keeps the focus on them. */}
+      {tab !== 'schedules' && problems.length ? (
+        <ul aria-label="Needs a look" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {problems.map((flow) => (
+            <Problem key={flow.id} org={org} flow={flow} business={workspaces.find((item) => item.id === flow.lane.split('/')[0])} />
           ))}
-        </nav>
-      </header>
+        </ul>
+      ) : null}
+      {views}
       {tab === 'schedules' ? (
         <>
           <WeekAhead org={org} flows={visible} schedules={visibleSchedules} onNew={canOperate ? () => setAdding(true) : undefined} />
@@ -386,17 +403,11 @@ export function Flows() {
         </>
       ) : (
         <>
-          {day.data ? <DayLine org={org} day={day.data} flows={visible} /> : day.isPending ? <Skeleton className="h-36 rounded-(--radius-card)" /> : null}
-          {problems.length ? (
-            <ul aria-label="Needs a look" className="grid gap-3">
-              {problems.map((flow) => (
-                <Problem key={flow.id} org={org} flow={flow} business={workspaces.find((item) => item.id === flow.lane.split('/')[0])} />
-              ))}
-            </ul>
-          ) : null}
+          {day.data ? <DayLine org={org} day={day.data} flows={visible} /> : day.isPending ? <Skeleton className="h-36 rounded-xl" /> : null}
           <Everything org={org} flows={visible} workspaces={workspaces} />
         </>
       )}
+      </div>
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
@@ -421,6 +432,6 @@ export function Flows() {
           });
         }}
       />
-    </div>
+    </>
   );
 }

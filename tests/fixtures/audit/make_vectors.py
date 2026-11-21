@@ -12,7 +12,7 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.policy.auditlog import (
+from openajar.policy.auditlog import (
     LANE_CTX,
     LINK_CTX,
     MARK_CTX,
@@ -28,9 +28,9 @@ from agentos.policy.auditlog import (
     row_record,
     sign,
 )
-from agentos.policy.tokens import key_id
-from agentos.policy.trace_writes import INT64_MAX
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.policy.tokens import key_id
+from openajar.policy.trace_writes import INT64_MAX
+from openajar.policy.traces import TraceEvent, TraceStore
 
 KEY = Ed25519PrivateKey.from_private_bytes(bytes(range(1, 33)))
 KID = key_id(KEY)
@@ -69,7 +69,7 @@ def main() -> None:
     for body in (genesis, checkpoint):
         data = canonical(body)
         marks.append({"body": body, "canonical": data.decode(), "hash": mark_hash(body), "sig": sign(KEY, SIG_CTX, data)})
-    # values of a type their column never holds when agentos wrote them: a one-key object
+    # values of a type their column never holds when openajar wrote them: a one-key object
     typed_cases = [("cost_usd", "Infinity", "text"), ("cost_usd", "0.00001", "text"), ("cost_tokens", True, "bool"),
                    ("cost_tokens", 1.0, "real"), ("summary", 7, "int"), ("summary", b"A", "blob")]
     typed = []

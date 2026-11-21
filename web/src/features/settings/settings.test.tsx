@@ -15,14 +15,14 @@ describe('settings', () => {
   it('shows a new grant token exactly once', async () => {
     const { user } = renderApp('/northwind-group/settings/grants');
     await user.click(await screen.findByRole('button', { name: 'New grant' }));
-    await user.type(await screen.findByLabelText('Subject'), 'my agent');
+    await user.type(await screen.findByLabelText('App'), 'my agent');
     await user.click(screen.getByRole('button', { name: 'Create grant' }));
-    const token = await screen.findByText(/^agt_/);
+    const token = await screen.findByDisplayValue(/^agt_/);
     expect(screen.getByText(/only time it is shown/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Done' }));
     expect(await screen.findByText('my-agent')).toBeInTheDocument();
     expect(token).not.toBeInTheDocument();
-    expect(screen.queryByText(/^agt_/)).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue(/^agt_/)).not.toBeInTheDocument();
   });
 
   it('shows vault names and offers no way to read a secret', async () => {
@@ -75,7 +75,7 @@ describe('settings', () => {
   it('marks an expired invite honestly', async () => {
     renderApp('/northwind-group/settings/invites');
     expect((await screen.findAllByText('Expired')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Waiting')).toBeInTheDocument();
   });
 
   it('opens the billing portal only at an https address (security review 19)', async () => {

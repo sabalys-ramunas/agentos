@@ -85,7 +85,7 @@ I found no public, current documentation of what these apps check. Treat it as u
 | Build fields, `ro.*` properties | Any app | Set at boot from the image | Not covered by the pages I read. Verify. |
 | GSF ID, MediaDRM ID | Not covered by the pages I read | | Verify before relying on either |
 
-What "stable" means for agentos: one lane is one data volume. The container is recreated from the same pinned image, with the same identity file, and an existing account's data volume is never replaced. The identity file (model, build properties, timezone, locale, screen size, GPU renderer) is written once on first launch, the same way `fingerprint_path` works today. Every field must agree with the lane's proxy country. The goal is consistent, stable identity, not an undetectable device. Virtual sensors and the virtual GPU are visible in principle. Not tested.
+What "stable" means for openajar: one lane is one data volume. The container is recreated from the same pinned image, with the same identity file, and an existing account's data volume is never replaced. The identity file (model, build properties, timezone, locale, screen size, GPU renderer) is written once on first launch, the same way `fingerprint_path` works today. Every field must agree with the lane's proxy country. The goal is consistent, stable identity, not an undetectable device. Virtual sensors and the virtual GPU are visible in principle. Not tested.
 
 ### Per-lane proxying
 
@@ -114,9 +114,9 @@ What "stable" means for agentos: one lane is one data volume. The container is r
 - **Secrets:** never run `adb shell input text "<secret>"`. The text becomes a command argument, which other processes can see while it runs. I inferred this and did not test it. Check with `ps` in spike C. Use the vault typist contract instead: set the text through uiautomator2 (not as an argument), check the focused field and the app before each keystroke, stop on any change, and never log, trace, screenshot or return the text.
 - **Installing apps without a Google account:** `adb install` an APK from the vendor's official source, after checking its signature against the vendor's published certificate. This needs no Google account. Google Play does need one, and a GApps or MicroG image adds a Google identity to each lane, so avoid it unless needed. Push notifications may depend on Google services. Not verified.
 
-## 4. Fit with agentos
+## 4. Fit with openajar
 
-**Already in the repo:** `LaneKind.ANDROID` (`src/agentos/core/models.py`). The account preset is allowed for android lanes (`src/agentos/env/manager.py`). The lanes view maps android to the account preset (`src/agentos/api/lanes_view.py`). `agentos.android` is referenced in `src/agentos/core/runtime.py` but does not exist. `docs/ARCHITECTURE.md` already names redroid as an engine.
+**Already in the repo:** `LaneKind.ANDROID` (`src/openajar/core/models.py`). The account preset is allowed for android lanes (`src/openajar/env/manager.py`). The lanes view maps android to the account preset (`src/openajar/api/lanes_view.py`). `openajar.android` is referenced in `src/openajar/core/runtime.py` but does not exist. `docs/ARCHITECTURE.md` already names redroid as an engine.
 
 **Lifecycle, unchanged:**
 
@@ -130,7 +130,7 @@ What "stable" means for agentos: one lane is one data volume. The container is r
 
 **Self-check (Android):** exit IP through the tunnel. DNS and IPv6 as in section 2. Timezone and locale match the proxy's country. adb reachable. Target app installed at a pinned version. Logged-in marker detected by a flow, not by a model.
 
-**Engine interface.** `src/agentos/node/interfaces.py` is browser-specific: `Engine.launch` returns a `BrowserSession`, and `LaneManager.using()` yields a Playwright `Page`. The Android engine needs a generic handle. Proposed, in the same Protocol style as `interfaces.py` (the file says changes are made by the lead):
+**Engine interface.** `src/openajar/node/interfaces.py` is browser-specific: `Engine.launch` returns a `BrowserSession`, and `LaneManager.using()` yields a Playwright `Page`. The Android engine needs a generic handle. Proposed, in the same Protocol style as `interfaces.py` (the file says changes are made by the lead):
 
 ```python
 class AndroidEngine(Protocol):

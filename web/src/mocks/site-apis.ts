@@ -1010,7 +1010,7 @@ function tryOn(store: SiteStore, api: SiteApiDetail, body: { endpoint: string; p
       ms: 38,
       headers: { 'Content-Type': 'application/problem+json', ...(api.problem?.resumes_at ? { 'Retry-After': String(Math.max(1, Math.round((Date.parse(api.problem.resumes_at) - now) / 1000))) } : {}) },
       body: {
-        type: `https://agentos.example/problems/${problem.code}`,
+        type: `https://openajar.example/problems/${problem.code}`,
         title: problem.title,
         status: problem.status,
         code: problem.code,

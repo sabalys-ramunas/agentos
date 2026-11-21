@@ -17,12 +17,12 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentPaused, EngineError, HumanInControl, InvalidRequest, LaneBusy
-from agentos.core.models import LaneSpec, LaneState, ProxyConfig, ViewerInfo
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.lanes import manager as lanes_manager
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.errors import AgentPaused, EngineError, HumanInControl, InvalidRequest, LaneBusy
+from openajar.core.models import LaneSpec, LaneState, ProxyConfig, ViewerInfo
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.lanes import manager as lanes_manager
+from openajar.node.store import LaneStore
 
 PROXY = ProxyConfig(label="lt1", host="198.51.100.10", port=12323, username="user1", password="hunter2-secret")
 

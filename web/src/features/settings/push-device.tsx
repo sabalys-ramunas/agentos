@@ -2,16 +2,18 @@
  * Push on this device, and the member's other devices. Every state the browser, the OS, the server
  * or the plan can put push in says what happened and what to do, so a dead switch never sits there.
  */
+import { InlineError } from '@/components/ui/states';
 import { Link } from '@tanstack/react-router';
-import { BellOff, Laptop, Smartphone } from 'lucide-react';
+import { BellOff, BellRing, Laptop, Smartphone } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { usePushDevice } from '@/api/push';
 import type { PushDevice } from '@/api/types';
 import { useProviders, useRemovePushDevice, useTestPush } from '@/api/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { InlineError, Skeleton } from '@/components/ui/states';
+import { FormCard } from '@/components/ui/card';
+import { AppTile } from '@/components/ui/tile';
+import { Skeleton } from '@/components/ui/states';
 import { StatusDot } from '@/components/ui/status';
 import { Switch } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
@@ -23,9 +25,11 @@ function Note({ title, children, action }: { title: string; children: ReactNode;
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="flex min-w-0 gap-3">
-        <BellOff className="mt-[2px] size-4 shrink-0 text-faint" />
+        <span className="flex h-5 shrink-0 items-center">
+          <BellOff aria-hidden className="size-4 text-faint" />
+        </span>
         <div className="min-w-0">
-          <p className="text-label">{title}</p>
+          <p className="text-label text-fg">{title}</p>
           <div className="mt-1 text-secondary text-muted">{children}</div>
         </div>
       </div>
@@ -36,7 +40,7 @@ function Note({ title, children, action }: { title: string; children: ReactNode;
 
 /** Where to turn notifications back on, in the words of the browser the person is using. */
 function unblockSteps(): string {
-  if (isIos()) return 'Open Settings, then Notifications, then agentos, and turn on Allow Notifications.';
+  if (isIos()) return 'Open Settings, then Notifications, then openajar, and turn on Allow Notifications.';
   if (/Firefox\//.test(navigator.userAgent)) return 'Click the icon left of the address, open Permissions, and clear Notifications.';
   if (/Safari\//.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent)) {
     return 'Open Safari, then Settings, then Websites, then Notifications, and set this site to Allow.';
@@ -47,9 +51,9 @@ function unblockSteps(): string {
 function InstallFirst() {
   const install = useInstall();
   return (
-    <Note title="Add agentos to your Home Screen first">
+    <Note title="Add openajar to your Home Screen first">
       On iPhone and iPad, push reaches only apps on the Home Screen (iOS 16.4 or later).{' '}
-      {install.installed ? 'Open agentos from the Home Screen and turn it on there.' : 'Tap Share, then Add to Home Screen, and open agentos from there.'}
+      {install.installed ? 'Open openajar from the Home Screen and turn it on there.' : 'Tap Share, then Add to Home Screen, and open openajar from there.'}
     </Note>
   );
 }
@@ -115,7 +119,7 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
             : (
                 <>
                   Approvals still wait in Needs you. To reach your phone instead, install the free ntfy app, then set it up on this computer, in a terminal.
-                  {technical ? <span className="mono mt-1 block text-caption text-faint">agentos policy notify ntfy</span> : null}
+                  {technical ? <span className="mono mt-1 block text-caption text-faint">openajar policy notify ntfy</span> : null}
                 </>
               )}
       </Note>
@@ -145,14 +149,14 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
     body = (
       <div className="flex items-center justify-between gap-6">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-label">
+          <p className="flex items-center gap-2 text-label text-fg">
             <StatusDot tone={on ? 'ok' : 'idle'} />
             {on ? 'Push is on for this device' : 'Push is off for this device'}
           </p>
           <p className="mt-1 text-secondary text-muted">
             {on && !enabledInSettings
               ? 'Push to your devices is turned off below, so nothing is sent until you turn it back on.'
-              : 'An approval arrives with Review and Deny. Approving always happens in agentos, signed in.'}
+              : 'An approval arrives with Review and Deny. Approving always happens in openajar, signed in.'}
           </p>
         </div>
         <Switch
@@ -171,41 +175,39 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
 
   const canTest = (devices.data?.length ?? 0) > 0 && config.data?.available;
   return (
-    <Card>
-      <div className="grid gap-4 p-6">
-        <div>
-          <h2 className="text-section-title">Push</h2>
-          <p className="mt-1 text-body text-muted">On your phone or computer, even when agentos is closed.</p>
-        </div>
-        {body}
-        {failure ? (
-          <InlineError>
-            {describeError(failure)}
-          </InlineError>
-        ) : null}
-        {current || others.length ? (
-          <div className="border-t border-line pt-2">
-            <ul className="divide-y divide-line">
-              {current ? <DeviceRow org={org} device={current} current /> : null}
-              {others.map((device) => (
-                <DeviceRow key={device.id} org={org} device={device} current={false} />
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-      {canTest ? (
-        <div className="flex min-h-14 flex-col gap-2 rounded-b-xl border-t border-line bg-inset px-6 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p role="status" className="min-w-0 text-secondary text-faint">
+    <FormCard
+      tile={<AppTile tone="pink" icon={BellRing} size="sm" />}
+      title="Push"
+      description="On your phone or computer, even when openajar is closed."
+      footnote={
+        canTest ? (
+          <span role="status">
             {test.isSuccess
               ? `Sent to ${test.data.devices === 1 ? 'your device' : `your ${test.data.devices} devices`}. It ignores quiet hours.`
               : 'A test goes to every device you have, and ignores quiet hours.'}
-          </p>
-          <Button size="sm" className="self-end sm:self-auto" loading={test.isPending} onClick={() => test.mutate()}>
+          </span>
+        ) : undefined
+      }
+      action={
+        canTest ? (
+          <Button size="sm" loading={test.isPending} onClick={() => test.mutate()}>
             Send a test
           </Button>
+        ) : undefined
+      }
+    >
+      {body}
+      {failure ? <InlineError>{describeError(failure)}</InlineError> : null}
+      {current || others.length ? (
+        <div className="border-t border-line pt-1">
+          <ul className="divide-y divide-line">
+            {current ? <DeviceRow org={org} device={current} current /> : null}
+            {others.map((device) => (
+              <DeviceRow key={device.id} org={org} device={device} current={false} />
+            ))}
+          </ul>
         </div>
       ) : null}
-    </Card>
+    </FormCard>
   );
 }

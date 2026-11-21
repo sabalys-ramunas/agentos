@@ -1,5 +1,5 @@
-import { useParams } from '@tanstack/react-router';
-import { Copy, MoreHorizontal, Smartphone, Trash2, UserPlus } from 'lucide-react';
+import { Link, useParams } from '@tanstack/react-router';
+import { Check, MoreHorizontal, Smartphone, Trash2, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -18,19 +18,18 @@ import type { Invite, Member, Role, Workspace } from '@/api/types';
 import { Button, IconButton } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { Field, Input } from '@/components/ui/field';
+import { CopyField, Field, Input } from '@/components/ui/field';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
 import { Avatar } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
 import { Status } from '@/components/ui/status';
 import { EmptyState, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
-import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
-import { Switch } from '@/components/ui/toggle';
+import { CellTitle, mainCell, NoValue, Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
+import { PersonMark } from '@/components/brand/identity';
 import { PlanNotice, usePlanRoom } from '@/components/plan-notice';
-import { cn } from '@/lib/cn';
 import { useRunsAlone } from '@/features/nodes/add-node';
 import { describeError, isPlanLimit } from '@/lib/errors';
-import { timeAgo, timeUntil } from '@/lib/format';
+import { plural, timeAgo } from '@/lib/format';
 import type { StatusLabel } from '@/lib/labels';
 import { roleHint, roleLabel } from '@/lib/labels';
 import { atLeast, isOrgWide, ROLES } from '@/lib/permissions';
@@ -38,15 +37,15 @@ import { SettingsHeader } from './page';
 import { MemberDevices } from './member-devices';
 
 /** Only the roles this person may hand out: never above their own. */
-const roleOptions = (actor: Role) => ROLES.filter((value) => atLeast(actor, value)).map((value) => ({ value, label: roleLabel[value] }));
+export const roleOptions = (actor: Role) => ROLES.filter((value) => atLeast(actor, value)).map((value) => ({ value, label: roleLabel[value] }));
 
 /** A person whose role differs between businesses: each business has its own, shown beside it. */
-function differsByWorkspace(member: Member): boolean {
+export function differsByWorkspace(member: Member): boolean {
   return new Set((member.roles_by_workspace ?? []).map((row) => row.role)).size > 1;
 }
 
 /** The role a person holds in one business, or their role where no business is named. */
-function roleIn(member: Member, workspace: string): Role {
+export function roleIn(member: Member, workspace: string): Role {
   return member.roles_by_workspace?.find((row) => row.workspace === workspace)?.role ?? member.role;
 }
 
@@ -55,16 +54,41 @@ function scopeLabel(scope: string[] | null, workspaces: Workspace[]) {
   return scope.map((id) => workspaces.find((item) => item.id === id)?.name ?? id).join(', ') || 'No workspaces';
 }
 
-function TableSkeleton() {
+export function TableSkeleton() {
   return (
-    <div>
+    <div role="status" aria-label="Loading">
       {[0, 1, 2, 3].map((index) => (
-        <div key={index} className="flex h-14 items-center gap-4 border-b border-line px-6 last:border-b-0">
-          <Skeleton className="size-6 rounded-full" />
-          <Skeleton className="w-40" />
-          <Skeleton className="ml-auto w-24" />
+        <div key={index} className="flex h-15 items-center gap-3 border-b border-line px-5 last:border-b-0">
+          <Skeleton className="size-8 rounded-full" />
+          <div className="grid gap-2">
+            <Skeleton className="h-3 w-36" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton className="ml-auto h-3 w-20" />
         </div>
       ))}
+    </div>
+  );
+}
+
+/** A person: their mark (violet to blue for you, their own hue for anyone else), name and second line. */
+export function Person({ member, me, second }: { member: Member; me: boolean; second: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      {me ? (
+        <Avatar name={member.user.name} me className="size-8 text-caption" />
+      ) : (
+        <PersonMark id={member.user.id} name={member.user.name} size={32} />
+      )}
+      <CellTitle
+        title={
+          <>
+            {member.user.name}
+            {me ? <span className="font-normal text-faint"> (you)</span> : null}
+          </>
+        }
+        second={second}
+      />
     </div>
   );
 }
@@ -98,88 +122,107 @@ export function MembersSettings() {
     ) : canChange(member) ? (
       <Select
         size="sm"
-        className="w-28"
+        className="w-32"
         aria-label={`Role for ${member.user.name}`}
         value={member.role}
         options={roleOptions(access.role)}
         onValueChange={(role) => update.mutate({ id: member.id, role: role as Role }, { onSuccess: () => toast('Role updated') })}
       />
     ) : (
-      <span className="text-secondary text-muted">{roleLabel[member.role]}</span>
+      <span className="text-body">{roleLabel[member.role]}</span>
     );
 
   return (
     <>
-      <SettingsHeader title="Members" description={alone ? 'People who can use this computer, and what they can do.' : 'People in this org and what they can do.'} />
+      <SettingsHeader
+        title="Members"
+        description={alone ? 'People who can use this computer, and what they can do.' : 'People in this org and what they can do.'}
+        action={
+          access.can('invites.read') ? (
+            <Button asChild variant="primary">
+              <Link to="/$org/settings/invites" params={{ org }}>
+                <UserPlus className="size-4" />
+                Invite someone
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
       <Card className="overflow-hidden">
         <QueryView query={members} skeleton={<TableSkeleton />}>
           {(items) => (
-            <Table>
-              <thead className="hidden md:table-header-group">
-                <tr>
-                  <Th>Member</Th>
-                  <Th className="w-36">Role</Th>
-                  <Th className="hidden xl:table-cell">Workspaces</Th>
-                  <Th className="w-28">Last active</Th>
-                  <Th className="w-14">
-                    <span className="sr-only">Actions</span>
-                  </Th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((member) => (
-                  <Tr key={member.id}>
-                    <Td className={mainCell}>
-                      <div className="flex items-center gap-2">
-                        <Avatar name={member.user.name} />
-                        <div className="min-w-0">
-                          <p className="truncate text-body">
-                            {member.user.name}
-                            {member.user.id === me ? <span className="text-faint"> (you)</span> : null}
-                          </p>
-                          <p className="truncate text-secondary text-faint">{member.user.email}</p>
-                        </div>
-                      </div>
-                      {/* A phone has no room for this as a column, so it sits under the name. */}
-                      <div className="mt-2 pl-8 md:hidden">{roleSelect(member)}</div>
-                    </Td>
-                    <Td className="hidden md:table-cell">{roleSelect(member)}</Td>
-                    <Td className="hidden max-w-72 truncate text-secondary text-muted xl:table-cell">{scopeLabel(member.workspaces, workspaces)}</Td>
-                    <Td className="tabular hidden text-secondary text-faint md:table-cell">
-                      {member.user.id === me ? 'Now' : member.last_active_at ? timeAgo(member.last_active_at) : '–'}
-                    </Td>
-                    <Td className="pr-4 pl-0 text-right md:pr-6">
-                      {!canRemove(member) && !canSeeDevices(member) ? null : (
-                        <Menu>
-                          <MenuTrigger asChild>
-                            <IconButton label={`Actions for ${member.user.name}`} size="sm">
-                              <MoreHorizontal className="size-4" />
-                            </IconButton>
-                          </MenuTrigger>
-                          <MenuContent align="end">
-                            {canSeeDevices(member) ? (
-                              <MenuItem onSelect={() => setDevicesOf(member)}>
-                                <Smartphone className="size-4" />
-                                Signed-in devices
-                              </MenuItem>
-                            ) : null}
-                            {canRemove(member) ? (
-                              <MenuItem className="text-bad" onSelect={() => setRemoving(member)}>
-                                <Trash2 className="size-4" />
-                                Remove access
-                              </MenuItem>
-                            ) : null}
-                          </MenuContent>
-                        </Menu>
-                      )}
-                    </Td>
-                  </Tr>
-                ))}
-              </tbody>
-            </Table>
+            <TableScroll>
+              <Table density="relaxed">
+                <thead className="hidden md:table-header-group">
+                  <tr>
+                    <Th>Member</Th>
+                    <Th className="w-36">Role</Th>
+                    <Th className="hidden w-44 lg:table-cell">Workspaces</Th>
+                    <Th className="w-28">Last active</Th>
+                    <Th className="w-14">
+                      <span className="sr-only">Actions</span>
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((member) => {
+                    const mine = member.user.id === me;
+                    const where = scopeLabel(member.workspaces, workspaces);
+                    return (
+                      <Tr key={member.id}>
+                        <Td className={mainCell}>
+                          <Person member={member} me={mine} second={member.user.email} />
+                          {/* A phone has no room for this as a column, so it sits under the name. */}
+                          <div className="mt-2 pl-11 md:hidden">{roleSelect(member)}</div>
+                        </Td>
+                        <Td className="hidden md:table-cell">{roleSelect(member)}</Td>
+                        <Td className="hidden w-44 max-w-44 text-secondary whitespace-normal text-muted lg:table-cell">
+                          <span className="line-clamp-2" title={where}>
+                            {where}
+                          </span>
+                        </Td>
+                        <Td className="tabular hidden text-secondary text-muted md:table-cell">
+                          {mine ? 'Now' : member.last_active_at ? timeAgo(member.last_active_at) : <NoValue />}
+                        </Td>
+                        <Td className="pr-4 pl-0 text-right md:pr-5">
+                          {!canRemove(member) && !canSeeDevices(member) ? null : (
+                            <Menu>
+                              <MenuTrigger asChild>
+                                <IconButton label={`Actions for ${member.user.name}`} size="sm">
+                                  <MoreHorizontal className="size-4" />
+                                </IconButton>
+                              </MenuTrigger>
+                              <MenuContent align="end">
+                                {canSeeDevices(member) ? (
+                                  <MenuItem onSelect={() => setDevicesOf(member)}>
+                                    <Smartphone className="size-4" />
+                                    Signed-in devices
+                                  </MenuItem>
+                                ) : null}
+                                {canRemove(member) ? (
+                                  <MenuItem className="text-bad" onSelect={() => setRemoving(member)}>
+                                    <Trash2 className="size-4" />
+                                    Remove access
+                                  </MenuItem>
+                                ) : null}
+                              </MenuContent>
+                            </Menu>
+                          )}
+                        </Td>
+                      </Tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </TableScroll>
           )}
         </QueryView>
       </Card>
+      <p className="mt-3 max-w-[46em] text-secondary text-muted">
+        {alone
+          ? 'An Owner or Admin runs the whole computer. A Member works in the workspaces you give them. An Approver only says yes or no. A Viewer only looks.'
+          : 'Owner and Admin see every workspace. A Member works in the workspaces you give them. An Approver only says yes or no. A Viewer only looks.'}
+      </p>
       {devicesOf ? <MemberDevices key={devicesOf.id} org={org} member={devicesOf} onClose={() => setDevicesOf(null)} /> : null}
       <ConfirmDialog
         open={removing !== null}
@@ -203,8 +246,18 @@ export function MembersSettings() {
   );
 }
 
+/** How long an invite has left, in words a person reads at a glance: "6 days", "5 hours". */
+function left(iso: string, now = Date.now()): string {
+  const ms = new Date(iso).getTime() - now;
+  if (ms <= 0) return 'Expired';
+  const hours = ms / 3_600_000;
+  if (hours < 1) return 'Under an hour';
+  if (hours < 24) return plural(Math.round(hours), 'hour');
+  return plural(Math.round(hours / 24), 'day');
+}
+
 const inviteStatus: Record<Invite['state'], StatusLabel> = {
-  pending: { label: 'Pending', tone: 'info' },
+  pending: { label: 'Waiting', tone: 'info' },
   accepted: { label: 'Accepted', tone: 'ok' },
   revoked: { label: 'Revoked', tone: 'idle' },
   expired: { label: 'Expired', tone: 'idle' },
@@ -216,6 +269,7 @@ export function InvitesSettings() {
   const invites = useInvites(org);
   const workspaces = useWorkspaces(org).data ?? [];
   const create = useCreateInvite(org);
+  const resend = useCreateInvite(org);
   const revoke = useRevokeInvite(org);
   const [email, setEmail] = useState('');
   const [blurred, setBlurred] = useState(false);
@@ -226,9 +280,9 @@ export function InvitesSettings() {
   const pending = (invites.data ?? []).filter((item) => item.state === 'pending').length;
   const room = usePlanRoom(org, 'members', pending);
   const computer = useProviders().data?.code === true;
-  const valid = /^\S+@\S+\.\S+$/.test(email);
-  // Judged once they leave the field, never while they are still typing.
-  const problem = blurred && email && !valid ? 'Enter a full email address.' : null;
+  const valid = /^\S+@\S+\.\S+$/.test(email.trim());
+  // Judged once they leave the field or press Send, never while they are still typing.
+  const problem = blurred && !valid ? (email.trim() ? 'Enter a full email address.' : 'Enter the email address of the person to invite.') : null;
   const error = problem ?? (create.isError && !isPlanLimit(create.error) ? describeError(create.error) : null);
   const orgWide = isOrgWide(role);
 
@@ -236,20 +290,26 @@ export function InvitesSettings() {
     return <NoAccess />;
   }
 
+  const done = (invite: Invite) => {
+    if (invite.token) {
+      setMade({ email: invite.email, link: `${window.location.origin}/invite/${invite.token}` });
+      toast('Invite made. Copy the link to send it.');
+    } else {
+      setMade(null);
+      toast(`Invite sent to ${invite.email}`);
+    }
+  };
+
   const submit = () => {
+    setBlurred(true);
+    if (!valid || room.full) return;
     create.mutate(
       { email: email.trim(), role, workspaces: orgWide || scope === 'all' ? null : [scope] },
       {
         onSuccess: (invite) => {
           setEmail('');
           setBlurred(false);
-          if (invite.token) {
-            setMade({ email: invite.email, link: `${window.location.origin}/invite/${invite.token}` });
-            toast('Invite made. Copy the link to send it.');
-          } else {
-            setMade(null);
-            toast('Invite sent');
-          }
+          done(invite);
         },
       },
     );
@@ -260,30 +320,30 @@ export function InvitesSettings() {
       <SettingsHeader
         title="Invites"
         // A computer's invites last a day, set by its own owner, so the screen says only what is true there.
-        description={computer ? 'Links are single use and expire. The time each one has left is shown below.' : 'Links are single use and expire after 7 days.'}
+        description={computer ? 'Links work once and expire. The time each one has left is shown below.' : 'Links work once and expire after 7 days.'}
       />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <PlanNotice org={org} resource="members" reserved={pending} />
         <FormCard
           title="Invite someone"
-          footnote={roleHint[role]}
-          action={
-            <Button variant="primary" size="sm" icon={<UserPlus className="size-4" />} disabled={!valid || room.full} loading={create.isPending} onClick={submit}>
-              Send invite
-            </Button>
-          }
+          description={computer ? 'You get a link to send them. It opens the invite once.' : 'They get an email with a link to join.'}
+          onSubmit={submit}
         >
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px_180px]">
-            <Field label="Email" error={error}>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,9rem)_minmax(0,11rem)] md:grid-cols-[minmax(0,1fr)_minmax(0,9rem)_minmax(0,11rem)_auto] md:items-start">
+            <Field label="Email" error={error} required className="sm:col-span-3 md:col-span-1">
               <Input
                 type="email"
-                placeholder="name@example.com"
+                inputMode="email"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="name@company.com"
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
                   create.reset();
+                  if (blurred && problem) setBlurred(false);
                 }}
-                onBlur={() => setBlurred(true)}
+                onBlur={() => setBlurred(Boolean(email.trim()))}
               />
             </Field>
             <Field label="Role">
@@ -298,195 +358,117 @@ export function InvitesSettings() {
                 options={[{ value: 'all', label: 'All workspaces' }, ...workspaces.map((item) => ({ value: item.id, label: item.name }))]}
               />
             </Field>
+            <Button
+              type="submit"
+              variant="primary"
+              icon={<UserPlus className="size-4" />}
+              disabled={room.full}
+              loading={create.isPending}
+              className="justify-self-start sm:col-span-3 md:col-span-1 md:mt-7"
+            >
+              Send invite
+            </Button>
           </div>
+          <p className="text-secondary text-faint">
+            {roleLabel[role]}: {roleHint[role].charAt(0).toLowerCase() + roleHint[role].slice(1)}.
+          </p>
         </FormCard>
         {made ? (
-          <Card className="grid gap-3 p-4 sm:p-6">
-            <p className="text-body">
-              Send this link to <span className="text-fg">{made.email}</span>. It opens the invite once, and it is not shown again
-              once you leave this page.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input aria-label="Invite link" readOnly value={made.link} className="mono h-10 flex-1 text-secondary" onFocus={(event) => event.target.select()} />
-              <Button
-                icon={<Copy className="size-4" />}
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(made.link)
-                    .then(() => toast('Link copied'))
-                    .catch(() => toast.error('Copy the link from the box.'))
-                }
-              >
-                Copy link
-              </Button>
+          <Card className="grid gap-3 px-6 py-5">
+            <div className="flex items-start gap-3">
+              <Check aria-hidden className="mt-1 size-4 shrink-0 text-ok" />
+              <p className="text-body">
+                Send this link to <span className="font-medium">{made.email}</span>. It opens the invite once, and it is not shown again once you
+                leave this page.
+              </p>
             </div>
+            <CopyField label="Invite link" value={made.link} />
           </Card>
         ) : null}
         <Card className="overflow-hidden">
           <QueryView query={invites} skeleton={<TableSkeleton />}>
             {(items) =>
               items.length ? (
-                <Table>
-                  <thead className="hidden md:table-header-group">
-                    <tr>
-                      <Th>Email</Th>
-                      <Th className="w-28">Role</Th>
-                      <Th className="w-28">State</Th>
-                      <Th className="w-28">Expires in</Th>
-                      <Th className="w-24">
-                        <span className="sr-only">Actions</span>
-                      </Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((invite) => (
-                      <Tr key={invite.id}>
-                        <Td className={mainCell}>
-                          <p className="truncate text-body">{invite.email}</p>
-                          <p className="truncate text-secondary text-faint">
-                            <span className="md:hidden">{roleLabel[invite.role]} · </span>
-                            {scopeLabel(invite.workspaces, workspaces)}
-                          </p>
-                        </Td>
-                        <Td className="hidden text-secondary text-muted md:table-cell">{roleLabel[invite.role]}</Td>
-                        <Td className="hidden md:table-cell">
-                          <Status status={inviteStatus[invite.state]} />
-                        </Td>
-                        <Td className="tabular hidden text-secondary text-faint md:table-cell">
-                          {invite.state === 'pending' ? timeUntil(invite.expires_at) : '–'}
-                        </Td>
-                        <Td className="pr-4 text-right md:pr-6">
-                          {invite.state === 'pending' ? (
-                            <Button size="sm" variant="ghost" onClick={() => revoke.mutate(invite.id, { onSuccess: () => toast('Invite revoked') })}>
-                              Revoke
-                            </Button>
-                          ) : (
-                            <Status status={inviteStatus[invite.state]} className="md:hidden" />
-                          )}
-                        </Td>
-                      </Tr>
-                    ))}
-                  </tbody>
-                </Table>
+                <TableScroll>
+                  <Table>
+                    <thead className="hidden md:table-header-group">
+                      <tr>
+                        <Th>Email</Th>
+                        <Th className="w-28">Role</Th>
+                        <Th className="w-32">State</Th>
+                        <Th className="w-28" align="end">
+                          Expires in
+                        </Th>
+                        <Th className="w-32">
+                          <span className="sr-only">Actions</span>
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((invite) => {
+                        const where = scopeLabel(invite.workspaces, workspaces);
+                        return (
+                          <Tr key={invite.id}>
+                            <Td className={mainCell}>
+                              <CellTitle
+                                title={invite.email}
+                                second={
+                                  <>
+                                    <span className="md:hidden">{roleLabel[invite.role]} · </span>
+                                    {where}
+                                  </>
+                                }
+                              />
+                            </Td>
+                            <Td className="hidden md:table-cell">{roleLabel[invite.role]}</Td>
+                            <Td className="hidden md:table-cell">
+                              <Status status={inviteStatus[invite.state]} />
+                            </Td>
+                            <Td className="tabular hidden text-right md:table-cell">
+                              {invite.state === 'pending' ? left(invite.expires_at) : <NoValue />}
+                            </Td>
+                            <Td className="pr-4 text-right md:pr-5">
+                              {invite.state === 'pending' ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  loading={revoke.isPending && revoke.variables === invite.id}
+                                  onClick={() => revoke.mutate(invite.id, { onSuccess: () => toast(`Invite to ${invite.email} revoked`) })}
+                                >
+                                  Revoke
+                                </Button>
+                              ) : invite.state === 'expired' || invite.state === 'revoked' ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={room.full}
+                                  loading={resend.isPending && resend.variables?.email === invite.email}
+                                  onClick={() => resend.mutate({ email: invite.email, role: invite.role, workspaces: invite.workspaces }, { onSuccess: done })}
+                                >
+                                  Send again
+                                </Button>
+                              ) : (
+                                <Status status={inviteStatus[invite.state]} className="md:hidden" />
+                              )}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </TableScroll>
               ) : (
-                <EmptyState title="No open invites" description="Invites you send appear here until they are accepted." className="py-8" />
+                <EmptyState
+                  icon={<UserPlus className="size-5" />}
+                  title="No open invites"
+                  description="Invites you send show here until they are accepted."
+                  className="py-8"
+                />
               )
             }
           </QueryView>
         </Card>
       </div>
-    </>
-  );
-}
-
-function AccessRow({ member, workspaces, org }: { member: Member; workspaces: Workspace[]; org: string }) {
-  const update = useUpdateMember(org);
-  const access = useAccess(org);
-  const me = useSession().data?.user.id;
-  const canChange = access.can('members.update') && member.user.id !== me && atLeast(access.role, member.role);
-  const orgWide = isOrgWide(member.role);
-  const everything = member.workspaces === null;
-  const scope = member.workspaces ?? [];
-  const differs = differsByWorkspace(member);
-
-  const toggle = (id: string) => {
-    const next = scope.includes(id) ? scope.filter((item) => item !== id) : [...scope, id];
-    update.mutate({ id: member.id, workspaces: next });
-  };
-
-  return (
-    <li className="grid gap-3 p-4 sm:px-6">
-      <div className="flex items-center gap-2">
-        <Avatar name={member.user.name} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body">{member.user.name}</p>
-          <p className="text-secondary text-faint">{differs ? 'Differs by workspace' : roleLabel[member.role]}</p>
-        </div>
-        <div className="flex items-center gap-2 text-secondary text-muted">
-          {/* An owner or admin always sees every workspace, so there is no switch to offer. */}
-          {orgWide ? (
-            <span>Always all workspaces</span>
-          ) : (
-            <>
-              <span className="hidden sm:inline">All workspaces</span>
-              <Switch
-                aria-label={`${member.user.name} can see all workspaces`}
-                checked={everything}
-                onCheckedChange={(checked) => update.mutate({ id: member.id, workspaces: checked ? null : [] })}
-              />
-            </>
-          )}
-        </div>
-      </div>
-      {everything ? null : (
-        <div className="flex flex-wrap gap-2 sm:pl-8">
-          {workspaces.map((workspace) => {
-            const on = scope.includes(workspace.id);
-            return (
-              <button
-                key={workspace.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggle(workspace.id)}
-                className={cn(
-                  'h-7 rounded-md border px-2 text-secondary transition-colors duration-(--duration-fast) ease-standard',
-                  on ? 'border-fg text-fg' : 'border-line text-muted hover:border-line-strong',
-                )}
-              >
-                {workspace.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {everything || scope.length === 0 ? null : (
-        // What the person may do in each business they can see: changed here, one business at a time.
-        <ul className="grid gap-2 sm:pl-8">
-          {workspaces
-            .filter((workspace) => scope.includes(workspace.id))
-            .map((workspace) => (
-              <li key={workspace.id} className="flex items-center gap-3 text-secondary">
-                <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
-                {canChange ? (
-                  <Select
-                    size="sm"
-                    className="w-32"
-                    aria-label={`Role in ${workspace.name} for ${member.user.name}`}
-                    value={roleIn(member, workspace.id)}
-                    options={roleOptions(access.role)}
-                    onValueChange={(role) => update.mutate({ id: member.id, workspace: workspace.id, role: role as Role })}
-                  />
-                ) : (
-                  <span className="text-muted">{roleLabel[roleIn(member, workspace.id)]}</span>
-                )}
-              </li>
-            ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-export function WorkspaceAccessSettings() {
-  const { org } = useParams({ from: '/$org/settings/access' });
-  const access = useAccess(org);
-  const members = useMembers(org);
-  const workspaces = useWorkspaces(org).data ?? [];
-  if (!access.can('members.update')) return <NoAccess />;
-  return (
-    <>
-      <SettingsHeader title="Workspace access" description="A limited member only ever sees their workspaces." />
-      <Card>
-        <QueryView query={members} skeleton={<TableSkeleton />}>
-          {(items) => (
-            <ul className="divide-y divide-line">
-              {items.map((member) => (
-                <AccessRow key={member.id} member={member} workspaces={workspaces} org={org} />
-              ))}
-            </ul>
-          )}
-        </QueryView>
-      </Card>
     </>
   );
 }

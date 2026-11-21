@@ -17,15 +17,15 @@ from fakes import FakeLaneManager
 from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.commands import base as cli_base
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest
-from agentos.core.models import LaneSpec
-from agentos.node.login_assist import read_values
-from agentos.node.login_page import REDACT_RGBA, _unfilter, action_locator, parse_action, redact_png
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_tokens import ViewMode, ViewTokens
+from openajar.cli import app
+from openajar.commands import base as cli_base
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest
+from openajar.core.models import LaneSpec
+from openajar.node.login_assist import read_values
+from openajar.node.login_page import REDACT_RGBA, _unfilter, action_locator, parse_action, redact_png
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_tokens import ViewMode, ViewTokens
 
 PASSWORD = "Tr0ub4dor&3-horse"
 
@@ -127,8 +127,8 @@ def _login(state: str, **kw) -> dict:
             "note": kw.pop("note", ""), "error": None, "can_save": kw.pop("can_save", False), **kw}
 
 
-def test_agentos_lane_login_asks_for_each_field_and_hides_secrets(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+def test_openajar_lane_login_asks_for_each_field_and_hides_secrets(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     runner = CliRunner()
     assert runner.invoke(app, ["node", "init"]).exit_code == 0
     sign_in = {"id": "s1", "kind": "sign_in", "heading": "Instagram", "message": "", "number": None,
@@ -234,8 +234,8 @@ def test_a_resume_after_hand_back_is_kept_until_it_ends_and_its_failure_is_logge
     import time as _time
     from types import SimpleNamespace
 
-    from agentos.core.models import ControlState
-    from agentos.node.login_assist import LoginAssist, Session
+    from openajar.core.models import ControlState
+    from openajar.node.login_assist import LoginAssist, Session
 
     assist = LoginAssist(SimpleNamespace())
     now = _time.time()
@@ -258,6 +258,6 @@ def test_a_resume_after_hand_back_is_kept_until_it_ends_and_its_failure_is_logge
         await asyncio.sleep(0)
         assert not assist._background
 
-    with caplog.at_level(logging.ERROR, logger="agentos.login"):
+    with caplog.at_level(logging.ERROR, logger="openajar.login"):
         asyncio.run(main())
     assert "resuming after the hand back failed" in caplog.text

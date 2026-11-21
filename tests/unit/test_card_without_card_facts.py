@@ -2,7 +2,7 @@
 carry those facts.
 
 Approval cards read what only the node knows (the effect rules, who a body acts as, the sites) from
-the runtime service `card_facts` (agentos.core.cardfacts), which agentos.node.daemon.node_runtime
+the runtime service `card_facts` (openajar.core.cardfacts), which openajar.node.daemon.node_runtime
 registers. A card made without it, by a hand-built `Runtime()` for example, cannot run those
 checks. It must not look like a full card: it carries a warning, and denying it is marked safe.
 """
@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import pytest
 
-from agentos.core.cardfacts import SERVICE as CARD_FACTS
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.node import egress
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.node.daemon import node_runtime
-from agentos.policy import cards
+from openajar.core.cardfacts import SERVICE as CARD_FACTS
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.node import egress
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.node.daemon import node_runtime
+from openajar.policy import cards
 
 RULE = egress.EFFECT_RULES[0].id
 SITE = RULE.split(".", 1)[0]
@@ -50,7 +50,7 @@ def test_a_card_without_the_node_facts_warns_and_is_safe_to_deny(runtime, conten
 def test_with_the_node_facts_the_card_has_its_full_checks():
     runtime = Runtime(card_facts=NodeCardFacts())
     unknown_identity = cards.build_card("browser_act", "biz-a/x", _unrecognized(), runtime=runtime)
-    assert "identity agentos does not know" in (unknown_identity.get("identity_warning") or "")
+    assert "identity openajar does not know" in (unknown_identity.get("identity_warning") or "")
     assert "facts_missing" not in unknown_identity
     unknown_request = cards.build_card("browser_act", "biz-a/x", _unknown_request(), runtime=runtime)
     assert unknown_request["deny_safe"] is True

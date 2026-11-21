@@ -13,10 +13,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agentos.core.errors import EngineError, InvalidRequest
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox import engine as ec
-from agentos.node.camoufox import session as camoufox_session
+from openajar.core.errors import EngineError, InvalidRequest
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox import engine as ec
+from openajar.node.camoufox import session as camoufox_session
 
 STEPS = ["wait_for_pid", "settle_pin", "place_window", "keyboard", "guard", "identity"]
 
@@ -61,7 +61,7 @@ def rig(monkeypatch, tmp_path):
         if state["broken"] == name:
             if state["how"] == "cancel":
                 raise asyncio.CancelledError
-            if state["how"] == "agentos":
+            if state["how"] == "openajar":
                 raise InvalidRequest(f"{name} broke")
             raise RuntimeError(f"{name} broke")
 
@@ -129,9 +129,9 @@ def test_a_step_that_raises_closes_the_browser(rig, step):
     assert state["reached"][-1] == step
 
 
-def test_an_agentos_error_from_the_pin_goes_up_as_it_is(rig):
+def test_an_openajar_error_from_the_pin_goes_up_as_it_is(rig):
     state, launch = rig
-    state["broken"], state["how"] = "settle_pin", "agentos"
+    state["broken"], state["how"] = "settle_pin", "openajar"
     with pytest.raises(InvalidRequest, match="settle_pin broke"):
         asyncio.run(launch())
     assert state["closed"] == 1
@@ -186,7 +186,7 @@ def test_cancelling_the_open_while_it_waits_closes_the_browser(rig, monkeypatch)
 
 
 def test_run_to_end_keeps_the_cancellation_when_the_teardown_fails():
-    from agentos.core.aio import run_to_end
+    from openajar.core.aio import run_to_end
 
     async def teardown(started):
         started.set()

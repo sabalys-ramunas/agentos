@@ -1,0 +1,252 @@
+/* openajar dash: calm, low-contrast chrome; color is reserved for status. */
+
+Screen {
+    background: $background;
+}
+
+.topbar {
+    height: 1;
+    background: $panel;
+}
+
+.banner {
+    display: none;
+    height: auto;
+    padding: 0 1;
+    background: $warning 12%;
+}
+.banner.show {
+    display: block;
+}
+.banner.bad {
+    background: $error 14%;
+}
+
+TabbedContent {
+    height: 1fr;
+}
+TabPane {
+    padding: 0;
+}
+View {
+    height: 1fr;
+}
+
+.section-title {
+    height: 1;
+    padding: 0 1;
+    margin-top: 1;
+    color: $text-muted;
+    text-style: bold;
+}
+.note {
+    height: auto;
+    padding: 0 2;
+}
+.body {
+    height: auto;
+    padding: 0 2;
+}
+.needs-line {
+    height: auto;
+    padding: 1 1 0 1;
+}
+.filter-bar {
+    height: 1;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+DataTable {
+    height: 1fr;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+DataTable > .datatable--header {
+    background: $background;
+    color: $text-muted;
+    text-style: bold;
+}
+
+#lane-tree {
+    height: 1fr;
+    padding: 0 1;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+/* Needs you: list and detail side by side when wide, stacked when narrow */
+#needs-body {
+    height: 1fr;
+    margin-top: 1;
+}
+#needs-list {
+    width: 3fr;
+    height: 1fr;
+    border: none;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+#needs-list > .option-list--option-highlighted {
+    background: $primary 20%;
+}
+#needs-detail-box {
+    width: 2fr;
+    height: 1fr;
+    padding: 0 1 0 2;
+    border-left: vkey $panel;
+}
+Screen.-narrow #needs-body {
+    layout: vertical;
+}
+Screen.-narrow #needs-list {
+    width: 1fr;
+    height: 1fr;
+}
+Screen.-narrow #needs-detail-box {
+    width: 1fr;
+    height: 1fr;
+    padding: 1 1 0 1;
+    border-left: none;
+    border-top: hkey $panel;
+}
+
+/* Runs and schedules */
+#runs-table {
+    height: 1fr;
+}
+#sched-table {
+    height: auto;
+    max-height: 45%;
+}
+
+/* Brains */
+#brains-table {
+    height: auto;
+    max-height: 35%;
+}
+#tasks-table {
+    height: 1fr;
+}
+#tail-box {
+    height: 9;
+    padding: 0 2;
+}
+
+/* Lane details */
+.lane-head {
+    height: auto;
+    padding: 1 1 0 1;
+}
+#lane-panels {
+    height: auto;
+}
+#lane-panels .panel {
+    width: 1fr;
+    height: auto;
+    padding: 0 1;
+    margin: 1 1 0 1;
+    border: round $panel-lighten-2;
+}
+Screen.-narrow #lane-panels .panel {
+    border: none;
+    padding: 0 1;
+    margin: 1 0 0 0;
+    background: $surface;
+}
+#lane-activity {
+    height: 1fr;
+    min-height: 5;
+}
+
+/* Dialogs */
+.dialog {
+    align: center middle;
+    background: $background 70%;
+}
+.dialog .box {
+    width: 66;
+    max-width: 96%;
+    height: auto;
+    max-height: 92%;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary 50%;
+}
+.dialog .box.wide {
+    width: 92;
+}
+.dialog .box.tall {
+    height: 85%;
+}
+.dialog-title {
+    margin-bottom: 1;
+}
+.dialog-body {
+    height: auto;
+    margin-bottom: 1;
+}
+.dialog-scroll {
+    height: 1fr;
+}
+.field {
+    color: $text-muted;
+    margin-top: 1;
+}
+.buttons {
+    height: auto;
+    align-horizontal: right;
+    margin-top: 1;
+}
+.buttons Button {
+    margin-left: 2;
+    padding: 0 2;
+}
+.dialog Input, .dialog Select {
+    margin-top: 0;
+}
+.dialog Input {
+    background: $panel;
+}
+.buttons.options {
+    align-horizontal: left;
+}
+.buttons.options Button {
+    margin-left: 0;
+    margin-right: 2;
+}
+
+Footer {
+    background: $panel;
+}
+#footer-row {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+}
+#footer-row Footer {
+    dock: none;
+    width: 1fr;
+}
+#footer-keys {
+    width: auto;
+    padding: 0 1;
+    background: $panel;
+}
+
+/* short terminals (24 rows): drop the breathing room, keep the content */
+Screen.-short .section-title {
+    margin-top: 0;
+}
+Screen.-short .needs-line {
+    padding: 0 1;
+}
+Screen.-short .filter-bar {
+    margin-top: 0;
+}
+Screen.-short #needs-body {
+    margin-top: 0;
+}
+Screen.-short #tail-box {
+    height: 5;
+}

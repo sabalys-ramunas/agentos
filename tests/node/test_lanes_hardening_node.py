@@ -1,9 +1,9 @@
 """Lane hardening on a real node: no websockify, the window fills the display, holds stop agents
 and flows across a restart, the memory floor, per-lane memory scopes, quarantine.
 
-Run on the node:  AGENTOS_TEST_SLOT=27 scripts/node-test.sh lanesfix tests/node/test_lanes_hardening_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=27 scripts/node-test.sh lanesfix tests/node/test_lanes_hardening_node.py -q
 Uses the ranges scripts/node-test.sh exports (displays, VNC and viewer ports of the slot), an
-AGENTOS_HOME under .node-home/ in this checkout, and real Camoufox browsers (one at a time).
+OPENAJAR_HOME under .node-home/ in this checkout, and real Camoufox browsers (one at a time).
 A tiny HTTP server on the slot's last viewer port stands in for a site (the lanes no longer run
 websockify, so those ports are free); only these tests' lanes may reach it.
 """
@@ -24,14 +24,19 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentPaused, LaneQuarantined
-from agentos.core.models import ControlState, LaneSpec, LaneState, Signal
-from agentos.core.runtime import Runtime
-from agentos.node.camoufox.engine import browser_pids, browser_pids_under, display_size_of, window_position_of
-from agentos.node.display import iter_processes, kill_processes, listening_ports, process_group, tcp_ports_of
-from agentos.node.flow_driver import LaneAgentPaused, driver_factory
-from agentos.node.lanes import (
+from openajar.core.config import NodeConfig
+from openajar.core.errors import AgentPaused, LaneQuarantined
+from openajar.core.models import ControlState, LaneSpec, LaneState, Signal
+from openajar.core.runtime import Runtime
+from openajar.node.camoufox.engine import (
+    browser_pids,
+    browser_pids_under,
+    display_size_of,
+    window_position_of,
+)
+from openajar.node.display import iter_processes, kill_processes, listening_ports, process_group, tcp_ports_of
+from openajar.node.flow_driver import LaneAgentPaused, driver_factory
+from openajar.node.lanes import (
     LaneManagerImpl,
     ResourcesLow,
     ScopeLimiter,
@@ -44,10 +49,10 @@ pytestmark = [
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "270"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5270"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6270"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "270"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5270"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6270"))
 RANGES = {"display_base": DISPLAY_BASE, "vnc_base": VNC_BASE, "viewer_base": VIEWER_BASE, "max_slots": 9}
 SITE_PORT = VIEWER_BASE + 9
 
@@ -210,7 +215,7 @@ async def test_the_browser_window_sits_where_its_pin_says(managers, home):
 
 
 async def test_a_hold_stops_an_agent_and_a_flow_and_survives_a_restart(managers, home, site):
-    from agentos.node.interaction import create_interaction
+    from openajar.node.interaction import create_interaction
 
     mgr = managers(hold_policy=policy)
     mgr.engine.allow_private_network = True  # only so this lane can reach the stand-in site
@@ -281,7 +286,7 @@ async def test_a_lane_browser_runs_under_its_own_memory_limit(managers, home):
     await mgr.open(lane_id)
     pid = mgr._lanes[lane_id].session.pid
     cgroup = Path(f"/proc/{pid}/cgroup").read_text().strip().split("::", 1)[1]
-    assert cgroup.rsplit("/", 1)[1].startswith("agentos-lane-test--limit-") and cgroup.endswith(".scope")
+    assert cgroup.rsplit("/", 1)[1].startswith("openajar-lane-test--limit-") and cgroup.endswith(".scope")
     limit = Path("/sys/fs/cgroup", cgroup.lstrip("/"), "memory.max").read_text().strip()
     assert limit == str(1536 * 1024 * 1024)
     children = [p for p in process_group(pid) if p != pid]  # content processes share the browser's group

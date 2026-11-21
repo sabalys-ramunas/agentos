@@ -1,5 +1,5 @@
 /**
- * What runs now, for Home's sentence and its slider (Mono): `agentos run` jobs, design checks that just
+ * What runs now, for Home's sentence and its slider (Mono): `openajar run` jobs, design checks that just
  * ended, routine and agent runs, and accounts an agent is acting in. Pure, so the rules are tested
  * (running.test.ts): what counts as running, which failures still stand, and which run again.
  */

@@ -7,7 +7,7 @@ from starlette.applications import Starlette
 from starlette.testclient import TestClient
 from testkit.workspaces import Harness
 
-from agentos.workspaces.api import routes
+from openajar.workspaces.api import routes
 
 
 @pytest.fixture

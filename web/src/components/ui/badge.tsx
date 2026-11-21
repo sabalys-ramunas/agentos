@@ -9,17 +9,17 @@ const soft: Record<BadgeTone, string> = {
   ok: 'border-ok-line bg-ok-fill text-ok',
   warn: 'border-warn-line bg-warn-fill text-warn',
   bad: 'border-bad-line bg-bad-fill text-bad',
-  live: 'border-live-line bg-live-soft text-fg',
-  accent: 'border-accent-line bg-accent-soft text-fg',
+  live: 'border-live-line bg-live-soft text-live',
+  accent: 'border-accent-line bg-accent-soft text-accent-text',
 };
 
 const solid: Record<BadgeTone, string> = {
-  neutral: 'border-transparent bg-fg text-on-primary',
+  neutral: 'border-transparent bg-fg text-on-inverse',
   ok: 'border-transparent bg-ok-dot text-status-ink',
   warn: 'border-transparent bg-warn-dot text-status-ink',
   bad: 'border-transparent bg-bad-dot text-status-ink',
-  live: 'border-transparent bg-fg text-on-primary',
-  accent: 'border-transparent bg-fg text-on-primary',
+  live: 'border-transparent bg-primary text-on-primary',
+  accent: 'border-transparent bg-primary text-on-primary',
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -33,7 +33,7 @@ export function Badge({ className, tone = 'neutral', solid: isSolid = false, ...
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center gap-1 rounded-full border px-2 text-caption leading-4 font-medium whitespace-nowrap',
+        'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-caption font-medium whitespace-nowrap',
         isSolid ? solid[tone] : soft[tone],
         className,
       )}
@@ -42,16 +42,18 @@ export function Badge({ className, tone = 'neutral', solid: isSolid = false, ...
   );
 }
 
-export type CountTone = 'ink' | 'quiet' | 'warn' | 'bad';
+export type CountTone = 'ink' | 'accent' | 'quiet' | 'warn' | 'bad';
 
 const counts: Record<CountTone, string> = {
-  ink: 'bg-fg text-on-primary',
+  ink: 'bg-fg text-on-inverse',
+  // What waits for you, where it leads (the rail's Needs you): the violet pill, white figures.
+  accent: 'bg-primary font-semibold text-on-primary',
   quiet: 'border border-line text-faint',
   warn: 'border border-warn-line bg-warn-fill text-warn',
   bad: 'border border-bad-line bg-bad-fill text-bad',
 };
 
-/** A number in a pill: quiet by default, ink for a count that leads (the rail), amber or red when it asks. */
+/** A number in a pill: quiet by default, violet for what waits for you, ink to lead, amber or red when it asks. */
 export function Count({
   value,
   tone = 'quiet',
@@ -80,7 +82,7 @@ export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
   kind?: Kind;
 }
 
-/** A filter chip: a pill that is on or off. Pressed is ink. */
+/** A filter chip: a pill that is on or off. Pressed is the violet tint with violet words. */
 export function Chip({ pressed, label, count, kind, className, type = 'button', ...props }: ChipProps) {
   return (
     <button
@@ -88,17 +90,17 @@ export function Chip({ pressed, label, count, kind, className, type = 'button', 
       aria-pressed={pressed}
       data-kind={kind}
       className={cn(
-        'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-secondary font-medium whitespace-nowrap md:h-7',
+        'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-secondary font-medium whitespace-nowrap',
         'transition-colors duration-(--duration-fast) ease-standard',
-        pressed ? 'border-fg bg-fg text-on-primary' : 'border-line bg-card text-muted hover:border-line-strong hover:text-fg',
+        pressed ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line bg-card text-muted hover:border-line-strong hover:text-fg',
         kind && 'pl-2',
         className,
       )}
       {...props}
     >
-      {kind ? <span aria-hidden="true" className={cn('ui-kind-square', pressed && 'outline outline-1 outline-on-primary')} /> : null}
+      {kind ? <span aria-hidden="true" className="ui-kind-square" /> : null}
       {label}
-      {count !== undefined ? <span className={cn('font-mono text-micro tabular', pressed ? 'text-on-primary' : 'text-faint')}>{count}</span> : null}
+      {count !== undefined ? <span className={cn('font-mono text-micro tabular', pressed ? 'text-accent-text' : 'text-faint')}>{count}</span> : null}
     </button>
   );
 }

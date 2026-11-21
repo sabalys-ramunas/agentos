@@ -35,7 +35,7 @@ function ServiceMark({ brain }: { brain: Brain }) {
 
 function Models({ brain }: { brain: Brain }) {
   return (
-    <dl className="mono mt-2 grid gap-1 text-caption text-faint">
+    <dl className="mono grid min-w-0 gap-1 text-code-caption text-faint">
       <div className="flex flex-wrap gap-x-2">
         <dt>{brain.name}</dt>
         <dd>
@@ -77,62 +77,75 @@ export function BrainsSettings() {
         title="AI models"
         description={brains.data?.length ? modelsAnswer(brains.data) : 'What thinks for your agents and your workers.'}
         action={
-          <Button asChild icon={<Plus className="size-4" />}>
+          <Button asChild variant="primary">
             <Link to="/$org/settings/brains/add" params={{ org }}>
+              <Plus className="size-4" />
               <span className="max-sm:sr-only">Add an AI service</span>
               <span className="sm:hidden">Add</span>
             </Link>
           </Button>
         }
       />
-      <Card>
-        <QueryView
-          query={brains}
-          skeleton={
-            <div className="grid gap-4 p-6">
-              <Skeleton />
-              <Skeleton />
-              <Skeleton />
-            </div>
-          }
-        >
-          {(items) =>
-            items.length ? (
-              <ol className="divide-y divide-line">
-                {items.map((brain, index) => (
-                  <li key={brain.name} className="flex items-start gap-3 px-4 py-4 sm:gap-4 sm:px-6">
-                    <ServiceMark brain={brain} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center justify-between gap-4">
-                        <p className="truncate text-label">{serviceName(brain)}</p>
-                        <StateBadge state={STATE[brain.state]} label={brainState[brain.state].label} className="shrink-0" />
+      <QueryView
+        query={brains}
+        card
+        skeleton={
+          <div className="grid gap-4 sm:grid-cols-2" role="status" aria-label="Loading">
+            {[0, 1, 2, 3].map((index) => (
+              <Skeleton key={index} className="h-36 rounded-xl" />
+            ))}
+          </div>
+        }
+      >
+        {(items) =>
+          items.length ? (
+            <ol className="grid gap-4 sm:grid-cols-2">
+              {items.map((brain, index) => (
+                <li key={brain.name}>
+                  <Card className="flex h-full flex-col gap-3 p-5">
+                    <div className="flex items-start gap-3">
+                      <ServiceMark brain={brain} />
+                      <div className="min-w-0 flex-1">
+                        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="truncate text-card-title">{serviceName(brain)}</span>
+                          <StateBadge state={STATE[brain.state]} label={brainState[brain.state].label} className="shrink-0" />
+                        </p>
+                        <p className="mt-1 text-secondary text-pretty text-muted">{serviceSentence(brain, workers)}</p>
                       </div>
-                      <p className="mt-1 max-w-xl text-secondary text-pretty text-muted">{serviceSentence(brain, workers)}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary text-faint">
-                        {brain.computer ? <span>Kept on {computerName(brain.computer)}</span> : null}
-                        {brain.window_used_pct !== null ? (
-                          <span className="flex items-center gap-2">
-                            <Meter value={brain.window_used_pct} max={100} label={`${serviceName(brain)} usage window`} className="w-24 shrink-0" />
-                            <span className="tabular">{brain.window_used_pct}% of this window</span>
-                          </span>
-                        ) : null}
-                      </div>
-                      {technical ? <Models brain={brain} /> : null}
+                    </div>
+                    <div className="mt-auto grid gap-2">
+                      {brain.computer ? (
+                        <p className="flex items-center gap-2 text-secondary text-faint">
+                          <Lock aria-hidden="true" className="size-3 shrink-0" />
+                          Kept on {computerName(brain.computer)}
+                        </p>
+                      ) : null}
+                      {brain.window_used_pct !== null ? (
+                        <div className="flex items-center gap-3">
+                          <Meter value={brain.window_used_pct} max={100} label={`${serviceName(brain)} usage window`} className="min-w-0 flex-1" />
+                          <span className="tabular shrink-0 text-caption text-muted">{brain.window_used_pct}% of this window used</span>
+                        </div>
+                      ) : null}
                     </div>
                     {technical ? (
-                      <div className="flex shrink-0">
-                        <IconButton label={`Move ${brain.name} up`} size="sm" disabled={index === 0} onClick={() => move(items, index, -1)}>
-                          <ArrowUp className="size-4" />
-                        </IconButton>
-                        <IconButton label={`Move ${brain.name} down`} size="sm" disabled={index === items.length - 1} onClick={() => move(items, index, 1)}>
-                          <ArrowDown className="size-4" />
-                        </IconButton>
+                      <div className="flex items-end justify-between gap-2 border-t border-line pt-3">
+                        <Models brain={brain} />
+                        <div className="flex shrink-0">
+                          <IconButton label={`Move ${brain.name} up`} size="sm" disabled={index === 0} onClick={() => move(items, index, -1)}>
+                            <ArrowUp className="size-4" />
+                          </IconButton>
+                          <IconButton label={`Move ${brain.name} down`} size="sm" disabled={index === items.length - 1} onClick={() => move(items, index, 1)}>
+                            <ArrowDown className="size-4" />
+                          </IconButton>
+                        </div>
                       </div>
                     ) : null}
-                  </li>
-                ))}
-              </ol>
-            ) : (
+                  </Card>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <Card>
               <EmptyState
                 icon={<BrainIcon />}
                 title="Nothing thinks here yet"
@@ -143,13 +156,13 @@ export function BrainsSettings() {
                   </Button>
                 }
               />
-            )
-          }
-        </QueryView>
-      </Card>
+            </Card>
+          )
+        }
+      </QueryView>
       <p className="mt-3 flex items-start gap-2 text-secondary text-pretty text-muted">
         <span className="grid h-5 shrink-0 place-items-center text-faint"><Lock aria-hidden="true" className="size-3" /></span>
-        Each one lives on a computer of yours, and agentos never holds a key.{technical ? ' Your agents try these from the top down.' : ''}
+        Each one lives on a computer of yours, and openajar never holds a key.{technical ? ' Your agents try these from the top down.' : ''}
       </p>
       {access.can('brains.tasks') ? (
         <div className="mt-12">

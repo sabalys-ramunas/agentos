@@ -4,10 +4,11 @@
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { ArrowRight, Palette } from 'lucide-react';
-import { useBrandProfiles, useBrandProposals } from '@/api/hooks';
+import { useBrandProfiles, useBrandProposals, useWorkspaces } from '@/api/hooks';
 import type { BrandProfileRow, BrandProposal } from '@/api/types';
 import { AgentMark } from '@/components/brand/identity';
 import { Badge, Chip } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, cardLink } from '@/components/ui/card';
 import { CodeBlock, PageHeader } from '@/components/ui/misc';
 import { KindEyebrow, KindTile } from '@/components/ui/kind';
@@ -17,40 +18,62 @@ import { plural, timeAgo } from '@/lib/format';
 import { principalName } from '@/lib/principal';
 import { PLACES } from '@/lib/vocabulary';
 import { useTechnical } from '@/lib/technical';
+import { brandColours } from '@/features/needs-you/if-yes';
 import { BrandNotYours, isRefused } from './not-yours';
 import type { BrandSearch } from './search';
 import { cn } from '@/lib/cn';
 
 const LEDE = "Who your work is for: each product's components, colours, type and guidelines, which agents design with and checks measure against.";
 
-function ProposalRow({ org, proposal }: { org: string; proposal: BrandProposal }) {
+/** A colour as data: the brand's own value on a small tile with a hairline, and its hex beside it. */
+function Colour({ value }: { value: string }) {
   return (
-    <Card kind="design" className="grid gap-3 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-      <div className="grid min-w-0 gap-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="inline-flex items-center gap-2">
+      <span data-studio="ignore" aria-hidden="true" className="size-8 rounded-md border border-line-strong" style={{ backgroundColor: value }} />
+      <span className="font-mono text-code-caption text-muted">{value}</span>
+    </span>
+  );
+}
+
+/** A change an agent proposed: who, why in their words, what changes (a colour drawn before and after), and Review. */
+function ProposalRow({ org, proposal }: { org: string; proposal: BrandProposal }) {
+  const colours = brandColours(proposal.diff).slice(0, 2);
+  return (
+    <Card className="grid gap-4 border-accent-line p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:p-6">
+      <div className="grid min-w-0 gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <KindEyebrow kind="design" label="Brand change" />
-          <Status status={{ label: 'Waiting for you', tone: 'warn' }} />
-          <span className="text-caption text-faint">{timeAgo(proposal.created_at)}</span>
+          <Status chip status={{ label: 'Waiting for you', tone: 'live' }} />
+          <span className="text-caption text-faint md:ml-auto">{timeAgo(proposal.created_at)}</span>
         </div>
-        <p className="flex min-w-0 flex-wrap items-center gap-2 text-card-title">
+        <h2 className="flex min-w-0 flex-wrap items-center gap-2 text-section-title">
           {proposal.created_by ? <AgentMark principal={proposal.created_by} size={20} /> : null}
           {proposal.created_by ? principalName(proposal.created_by) : 'An agent'} proposes version {proposal.version} of {proposal.display_name}
+        </h2>
+        <p className="text-body text-muted">
+          {proposal.reason ? <span title={proposal.reason} className="line-clamp-2 inline">“{proposal.reason}” · </span> : null}
+          {plural(proposal.diff.length, 'change')}
         </p>
-        {proposal.reason ? (
-          <p title={proposal.reason} className="line-clamp-2 text-body text-muted">
-            “{proposal.reason}”
-          </p>
+        {colours.length ? (
+          <ul aria-label="Colours that change" className="flex flex-wrap gap-x-8 gap-y-3">
+            {colours.map((colour) => (
+              <li key={colour.name} className="grid gap-1">
+                <span className="text-caption text-faint">{colour.name}</span>
+                <span className="flex items-center gap-3">
+                  <Colour value={colour.from} />
+                  <ArrowRight aria-label="becomes" className="size-4 text-faint" />
+                  <Colour value={colour.to} />
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
-        <p className="text-secondary text-faint">{plural(proposal.diff.length, 'change')}</p>
       </div>
-      <Link
-        to="/$org/brand/$profile"
-        params={{ org, profile: proposal.ref }}
-        className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-primary px-3 text-label text-on-primary hover:bg-primary-hover"
-      >
-        Review version {proposal.version}
-        <ArrowRight aria-hidden="true" className="size-4" />
-      </Link>
+      <Button asChild variant="primary" icon={<ArrowRight className="size-4" />} className="justify-self-start md:justify-self-end">
+        <Link to="/$org/brand/$profile" params={{ org, profile: proposal.ref }}>
+          Review version {proposal.version}
+        </Link>
+      </Button>
     </Card>
   );
 }
@@ -81,7 +104,7 @@ function ProfileCard({ org, row }: { org: string; row: BrandProfileRow }) {
           Version {row.version}
           {row.state !== 'approved' ? `, ${row.state}` : ''}
         </span>
-        {row.draft_waiting ? <Status className="ml-auto" status={{ label: `Version ${row.draft_waiting} waiting`, tone: 'warn' }} /> : null}
+        {row.draft_waiting ? <Status chip className="ml-auto" status={{ label: `Version ${row.draft_waiting} waiting`, tone: 'live' }} /> : null}
       </span>
     </Link>
   );
@@ -92,6 +115,7 @@ export function BrandPage() {
   const search = useSearch({ from: '/$org/brand' });
   const navigate = useNavigate({ from: '/$org/brand' });
   const profiles = useBrandProfiles(org);
+  const allWorkspaces = useWorkspaces(org).data ?? [];
   const [technical] = useTechnical();
   const proposals = useBrandProposals(org, !isRefused(profiles.error));
   const set = (next: Partial<BrandSearch>) => void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
@@ -119,6 +143,7 @@ export function BrandPage() {
   }
   const rows = profiles.data.profiles;
   const workspaces = [...new Set(rows.map((row) => row.workspace))].sort();
+  const names = new Map(allWorkspaces.map((item) => [item.id, item.name]));
   const shown = rows.filter((row) => (!search.workspace || row.workspace === search.workspace) && (!search.waiting || row.draft_waiting));
   const waiting = (proposals.data ?? []).filter((item) => !search.workspace || item.workspace === search.workspace);
 
@@ -164,7 +189,7 @@ export function BrandPage() {
                 <Chip
                   key={workspace}
                   pressed={search.workspace === workspace}
-                  label={workspace}
+                  label={names.get(workspace) ?? workspace}
                   count={rows.filter((row) => row.workspace === workspace).length}
                   onClick={() => set({ workspace: search.workspace === workspace ? undefined : workspace })}
                 />

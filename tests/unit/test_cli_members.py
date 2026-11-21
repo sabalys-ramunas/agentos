@@ -1,4 +1,4 @@
-"""`agentos members list|invite|role|remove` against the real panel API (the node of
+"""`openajar members list|invite|role|remove` against the real panel API (the node of
 test_api_members: the real policy, members and passkeys), called with the node token, plus the
 terminal QR code the invite prints."""
 
@@ -11,10 +11,10 @@ from test_api_members import accept
 from test_node_panel import TOKEN, Node
 from typer.testing import CliRunner
 
-from agentos import qr
-from agentos.cli import app
-from agentos.commands import base as cli_base
-from agentos.core.ratelimit import RateLimiter
+from openajar import qr
+from openajar.cli import app
+from openajar.commands import base as cli_base
+from openajar.core.ratelimit import RateLimiter
 
 EM_DASH = "—"
 
@@ -23,7 +23,7 @@ EM_DASH = "—"
 def node(tmp_path, monkeypatch):
     n = Node(tmp_path)
     # the CLI runs on this node's home: its one-time presence codes go into the panel.db the app reads
-    monkeypatch.setenv("AGENTOS_HOME", str(n.config.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(n.config.home))
     assert CliRunner().invoke(app, ["node", "init"]).exit_code == 0
     n.api_app.state.api.limiter = RateLimiter(per_key=10_000, global_max=10_000)
     client = n.client()
@@ -118,7 +118,7 @@ def test_the_owner_cannot_be_removed(node):
 
 
 def test_a_stopped_daemon_is_explained(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "h"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "h"))
     assert CliRunner().invoke(app, ["node", "init"]).exit_code == 0
     import httpx
 

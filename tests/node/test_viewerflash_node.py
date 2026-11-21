@@ -15,10 +15,10 @@ steps, the exit IP probe, the agent's request for control, block notices) and it
 - frames where the lane's own page is mostly gone from the remote screen (sampled on every
   animation frame, straight from noVNC's canvas).
 
-Run on the node:  AGENTOS_TEST_SLOT=48 scripts/node-test.sh viewerflash tests/node/test_viewerflash_node.py -q
-Set AGENTOS_TEST_SHOTS=/some/dir to keep screenshots of the viewer page.
+Run on the node:  OPENAJAR_TEST_SLOT=48 scripts/node-test.sh viewerflash tests/node/test_viewerflash_node.py -q
+Set OPENAJAR_TEST_SHOTS=/some/dir to keep screenshots of the viewer page.
 
-The viewer browser is a headless Camoufox on the node. Set AGENTOS_TEST_CDP=http://127.0.0.1:9447
+The viewer browser is a headless Camoufox on the node. Set OPENAJAR_TEST_CDP=http://127.0.0.1:9447
 to drive a Chrome somewhere else instead (the owner's setup: Chrome on a Mac, the node through an
 SSH tunnel): start Chrome with --remote-debugging-port=9447 and forward both ways from the Mac,
 ssh mynode -R 9447:127.0.0.1:9447 -L 7780:127.0.0.1:7780 ... (the slot's HTTP ports).
@@ -36,25 +36,25 @@ from collections import Counter
 import pytest
 from test_control_node import LANE, RANGES, home, serve, shot  # noqa: F401  (home is a fixture)
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox.engine import browser_pids_under
-from agentos.node.display import kill_processes
-from agentos.node.lanes import build_lane_manager
-from agentos.node.lanes import quarantine as lanes_quarantine
-from agentos.node.viewer_app import build_viewer_app
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox.engine import browser_pids_under
+from openajar.node.display import kill_processes
+from openajar.node.lanes import build_lane_manager
+from openajar.node.lanes import quarantine as lanes_quarantine
+from openajar.node.viewer_app import build_viewer_app
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb and x11vnc"),
 ]
 
-CDP = os.environ.get("AGENTOS_TEST_CDP")
+CDP = os.environ.get("OPENAJAR_TEST_CDP")
 PAGE_RGB = (29, 43, 68)  # the lane page's background; most of the remote screen
 PAGE = """<!doctype html><html><head><title>flash test</title>
 <style>html,body{margin:0;height:100%;background:#1d2b44;color:#9fb3d9;font:28px sans-serif}
 #zone{position:fixed;inset:0;display:grid;place-items:center}</style></head>
-<body><div id="zone"><div>agentos flash test <span id="tick">0</span><br><input id="field" autofocus></div></div>
+<body><div id="zone"><div>openajar flash test <span id="tick">0</span><br><input id="field" autofocus></div></div>
 <script>let n = 0; setInterval(() => { document.getElementById('tick').textContent = String(++n); }, 150);</script>
 </body></html>"""
 

@@ -11,7 +11,7 @@ import pytest
 from events_support import World, no_quiet
 from workflow_support import LIST, MAIL, OWNER, PEOPLE, action, make_node, workflow
 
-from agentos.core.models import Principal
+from openajar.core.models import Principal
 
 AGENT_GRANT = "gr_agent0001"
 SEND = f"mail.send@{MAIL}"

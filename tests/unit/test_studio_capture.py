@@ -11,15 +11,15 @@ from contextlib import asynccontextmanager
 import pytest
 from test_studio_store import tiny_png
 
-from agentos.core.errors import AgentosError
-from agentos.studio.capture import build_manifest, capture, read_manifest, screens
-from agentos.studio.contracts import Screen, Target, Theme
-from agentos.studio.store import StudioStore
+from openajar.core.errors import OpenajarError
+from openajar.studio.capture import build_manifest, capture, read_manifest, screens
+from openajar.studio.contracts import Screen, Target, Theme
+from openajar.studio.store import StudioStore
 
 # ---- the plumbing, with a fake browser ----
 
 
-class Blank(AgentosError):
+class Blank(OpenajarError):
     code = "blank"
 
 

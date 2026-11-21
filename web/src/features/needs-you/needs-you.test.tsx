@@ -46,7 +46,7 @@ describe('Needs you', () => {
   });
 
   it('says how many things need you with the same number as the rail, and its parts add up', async () => {
-    await ready();
+    const { user } = await ready();
     const sentence = await screen.findByText(/^\d+ things need you: /);
     // A plan an agent drafted waits for the owner's yes, and is one of the parts too.
     // A brand change an agent proposed waits for the owner's yes too.
@@ -57,6 +57,10 @@ describe('Needs you', () => {
     expect(Number(decide)).toBe(org().approvals.length + org().questions.length + org().codes.filter((item) => item.state === 'open').length);
     const rail = screen.getAllByRole('navigation', { name: 'Main' })[0]!;
     await waitFor(() => expect(within(rail).getByRole('link', { name: /Needs you/ })).toHaveTextContent(total));
+    // The accounts that need a hand are a tab of their own, with their count on it.
+    const handsTab = screen.getByRole('tab', { name: /^Accounts that need a hand/ });
+    expect(handsTab).toHaveTextContent(hands);
+    await user.click(handsTab);
     expect(within(screen.getByRole('region', { name: 'Accounts that need a hand' })).getAllByRole('listitem')).toHaveLength(Number(hands));
   });
 
@@ -323,9 +327,8 @@ describe('Needs you', () => {
   describe('questions', () => {
     it('sit in the same keyboard flow, and a number picks an option', async () => {
       const { user } = await ready();
-      // The owner's brand change sits between the approvals and the questions.
-      await screen.findByRole('button', { name: /^Brand change: / });
-      const brandChanges = screen.getAllByRole('button', { name: /^Brand change: / }).length;
+      // The owner's brand change sits between the approvals and the questions: J walks into the Brand tab and out.
+      const brandChanges = Number((await screen.findByRole('tab', { name: /^Brand/ })).textContent?.match(/\d+/)?.[0] ?? 0);
       for (let index = 0; index < org().approvals.length + brandChanges; index += 1) await user.keyboard('j');
       expect(screen.getByRole('button', { name: /Which photo should lead/ })).toHaveAttribute('aria-current', 'true');
       const before = org().questions.length;
@@ -447,7 +450,8 @@ describe('Needs you', () => {
     target.state = 'quarantined';
     target.signal = 'ok';
     target.account = null;
-    await ready();
+    const { user } = await ready();
+    await user.click(await screen.findByRole('tab', { name: /^Accounts that need a hand/ }));
     const hands = within(screen.getByRole('region', { name: 'Accounts that need a hand' }));
     expect(hands.getByText("Aster Coffee's Instagram is switched off for safety")).toBeInTheDocument();
     expect(hands.queryByText(/\b(OK|Fine)\b/)).not.toBeInTheDocument();
@@ -488,6 +492,7 @@ describe('Needs you', () => {
     it("puts a brand change in the owner's queue, and A approves the version shown through the brand routes", async () => {
       const { user } = await ready();
       const approvals = org().approvals.length;
+      await user.click(await screen.findByRole('tab', { name: /^Brand/ }));
       await user.click(await screen.findByRole('button', { name: /^Brand change: Harbor Supply shop/ }));
       await waitFor(() => expect(card().getByRole('heading', { level: 2 })).toHaveTextContent('Approve version 4 of Harbor Supply shop?'));
       expect(card().getByText('brand.tokens.color.accent changed: #1f5fad -> #0e7c66')).toBeInTheDocument();

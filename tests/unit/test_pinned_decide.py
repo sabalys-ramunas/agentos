@@ -1,4 +1,4 @@
-"""Pins a decision on an approval (agentos.policy.approvals.ApprovalStore.decide): who may decide,
+"""Pins a decision on an approval (openajar.policy.approvals.ApprovalStore.decide): who may decide,
 its arguments, expiry, content the person saw, questions and their answers, and what the decided
 approval records. Random ids are replaced by labels; the clock is fixed."""
 
@@ -10,9 +10,9 @@ import pytest
 from pinned import check, outcome, plain
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect, Principal
-from agentos.policy.confirm import ConfirmLevel, Proof
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect, Principal
+from openajar.policy.confirm import ConfirmLevel, Proof
 
 
 @pytest.fixture

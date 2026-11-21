@@ -20,11 +20,11 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core import catalog, logs
-from agentos.core.config import NodeConfig
-from agentos.ops import logs as reader
+from openajar.core import catalog, logs
+from openajar.core.config import NodeConfig
+from openajar.ops import logs as reader
 
-log = logging.getLogger("agentos.test.qa_logs")
+log = logging.getLogger("openajar.test.qa_logs")
 
 
 @pytest.fixture(autouse=True)
@@ -45,7 +45,7 @@ def root_logging():
 
 def capture_json(monkeypatch, *, journal: bool = False) -> io.StringIO:
     """Root logging as agentosd sets it up, JSON lines into a string."""
-    monkeypatch.setenv("AGENTOS_LOG_FORMAT", "json")
+    monkeypatch.setenv("OPENAJAR_LOG_FORMAT", "json")
     stream = io.StringIO()
     logs.setup(None, stream=stream, journal=journal)
     return stream
@@ -57,7 +57,7 @@ def last_line(stream: io.StringIO) -> dict:
 
 def daemon_scrubbers(tmp_path: Path) -> None:
     """The scrubbers agentosd registers at start (node token, proxies, policy secret shapes)."""
-    from agentos.node.daemon import install_log_scrubbers
+    from openajar.node.daemon import install_log_scrubbers
 
     install_log_scrubbers(NodeConfig(home=tmp_path, mcp_token="node-token-for-the-qa-logs-test", mcp_port=7400))
 
@@ -128,7 +128,7 @@ class _Context:
 
 
 async def test_a_dialog_on_a_page_with_a_session_in_its_url_does_not_log_the_session(tmp_path, monkeypatch):
-    from agentos.node.interaction import DialogGuard
+    from openajar.node.interaction import DialogGuard
 
     stream = capture_json(monkeypatch)
     daemon_scrubbers(tmp_path)
@@ -144,7 +144,7 @@ async def test_a_dialog_on_a_page_with_a_session_in_its_url_does_not_log_the_ses
 
 
 def test_an_unhandled_api_error_logs_the_exception_type_and_not_its_text(tmp_path, monkeypatch):
-    from agentos.api.errors import error_response
+    from openajar.api.errors import error_response
 
     stream = capture_json(monkeypatch)
     daemon_scrubbers(tmp_path)
@@ -174,14 +174,14 @@ FORGERY = re.compile(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d +(DEBUG|INFO|WARN|ERROR)\
 
 
 @pytest.mark.parametrize("payload", [
-    "denied: lane 'x\n2026-11-04 09:00:01 INFO  agentos.node [lane=personal/reddit grant=g_owner] grant g_9 revoked'",
+    "denied: lane 'x\n2026-11-04 09:00:01 INFO  openajar.node [lane=personal/reddit grant=g_owner] grant g_9 revoked'",
     "denied: lane '\x1b[2J\x1b]0;pwned\x07'",
 ], ids=["newline", "ansi"])
 def test_a_message_cannot_forge_a_log_line_or_repaint_the_terminal(payload):
-    record = logging.LogRecord("agentos.mcp", logging.WARNING, __file__, 1, "%s", (payload,), None)
+    record = logging.LogRecord("openajar.mcp", logging.WARNING, __file__, 1, "%s", (payload,), None)
     record.created = 1762246800
     for out in (logs.HumanFormatter().format(record),
-                logs.human_line({"ts": "2026-11-04T09:00:00.000Z", "level": "warn", "logger": "agentos.mcp",
+                logs.human_line({"ts": "2026-11-04T09:00:00.000Z", "level": "warn", "logger": "openajar.mcp",
                                  "msg": payload})):
         assert "\x1b" not in out, repr(out)
         assert not any(FORGERY.match(extra) for extra in out.splitlines()[1:]), out
@@ -236,7 +236,7 @@ async def test_concurrent_requests_and_threads_keep_their_own_ids(monkeypatch):
     assert "request" not in lines[-1] and "grant" not in lines[-1]
 
 
-# ---- 2. `agentos logs` ----
+# ---- 2. `openajar logs` ----
 
 def write_lines(home: Path, lines: list[dict], name: str = logs.LOG_FILE) -> None:
     folder = home / "logs"
@@ -247,7 +247,7 @@ def write_lines(home: Path, lines: list[dict], name: str = logs.LOG_FILE) -> Non
 
 
 def stamp(msg: str, **ids) -> dict:
-    return {"ts": "2026-11-04T09:00:00.000Z", "level": "info", "logger": "agentos.node", "msg": msg, **ids}
+    return {"ts": "2026-11-04T09:00:00.000Z", "level": "info", "logger": "openajar.node", "msg": msg, **ids}
 
 
 def test_follow_shows_the_lines_written_just_before_a_rotation(tmp_path):
@@ -320,9 +320,9 @@ def test_no_catalog_line_gives_the_classic_unsafe_advice():
 
 
 def test_the_retry_after_for_a_memory_write_cap_is_a_wait_that_works():
-    from agentos.memory.errors import RateLimited
-    from agentos.memory.models import Limits
-    from agentos.memory.service import _Rates
+    from openajar.memory.errors import RateLimited
+    from openajar.memory.models import Limits
+    from openajar.memory.service import _Rates
 
     now = [1000.0]
     rates = _Rates(lambda: now[0])
@@ -363,7 +363,7 @@ def test_an_engine_error_does_not_ask_for_a_blind_repeat():
 
 def test_problems_checks_the_reason_texts_too():
     entry = catalog.Entry(code="x", meaning="m", agent="a", fix="f", reasons={"expired": "Stop \u2014 and ask", "gone": ""})
-    found = catalog.Scan(by_code={"x": ["agentos.x.X"]}, failed=[])
+    found = catalog.Scan(by_code={"x": ["openajar.x.X"]}, failed=[])
     found_problems = catalog.problems(found, {"x": entry})
     assert any("em dash" in p for p in found_problems), found_problems
     assert any("empty" in p for p in found_problems), found_problems

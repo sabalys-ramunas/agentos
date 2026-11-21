@@ -43,13 +43,13 @@ function stateOf(data: OrgData, node: NodeRecord): OpsState {
   const made: OpsState = {
     backups: [
       {
-        name: `agentos-${node.id}-${stamp(now - DAY)}.tar.gz.age`,
+        name: `openajar-${node.id}-${stamp(now - DAY)}.tar.gz.age`,
         created_at: iso(now - DAY),
         size: 412 * MIB,
         check: { state: 'verified', at: iso(now - DAY + 3 * MINUTE), error: null },
       },
       {
-        name: `agentos-${node.id}-${stamp(now - 8 * DAY)}.tar.gz.age`,
+        name: `openajar-${node.id}-${stamp(now - 8 * DAY)}.tar.gz.age`,
         created_at: iso(now - 8 * DAY),
         size: 398 * MIB,
         check: { state: 'not_checked', at: null, error: null },
@@ -108,7 +108,7 @@ function settle(state: OpsState): void {
   if (!job || job.state !== 'running' || Date.now() < job.finishes_at) return;
   const at = iso(job.finishes_at);
   if (job.kind === 'backup') {
-    const name = `agentos-${job.name ?? 'node'}-${stamp(job.finishes_at)}.tar.gz.age`;
+    const name = `openajar-${job.name ?? 'node'}-${stamp(job.finishes_at)}.tar.gz.age`;
     state.backups = [{ name, created_at: at, size: 420 * MIB, check: { state: 'verified', at, error: null } }, ...state.backups];
     state.backups = state.backups.slice(0, KEEP);
     job.message = `Written and checked: ${name}.`;
@@ -134,7 +134,7 @@ function backupsOf(state: OpsState, node: NodeRecord): NodeBackups {
 
 const SETTINGS = (node: NodeRecord): SettingRow[] => [
   { name: 'name', value: node.id, source: 'node.toml', description: "The node's name, shown by whoami and in the panel." },
-  { name: 'home', value: `/var/lib/agentos/${node.id}`, source: 'default', description: 'Where the node keeps its data (AGENTOS_HOME wins over this).' },
+  { name: 'home', value: `/var/lib/agentos/${node.id}`, source: 'default', description: 'Where the node keeps its data (OPENAJAR_HOME wins over this).' },
   { name: 'max_warm_lanes', value: node.max_warm_lanes, source: 'node.toml', description: 'How many accounts may be open at once.' },
   { name: 'mcp_port', value: 7400, source: 'default', description: 'The port the node listens on for agents.' },
   { name: 'mcp_token', value: '(set, hidden)', source: 'node.toml', description: 'The token agents use to reach this node. Never shown.' },
@@ -215,7 +215,7 @@ export function opsHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'>) 
       org((data, { params }) => {
         const node = onNode(data, String(params.id));
         if (!node) return missing();
-        return HttpResponse.json({ running: node.version, newer: null, command: 'agentos upgrade --source <your agentos checkout>', python: '3.12.4' });
+        return HttpResponse.json({ running: node.version, newer: null, command: 'openajar upgrade --source <your openajar checkout>', python: '3.12.4' });
       }),
     ),
     http.get(
@@ -302,7 +302,7 @@ export function opsHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'>) 
         const account = stateOf(data, node).identity[`${params.ws}/${params.name}`];
         if (!account) return missing();
         if (!account.signature_agent) {
-          return failure(400, 'invalid', `${account.lane} has no identity yet. Make one on the command line: agentos identity init ${account.lane} --agent <https URL>.`);
+          return failure(400, 'invalid', `${account.lane} has no identity yet. Make one on the command line: openajar identity init ${account.lane} --agent <https URL>.`);
         }
         const body = (await request.json()) as { origin: string; reason: string };
         const origin = body.origin.startsWith('http') ? body.origin : `https://${body.origin}`;

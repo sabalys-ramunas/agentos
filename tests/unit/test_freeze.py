@@ -1,5 +1,5 @@
 """The freeze service on a node: the gate, interrupts in flight, the revocation sweep, runs, schedules,
-triggers and brain tasks, durability across a restart, and the failure cases (agentos.freeze)."""
+triggers and brain tasks, durability across a restart, and the failure cases (openajar.freeze)."""
 
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ from freeze_support import (
     task,
 )
 
-from agentos.core import signing
-from agentos.core.errors import AgentPaused, Frozen, InvalidRequest, LaneNotFound
-from agentos.core.models import LaneState
-from agentos.freeze.service import FreezeService
-from agentos.node import human, interrupts
-from agentos.policy.errors import Denied
-from agentos.policy.freeze_store import FreezeRecord, FreezeStore, parse_key, scope_key
+from openajar.core import signing
+from openajar.core.errors import AgentPaused, Frozen, InvalidRequest, LaneNotFound
+from openajar.core.models import LaneState
+from openajar.freeze.service import FreezeService
+from openajar.node import human, interrupts
+from openajar.policy.errors import Denied
+from openajar.policy.freeze_store import FreezeRecord, FreezeStore, parse_key, scope_key
 
 EM_DASH = "—"
 
@@ -375,8 +375,8 @@ async def test_a_workspace_freeze_revokes_what_stays_inside_it_and_stops_the_res
 
 
 async def test_memory_of_a_frozen_workspace_is_closed_to_a_kept_wide_grant(node):
-    from agentos.core.models import Effect
-    from agentos.policy.grants import MemoryCap, Specials
+    from openajar.core.models import Effect
+    from openajar.policy.grants import MemoryCap, Specials
 
     p = node.policy
     _g, tok = p.issue(subject={"id": "mem-wide"}, workspaces=["biz-a", "biz-b"], ceiling=Effect.COMMIT,
@@ -622,8 +622,8 @@ async def test_unfreeze_that_cannot_delete_the_marker_stays_frozen(node, monkeyp
 
 
 def test_a_service_without_lanes_or_policy_still_gates(tmp_path):
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
 
     svc = FreezeService(Runtime(config=NodeConfig(home=tmp_path, name="n1")))
     asyncio.run(svc.freeze("workspace", "w", reason="r", by="owner"))
@@ -646,10 +646,10 @@ async def test_the_sweep_result_is_saved_even_after_the_directory_was_read_again
 def _org_node(tmp_path):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from agentos.policy import tokens
-    from agentos.policy.grants import GrantBlock
-    from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
-    from agentos.policy.util import new_id
+    from openajar.policy import tokens
+    from openajar.policy.grants import GrantBlock
+    from openajar.policy.issuers import SERVICE_NAME, TrustedIssuers
+    from openajar.policy.util import new_id
 
     org = Ed25519PrivateKey.generate()
     issuers = TrustedIssuers(tmp_path)

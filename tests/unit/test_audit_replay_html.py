@@ -1,5 +1,5 @@
 """Replay for agents: the approval behind each step, the replay as one self-contained HTML file, and
-the opt-in screenshot kept after an agent's commit (agentos.audit.replay_page, agentos.audit.captures)."""
+the opt-in screenshot kept after an agent's commit (openajar.audit.replay_page, openajar.audit.captures)."""
 
 from __future__ import annotations
 
@@ -14,13 +14,13 @@ import pytest
 from test_policy_support import PRESENT, T0, Clock, make_service
 from typer.testing import CliRunner
 
-from agentos.audit import captures
-from agentos.audit.service import AuditService
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.policy import capture_files
-from agentos.policy.routing import PolicyConfig, RoutingTable
-from agentos.policy.traces import TraceEvent, TraceStore
+from openajar.audit import captures
+from openajar.audit.service import AuditService
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.policy import capture_files
+from openajar.policy.routing import PolicyConfig, RoutingTable
+from openajar.policy.traces import TraceEvent, TraceStore
 
 DAY = "2027-01-15"  # T0 is 2027-01-15T08:00Z
 LANE = "biz-a/instagram"
@@ -204,11 +204,11 @@ def test_one_trace_as_a_page(node):
 
 
 def test_cli_writes_the_page_and_warns(node, tmp_path, monkeypatch):
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     _svc, store, home = node
     store.close()
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     out = tmp_path / "out" / "replay.html"
     r = CliRunner().invoke(app, ["replay", "--lane", LANE, "--day", DAY, "--tz", "UTC", "--html", str(out)])
     assert r.exit_code == 0, r.output
@@ -219,7 +219,7 @@ def test_cli_writes_the_page_and_warns(node, tmp_path, monkeypatch):
 def test_typed_text_arguments_and_queries_stay_out_unless_asked_for(tmp_path, monkeypatch):
     """A file anyone can read and nobody can take back: only the vault's values were scrubbed when
     written, so a code the agent typed, a DM, an OAuth code in an address stay out by default."""
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     clock = Clock(T0)
     store = TraceStore(tmp_path / "traces.db", clock=clock)
@@ -248,7 +248,7 @@ def test_typed_text_arguments_and_queries_stay_out_unless_asked_for(tmp_path, mo
         assert secret in full, secret
     assert "Arguments (redacted when they were written)" in full
     store.close()
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     out = tmp_path / "r.html"
     r = CliRunner().invoke(app, ["replay", "--lane", LANE, "--day", DAY, "--tz", "UTC", "--html", str(out)])
     assert r.exit_code == 0 and "noon, Ana" not in out.read_text() and "arguments left out" in r.output
@@ -261,7 +261,7 @@ def test_typed_text_arguments_and_queries_stay_out_unless_asked_for(tmp_path, mo
 def test_an_approval_from_telegram_reads_as_the_owner_from_telegram():
     from zoneinfo import ZoneInfo
 
-    from agentos.audit import replay_page
+    from openajar.audit import replay_page
 
     a = {"found": True, "route": "approved", "by": "telegram:owner", "how": "telegram", "level": "chat",
          "at": "2027-01-15T08:00:00+00:00", "summary": "Post a caption"}
@@ -271,7 +271,7 @@ def test_an_approval_from_telegram_reads_as_the_owner_from_telegram():
 
 
 def test_screenshots_past_the_files_budget_are_left_out(node, monkeypatch):
-    from agentos.audit import replay_page
+    from openajar.audit import replay_page
 
     svc, *_ = node
     monkeypatch.setattr(replay_page, "EMBED_BYTES", 10)  # smaller than the run's proof as base64
@@ -339,7 +339,7 @@ def _act(store: TraceStore) -> str:
 
 @pytest.fixture
 def capture_node(tmp_path, monkeypatch):
-    from agentos.node import egress
+    from openajar.node import egress
 
     clock = Clock(T0)
     store = TraceStore(tmp_path / "traces.db", clock=clock)
@@ -450,10 +450,10 @@ async def test_a_stale_half_written_file_goes_and_the_sweep_is_throttled(capture
 
 
 def test_cli_turns_capture_on_and_off(tmp_path, monkeypatch):
-    from agentos.audit.cli import app
+    from openajar.audit.cli import app
 
     captures._settings.clear()
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     runner = CliRunner()
     assert "no lane keeps" in runner.invoke(app, ["capture"]).output
     r = runner.invoke(app, ["capture", "biz-a/*", "--on"])
@@ -465,7 +465,7 @@ def test_cli_turns_capture_on_and_off(tmp_path, monkeypatch):
 
 def test_a_step_reads_the_same_by_a_tool_old_name_or_its_new_one():
     """A trace from before the 2026-11-19 rename keeps the old name (lane_claim): it reads as the tool does now."""
-    from agentos.audit.replay_page import describe
+    from openajar.audit.replay_page import describe
 
     assert describe({"tool": "lane_claim"}) == describe({"tool": "browser_claim"}) == "Took the browser for a few acts"
     assert describe({"tool": "lane_exec"}) == "Used terminal_exec"

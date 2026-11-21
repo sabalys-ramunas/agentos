@@ -29,13 +29,13 @@ from test_wsexport_support import (
     tree,
 )
 
-from agentos.core import age
-from agentos.core.models import LaneKind, ProxyConfig
-from agentos.workspaces.transfer import export as wsexport
-from agentos.workspaces.transfer import import_ as wsimport
-from agentos.workspaces.transfer import read as wsread
-from agentos.workspaces.transfer.format import BadExport, ExportRefused
-from agentos.workspaces.transfer.import_ import ImportOptions
+from openajar.core import age
+from openajar.core.models import LaneKind, ProxyConfig
+from openajar.workspaces.transfer import export as wsexport
+from openajar.workspaces.transfer import import_ as wsimport
+from openajar.workspaces.transfer import read as wsread
+from openajar.workspaces.transfer.format import BadExport, ExportRefused
+from openajar.workspaces.transfer.import_ import ImportOptions
 
 
 @pytest.fixture
@@ -91,7 +91,7 @@ def opened(node: Node) -> dict[str, dict]:
 def test_round_trip_moves_the_workspace_and_nothing_else(nodes, tmp_path, monkeypatch):
     a, b = nodes
     monkeypatch.setattr(wsexport, "SMALL_FILE", 1024)  # files above it are streamed, not read whole
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     result = export(a, out)
     assert out.stat().st_mode & 0o777 == 0o600 and not list(tmp_path.glob(".partial-*"))
     assert result.counts["lanes"] == 2 and result.counts["vault_entries"] == 3 and result.counts["grants"] == 1
@@ -155,7 +155,7 @@ def test_round_trip_moves_the_workspace_and_nothing_else(nodes, tmp_path, monkey
 
 def test_what_is_never_exported(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     plain = decrypted(out)
     with tarfile.open(fileobj=io.BytesIO(plain)) as tar:
@@ -173,7 +173,7 @@ def test_what_is_never_exported(nodes, tmp_path):
 
 def test_with_proxies_carries_the_credentials_encrypted(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out, with_proxies=True)
     plain = decrypted(out)
     assert PROXY_PASSWORD.encode() in plain and PROXY_PASSWORD.encode() not in out.read_bytes()
@@ -181,7 +181,7 @@ def test_with_proxies_carries_the_credentials_encrypted(nodes, tmp_path):
     try:
         p, r = do_import(c, out)
         assert r.proxies_added == ["lt1"] and [row["action"] for row in p.proxies] == ["create"]
-        from agentos.core.config import load_proxies
+        from openajar.core.config import load_proxies
 
         assert load_proxies(c.cfg)["lt1"].password == PROXY_PASSWORD
     finally:
@@ -191,7 +191,7 @@ def test_with_proxies_carries_the_credentials_encrypted(nodes, tmp_path):
 def test_age_recipient_round_trip(nodes, tmp_path):
     a, b = nodes
     identity, recipient = age.generate_identity()
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out, recipients=[recipient])
     assert b"-> X25519 " in out.read_bytes()[:200]
     with pytest.raises(BadExport, match="age key"):
@@ -212,7 +212,7 @@ def test_age_recipient_round_trip(nodes, tmp_path):
 def test_on_the_page_a_clash_asks_for_another_name_and_never_names_the_flag(nodes, tmp_path):
     """The form on this computer has its own name box, so its clash message says so, and the CLI keeps --as."""
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = read(a, out)
     try:
@@ -227,7 +227,7 @@ def test_on_the_page_a_clash_asks_for_another_name_and_never_names_the_flag(node
 
 def test_importing_over_itself_is_refused_without_as(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = read(a, out)
     try:
@@ -242,7 +242,7 @@ def test_importing_over_itself_is_refused_without_as(nodes, tmp_path):
 
 def test_as_renames_lanes_flows_bindings_and_schedules(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = read(a, out)
     try:
@@ -275,7 +275,7 @@ def test_as_renames_lanes_flows_bindings_and_schedules(nodes, tmp_path):
 
 def test_reissued_grants_get_new_tokens_and_their_schedules(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     exported = export(a, out)
     assert any("1 narrowed grant" in n for n in exported.notes)
     _, r = do_import(b, out, reissue_grants=True, enable_schedules=True)
@@ -296,7 +296,7 @@ def test_reissued_grants_get_new_tokens_and_their_schedules(nodes, tmp_path):
 
 def test_a_schedule_whose_grant_is_not_reissued_stays_off(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     p, _ = do_import(b, out, enable_schedules=True)
     scheds = {s.id: s for s in b.scheduler.list()}
@@ -308,7 +308,7 @@ def test_a_schedule_whose_grant_is_not_reissued_stays_off(nodes, tmp_path):
 
 def test_a_lane_never_comes_in_without_its_proxy(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     c = Node(tmp_path, "node-c", proxies={"de1": ProxyConfig(label="de1", host="198.51.100.4", port=8000)})
     try:
@@ -325,7 +325,7 @@ def test_a_lane_never_comes_in_without_its_proxy(nodes, tmp_path):
             r = asyncio.run(wsimport.apply_import(loose, contents, c.sources()))
         finally:
             contents.discard()
-        from agentos.core.config import load_proxies
+        from openajar.core.config import load_proxies
 
         placeholder = load_proxies(c.cfg)["lt1"]
         assert placeholder.host.endswith(".invalid") and r.proxies_added == ["lt1"]
@@ -336,7 +336,7 @@ def test_a_lane_never_comes_in_without_its_proxy(nodes, tmp_path):
 
 def test_a_label_that_points_elsewhere_is_a_warning(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     c = Node(tmp_path, "node-c", proxies={"lt1": ProxyConfig(label="lt1", host="198.51.100.9", port=1000)})
     try:
@@ -355,14 +355,14 @@ def test_a_label_that_points_elsewhere_is_a_warning(nodes, tmp_path):
 
 def test_a_sealed_target_vault_is_refused(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     c = Node(tmp_path, "node-c", vault_mode="passphrase")
     try:
         contents = read(c, out)
         try:
             p = plan(c, contents)
-            assert not p.ok and any("sealed" in b and "agentos vault unseal" in b for b in p.blockers)
+            assert not p.ok and any("sealed" in b and "openajar vault unseal" in b for b in p.blockers)
             asyncio.run(c.vault.unseal(c.vault_passphrase))
             assert plan(c, contents).ok
             c.vault.seal()  # sealed by the owner: refused again
@@ -375,14 +375,14 @@ def test_a_sealed_target_vault_is_refused(nodes, tmp_path):
 
 def test_no_vault_on_the_target_is_refused(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     c = Node(tmp_path, "node-c", vault_mode=None)
     try:
         contents = read(c, out)
         try:
             p = plan(c, contents)
-            assert any("agentos vault init" in b for b in p.blockers)
+            assert any("openajar vault init" in b for b in p.blockers)
         finally:
             contents.discard()
     finally:
@@ -396,8 +396,8 @@ def test_a_sealed_source_vault_refuses_the_export(tmp_path):
         a.build_acme()
         a.vault.seal()
         with pytest.raises(ExportRefused, match="vault is sealed"):
-            export(a, tmp_path / "acme.agentos")
-        assert not list(tmp_path.glob("*.agentos")) and not list(tmp_path.glob(".partial-*"))
+            export(a, tmp_path / "acme.openajar")
+        assert not list(tmp_path.glob("*.openajar")) and not list(tmp_path.glob(".partial-*"))
     finally:
         a.close()
 
@@ -407,7 +407,7 @@ def test_a_sealed_source_vault_refuses_the_export(tmp_path):
 @pytest.fixture
 def exported(nodes, tmp_path):
     a, b = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     return b, out
 
@@ -428,7 +428,7 @@ def test_tampered_bytes(exported, tmp_path):
     b, out = exported
     blob = bytearray(out.read_bytes())
     blob[len(blob) // 2] ^= 0x40
-    bad = tmp_path / "tampered.agentos"
+    bad = tmp_path / "tampered.openajar"
     bad.write_bytes(bytes(blob))
     _expect_bad(b, bad, "damaged or altered")
 
@@ -437,17 +437,17 @@ def test_partial_file(exported, tmp_path):
     b, out = exported
     blob = out.read_bytes()
     for cut in (len(blob) // 3, len(blob) - 100, 300):
-        bad = tmp_path / f"partial-{cut}.agentos"
+        bad = tmp_path / f"partial-{cut}.openajar"
         bad.write_bytes(blob[:cut])
         _expect_bad(b, bad, "truncated|damaged|incomplete")
 
 
 def test_not_an_export(exported, tmp_path):
     b, _ = exported
-    junk = tmp_path / "junk.agentos"
+    junk = tmp_path / "junk.openajar"
     junk.write_bytes(b"PK\x03\x04 a zip file")
-    _expect_bad(b, junk, "not an encrypted agentos export")
-    backup_like = tmp_path / "other.agentos"
+    _expect_bad(b, junk, "not an encrypted openajar export")
+    backup_like = tmp_path / "other.openajar"
     raw = io.BytesIO()
     enc = age.Encryptor(raw, PASSPHRASE, log_n=LOG_N)
     with tarfile.open(fileobj=enc, mode="w|gz") as tar:
@@ -457,7 +457,7 @@ def test_not_an_export(exported, tmp_path):
         tar.addfile(info, io.BytesIO(data))
     enc.close()
     backup_like.write_bytes(raw.getvalue())
-    _expect_bad(b, backup_like, "not an agentos workspace export")
+    _expect_bad(b, backup_like, "not an openajar workspace export")
 
 
 def _rewrite(out: Path, dest: Path, change) -> None:
@@ -478,7 +478,7 @@ def _rewrite(out: Path, dest: Path, change) -> None:
 
 def test_a_changed_profile_file_fails_its_checksum(exported, tmp_path):
     b, out = exported
-    bad = tmp_path / "changed.agentos"
+    bad = tmp_path / "changed.openajar"
 
     def change(member, data):
         if member.name.endswith("instagram/profile/prefs.js"):
@@ -491,7 +491,7 @@ def test_a_changed_profile_file_fails_its_checksum(exported, tmp_path):
 
 def test_an_added_or_removed_member_is_caught(exported, tmp_path):
     b, out = exported
-    added = tmp_path / "added.agentos"
+    added = tmp_path / "added.openajar"
 
     def add(member, data):
         yield member, data
@@ -501,7 +501,7 @@ def test_an_added_or_removed_member_is_caught(exported, tmp_path):
 
     _rewrite(out, added, add)
     _expect_bad(b, added, "does not match")
-    removed = tmp_path / "removed.agentos"
+    removed = tmp_path / "removed.openajar"
 
     def drop(member, data):
         if not member.name.endswith("vault.json"):
@@ -509,7 +509,7 @@ def test_an_added_or_removed_member_is_caught(exported, tmp_path):
 
     _rewrite(out, removed, drop)
     _expect_bad(b, removed, "does not match")
-    escape = tmp_path / "escape.agentos"
+    escape = tmp_path / "escape.openajar"
 
     def traverse(member, data):
         yield member, data
@@ -525,7 +525,7 @@ def test_an_added_or_removed_member_is_caught(exported, tmp_path):
 def test_a_warm_lane_is_paused_and_warmed_again(nodes, tmp_path):
     a, _ = nodes
     a.coordinator.start("acme/instagram")
-    result = export(a, tmp_path / "acme.agentos")
+    result = export(a, tmp_path / "acme.openajar")
     assert {lane["id"]: lane["copied"] for lane in result.lanes} == {"acme/instagram": "paused", "acme/reddit": "cold"}
     assert a.coordinator.calls == [("close", "acme/instagram"), ("open", "acme/instagram")]
     assert result.lanes[0]["was_warm"] is True
@@ -536,8 +536,8 @@ def test_a_warm_lane_with_no_daemon_is_refused(nodes, tmp_path):
     a.coordinator.start("acme/reddit")
     a.coordinator.up = False
     with pytest.raises(ExportRefused, match="no daemon answers"):
-        export(a, tmp_path / "acme.agentos")
-    assert not list(tmp_path.glob("*.agentos")) and not list(tmp_path.glob(".partial-*"))
+        export(a, tmp_path / "acme.openajar")
+    assert not list(tmp_path.glob("*.openajar")) and not list(tmp_path.glob(".partial-*"))
 
 
 def test_a_browser_that_starts_during_the_copy_fails_the_export(nodes, tmp_path):
@@ -548,8 +548,8 @@ def test_a_browser_that_starts_during_the_copy_fails_the_export(nodes, tmp_path)
             a.host.browsers[str(a.cfg.profile_dir("acme/reddit"))] = [777]
 
     with pytest.raises(ExportRefused, match="opened again while it was being copied"):
-        export(a, tmp_path / "acme.agentos", fail_after=agent_warms_it)
-    assert not list(tmp_path.glob("*.agentos")) and not list(tmp_path.glob(".partial-*"))
+        export(a, tmp_path / "acme.openajar", fail_after=agent_warms_it)
+    assert not list(tmp_path.glob("*.openajar")) and not list(tmp_path.glob(".partial-*"))
 
 
 def test_an_interrupted_export_leaves_no_file(nodes, tmp_path):
@@ -559,13 +559,13 @@ def test_an_interrupted_export_leaves_no_file(nodes, tmp_path):
         raise KeyboardInterrupt
 
     with pytest.raises(KeyboardInterrupt):
-        export(a, tmp_path / "acme.agentos", fail_after=boom)
+        export(a, tmp_path / "acme.openajar", fail_after=boom)
     assert list(tmp_path.glob("*acme*")) == []
 
 
 def test_an_existing_file_is_never_overwritten(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     out.write_text("keep me")
     with pytest.raises(ExportRefused, match="already exists"):
         export(a, out)
@@ -575,20 +575,20 @@ def test_an_existing_file_is_never_overwritten(nodes, tmp_path):
 def test_terminal_lanes_and_unknown_workspaces(nodes, tmp_path):
     a, _ = nodes
     a.add_lane("acme/shell", proxy=None, pinned=False, kind=LaneKind.TERMINAL)
-    result = export(a, tmp_path / "acme.agentos")
+    result = export(a, tmp_path / "acme.openajar")
     assert result.not_exported == [{"lane": "acme/shell", "why": "terminal lanes are not exported yet"}]
     assert result.counts["lanes"] == 2
     with pytest.raises(Exception, match="no workspace 'ghost'"):
-        export(a, tmp_path / "ghost.agentos", workspace="ghost")
+        export(a, tmp_path / "ghost.openajar", workspace="ghost")
     with pytest.raises(Exception, match="at least 12"):
-        export(a, tmp_path / "short.agentos", passphrase="short")
+        export(a, tmp_path / "short.openajar", passphrase="short")
 
 
 # ---- an import is all or nothing ------------------------------------------------------------
 
 def test_a_failed_import_is_rolled_back(nodes, tmp_path, monkeypatch):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out, with_proxies=True)
     c = Node(tmp_path, "node-c", proxies={})
     before_proxies = (c.cfg.proxies_path).read_bytes()
@@ -627,7 +627,7 @@ def test_no_plaintext_secret_touches_the_disk(nodes, tmp_path, monkeypatch):
     scratch = tmp_path / "systmp"
     scratch.mkdir()
     monkeypatch.setattr(tempfile, "tempdir", str(scratch))
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     seen_partial: list[list[str]] = []
 
     def scan_midway(rel: str) -> None:  # while the export is being written
@@ -656,7 +656,7 @@ def test_lanes_on_a_device_come_in_on_that_device(nodes, tmp_path):
     asyncio.run(a.lanes.create_device("acme-pc", from_lane="acme/instagram", confirm=True))
     asyncio.run(a.lanes.set_device("acme/reddit", "acme-pc"))
     pin = a.cfg.device_pin_path("acme-pc").read_bytes()
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     p, r = do_import(b, out)
     assert [d["name"] for d in p.devices] == ["acme-pc"] and p.devices[0]["from_lane"] == "acme/instagram"
@@ -678,7 +678,7 @@ def test_a_failed_import_removes_the_device_it_made(nodes, tmp_path, monkeypatch
     a, b = nodes
     asyncio.run(a.lanes.create_device("acme-pc", from_lane="acme/instagram", confirm=True))
     asyncio.run(a.lanes.set_device("acme/reddit", "acme-pc"))
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = read(b, out)
     try:
@@ -700,14 +700,14 @@ def test_a_failed_import_removes_the_device_it_made(nodes, tmp_path, monkeypatch
 @pytest.mark.parametrize(("typed", "made"), [("Harbor Copy", "harbor-copy"), ("  Biz A!! ", "biz-a"),
                                              ("Šiauliai café", "siauliai-cafe"), ("!!!", "workspace"), ("x" * 40, "x" * 31)])
 def test_a_typed_name_makes_a_valid_id(typed, made):
-    from agentos.workspaces.models import check_workspace_id, workspace_id_from
+    from openajar.workspaces.models import check_workspace_id, workspace_id_from
 
     assert workspace_id_from(typed) == made and check_workspace_id(made) == made
 
 
 def test_a_name_typed_on_the_page_is_the_display_name_and_its_id_is_made_from_it(nodes, tmp_path):
     a, _ = nodes
-    out = tmp_path / "acme.agentos"
+    out = tmp_path / "acme.openajar"
     export(a, out)
     contents = read(a, out)
     try:

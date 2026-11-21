@@ -18,8 +18,8 @@ import h11
 import pytest
 from test_environments_docker import _docker_ready, containers, node  # noqa: F401 - the fixture
 
-from agentos.environments import appsecrets
-from agentos.environments.swap import EnvCA
+from openajar.environments import appsecrets
+from openajar.environments.swap import EnvCA
 
 pytestmark = [pytest.mark.skipif(not _docker_ready(), reason="needs docker with the agentos-env image"),
               pytest.mark.network]
@@ -104,13 +104,13 @@ async def test_a_limited_machine_with_a_bound_secret(node, tmp_path):  # noqa: F
                              "console.log(e.message))' 2>&1")
         assert "403 Forbidden: example.com is not on this environment's network list" in got_https, got_https
         py = await sh("python3 -c 'import urllib.request as u; u.urlopen(\"https://example.com/\", timeout=10)' 2>&1")
-        assert "403" in py and "agentos environments allow --host example.com" in py, py
+        assert "403" in py and "openajar environments allow --host example.com" in py, py
         view = (await mgr.detail(mgr.get(env.id)))["network"]
         assert view["policy"] == "limited" and view["blocked"][0]["host"] == "example.com"
         assert view["blocked"][0]["count"] >= 2 and view["secrets"] == ["SHOP_API_KEY"]
 
         # the browser on the node: the machine's localhost through its tunnel, every other host through the list
-        from agentos.dev.proxied import FetchError, socks_fetch
+        from openajar.dev.proxied import FetchError, socks_fetch
 
         await envs.job_start(lane, "mkdir -p /srv/t && echo '<h1>on the vm</h1>' > /srv/t/index.html && cd /srv/t "
                                    "&& exec python3 -m http.server 3000 --bind 127.0.0.1")

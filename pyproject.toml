@@ -1,6 +1,6 @@
 [project]
-name = "agentos"
-version = "0.4.0"
+name = "openajar"
+version = "0.5.0"
 description = "Self-hosted cloud dev environments for AI coding agents: a disposable VM with a terminal and a real browser for Claude Code, Codex and any MCP client."
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,7 +42,7 @@ dependencies = [
   "pyotp>=2.10.0",
   "publicsuffixlist>=1.1.2.20261101",
   "idna>=3.20",
-  "h11>=0.16",  # the app secrets swap frames HTTP/1.1 itself (agentos.environments.swap)
+  "h11>=0.16",  # the app secrets swap frames HTTP/1.1 itself (openajar.environments.swap)
   "httpx>=0.28.1",
   "starlette>=1.10.0",
   "croniter>=6.2.4",
@@ -63,17 +63,17 @@ Changelog = "https://github.com/sabalys-ramunas/agentos/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 # The browser stack, only on nodes (`uv sync --extra node`); the hosted cloud imports
-# agentos.core without it.
+# openajar.core without it.
 node = [
   "camoufox[geoip]>=0.5.9,<0.6",
   "playwright>=1.62,<1.63",
 ]
-# agentos on a laptop (`agentos local`, scripts/install.sh installs `agentos[local]`): Playwright's client
-# drives each environment's browser, which runs on the environment's VM (agentos.environments.vmbrowser).
+# openajar on a laptop (`openajar local`, scripts/install.sh installs `openajar[local]`): Playwright's client
+# drives each environment's browser, which runs on the environment's VM (openajar.environments.vmbrowser).
 # No Camoufox here, and no browser binary: nothing runs `playwright install` or `camoufox fetch`.
 local = [
   "playwright>=1.62,<1.63",
-  "Pillow>=11",  # the replay's frames are made smaller on the laptop too (agentos.environments.replay)
+  "Pillow>=11",  # the replay's frames are made smaller on the laptop too (openajar.environments.replay)
 ]
 # Studio's review browser and image work, on a laptop or a node (`uv sync --extra studio`). The
 # engines themselves come from `python -m playwright install chromium` or the installed Chrome.
@@ -84,8 +84,8 @@ studio = [
 
 [dependency-groups]
 dev = [
-  "agentos[node]",
-  "agentos[studio]",
+  "openajar[node]",
+  "openajar[studio]",
   "openapi-spec-validator>=0.7",
   "pytest>=8",
   "pytest-asyncio>=0.23",
@@ -93,19 +93,22 @@ dev = [
 ]
 
 [project.scripts]
-agentos = "agentos.cli:app"
+openajar = "openajar.cli:app"
+# legacy-name: `agentos`, the command before the rename, runs the same program and says so on stderr.
+# legacy-name: name = "agentos" is what a 0.3.0 server node's upgrader looks for in this file: keep this line.
+agentos = "openajar.cli:legacy_app"  # legacy-name
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agentos"]
+packages = ["src/openajar"]
 
-# The docker provider's image (Dockerfile, entrypoint) inside the package, so `agentos environments
-# setup --build` works from an install without the checkout (agentos.environments.cli._image_source).
+# The docker provider's image (Dockerfile, entrypoint) inside the package, so `openajar environments
+# setup --build` works from an install without the checkout (openajar.environments.cli._image_source).
 [tool.hatch.build.targets.wheel.force-include]
-"deploy/environments" = "agentos/environments/image"
+"deploy/environments" = "openajar/environments/image"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -128,28 +131,28 @@ addopts = "-m 'not node and not soak'"
 # project dependency: the Makefile and CI run a pinned `uvx mypy`, so uv.lock stays as it is.
 #
 # TODO, in this order (each one: add it to `files`, fix what mypy reports, keep CI green):
-#   src/agentos/policy/wrap.py, service.py, grants.py   the authorization path
-#   src/agentos/vault/                                  the rest of the vault
-#   src/agentos/mcp/                                    the tool registry and transports
-#   src/agentos/node/lanes/, egress/, human.py          the lane manager and its guards
-#   src/agentos/api/auth.py, passkeys.py                panel sign-in
+#   src/openajar/policy/wrap.py, service.py, grants.py   the authorization path
+#   src/openajar/vault/                                  the rest of the vault
+#   src/openajar/mcp/                                    the tool registry and transports
+#   src/openajar/node/lanes/, egress/, human.py          the lane manager and its guards
+#   src/openajar/api/auth.py, passkeys.py                panel sign-in
 #   everything else
 python_version = "3.12"
 files = [
-  "src/agentos/core",
-  "src/agentos/policy/tokens.py",
-  "src/agentos/policy/keys.py",
-  "src/agentos/vault/crypto.py",
-  "src/agentos/vault/secret.py",
-  "src/agentos/node/interfaces.py",
-  "src/agentos/client/call.py",
-  "src/agentos/runner/flowfiles.py",
-  "src/agentos/runner/flowsync.py",
-  "src/agentos/runner/flowtest.py",
-  "src/agentos/runner/flowcli.py",
-  "src/agentos/node/expose",
-  "src/agentos/client/expose.py",
-  "src/agentos/git",
+  "src/openajar/core",
+  "src/openajar/policy/tokens.py",
+  "src/openajar/policy/keys.py",
+  "src/openajar/vault/crypto.py",
+  "src/openajar/vault/secret.py",
+  "src/openajar/node/interfaces.py",
+  "src/openajar/client/call.py",
+  "src/openajar/runner/flowfiles.py",
+  "src/openajar/runner/flowsync.py",
+  "src/openajar/runner/flowtest.py",
+  "src/openajar/runner/flowcli.py",
+  "src/openajar/node/expose",
+  "src/openajar/client/expose.py",
+  "src/openajar/git",
 ]
 follow_imports = "silent"
 ignore_missing_imports = true

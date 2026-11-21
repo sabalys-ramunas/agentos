@@ -12,12 +12,12 @@ from starlette.testclient import TestClient
 from test_node_panel import TOKEN, Node, bearer
 from test_vault_support import make_vault, private_home  # noqa: F401
 
-from agentos.core.config import NodeConfig  # noqa: F401
-from agentos.runner.mail import api as mail_api
-from agentos.runner.mail import connect as connecting
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.discovery import Found, Server, Srv
-from agentos.runner.workflows.mail import Mailbox, SignInFailed
+from openajar.core.config import NodeConfig  # noqa: F401
+from openajar.runner.mail import api as mail_api
+from openajar.runner.mail import connect as connecting
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.discovery import Found, Server, Srv
+from openajar.runner.workflows.mail import Mailbox, SignInFailed
 
 PASSWORD = "the-very-secret-password"
 BOX = "biz-a/inbox"
@@ -78,8 +78,8 @@ def low_found() -> Found:
 
 
 def job(node, found=None, address="me@gmail.com"):
-    from agentos.runner.mail.discovery import from_provider
-    from agentos.runner.mail.providers import by_id
+    from openajar.runner.mail.discovery import from_provider
+    from openajar.runner.mail.providers import by_id
 
     token, _ = connecting.jobs_for(node.wf.mail).open(address, BOX, found or from_provider(address, by_id("gmail")), by="agent")
     return f"/api/mail/form/{token}", token
@@ -126,14 +126,14 @@ def test_a_call_through_a_controller_has_no_session_and_no_way_in(node):
     """A controller reaches a node by the channel's tools, and holds a token at most."""
     request = SimpleNamespace(state=SimpleNamespace(auth=SimpleNamespace(
         session=None, via="bearer", access=SimpleNamespace(human=False, member=None, owner=True, trace=lambda *a, **k: None))))
-    from agentos.api.errors import ApiError
+    from openajar.api.errors import ApiError
 
     with pytest.raises(ApiError):
         mail_api.in_person(request, "mail.connect")
 
 
 def test_a_member_is_refused_even_in_a_session(node):
-    from agentos.api.errors import ApiError
+    from openajar.api.errors import ApiError
 
     request = SimpleNamespace(state=SimpleNamespace(auth=SimpleNamespace(
         session=object(), via="cookie", access=SimpleNamespace(human=True, member=object(), owner=False, trace=lambda *a, **k: None))))
@@ -235,7 +235,7 @@ async def test_an_agent_gets_a_card_for_a_person_and_never_a_link(node):
 async def test_the_card_names_the_address_and_gives_one_line_and_no_link(node):
     await mail_tools.mail_connect(agent_ctx(node), address="me@gmail.com", mailbox=BOX)
     card, = cards(node)
-    assert "me@gmail.com" in card.summary and f"agentos mail connect me@gmail.com --id {BOX}" in card.summary
+    assert "me@gmail.com" in card.summary and f"openajar mail connect me@gmail.com --id {BOX}" in card.summary
     assert "http" not in card.summary and "/api/mail/form" not in card.summary and "—" not in card.summary
     public = str(card.public())
     assert "/api/mail/form" not in public and "token" not in card.summary
@@ -463,7 +463,7 @@ def test_the_page_says_what_it_is_and_holds_nothing_active(node):
         r = client.get(url)
     text = r.text
     assert "imap.gmail.com:993" in text and "smtp.gmail.com:465" in text and "App password" in text
-    assert "your own agentos node" in text and "it does not reach the cloud" in text
+    assert "your own openajar node" in text and "it does not reach the cloud" in text
     assert "myaccount.google.com/apppasswords" in text and 'rel="noreferrer"' in text
     assert "<script" not in text and "src=" not in text and "—" not in text
     assert "default-src 'none'" in r.headers["content-security-policy"] and r.headers["cache-control"] == "no-store"

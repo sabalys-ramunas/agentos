@@ -11,9 +11,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.fakes import BASE, El, FakeClock, FakeNotifier, Harness
-from agentos.runner.schedules import _jitter, cron_slots, sign_webhook
+from openajar.core.errors import InvalidRequest
+from openajar.runner.fakes import BASE, El, FakeClock, FakeNotifier, Harness
+from openajar.runner.schedules import _jitter, cron_slots, sign_webhook
 
 VILNIUS = ZoneInfo("Europe/Vilnius")
 
@@ -319,14 +319,14 @@ class _FrozenLane:
         self.lane = lane
 
     def check_call(self, lane, *, tool):
-        from agentos.core.errors import Frozen
+        from openajar.core.errors import Frozen
 
         if lane == self.lane:
             raise Frozen(f"{lane} is frozen")
 
 
 async def test_a_cron_fire_takes_the_freeze_and_the_fire_checks_an_interval_takes(tmp_path):
-    from agentos.core.errors import PolicyDenied
+    from openajar.core.errors import PolicyDenied
 
     h = Harness(tmp_path, clock=FakeClock(at("2026-11-04T08:59:00")), services={"freeze": _FrozenLane("biz-a/social")})
     fv = h.save(read_flow())

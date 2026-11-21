@@ -1,4 +1,4 @@
-"""The agentos-studio skill and the studio howto recipes: they name only real tools and arguments,
+"""The openajar-studio skill and the studio howto recipes: they name only real tools and arguments,
 cover the loops the shake-down proved (ui_check and since, ui_diff with a baseline, profiles and a
 proposal), and are installed like the other skills."""
 
@@ -7,30 +7,30 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from agentos.client import skills
-from agentos.core.runtime import Runtime
-from agentos.node.tools import RECIPES
-from agentos.profiles import tools as profiles_tools
-from agentos.studio import tools as studio_tools
+from openajar.client import skills
+from openajar.core.runtime import Runtime
+from openajar.node.tools import RECIPES
+from openajar.profiles import tools as profiles_tools
+from openajar.studio import tools as studio_tools
 
-SKILL = Path(__file__).resolve().parents[2] / "src/agentos/client/skills/agentos-studio/SKILL.md"
+SKILL = Path(__file__).resolve().parents[2] / "src/openajar/client/skills/openajar-studio/SKILL.md"
 EM_DASH = chr(0x2014)
 STUDIO_RECIPES = ("studio_check", "studio_diff", "studio_brand")
 
 
 def specs() -> set[str]:
     """The names of the studio and profiles tools."""
-    from agentos.core.tools import ToolSpec
+    from openajar.core.tools import ToolSpec
 
     return {s.name for provide in (studio_tools.tool_specs, profiles_tools.tool_specs) for s in provide(Runtime())
             if isinstance(s, ToolSpec)}
 
 
 def test_the_skill_is_installed_like_the_others():
-    assert "agentos-studio" in skills.NAMES
-    text = skills.source("agentos-studio")
+    assert "openajar-studio" in skills.NAMES
+    text = skills.source("openajar-studio")
     head = text.split("---")[1]
-    assert re.search(r"^name: agentos-studio$", head, re.MULTILINE) and skills.ours(text, "agentos-studio")
+    assert re.search(r"^name: openajar-studio$", head, re.MULTILINE) and skills.ours(text, "openajar-studio")
 
 
 def test_the_skill_names_only_real_tools_and_teaches_each_loop():

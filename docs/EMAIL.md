@@ -9,10 +9,10 @@ setup, reading, a way for leads to reach a list, and tests against a real mail s
 
 ## Connecting a mailbox
 
-A person gives an address and a password. agentos does the rest.
+A person gives an address and a password. openajar does the rest.
 
 ```
-agentos mail connect you@example.com          # asks for the password, hidden
+openajar mail connect you@example.com          # asks for the password, hidden
 ```
 
 1. **Find the servers** from the address (below). Nothing secret leaves yet.
@@ -29,7 +29,7 @@ panel collects no third-party password. It shows how to connect, and shows the r
 **An agent asks, and a person connects.** `mail_connect` puts a card in Needs you that names the address, and returns
 no link and no token: its answer says a person must connect it. It cannot name a mailbox that exists. The link exists
 only for a person: the owner signed in to the node's own panel opens the card there (`POST
-/api/mail/requests/{id}/link`), or runs `agentos mail connect`. A card reaches the cloud too, so it holds no token and
+/api/mail/requests/{id}/link`), or runs `openajar mail connect`. A card reaches the cloud too, so it holds no token and
 no link, only the one line to run at the computer.
 
 **Only a person changes a mailbox.** A token proves someone holds a link, not that a person is there, so the form can
@@ -160,7 +160,7 @@ pace, and a challenge stops it.
 
 The owner is the sender and answers for it. Rules on unsolicited mail differ by country. In the EU, writing to a
 named person can need their consent, and to a business less so. The panel says this once, plainly, when a first list
-of leads is made. agentos gives the tools to do it properly and does not decide it.
+of leads is made. openajar gives the tools to do it properly and does not decide it.
 
 ## New mail in routines
 
@@ -177,7 +177,7 @@ Templates: "When someone replies, tell me", "Follow up once if no reply in 3 day
 takes a `digest`, or both servers typed), `GET /api/mail/requests` and `POST /api/mail/requests/{id}/link` (what agents
 asked for, and the link for one card, also node only), `GET /api/mail`, `DELETE /api/mail/{id}`, `GET
 /api/mail/{id}/messages`, `GET` and `POST /api/mail/form/{token}` (the short-lived form: its token is its auth, it
-ends when it is used, it serves only https or this computer, and it never changes a mailbox that exists), and `agentos
+ends when it is used, it serves only https or this computer, and it never changes a mailbox that exists), and `openajar
 mail connect|list|test|remove`. Connecting is the only way in: there is no `mail add`. An `{id}` here is written
 `biz-a~mail` for `biz-a/mail`.
 Agent tools: `mail_connect`, `mail_list`, `mail_read`, `mail_mark`, `mail_send`, `leads_propose`.

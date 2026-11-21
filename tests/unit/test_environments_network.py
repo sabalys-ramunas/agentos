@@ -1,5 +1,5 @@
-"""An environment's network (agentos.environments.network, networking, envproxy) and the walls that hold
-it outside the machine (agentos.vms.netwall, the Hetzner firewall, the docker entrypoint): an agent only
+"""An environment's network (openajar.environments.network, networking, envproxy) and the walls that hold
+it outside the machine (openajar.vms.netwall, the Hetzner firewall, the docker entrypoint): an agent only
 narrows it, limited reaches the preset, the proxy refuses in plain words and keeps what it refused, a
 closed machine is rented closed, and the owner's secret bindings live in the vault with their hosts."""
 
@@ -15,17 +15,17 @@ import pytest
 from test_environments import node  # noqa: F401 - the fixture
 from test_vault_support import make_vault, private_home
 
-from agentos.core.errors import AgentosError
-from agentos.core.models import utcnow
-from agentos.environments import appsecrets, network
-from agentos.environments.envproxy import Blocked, EnvForwarder, EnvPolicy
-from agentos.environments.models import Environment, EnvSettings
-from agentos.environments.network import NetworkNotAllowed, allowlist, narrowed
-from agentos.environments.pulls import _with_blocked
-from agentos.vms import netwall
-from agentos.vms.docker import DockerProvider, entrypoint_text, seed_tar
-from agentos.vms.hetzner import HetznerProvider
-from agentos.vms.provider import FakeProvider, ServerSpec
+from openajar.core.errors import OpenajarError
+from openajar.core.models import utcnow
+from openajar.environments import appsecrets, network
+from openajar.environments.envproxy import Blocked, EnvForwarder, EnvPolicy
+from openajar.environments.models import Environment, EnvSettings
+from openajar.environments.network import NetworkNotAllowed, allowlist, narrowed
+from openajar.environments.pulls import _with_blocked
+from openajar.vms import netwall
+from openajar.vms.docker import DockerProvider, entrypoint_text, seed_tar
+from openajar.vms.hetzner import HetznerProvider
+from openajar.vms.provider import FakeProvider, ServerSpec
 
 # ------------------------------------------------------------------ the levels
 
@@ -38,7 +38,7 @@ def test_an_agent_only_narrows_the_nodes_network():
         with pytest.raises(NetworkNotAllowed) as e:
             narrowed(default, wider)
         assert e.value.code == "network_not_allowed"
-        assert f"agentos environments allow --network {wider}" in e.value.message
+        assert f"openajar environments allow --network {wider}" in e.value.message
     with pytest.raises(NetworkNotAllowed):
         narrowed("full", "open")
 
@@ -54,7 +54,7 @@ def test_limited_reaches_the_registries_the_repos_host_and_the_owners_hosts_and_
         assert policy.check(host, 443)[0], host
     ok, why = policy.check("example.com", 443)
     assert not ok and why == ("example.com is not on this environment's network list. The owner can allow it: "
-                              "agentos environments allow --host example.com")
+                              "openajar environments allow --host example.com")
     assert not policy.check("registry.npmjs.org", 22)[0]  # ports 80 and 443 only
     assert not policy.check("evil-npmjs.org", 443)[0]
 
@@ -96,7 +96,7 @@ def test_a_pull_request_says_what_was_blocked():
     body = _with_blocked(None, Env([{"host": "example.com", "count": 3, "last": "2026-11-18T10:00:00Z"}]),
                          "Fixes the checkout.")
     assert body.startswith("Fixes the checkout.") and "### Blocked during this work" in body
-    assert "`example.com` (3x)" in body and "agentos environments allow --host" in body
+    assert "`example.com` (3x)" in body and "openajar environments allow --host" in body
     assert _with_blocked(None, Env([]), "x") == "x"
 
 
@@ -121,13 +121,13 @@ async def test_the_proxy_refuses_in_plain_words_and_keeps_count_of_what_it_refus
     try:
         out = await _ask(port, b"CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n")
         assert out.split(b"\r\n", 1)[0] == (b"HTTP/1.1 403 Forbidden: example.com is not on this environment's "
-                                             b"network list. The owner can allow it: agentos environments allow "
+                                             b"network list. The owner can allow it: openajar environments allow "
                                              b"--host example.com")
         assert out.startswith(b"HTTP/1.1 403") and out.endswith(
             b"example.com is not on this environment's network list. The owner can allow it: "
-            b"agentos environments allow --host example.com\n")
+            b"openajar environments allow --host example.com\n")
         out = await _ask(port, b"GET http://example.com/x HTTP/1.1\r\nHost: example.com\r\n\r\n")
-        assert out.startswith(b"HTTP/1.1 403") and b"agentos environments allow --host example.com" in out
+        assert out.startswith(b"HTTP/1.1 403") and b"openajar environments allow --host example.com" in out
         await _ask(port, b"CONNECT smtp.example.org:25 HTTP/1.1\r\n\r\n")
     finally:
         server.close()
@@ -182,10 +182,10 @@ async def test_hetzner_rents_a_closed_machine_behind_a_firewall_with_no_way_out(
     async def ssh_from():
         return ["198.51.100.7/32"]
 
-    fid = await netwall.firewall_for(prov, "limited", "agentos-n-h", {"agentos-node": "n"}, ssh_from)
+    fid = await netwall.firewall_for(prov, "limited", "openajar-n-h", {"agentos-node": "n"}, ssh_from)
     assert fid == "42"
     method, path, body = sent[-1]
-    assert (method, path, body["name"]) == ("POST", "/v1/firewalls", "agentos-n-h-closed")
+    assert (method, path, body["name"]) == ("POST", "/v1/firewalls", "openajar-n-h-closed")
     rules = body["rules"]
     assert [r["direction"] for r in rules] == ["in", "in", "out"]
     (out,) = [r for r in rules if r["direction"] == "out"]
@@ -193,15 +193,15 @@ async def test_hetzner_rents_a_closed_machine_behind_a_firewall_with_no_way_out(
     assert out["protocol"] == "icmp" and out["destination_ips"] == ["198.51.100.7/32"] and "port" not in out
     assert {r["protocol"] for r in rules if r["direction"] == "in"} == {"tcp", "icmp"}
     sent.clear()
-    await netwall.firewall_for(prov, "full", "agentos-n-h", {}, ssh_from)
-    assert sent[-1][2]["name"] == "agentos-n-h" and all(r["direction"] == "in" for r in sent[-1][2]["rules"])
+    await netwall.firewall_for(prov, "full", "openajar-n-h", {}, ssh_from)
+    assert sent[-1][2]["name"] == "openajar-n-h" and all(r["direction"] == "in" for r in sent[-1][2]["rules"])
 
 
 async def test_a_provider_that_cannot_close_refuses_instead_of_renting_an_open_machine():
     async def ssh_from():
         return []
 
-    with pytest.raises(AgentosError):
+    with pytest.raises(OpenajarError):
         await netwall.firewall_for(FakeProvider(), "none", "fw", {}, ssh_from)
 
 
@@ -218,7 +218,7 @@ def test_the_docker_entrypoint_closes_everything_but_loopback_dns_included():
 def test_a_closed_docker_machine_runs_the_packages_entrypoint_in_its_closed_mode():
     prov = DockerProvider()
     prov._info = {"NCPU": 4, "MemTotal": 8 * 2**30}
-    spec = ServerSpec(name="agentos-vm-1", server_type="docker", image="agentos-env:latest", location="local",
+    spec = ServerSpec(name="openajar-vm-1", server_type="docker", image="agentos-env:latest", location="local",
                       user_data="", labels={"agentos-network": "limited"})
     args = prov.run_args(spec)
     assert "AGENTOS_ENV_NETWORK=closed" in args and args[args.index("--entrypoint") + 1] == "/etc/agentos-env/entrypoint.sh"
@@ -310,7 +310,7 @@ async def test_a_command_that_was_refused_a_host_says_so_with_the_owners_command
     ran = await closing["call"]("terminal_exec", on=out["on"], cmd="curl -sS https://rates.example.com")
     net = ran["network"]
     assert net["blocked_now"] == ["rates.example.com"]
-    assert "agentos environments allow --host rates.example.com" in net["fix"] and "—" not in net["fix"]
+    assert "openajar environments allow --host rates.example.com" in net["fix"] and "—" not in net["fix"]
     plain = await closing["call"]("terminal_exec", on=out["on"], cmd="npm test")
     assert "network" not in plain
 
@@ -343,9 +343,9 @@ async def test_a_binding_is_an_api_key_in_the_vault_for_its_hosts_and_environmen
 
     value = await vault.resolve_app_secret(Ctx(), ref=shop[0].ref, lane_id="env/e1", url="https://api.stripe.com/")
     assert value.reveal() == "sk_test_shop_only"
-    with pytest.raises(AgentosError):  # another host never gets it, whatever asks
+    with pytest.raises(OpenajarError):  # another host never gets it, whatever asks
         await vault.resolve_app_secret(Ctx(), ref=shop[0].ref, lane_id="env/e1", url="https://evil.example.com/")
-    with pytest.raises(AgentosError):  # nor a lane outside environments
+    with pytest.raises(OpenajarError):  # nor a lane outside environments
         await vault.resolve_app_secret(Ctx(), ref=shop[0].ref, lane_id="biz/insta", url="https://api.stripe.com/")
     await appsecrets.remove(vault, "STRIPE_KEY", repo="github.com/me/shop")
     assert [b.repo for b in await appsecrets.all_bound(vault)] == [None]
@@ -354,7 +354,7 @@ async def test_a_binding_is_an_api_key_in_the_vault_for_its_hosts_and_environmen
 def test_no_tool_takes_a_secret_binding():
     import inspect
 
-    from agentos.environments.tools import environment_open
+    from openajar.environments.tools import environment_open
 
     params = set(inspect.signature(environment_open).parameters)
     assert not params & {"secret", "secrets", "env", "allow_hosts", "host"}
@@ -382,7 +382,7 @@ def test_a_job_read_names_what_was_refused_since_its_job_began():
     from datetime import UTC, datetime
     from types import SimpleNamespace
 
-    from agentos.environments import routing
+    from openajar.environments import routing
 
     env = SimpleNamespace(id="e1", network="limited")
     asked = []

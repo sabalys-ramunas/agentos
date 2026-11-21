@@ -7,9 +7,9 @@ import tarfile
 
 import pytest
 
-from agentos.brains.bundle import HANDOFF_FILE, materialize, validate
-from agentos.brains.models import ContextBundle, GitRef, InlineFile
-from agentos.core.errors import InvalidRequest
+from openajar.brains.bundle import HANDOFF_FILE, materialize, validate
+from openajar.brains.models import ContextBundle, GitRef, InlineFile
+from openajar.core.errors import InvalidRequest
 
 
 def tar_b64(members: dict[str, bytes], *, symlink: tuple[str, str] | None = None) -> str:
@@ -44,9 +44,9 @@ def test_archive_cannot_escape(tmp_path):
 
 
 def test_absolute_archive_paths_land_inside_the_work_dir(tmp_path):
-    materialize(ContextBundle(archive_b64=tar_b64({"/tmp/agentos-evil-test": b"x"})), tmp_path / "work")
-    assert (tmp_path / "work" / "tmp" / "agentos-evil-test").exists()
-    assert not os.path.exists("/tmp/agentos-evil-test")
+    materialize(ContextBundle(archive_b64=tar_b64({"/tmp/openajar-evil-test": b"x"})), tmp_path / "work")
+    assert (tmp_path / "work" / "tmp" / "openajar-evil-test").exists()
+    assert not os.path.exists("/tmp/openajar-evil-test")
 
 
 def test_archive_symlink_out_is_rejected(tmp_path):

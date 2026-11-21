@@ -1,4 +1,4 @@
-"""The pull request shows the proof (agentos.environments.prproofs and pulls): the files on an orphan
+"""The pull request shows the proof (openajar.environments.prproofs and pulls): the files on an orphan
 agentos-proofs branch through the Git Data API, the Proof section made and kept up to date between its
 markers, proofs=false and pr_proofs, GitHub's size limits, a refused upload, and no token."""
 
@@ -12,10 +12,10 @@ import httpx
 import pytest
 from test_environments_comeback import FakeGateway, cred
 
-from agentos.core.errors import InvalidRequest
-from agentos.environments import prproofs, pulls
-from agentos.environments.repoconfig import blob_id
-from agentos.git import keys as keymod
+from openajar.core.errors import InvalidRequest
+from openajar.environments import prproofs, pulls
+from openajar.environments.repoconfig import blob_id
+from openajar.git import keys as keymod
 
 ENV = "eproofs1234"
 PNG = b"\x89PNG\r\n\x1a\n" + b"p" * 50
@@ -229,7 +229,7 @@ async def test_no_token_says_the_proofs_stayed_on_the_node(tmp_path):
     mgr, env, _ = setup(tmp_path, gh, token=False)
     with pytest.raises(pulls.PullRequestFailed) as e:
         await pulls.open_pull_request(mgr, env, title="Fix")
-    assert "agentos setup github" in e.value.message and "stayed on the node" in e.value.message
+    assert "openajar setup github" in e.value.message and "stayed on the node" in e.value.message
     assert gh.calls == []
 
 

@@ -1,4 +1,4 @@
-from agentos.node.snapshot import build_outline, find_refs, parse_line, render_line
+from openajar.node.snapshot import build_outline, find_refs, parse_line, render_line
 
 FEED = """\
 - generic [active] [ref=e1] [box=244,0,792,908]:

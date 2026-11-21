@@ -21,18 +21,18 @@ from test_egress_effect_rules import meta_form
 from test_lanes import FakeEngine, FakeSession, make
 from test_policy_support import Clock
 
-from agentos.core.models import ActionKind, Effect, LaneSpec
-from agentos.core.runtime import Runtime
-from agentos.node import egress
-from agentos.node import tools as node_tools
-from agentos.node.egress import LaneGuard
-from agentos.node.routes import RouteDispatcher
-from agentos.pilot import grant as pilot_grant
-from agentos.pilot.hands import NodeTools
-from agentos.pilot.modes import GOAL
-from agentos.policy.ledger import build
-from agentos.policy.service import PolicyService
-from agentos.policy.wrap import bind_request_token, wrap_tool
+from openajar.core.models import ActionKind, Effect, LaneSpec
+from openajar.core.runtime import Runtime
+from openajar.node import egress
+from openajar.node import tools as node_tools
+from openajar.node.egress import LaneGuard
+from openajar.node.routes import RouteDispatcher
+from openajar.pilot import grant as pilot_grant
+from openajar.pilot.hands import NodeTools
+from openajar.pilot.modes import GOAL
+from openajar.policy.ledger import build
+from openajar.policy.service import PolicyService
+from openajar.policy.wrap import bind_request_token, wrap_tool
 
 LANE = "biz-a/instagram"
 IG_GQL = "https://www.instagram.com/graphql/query"

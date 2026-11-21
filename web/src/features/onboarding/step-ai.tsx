@@ -12,9 +12,9 @@ import { isNotServed } from '@/api/http';
 import { keys } from '@/api/keys';
 import { AgentMark } from '@/components/brand/identity';
 import { Badge } from '@/components/ui/badge';
+import { Choice, ChoiceGroup } from '@/components/ui/choice';
 import { Button } from '@/components/ui/button';
 import { CodeBlock } from '@/components/ui/misc';
-import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/errors';
 import type { KnownAgent } from '@/lib/principal';
 import { AGENT_NAMES } from '@/lib/principal';
@@ -46,8 +46,8 @@ const APP_STEPS: Record<'claude' | 'chatgpt', { menu: string[]; lit: string; ope
 };
 
 function commandFor(agent: KnownAgent, url: string, token: string): string {
-  if (agent === 'codex') return `export AGENTOS_TOKEN=${token}\ncodex mcp add agentos --url ${url} --bearer-token-env-var AGENTOS_TOKEN`;
-  return `claude mcp add --transport http agentos ${url} --header "Authorization: Bearer ${token}"`;
+  if (agent === 'codex') return `export OPENAJAR_TOKEN=${token}\ncodex mcp add openajar --url ${url} --bearer-token-env-var OPENAJAR_TOKEN`;
+  return `claude mcp add --transport http openajar ${url} --header "Authorization: Bearer ${token}"`;
 }
 
 export function AiStep({ ctx }: { ctx: StepContext }) {
@@ -59,7 +59,7 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
   const tile = TILES.find((item) => item.key === agent) ?? { key: agent, where: '', soon: false };
   const name = AGENT_NAMES[agent];
   // On a computer the agent connects to the computer itself. A cloud sends no address, so it gets its own.
-  const url = useStatus(org).data?.mcp_url ?? `https://mcp.agentos.cloud/o/${org}/mcp`;
+  const url = useStatus(org).data?.mcp_url ?? `https://mcp.openajar.cloud/o/${org}/mcp`;
   const item = itemOf(setup, 'ai');
   const connected = item?.done ?? false;
   const asks = setup?.asks ?? DEFAULT_ASKS;
@@ -87,37 +87,31 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
       setup={setup}
       eyebrow={connected ? <Ready>{agentName(setup) ?? 'Your AI'} is connected</Ready> : undefined}
       title="Connect your AI"
-      description="agentos is the computer. Your AI does the work. Connect the one you already use."
+      description="openajar is the computer. Your AI does the work. Connect the one you already use."
       footer={<StepFooter ctx={ctx} step="ai" note={token || connected ? 'Next, give it a first job.' : 'You can connect more than one, any time, in Settings.'} later={token || connected ? false : undefined} />}
     >
       <div className="grid gap-6">
-        <div role="radiogroup" aria-label="Your AI" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {TILES.map((item) => {
-            const on = item.key === agent;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => {
-                  setAgent(item.key);
-                  setToken(null);
-                }}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
-                  on ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
-                )}
-              >
-                <AgentMark principal={{ kind: 'agent', id: item.key, thread: null }} size={32} />
-                <span className="min-w-0">
-                  <span className="block truncate text-label">{AGENT_NAMES[item.key]}</span>
-                  <span className="block truncate text-caption text-muted">{item.soon ? 'Coming soon' : item.where}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceGroup
+          label="Your AI"
+          value={agent}
+          onValueChange={(next) => {
+            setAgent(next);
+            setToken(null);
+          }}
+          columns={2}
+        >
+          {TILES.map((item) => (
+            <Choice
+              key={item.key}
+              value={item.key}
+              className="p-3"
+              icon={<AgentMark principal={{ kind: 'agent', id: item.key, thread: null }} size={32} />}
+              title={AGENT_NAMES[item.key]}
+              badge={item.soon ? <Badge>Coming soon</Badge> : undefined}
+              description={item.soon ? undefined : item.where}
+            />
+          ))}
+        </ChoiceGroup>
 
         {tile.soon ? (
           <div className="grid gap-4 rounded-xl border border-dashed border-line-strong p-4 sm:p-6">
@@ -151,7 +145,7 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
               <PictureStep n={2} picture={<TerminalPicture />}>
                 Paste one line where you run {name}
               </PictureStep>
-              <PictureStep n={3} picture={<MenuPicture items={['agentos', 'GitHub', 'Files']} lit="agentos" />}>
+              <PictureStep n={3} picture={<MenuPicture items={['openajar', 'GitHub', 'Files']} lit="openajar" />}>
                 Start a new {name} session
               </PictureStep>
             </ol>

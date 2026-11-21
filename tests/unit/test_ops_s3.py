@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 import pytest
 from typer.testing import CliRunner
 
-from agentos.core.s3 import Credentials, S3Error, S3Target, sign
+from openajar.core.s3 import Credentials, S3Error, S3Target, sign
 
 AWS = Credentials("AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
 WHEN = datetime(2013, 5, 24, tzinfo=UTC)
@@ -133,11 +133,11 @@ def s3(monkeypatch):
 
 
 def test_target_put_head_get_list_delete(s3, tmp_path):
-    t = S3Target("s3://bkt/agentos/node-1")
+    t = S3Target("s3://bkt/openajar/node-1")
     src = tmp_path / "a.bin"
     src.write_bytes(b"x" * 3000)
     t.put("a.bin", src)
-    assert s3.objects == {"agentos/node-1/a.bin": b"x" * 3000}
+    assert s3.objects == {"openajar/node-1/a.bin": b"x" * 3000}
     assert t.head("a.bin") == 3000 and t.head("missing") is None
     t.get("a.bin", tmp_path / "back.bin")
     assert (tmp_path / "back.bin").read_bytes() == b"x" * 3000
@@ -172,23 +172,23 @@ def test_credentials_file_must_be_private(tmp_path):
 def test_cli_backup_to_s3_round_trip(s3, tmp_path, monkeypatch):
     from test_ops_support import PASSPHRASE, make_home
 
-    from agentos.ops import backup, cli
+    from openajar.ops import backup, cli
 
     cfg = make_home(tmp_path)
-    monkeypatch.setenv("AGENTOS_HOME", str(cfg.home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(cfg.home))
     monkeypatch.setattr(backup, "create_backup",
                         lambda *a, **kw: _real_create(*a, **{**kw, "log_n": 10}))
     pw = tmp_path / "pw"
     pw.write_text(PASSPHRASE + "\n")
     pw.chmod(0o600)
     runner = CliRunner()
-    r = runner.invoke(cli.app, ["backup", "create", "--to", "s3://bkt/agentos", "--passphrase-file", str(pw)])
+    r = runner.invoke(cli.app, ["backup", "create", "--to", "s3://bkt/openajar", "--passphrase-file", str(pw)])
     assert r.exit_code == 0, r.output
-    assert "Backup written: s3://bkt/agentos/agentos-test-node-" in r.output
+    assert "Backup written: s3://bkt/openajar/openajar-test-node-" in r.output
     (key,) = s3.objects
-    assert key.startswith("agentos/agentos-test-node-")
+    assert key.startswith("openajar/openajar-test-node-")
     assert not list((cfg.home / "backups" / "outgoing").glob("*.age"))  # the local copy is gone
-    r = runner.invoke(cli.app, ["backup", "list", "--to", "s3://bkt/agentos"])
+    r = runner.invoke(cli.app, ["backup", "list", "--to", "s3://bkt/openajar"])
     assert key.split("/")[-1] in r.output
     r = runner.invoke(cli.app, ["backup", "verify", f"s3://bkt/{key}", "--passphrase-file", str(pw)])
     assert r.exit_code == 0 and "checksums match" in r.output
@@ -200,4 +200,4 @@ def test_cli_backup_to_s3_round_trip(s3, tmp_path, monkeypatch):
     assert "TESTSECRET" not in r.output and all("TESTSECRET" not in a for a in s3.auth_seen)
 
 
-_real_create = __import__("agentos.ops.backup", fromlist=["create_backup"]).create_backup
+_real_create = __import__("openajar.ops.backup", fromlist=["create_backup"]).create_backup

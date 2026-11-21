@@ -7,7 +7,7 @@ import time
 import pytest
 from testkit.memory import fake_memory
 
-from agentos.memory.models import Caller
+from openajar.memory.models import Caller
 
 OWNER = Caller.owner()
 
@@ -191,7 +191,7 @@ def test_five_thousand_entries_search_under_50ms(tmp_path):
 
 
 def test_bad_filter_values_are_invalid(mem):
-    from agentos.core.errors import InvalidRequest
+    from openajar.core.errors import InvalidRequest
 
     for kw in ({"types": ["nope"]}, {"trust_min": "boss"}):
         with pytest.raises(InvalidRequest):

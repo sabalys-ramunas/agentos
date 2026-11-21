@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.node.channel import bridge
-from agentos.node.channel import usage as usage_module
-from agentos.node.channel.usage import LaneUsage
+from openajar.node.channel import bridge
+from openajar.node.channel import usage as usage_module
+from openajar.node.channel.usage import LaneUsage
 
 
 def proc(tmp_path, processes):

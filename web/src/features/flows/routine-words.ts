@@ -11,9 +11,6 @@ export const routineTitle = (flow: Flow) => flow.name ?? routineName(flow.id);
 /** After a save over a routine that is on: the new version is kept, and the old one keeps running until someone allowed to turn it on does. */
 export const NEEDS_REVIEW_WORDS = 'The old version keeps running until someone who may turn the new one on does.';
 
-/** Every site it touches. A recording knows only its own account. */
-export const routineSites = (flow: Flow) => (flow.sites?.length ? flow.sites : [flow.lane.split('/')[1] ?? flow.lane]);
-
 /** Its site, for a step that runs on one. */
 export function stepSite(step: RoutineStep, catalog: RoutineCatalog | undefined): string | null {
   if (step.kind !== 'action' || !step.operation) return null;

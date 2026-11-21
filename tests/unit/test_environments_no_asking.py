@@ -13,18 +13,18 @@ from datetime import timedelta
 import pytest
 from test_policy_support import Clock
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import AccountRef, ActionKind, Effect, LaneSpec, utcnow
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import Environment, EnvSettings
-from agentos.node import commitgate
-from agentos.node import tools as node_tools
-from agentos.policy.service import PolicyService
-from agentos.policy.wrap import bind_request_token, wrap_tool
-from agentos.runner.fakes import BASE
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import AccountRef, ActionKind, Effect, LaneSpec, utcnow
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import Environment, EnvSettings
+from openajar.node import commitgate
+from openajar.node import tools as node_tools
+from openajar.policy.service import PolicyService
+from openajar.policy.wrap import bind_request_token, wrap_tool
+from openajar.runner.fakes import BASE
 
 ENV_ID = "eabcdefghjk"
 TERMINAL = f"env/{ENV_ID}"

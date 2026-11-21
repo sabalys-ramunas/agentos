@@ -67,8 +67,8 @@ export function statusOf(job: Job): StatusLabel {
 }
 
 /** The command the person copies to follow it from their own terminal. */
-export const followCommand = (job: Pick<Job, 'id'>) => `agentos run --follow ${job.id}`;
-export const logsCommand = (job: Pick<Job, 'id'>) => `agentos run --logs ${job.id}`;
+export const followCommand = (job: Pick<Job, 'id'>) => `openajar run --follow ${job.id}`;
+export const logsCommand = (job: Pick<Job, 'id'>) => `openajar run --logs ${job.id}`;
 
 const DAY = 24 * 60 * 60 * 1_000;
 

@@ -5,11 +5,12 @@
 import { cn } from '@/lib/cn';
 import { waitedFor } from '@/features/home/sentence';
 
-/** A row of the queue: the open one is the pressed fill with a 2 px ink edge on its left. */
+/** A row of the queue: the open one is selected, so it takes the violet tint with a 2 px violet edge on its left
+ * (as a selected table row does). Its tile and words keep their places, so opening a row moves nothing. */
 export const queueRow = (current: boolean) =>
   cn(
-    'flex w-full min-w-0 items-start gap-3 border-l-2 py-3 pr-4 pl-4 text-left transition-colors duration-(--duration-fast) ease-standard',
-    current ? 'border-fg bg-pressed' : 'border-transparent hover:bg-hover',
+    'flex w-full min-w-0 items-start gap-3 border-l-2 py-3 pr-4 pl-4 text-left transition-colors duration-(--duration-fast) ease-standard focus-inset',
+    current ? 'border-accent bg-accent-soft [&_.text-faint]:text-muted' : 'border-transparent hover:bg-hover',
   );
 
 /** The foot of the open request: who asked on the left, the two answers on the right. */

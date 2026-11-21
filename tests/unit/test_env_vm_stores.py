@@ -8,13 +8,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agentos.core.errors import NotFound
-from agentos.environments.models import Environment
-from agentos.environments.store import SCHEMA as ENV_SCHEMA
-from agentos.environments.store import EnvironmentStore
-from agentos.vms.models import VmRecord
-from agentos.vms.store import SCHEMA as VM_SCHEMA
-from agentos.vms.store import VmStore
+from openajar.core.errors import NotFound
+from openajar.environments.models import Environment
+from openajar.environments.store import SCHEMA as ENV_SCHEMA
+from openajar.environments.store import EnvironmentStore
+from openajar.vms.models import VmRecord
+from openajar.vms.store import SCHEMA as VM_SCHEMA
+from openajar.vms.store import VmStore
 
 NOW = datetime(2026, 11, 14, 9, 0, tzinfo=UTC)
 

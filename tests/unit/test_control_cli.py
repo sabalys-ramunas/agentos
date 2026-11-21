@@ -1,4 +1,4 @@
-"""`agentos lane take|handback|stop|deny|view` against a daemon-like HTTP server running in a
+"""`openajar lane take|handback|stop|deny|view` against a daemon-like HTTP server running in a
 thread: the owner's control API behind the same bearer check the MCP endpoint uses."""
 
 from __future__ import annotations
@@ -16,12 +16,12 @@ from starlette.routing import Mount
 from test_lanes import make
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.config import load_config
-from agentos.core.models import ControlState, LaneSpec
-from agentos.mcp.server import BearerAuth
-from agentos.node.viewer_routes import control_api_routes
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.cli import app
+from openajar.core.config import load_config
+from openajar.core.models import ControlState, LaneSpec
+from openajar.mcp.server import BearerAuth
+from openajar.node.viewer_routes import control_api_routes
+from openajar.node.viewer_tokens import ViewTokens
 
 LANE = "personal/reddit"
 EM_DASH = "\u2014"
@@ -78,8 +78,8 @@ class Daemon:
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
-    monkeypatch.delenv("AGENTOS_SSH_HOST", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
+    monkeypatch.delenv("OPENAJAR_SSH_HOST", raising=False)
     return home
 
 
@@ -119,7 +119,7 @@ def test_take_handback_stop_deny(daemon, runner):
     assert not daemon.control().takeback_requested
 
     result = lane(runner, "stop", LANE)
-    assert "Stopped agents on personal/reddit" in result.output and "agentos lane handback" in result.output
+    assert "Stopped agents on personal/reddit" in result.output and "openajar lane handback" in result.output
     assert daemon.control().state == ControlState.PAUSED
     assert "already stopped" in lane(runner, "stop", LANE).output
 
@@ -179,12 +179,12 @@ def test_daemon_not_running(home, runner):
         result = lane(runner, cmd, LANE)
         assert result.exit_code == 1
         assert f"agentosd is not running on http://127.0.0.1:{port}" in result.output
-        assert "agentos node serve" in result.output
+        assert "openajar node serve" in result.output
 
 
 def test_not_initialized(home, runner):
     result = lane(runner, "take", LANE)
-    assert result.exit_code == 1 and "agentos node init" in result.output
+    assert result.exit_code == 1 and "openajar node init" in result.output
 
 
 def test_wrong_token(daemon, runner, home):

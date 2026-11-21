@@ -1,4 +1,4 @@
-"""Morph Cloud (agentos.vms.morph) against a fake Morph API (httpx.MockTransport): the key check,
+"""Morph Cloud (openajar.vms.morph) against a fake Morph API (httpx.MockTransport): the key check,
 sizes and prices, create, get, list, delete and snapshots with metadata labels, image names, the
 SSH command line (the key never on it), pause and resume, the TTL backstop, and the settings that
 pick the provider. No real Morph account is used."""
@@ -14,17 +14,17 @@ from datetime import timedelta
 import httpx
 import pytest
 
-from agentos.core.runtime import Runtime
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments.tunnels import git_tunnel_argv, tunnel_argv
-from agentos.vms import morph, providers, ssh
-from agentos.vms.manager import VmManager
-from agentos.vms.models import MORPH_TOKEN_FILE, VmError, VmSettings
-from agentos.vms.morph import MorphProvider, mcu_per_hour
-from agentos.vms.provider import ServerSpec, capable
+from openajar.core.runtime import Runtime
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments.tunnels import git_tunnel_argv, tunnel_argv
+from openajar.vms import morph, providers, ssh
+from openajar.vms.manager import VmManager
+from openajar.vms.models import MORPH_TOKEN_FILE, VmError, VmSettings
+from openajar.vms.morph import MorphProvider, mcu_per_hour
+from openajar.vms.provider import ServerSpec, capable
 
 KEY = "morph_SECRETKEY_123"
 GATEWAY = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGatewayHostKeyForTests"]
@@ -32,7 +32,7 @@ PRIVATE = "-----BEGIN OPENSSH PRIVATE KEY-----\ninstance-key\n-----END OPENSSH P
 
 
 class FakeMorph:
-    """Morph's API as far as agentos uses it: instances, snapshots, pause, keys, TTLs and metadata."""
+    """Morph's API as far as openajar uses it: instances, snapshots, pause, keys, TTLs and metadata."""
 
     def __init__(self):
         self.instances: dict[str, dict] = {}
@@ -148,7 +148,7 @@ async def test_the_key_is_checked_and_never_shown():
     api.fail["GET /instance"] = [401]
     with pytest.raises(VmError) as e:
         await provider(api).check()
-    assert "API key was refused" in e.value.message and "agentos vm setup --provider morph" in e.value.message
+    assert "API key was refused" in e.value.message and "openajar vm setup --provider morph" in e.value.message
     assert KEY not in e.value.message and KEY not in repr(provider(api))
     with pytest.raises(VmError, match="no Morph API key"):
         MorphProvider("  ")
@@ -186,19 +186,19 @@ async def test_the_node_plans_the_cheapest_size_that_fits(tmp_path):
 async def test_create_from_the_base_image_boots_the_size_with_labels_ttl_and_the_instances_own_key():
     api = FakeMorph()
     p = provider(api)
-    s = await p.create_server(ServerSpec(name="agentos-vm-1", server_type="morph-medium",
+    s = await p.create_server(ServerSpec(name="openajar-vm-1", server_type="morph-medium",
                                          image=await p.resolve_image("ubuntu-24.04"), location="morph",
                                          user_data="#cloud-config\n", labels={"agentos-node": "n1", "agentos-vm": "vm_1"},
                                          ttl_s=7200))
     method, path, _params, body = api.calls[0]
     assert (method, path) == ("POST", "/image/morphvm-minimal/boot")
     assert body["vcpus"] == 4 and body["memory"] == 8192 and body["disk_size"] == 65536
-    assert body["metadata"] == {"agentos-node": "n1", "agentos-vm": "vm_1", "agentos-name": "agentos-vm-1"}
+    assert body["metadata"] == {"agentos-node": "n1", "agentos-vm": "vm_1", "openajar-name": "openajar-vm-1"}
     assert body["ttl_seconds"] == 7200 and body["ttl_action"] == "stop"
     assert "user_data" not in body  # no cloud-init on Morph
     assert s.id.startswith("morphvm_") and s.status == "running" and s.server_type == "morph-medium"
     assert s.ipv4 == "ssh.cloud.morph.so" and s.ssh_user == s.id and s.ssh_port == 22
-    assert s.ssh_key == PRIVATE and s.host_keys == GATEWAY and s.name == "agentos-vm-1"
+    assert s.ssh_key == PRIVATE and s.host_keys == GATEWAY and s.name == "openajar-vm-1"
     assert "instance-key" not in repr(s)  # the private key never in a log line
 
 
@@ -261,14 +261,14 @@ async def test_snapshots_carry_labels_as_metadata_and_resolve_by_name():
     api = FakeMorph()
     p = provider(api)
     inst = api._instance(SMALL, {}, {})
-    sid = await p.create_snapshot(inst["id"], "agentos dev (node-1)", {"agentos-image": "dev", "agentos-home": "h1"})
+    sid = await p.create_snapshot(inst["id"], "openajar dev (node-1)", {"agentos-image": "dev", "agentos-home": "h1"})
     assert api.snapshots[sid]["metadata"] == {"agentos-image": "dev", "agentos-home": "h1",
-                                              "agentos-description": "agentos dev (node-1)"}
+                                              "openajar-description": "openajar dev (node-1)"}
     newer = api.snapshot(SMALL, {"agentos-image": "dev"})
     api.snapshot(SMALL, {"agentos-image": "dev"}, status="pending")  # not ready: never picked
     assert await p.resolve_image("snapshot:dev") == newer["id"]
     assert await p.resolve_image(sid) == sid
-    with pytest.raises(VmError, match="agentos vm image build web"):
+    with pytest.raises(VmError, match="openajar vm image build web"):
         await p.resolve_image("snapshot:web")
     info = await p.image_info("snapshot:dev")
     assert info == {"architecture": "x86", "disk_gb": 32.0}
@@ -410,8 +410,8 @@ def test_pinning_the_gateway_keeps_its_keys_and_says_their_fingerprints(tmp_path
 
 def test_backstop_is_past_the_limit_and_the_saves_grace(tmp_path):
     vms = VmManager(tmp_path, provider=provider(FakeMorph()), settings=VmSettings(provider="morph"))
-    from agentos.core.models import utcnow
-    from agentos.vms.models import VmRecord
+    from openajar.core.models import utcnow
+    from openajar.vms.models import VmRecord
 
     now = utcnow()
     rec = VmRecord(id="vm_1", lane_id="dev/x", node="n", profile="small", server_type="morph-small",
@@ -432,7 +432,7 @@ async def test_an_image_build_boots_the_base_image_keeps_ssh_and_labels_the_snap
     out = await vms.build_image("dev", script="set -eu\necho build\n")
     boot = next(c for c in api.calls if c[1].endswith("/boot"))
     assert boot[1] == "/image/morphvm-minimal/boot" and boot[3]["vcpus"] == 2
-    assert ran == ["export AGENTOS_KEEP_SSH=1\nset -eu\necho build\n"]
+    assert ran == ["export OPENAJAR_KEEP_SSH=1\nset -eu\necho build\n"]
     snap = api.snapshots[out["snapshot_id"]]
     assert snap["metadata"]["agentos-image"] == "dev" and snap["metadata"]["agentos-home"] == vms.home_id
     assert api.instances == {}  # the build machine is deleted
@@ -444,7 +444,7 @@ async def test_an_image_build_boots_the_base_image_keeps_ssh_and_labels_the_snap
 def test_vm_setup_with_morph_keeps_the_key_pins_the_gateway_and_picks_the_provider(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.vms import cli as vm_cli
+    from openajar.vms import cli as vm_cli
 
     async def ok(self):
         return None

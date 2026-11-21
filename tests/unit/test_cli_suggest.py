@@ -7,9 +7,9 @@ import sqlite3
 import pytest
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core.suggest import owner_message
-from agentos.core.text import close_match
+from openajar.cli import app
+from openajar.core.suggest import owner_message
+from openajar.core.text import close_match
 
 EM_DASH = "—"
 
@@ -27,41 +27,41 @@ def node_home(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     (home / "node.toml").write_text('name = "box"\n')
-    with sqlite3.connect(home / "agentos.db") as conn:
+    with sqlite3.connect(home / "openajar.db") as conn:
         conn.execute("CREATE TABLE lanes (id TEXT PRIMARY KEY)")
         conn.executemany("INSERT INTO lanes VALUES (?)", [("personal/reddit",), ("test/reddit",)])
     with sqlite3.connect(home / "workspaces.db") as conn:
         conn.execute("CREATE TABLE workspaces (id TEXT PRIMARY KEY)")
         conn.execute("INSERT INTO workspaces VALUES ('studio')")
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     return home
 
 
 def test_owner_message_suggests_a_lane_and_a_workspace(node_home):
-    lane = owner_message("lane_not_found", "no lane named test/redit. Create it with: agentos lane create test/redit")
+    lane = owner_message("lane_not_found", "no lane named test/redit. Create it with: openajar lane create test/redit")
     assert lane.startswith("no lane named test/redit. Did you mean test/reddit?") and "create" not in lane
-    ws = owner_message("not_found", "no workspace 'tset'; create it with: agentos workspace create tset")
+    ws = owner_message("not_found", "no workspace 'tset'; create it with: openajar workspace create tset")
     assert "Did you mean 'test'?" in ws and "create it" not in ws
     assert "Did you mean 'studio'?" in owner_message("not_found", "no workspace 'studoi'")
-    far = "no lane named qa/zzz. Create it with: agentos lane create qa/zzz"
+    far = "no lane named qa/zzz. Create it with: openajar lane create qa/zzz"
     assert owner_message("lane_not_found", far) == far  # nothing close: the create hint stays
     other = "no lane named test/redit"
     assert owner_message("denied", other) == other
 
 
 def test_owner_message_off_a_node_changes_nothing(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "nothing"))
-    msg = "no lane named test/redit. Create it with: agentos lane create test/redit"
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "nothing"))
+    msg = "no lane named test/redit. Create it with: openajar lane create test/redit"
     assert owner_message("lane_not_found", msg) == msg
 
 
 @pytest.mark.parametrize(("args", "meant"), [
-    (["lane", "show", "x"], "agentos lane check"),
-    (["lane", "info"], "agentos lane check"),
-    (["workspace", "info", "x"], "agentos workspace show"),
+    (["lane", "show", "x"], "openajar lane check"),
+    (["lane", "info"], "openajar lane check"),
+    (["workspace", "info", "x"], "openajar workspace show"),
 ])
 def test_unknown_detail_command_names_the_one_that_shows_one_thing(args, meant):
-    result = CliRunner().invoke(app, args, prog_name="agentos", env={"COLUMNS": "200"})
+    result = CliRunner().invoke(app, args, prog_name="openajar", env={"COLUMNS": "200"})
     assert result.exit_code == 2
     assert f"Did you mean '{meant}'?" in " ".join(result.output.split()).replace("│", "")
     assert EM_DASH not in result.output
@@ -69,4 +69,4 @@ def test_unknown_detail_command_names_the_one_that_shows_one_thing(args, meant):
 
 def test_a_close_spelling_keeps_typers_own_suggestion():
     result = CliRunner().invoke(app, ["lane", "lsit"])
-    assert result.exit_code == 2 and "'list'" in result.output and "agentos lane check" not in result.output
+    assert result.exit_code == 2 and "'list'" in result.output and "openajar lane check" not in result.output

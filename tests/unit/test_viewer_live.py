@@ -1,4 +1,4 @@
-"""Live sockets on viewer links (agentos.core.live): a freeze, an expiry or a revoke closes the relay and
+"""Live sockets on viewer links (openajar.core.live): a freeze, an expiry or a revoke closes the relay and
 the event stream; an owner link keeps them through a freeze; a renew before expiry moves the expiry out.
 
 Built on test_viewer_app's fakes: a FakeVnc behind a real uvicorn, the lane manager from test_lanes, the
@@ -21,11 +21,11 @@ from test_vnc_relay import HANDSHAKE_IN, HANDSHAKE_OUT, FakeVnc, fbur
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
-from agentos.core.live import LiveSockets
-from agentos.core.models import LaneSpec
-from agentos.node import viewer_app, vnc_relay
-from agentos.node.viewer_app import build_viewer_app
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.core.live import LiveSockets
+from openajar.core.models import LaneSpec
+from openajar.node import viewer_app, vnc_relay
+from openajar.node.viewer_app import build_viewer_app
+from openajar.node.viewer_tokens import ViewTokens
 
 GREETING = b"RFB 003.008\n"
 WORKSPACE = LANE.split("/", 1)[0]
@@ -318,3 +318,22 @@ async def test_a_link_the_freeze_ended_stays_ended_after_the_unfreeze(live_node)
     assert r.status_code == 409 and r.json()["error"]["code"] == "frozen"
     async with watching(node, node.token("control")):  # a new link works again
         assert_open(node.live)
+
+
+async def test_a_burst_of_pointer_moves_never_pushes_out_a_control_change_or_the_end():
+    import asyncio
+
+    from openajar.node.viewer_app import put_event
+
+    q: asyncio.Queue = asyncio.Queue(maxsize=4)
+    put_event(q, ("control", "human"))
+    for i in range(10):
+        put_event(q, ("pointer", i))  # the queue fills; the newest moves are dropped, never the control
+    put_event(q, ("ended", "frozen"))  # an old pointer move makes room
+    got = [q.get_nowait() for _ in range(q.qsize())]
+    assert got[0] == ("control", "human") and got[-1] == ("ended", "frozen") and len(got) == 4
+    for i in range(3):
+        put_event(q, ("action", i))
+    put_event(q, ("action", 3))
+    put_event(q, ("control", "agent"))  # no pointer to drop: the oldest goes, as before
+    assert [q.get_nowait() for _ in range(q.qsize())][-1] == ("control", "agent")

@@ -13,10 +13,10 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.errors import EngineError
-from agentos.core.models import LaneSpec
-from agentos.node.camoufox import engine as ec
-from agentos.node.camoufox.engine import (
+from openajar.core.errors import EngineError
+from openajar.core.models import LaneSpec
+from openajar.node.camoufox import engine as ec
+from openajar.node.camoufox.engine import (
     CANVAS_PREF,
     CANVAS_TARGETS,
     LAUNCHER_KEYS,
@@ -338,12 +338,12 @@ def test_a_version_2_pin_keeps_its_record_apart(tmp_path):
 def test_a_broken_record_or_a_record_alone_is_handled(caplog):
     assert split_pin({"navigator.platform": "Win32", PIN_META: "nonsense"}).version == 1
     assert "not an object" in caplog.text
-    with pytest.raises(EngineError, match="only agentos's record"):
+    with pytest.raises(EngineError, match="only openajar's record"):
         split_pin({PIN_META: {"version": 2}})
 
 
 def test_ops_tools_read_and_refresh_a_version_2_pin(tmp_path):
-    from agentos.node import fingerprint as ops_fp
+    from openajar.node import fingerprint as ops_fp
     fp = tmp_path / "fingerprint.json"
     stored = {**v1_pin(), PIN_META: {"version": 2, "prefs": {"webgl.enable-webgl2": True}}}
     fp.write_text(json.dumps(stored))
@@ -476,7 +476,7 @@ def test_the_display_is_the_pinned_screen_and_the_window_sits_at_its_pinned_plac
 
 
 def test_a_screen_larger_than_xvfb_serves_gives_the_window_a_display_of_its_own_size():
-    from agentos.node.display import MAX_SIZE, fit_size
+    from openajar.node.display import MAX_SIZE, fit_size
 
     # an 8K screen at ratio 2 is 15360x8640 pixels, past Xvfb's maximum: the display used to fall
     # back to 1920x1080 under a 7680x4200 window. Now the display is the window, which fits.
@@ -649,12 +649,12 @@ def test_pinned_prefs_win_even_when_camoufox_overrides_them(lane, caplog):
         assert env_prefs["webgl.enable-webgl2"] == meta["prefs"]["webgl.enable-webgl2"]
 
 
-def test_a_pin_from_a_newer_agentos_is_used_as_it_is(lane, caplog):
+def test_a_pin_from_a_newer_openajar_is_used_as_it_is(lane, caplog):
     _engine, fp, launch = lane
     fp.write_text(json.dumps({**v1_pin(), PIN_META: {"version": 3}}))
     original = fp.read_bytes()
     plan = launch()
-    assert plan.pin is None and fp.read_bytes() == original and "newer than this agentos" in caplog.text
+    assert plan.pin is None and fp.read_bytes() == original and "newer than this openajar" in caplog.text
     assert identity(plan.config) == identity(v1_pin())
 
 
@@ -673,7 +673,7 @@ def test_a_version_2_pin_missing_its_record_is_completed(lane):
 
 
 def test_the_first_launch_after_a_browser_upgrade_moves_only_the_firefox_version(lane):
-    from agentos.stealth import stealth
+    from openajar.stealth import stealth
 
     engine, fp, launch = lane
     engine.browser_version = lambda: "158.0.1-beta.41"

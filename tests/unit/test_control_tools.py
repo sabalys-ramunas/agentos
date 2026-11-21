@@ -11,16 +11,16 @@ import pytest
 from pydantic import ValidationError, create_model
 from test_lanes import make
 
-from agentos.core.errors import AgentPaused, HumanInControl, InvalidRequest, PolicyDenied, ServiceUnavailable
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
-from agentos.node import control_tools
-from agentos.node.control_tools import take_over_link, tool_specs
-from agentos.node.flow_lanes import control_gate
-from agentos.node.io_tools import _not_paused
-from agentos.node.tools import lane_view, session
-from agentos.node.viewer_tokens import ViewTokens
-from agentos.policy.ceiling import ControllerCeiling
+from openajar.core.errors import AgentPaused, HumanInControl, InvalidRequest, PolicyDenied, ServiceUnavailable
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
+from openajar.node import control_tools
+from openajar.node.control_tools import take_over_link, tool_specs
+from openajar.node.flow_lanes import control_gate
+from openajar.node.io_tools import _not_paused
+from openajar.node.tools import lane_view, session
+from openajar.node.viewer_tokens import ViewTokens
+from openajar.policy.ceiling import ControllerCeiling
 
 LANE = "personal/reddit"
 EM_DASH = "\u2014"
@@ -45,7 +45,7 @@ class FakeCtx:
 @pytest.fixture
 async def env(tmp_path):
     mgr, *_ = make(tmp_path)
-    from agentos.core.models import LaneSpec
+    from openajar.core.models import LaneSpec
 
     await mgr.create(LaneSpec(id=LANE))
     runtime = Runtime(lanes=mgr, config=mgr.config)
@@ -103,9 +103,9 @@ async def test_lane_control_reports_who_may_act(env):
     assert out["state"] == "paused" and "do not ask again" in out["next"]
 
 
-async def test_a_pause_agentos_made_itself_is_never_worded_as_a_persons(env):
-    """agentos held the lane for a CAPTCHA (by node, needs_human:captcha): everything an agent reads
-    says agentos paused it, why, and that the human solves it in the live view. An agent told "a human
+async def test_a_pause_openajar_made_itself_is_never_worded_as_a_persons(env):
+    """openajar held the lane for a CAPTCHA (by node, needs_human:captcha): everything an agent reads
+    says openajar paused it, why, and that the human solves it in the live view. An agent told "a human
     stopped the agent" tells its human something false. A person's own stop still says a person did it."""
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
@@ -123,7 +123,7 @@ async def test_a_pause_agentos_made_itself_is_never_worded_as_a_persons(env):
             pass
     said.append(e.value.message)
     for text in said:
-        assert f"agentos paused {LANE} itself (no person stopped you)" in text, text
+        assert f"openajar paused {LANE} itself (no person stopped you)" in text, text
         assert "CAPTCHA" in text and "social.example" in text and "live view" in text, text
         assert "human stopped" not in text and "stopped the agent" not in text and EM_DASH not in text
     assert "browser_wait_handback" in said[0] and "do not ask again" in said[0]
@@ -237,7 +237,7 @@ async def test_tools_need_the_lanes_service():
 
 
 def test_take_over_link(tmp_path, monkeypatch):
-    monkeypatch.delenv("AGENTOS_SSH_HOST", raising=False)
+    monkeypatch.delenv("OPENAJAR_SSH_HOST", raising=False)
     mgr, *_ = make(tmp_path, mcp_port=7441, ssh_host="mynode")
     runtime = Runtime(lanes=mgr, config=mgr.config)
     link = take_over_link(runtime, LANE)
@@ -246,7 +246,7 @@ def test_take_over_link(tmp_path, monkeypatch):
     token = link["url"].split("?t=", 1)[1]
     assert ViewTokens.for_config(mgr.config).verify(token, LANE).can_control
     assert EM_DASH not in link["take_over"]
-    monkeypatch.setenv("AGENTOS_SSH_HOST", "tunnelhost")
+    monkeypatch.setenv("OPENAJAR_SSH_HOST", "tunnelhost")
     assert take_over_link(runtime, LANE)["tunnel"].endswith(" tunnelhost")
     assert take_over_link(runtime, LANE, ssh_host="x", port=9000, base="/node")["url"].startswith(
         "http://localhost:9000/node/view/personal/reddit?t=")
@@ -258,10 +258,10 @@ def test_lane_view_links_follow_the_route_connect_recorded_for_the_grant(tmp_pat
     """QA 2026-11-10 finding 9: on a second node the link named this node's port and hostname."""
     from types import SimpleNamespace
 
-    from agentos.node import viewroutes
-    from agentos.node.tools.lanes import _caller_route
+    from openajar.node import viewroutes
+    from openajar.node.tools.lanes import _caller_route
 
-    monkeypatch.delenv("AGENTOS_SSH_HOST", raising=False)
+    monkeypatch.delenv("OPENAJAR_SSH_HOST", raising=False)
     mgr, *_ = make(tmp_path, mcp_port=7400, ssh_host="ubuntu-8gb-fsn1-2")
     runtime = Runtime(lanes=mgr, config=mgr.config)
     ctx = FakeCtx(runtime)

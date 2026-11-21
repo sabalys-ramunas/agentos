@@ -158,9 +158,9 @@ function checkedWords(story: HistoryStory, named: string): { label: string; verd
   const artifact = artifactOf(story);
   switch (artifact?.type) {
     case 'email':
-      return { label: 'Sent, checked', verdict: 'It was sent, and we checked.', because: `Afterwards, agentos found it in ${named}'s Sent folder. This is the email as it went out.` };
+      return { label: 'Sent, checked', verdict: 'It was sent, and we checked.', because: `Afterwards, openajar found it in ${named}'s Sent folder. This is the email as it went out.` };
     case 'message':
-      return { label: 'Sent, checked', verdict: 'The reply is there, and we checked.', because: `Afterwards, agentos found the reply in the thread on ${named}.` };
+      return { label: 'Sent, checked', verdict: 'The reply is there, and we checked.', because: `Afterwards, openajar found the reply in the thread on ${named}.` };
     case 'files':
       return {
         label: 'Saved, checked',
@@ -168,16 +168,16 @@ function checkedWords(story: HistoryStory, named: string): { label: string; verd
         because: 'Each file opened and is the size it should be.',
       };
     case 'payment':
-      return { label: 'Paid, checked', verdict: 'It was paid, and we checked.', because: `Afterwards, agentos found the payment in ${named}'s list of payments.` };
+      return { label: 'Paid, checked', verdict: 'It was paid, and we checked.', because: `Afterwards, openajar found the payment in ${named}'s list of payments.` };
     case 'form':
       return { label: 'Sent in, checked', verdict: 'It was sent in, and we checked.', because: `${capital(named)} confirmed it. This is the form as it was sent, with what changed marked.` };
     case 'table':
-      return { label: 'Checked', verdict: 'Done, and this is what it found.', because: artifact.summary ?? `agentos read ${named} and kept what it found.` };
+      return { label: 'Checked', verdict: 'Done, and this is what it found.', because: artifact.summary ?? `openajar read ${named} and kept what it found.` };
     case 'order':
       return {
         label: 'Done, checked',
         verdict: artifact.refund ? 'The refund went through, and we checked.' : 'The order is in, and we checked.',
-        because: `Afterwards, agentos found it on ${named}.`,
+        because: `Afterwards, openajar found it on ${named}.`,
       };
     case 'command':
       return { label: 'Done, checked', verdict: 'It ran, and finished cleanly.', because: 'This is the command, and what it printed.' };
@@ -188,7 +188,7 @@ function checkedWords(story: HistoryStory, named: string): { label: string; verd
   return {
     label: goesPublic ? 'Live, checked' : 'Checked',
     verdict: goesPublic ? 'It is live, and we checked.' : 'Done, and we checked.',
-    because: story.proof?.screenshot ? `Afterwards, agentos opened ${named} as a visitor and found it. This is what it saw.` : `agentos looked at ${named} afterwards and saw it was done.`,
+    because: story.proof?.screenshot ? `Afterwards, openajar opened ${named} as a visitor and found it. This is what it saw.` : `openajar looked at ${named} afterwards and saw it was done.`,
   };
 }
 

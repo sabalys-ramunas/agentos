@@ -112,9 +112,9 @@ def example_key(direction: str, data: dict) -> str:
 def _direction() -> str | None:
     for frame in inspect.stack()[2:8]:
         module = frame.frame.f_globals.get("__name__", "")
-        if module.startswith("agentos.controller"):
+        if module.startswith("openajar.controller"):
             return NODE_TO_CONTROLLER
-        if module.startswith("agentos.node.channel"):
+        if module.startswith("openajar.node.channel"):
             return CONTROLLER_TO_NODE
     return None
 
@@ -122,7 +122,7 @@ def _direction() -> str | None:
 @contextlib.contextmanager
 def recording():
     """Collect (direction, decoded JSON) for every text frame read through wire.decode."""
-    from agentos.node.channel import wire
+    from openajar.node.channel import wire
 
     seen: list[tuple[str, dict]] = []
     real = wire.decode
@@ -200,9 +200,9 @@ async def _start_node(home: Path, name: str, ctl: Any, lanes: list[str]) -> Any:
     from channel_support import FAST, RunningNode, extra_tools, join_node
     from fakes import FakeInteraction
 
-    from agentos.core.models import LaneSpec
-    from agentos.mcp import providers as mcp_providers
-    from agentos.node.daemon import build_services, node_runtime, serve
+    from openajar.core.models import LaneSpec
+    from openajar.mcp import providers as mcp_providers
+    from openajar.node.daemon import build_services, node_runtime, serve
 
     config = await join_node(home, name, ctl)
     manager = ControlLanes(config)
@@ -210,7 +210,7 @@ async def _start_node(home: Path, name: str, ctl: Any, lanes: list[str]) -> Any:
         await manager.create(LaneSpec(id=lane))
     interaction = FakeInteraction()
     runtime = node_runtime(config, manager, interaction)
-    build_services(runtime, ["agentos.policy.service", "agentos.freeze.service", "agentos.node.channel.service"])
+    build_services(runtime, ["openajar.policy.service", "openajar.freeze.service", "openajar.node.channel.service"])
     channel = runtime.get("channel")
     channel.timings = dataclasses.replace(FAST, doctor_after=600.0)  # no doctor report mid-session: it is timed
     channel._backoff.low, channel._backoff.high = FAST.backoff_min, FAST.backoff_max

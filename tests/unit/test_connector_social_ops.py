@@ -14,14 +14,14 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from agentos.core.models import RunStatus, Signal
-from agentos.node.egress import EFFECT_RULES, classify, request_op
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path
-from agentos.runner.connectors.marks import MarkLedger
-from agentos.runner.connectors.models import ActingAs, Operation
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.verify import bump_patch, mark_installed, mark_verified
-from agentos.runner.fakes import OWNER, El, FakeClock, FakeLanes, FakeNotifier, FakeSite, Harness
+from openajar.core.models import RunStatus, Signal
+from openajar.node.egress import EFFECT_RULES, classify, request_op
+from openajar.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path
+from openajar.runner.connectors.marks import MarkLedger
+from openajar.runner.connectors.models import ActingAs, Operation
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.verify import bump_patch, mark_installed, mark_verified
+from openajar.runner.fakes import OWNER, El, FakeClock, FakeLanes, FakeNotifier, FakeSite, Harness
 
 # (flow id, the verified egress rule its commit request matches): every commit operation of the two connectors
 OPS = (
@@ -260,9 +260,9 @@ def test_the_ledger_is_the_owners_and_unreadable_means_no_marks(tmp_path):
 def test_the_cli_marks_an_operation_from_a_directory_into_the_ledger(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.runner.connectors.cli import app
+    from openajar.runner.connectors.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     d = tmp_path / "linkedin"
     shutil.copytree(LINKEDIN, d)
     out = CliRunner().invoke(app, ["verify", "linkedin.react", "--dir", str(d), "--date", "2026-11-06",
@@ -282,9 +282,9 @@ def test_the_cli_never_marks_the_connector_in_the_working_directory(tmp_path, mo
     directory is never picked up."""
     from typer.testing import CliRunner
 
-    from agentos.runner.connectors.cli import app
+    from openajar.runner.connectors.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     work = tmp_path / "work"
     shutil.copytree(LINKEDIN, work / "connectors" / "linkedin")
     monkeypatch.chdir(work)
@@ -298,9 +298,9 @@ def test_the_cli_never_marks_the_connector_in_the_working_directory(tmp_path, mo
 def test_a_version_that_is_not_semver_is_a_clean_error(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.runner.connectors.cli import app
+    from openajar.runner.connectors.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "home"))
     d = tmp_path / "reddit"
     shutil.copytree(REDDIT, d)
     doc = json.loads((d / "connector.json").read_text())
@@ -815,7 +815,7 @@ async def test_a_url_readback_that_could_not_be_checked_never_reads_as_proof(tmp
 
 
 async def test_url_readback_saves_found_only_when_it_passed(tmp_path):
-    from agentos.runner.executor import FlowExecutor
+    from openajar.runner.executor import FlowExecutor
 
     calls = {}
 
@@ -826,7 +826,7 @@ async def test_url_readback_saves_found_only_when_it_passed(tmp_path):
         async def signal(self):
             return Signal.CAPTCHA
 
-    from agentos.runner.models import ReadbackStep
+    from openajar.runner.models import ReadbackStep
     step = ReadbackStep.model_validate({"type": "readback", "save_as": "post", "timeout_ms": 0, "condition": {
         "kind": "url", "matches": "^https://www\\.reddit\\.com/r/"}})
     ex = FlowExecutor.__new__(FlowExecutor)
@@ -840,7 +840,7 @@ async def test_url_readback_saves_found_only_when_it_passed(tmp_path):
 
 async def test_a_connector_run_scopes_its_lane_to_the_commit_request_it_declares(tmp_path):
     """The executor tells the driver which request the run may commit with (the egress guard
-    refuses any other: agentos.node.egress.FlowCommit), and a read declares none."""
+    refuses any other: openajar.node.egress.FlowCommit), and a read declares none."""
     h = await _li_harness(tmp_path)
     seen: list[tuple[str, dict | None]] = []
 
@@ -855,7 +855,7 @@ async def test_a_connector_run_scopes_its_lane_to_the_commit_request_it_declares
 
 
 async def test_a_run_whose_commit_scope_cannot_be_bound_does_not_start(tmp_path):
-    from agentos.core.errors import EngineError
+    from openajar.core.errors import EngineError
 
     h = await _li_harness(tmp_path)
 
@@ -867,7 +867,7 @@ async def test_a_run_whose_commit_scope_cannot_be_bound_does_not_start(tmp_path)
 
 
 def test_changed_from_is_an_attribute_check_against_a_saved_element():
-    from agentos.core.locator import Condition
+    from openajar.core.locator import Condition
 
     c = Condition.model_validate({"kind": "attribute", "name": "data-urn", "changed_from": "before"})
     fresh = c.render({"vars": {"before": {"found": True, "attributes": {"data-urn": "urn:li:activity:1"}}}})
@@ -884,9 +884,9 @@ def test_changed_from_is_an_attribute_check_against_a_saved_element():
 def test_changed_from_never_passes_on_a_missing_baseline():
     """A baseline that was not there (no element, no attribute, ambiguous) fails the check, unless
     the condition allows an empty list, and then only when the saved read found nothing at all."""
-    from agentos.core.driver import ElementState
-    from agentos.core.locator import Condition
-    from agentos.runner.proof import evaluate
+    from openajar.core.driver import ElementState
+    from openajar.core.locator import Condition
+    from openajar.runner.proof import evaluate
 
     old = "https://media.licdn.com/dms/image/v2/D4D03AQOLD/profile-displayphoto-shrink_200_200/0/1?e=1&t=a"
     shown = ElementState(count=1, found=True, attributes={"src": old})
@@ -907,9 +907,9 @@ def test_changed_from_never_passes_on_a_missing_baseline():
 
 
 def test_changed_from_compares_the_identity_not_the_raw_value():
-    from agentos.core.driver import ElementState
-    from agentos.core.locator import Condition
-    from agentos.runner.proof import evaluate
+    from openajar.core.driver import ElementState
+    from openajar.core.locator import Condition
+    from openajar.runner.proof import evaluate
 
     ident = r"^https://media\.licdn\.com/dms/image/(?:v2/)?([A-Za-z0-9_-]+)/"
     c = Condition.model_validate({"kind": "attribute", "name": "src", "changed_from": "before", "identity": ident})
@@ -931,9 +931,9 @@ def test_changed_from_compares_the_identity_not_the_raw_value():
 
 
 def test_a_lines_text_condition_keeps_line_breaks():
-    from agentos.core.driver import ElementState
-    from agentos.core.locator import Condition
-    from agentos.runner.proof import evaluate
+    from openajar.core.driver import ElementState
+    from openajar.core.locator import Condition
+    from openajar.runner.proof import evaluate
 
     c = Condition.model_validate({"kind": "text", "equals": "One.\nTwo.", "lines": True})
     st = ElementState(count=1, found=True, text="One. Two.", lines="  One.\t \n Two.  \n")
@@ -949,7 +949,7 @@ def test_a_lines_text_condition_keeps_line_breaks():
 def test_pace_counts_a_week_too():
     from datetime import UTC, datetime, timedelta
 
-    from agentos.runner.connectors.pace import pace_problem
+    from openajar.runner.connectors.pace import pace_problem
 
     now = datetime(2026, 11, 10, 12, tzinfo=UTC)
     runs = [SimpleNamespace(id=f"r{i}", surface="test/linkedin", status=RunStatus.SUCCEEDED_VERIFIED,

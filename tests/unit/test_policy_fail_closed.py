@@ -1,4 +1,4 @@
-"""Fail-closed audit of the authorization core (agentos.policy, 2026-11-07): each test injects the
+"""Fail-closed audit of the authorization core (openajar.policy, 2026-11-07): each test injects the
 failure a path used to read as "allow" and asserts the refusal, next to a control that shows the
 ordinary path still works."""
 
@@ -10,14 +10,14 @@ from pathlib import Path
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, AuditUnwritable
-from agentos.core.models import Effect
-from agentos.policy import tokens
-from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.grants import Grant, blocks_from_token
-from agentos.policy.routing import PolicyConfig, load_policy_config
-from agentos.policy.traces import TraceEvent
+from openajar.core.errors import ApprovalPending, AuditUnwritable
+from openajar.core.models import Effect
+from openajar.policy import tokens
+from openajar.policy.approval_models import ApprovalPolicy, FourEyesRule
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.grants import Grant, blocks_from_token
+from openajar.policy.routing import PolicyConfig, load_policy_config
+from openajar.policy.traces import TraceEvent
 
 T0 = 1_700_000_000.0
 

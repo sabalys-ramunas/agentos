@@ -1,6 +1,6 @@
 # The lane egress guard: site lists and effect classes, enforced on the node
 
-Status: built 2026-11-04 (`agentos.node.egress`, `agentos.node.routes`); the pre-check was rebuilt
+Status: built 2026-11-04 (`openajar.node.egress`, `openajar.node.routes`); the pre-check was rebuilt
 the same day after an internal QA pass. The same day, after
 the owner's first real sign-in through the live view (a throwaway Reddit account, Google sign-in),
 the identity group, `frame:` and `@cc` entries, block notices in the live view and the daemon's
@@ -145,12 +145,12 @@ No lane gets a permanent route: that would change how every lane talks to every 
    popup is closed, and a refused document that commits anyway (the stop lost the race) is left
    with `go_back`. A refused non-GET request cannot be stopped this way: it is recorded, and a
    refused commit holds the lane (`egress:commit <host>`), so the agent stops until a human looks.
-3. **Strict lanes, opt in.** `agentos lane sites <lane> strict on` adds a catch-all route through
+3. **Strict lanes, opt in.** `openajar lane sites <lane> strict on` adds a catch-all route through
    the lane's `RouteDispatcher` only while an agent's action runs (navigate and act, not waits).
    It aborts refused requests before they leave. Its costs, measured above: requests pause for the
    driver, and responses that arrive during the action are not stored in the cache. Redirect hops
    are still only contained.
-4. **One route dispatcher per context.** `agentos.node.routes.RouteDispatcher` owns every
+4. **One route dispatcher per context.** `openajar.node.routes.RouteDispatcher` owns every
    `context.route` of a lane. The Web Bot Auth `LaneSigner` installs its per-origin routes through
    it, exactly as it did on the context; the strict guard is a dispatcher guard and runs first, so
    a refused request is never signed. A routed request is dispatched once, and with no signer and
@@ -208,7 +208,7 @@ calls):
 - A commit the grant does allow is traced as `observed_commit` (host, path, method, body size,
   the rule and whether it is verified). During an agent's act the commit gate holds it first
   (section 8).
-- **Observing a lane** (added 2026-11-04 for the connectors canary): `agentos lane sites <lane> observe
+- **Observing a lane** (added 2026-11-04 for the connectors canary): `openajar lane sites <lane> observe
   on [minutes]` (default 60, at most 240; `off` ends it) writes an expiry to
   `lanes/<ws>/<name>/egress-observe`, which a running guard rereads every two seconds. Until then every
   non-GET request the guard lets through is traced as `observed_request`, and every observed commit gets
@@ -226,13 +226,13 @@ lane manager (`add_notice_listener`) to every open viewer event stream of the la
 on `/view/{ws}/{name}/events`). A notice has the host, the path (never the query), the kind
 (subframe, redirect, navigation, popup, committed; `frame` says whether it was inside a frame), the
 rule, the reason, the entry that would admit it (`frame:` for a frame, `.@cc` for a Google
-country domain) and the exact command (`agentos lane sites <lane> add <entry>`). One notice per
+country domain) and the exact command (`openajar lane sites <lane> add <entry>`). One notice per
 (rule, host, kind) every 30 s, with a count of what was folded in, and at most five a lane in any
 30 s. Nothing is sent while an agent drives: its blocks are in its tool result.
 
 The page shows each notice above the live view (never over it), with Copy for the command. An
 owner link (a control link the owner asked for with the node token or the owner's panel session:
-`agentos lane view --control`) also shows "Allow <entry>", which posts to
+`openajar lane view --control`) also shows "Allow <entry>", which posts to
 `/view/{ws}/{name}/sites` and goes through the same change as `POST /api/lanes/{ws}/{name}/sites`.
 Links from `lane_view` (the agent's) and from grants never carry the owner flag (it is in the
 signed token), so an agent cannot widen a lane from the page.
@@ -247,7 +247,7 @@ signed token), so an agent cannot widen a lane from the page.
     domains, `core.models.GOOGLE_COUNTRY_SUFFIXES` (the 187 entries of
     https://www.google.com/supported_domains, read 2026-11-04). `@cc` is refused anywhere but right
     after `google.`, so a bare TLD wildcard cannot be written.
-- Set by `agentos lane sites <lane> show|add|remove|clear|suggest [platform]|strict on|off`, by a
+- Set by `openajar lane sites <lane> show|add|remove|clear|suggest [platform]|strict on|off`, by a
   workspace template surface (`sites = [...]`), or at creation. While agentosd runs, the CLI calls
   `POST /api/lanes/{ws}/{name}/sites` (the owner only, never a grant), which changes the list on the
   daemon's own lane manager, so a warm lane's guard has it at once. When agentosd is not running (or
@@ -284,7 +284,7 @@ frame on `www.fbsbx.com` (now in the instagram list too). Vanity Arkose hosts so
 domain from the exit country the lane check's geo cache knows. The syntax was chosen because:
 Google picks the domain with its own geolocation, which a GeoIP database can disagree with; the
 geo cache is empty until the first lane check and goes stale when the proxy changes
-(`agentos lane proxy`), so the list would need rewriting behind the owner's back; a stored list
+(`openajar lane proxy`), so the list would need rewriting behind the owner's back; a stored list
 that says `accounts.google.@cc` reads the same on every node and in every review, while a derived
 entry is invisible. The form is narrow: it matches only Google's published country domains, and
 only for the host it names.
@@ -355,8 +355,8 @@ a wrong one either misses a publish or treats one more request as a write than i
 - **`frame:` hosts take non-GET requests** while an agent drives (a captcha posts its answer to its
   own host), and the Google and Apple sign-in hosts are plain entries an agent may open as pages
   (section 5.1).
-- **An exposed dev server is a route too** (`agentos expose`, `agentos.node.expose`): while one is
-  on, its lane's browser has a route for `*.expose.agentos.invalid`, so it stores no responses either.
+- **An exposed dev server is a route too** (`openajar expose`, `openajar.node.expose`): while one is
+  on, its lane's browser has a route for `*.expose.openajar.invalid`, so it stores no responses either.
   Its host is inside the lane's site list and every grant's egress list only while it lasts
   (`LaneGuard.exposed`, read on every judgement); the effect rules judge what goes there as anywhere.
 - **Signing lanes already have routes.** A lane with Web Bot Auth hosts keeps per-origin routes for
@@ -365,20 +365,20 @@ a wrong one either misses a publish or treats one more request as a write than i
 
 ## 7. Code
 
-- `src/agentos/node/egress/` (one file until the split): rules, `judge`, `Driver`, `LaneGuard`, the trace, the tables,
+- `src/openajar/node/egress/` (one file until the split): rules, `judge`, `Driver`, `LaneGuard`, the trace, the tables,
   `gate_pattern` and the gate's route (`acting(gate=...)`, `settle`).
-- `src/agentos/node/commitgate.py` (`ActGate`) and `src/agentos/node/publish.py` (normalization):
-  the commit gate (section 8; the drive's route, `_gate_rule`, `gql_verdict`, `end_drive`). `src/agentos/policy/cards.py` `publish_card`,
+- `src/openajar/node/commitgate.py` (`ActGate`) and `src/openajar/node/publish.py` (normalization):
+  the commit gate (section 8; the drive's route, `_gate_rule`, `gql_verdict`, `end_drive`). `src/openajar/policy/cards.py` `publish_card`,
   `ApprovalStore.consume_approved(max_age_s=...)` and `retire`.
-- `src/agentos/node/routes.py`: `RouteDispatcher`.
-- `src/agentos/node/expose/`: the owner's dev server in a lane (its route, `LaneGuard.exposed`).
-- `src/agentos/node/camoufox/session.py` and `engine.py`: every session gets one dispatcher and one guard.
-- `src/agentos/node/lanes/` (`specs.py`, `launch.py`, `control.py`): `set_sites`, and the guard's bindings (control, events, store, hold).
-- `src/agentos/node/tools/`: `session.driven_session`, `guarding.guarded`, the pre-checks (`form_check.py`).
-- `src/agentos/node/human.py`: the hit test `human.click` uses, through frames.
-- `src/agentos/cli.py`: `agentos lane sites` (through the daemon while it runs).
-- `src/agentos/node/viewer_app.py`: `change_sites`, `POST /api/lanes/{ws}/{name}/sites`, owner links,
-  the notice stream and the one-click allow; `src/agentos/node/viewer/`: the notices on the page.
+- `src/openajar/node/routes.py`: `RouteDispatcher`.
+- `src/openajar/node/expose/`: the owner's dev server in a lane (its route, `LaneGuard.exposed`).
+- `src/openajar/node/camoufox/session.py` and `engine.py`: every session gets one dispatcher and one guard.
+- `src/openajar/node/lanes/` (`specs.py`, `launch.py`, `control.py`): `set_sites`, and the guard's bindings (control, events, store, hold).
+- `src/openajar/node/tools/`: `session.driven_session`, `guarding.guarded`, the pre-checks (`form_check.py`).
+- `src/openajar/node/human.py`: the hit test `human.click` uses, through frames.
+- `src/openajar/cli.py`: `openajar lane sites` (through the daemon while it runs).
+- `src/openajar/node/viewer_app.py`: `change_sites`, `POST /api/lanes/{ws}/{name}/sites`, owner links,
+  the notice stream and the one-click allow; `src/openajar/node/viewer/`: the notices on the page.
 - Tests: `tests/unit/test_egress.py`, `tests/unit/test_egress_wiring.py`, `tests/unit/test_cli.py`,
   `tests/unit/test_qa_egress.py`, `tests/unit/test_egress_identity.py`, `tests/unit/test_viewer_sites.py`,
   `tests/node/test_egress_node.py`, `tests/node/test_qa_egress_node.py`, `tests/node/test_egressux_node.py`
@@ -401,7 +401,7 @@ publish request by its commit rule, and under a grant that allows commit it only
 The principle: while an agent drives a lane, nothing that may publish leaves without a person's
 approval of what it sends, whatever its timing or shape; what the gate cannot judge, it refuses.
 
-1. `browser_act` builds an `ActGate` (`agentos.node.commitgate`) and runs the act under
+1. `browser_act` builds an `ActGate` (`openajar.node.commitgate`) and runs the act under
    `LaneGuard.acting(gate=...)` (every other acting tool gets a gate too, through `guarded`). When an
    agent drives the lane (never a person in control), the first such act starts the **drive**: the
    guard installs one route through the lane's `RouteDispatcher`, a regex over the rule hosts,
@@ -419,7 +419,7 @@ approval of what it sends, whatever its timing or shape; what the gate cannot ju
    read; and a non-GET to a rule host that no rule reads (`<site>.unknown`, a possible publish).
    Each is first judged as before (a grant below commit is refused there, prevented since it is
    routed), then goes to the gate before it leaves.
-3. The gate normalizes it (`agentos.node.publish.capture`, 8.2) into
+3. The gate normalizes it (`openajar.node.publish.capture`, 8.2) into
    `{"publish": <rule>, "lane": <lane>, "record": {...}}`, with the account the browser is signed
    into on that site (from its cookies, AUD-12) when it can be read. A signed-in account that is not
    the lane's pinned one is refused (`wrong_account`). Then who the body acts as is read and
@@ -578,21 +578,21 @@ channel's payload scrubs again); the digest binds the raw record.
   line ("as @handle on Reddit, through test/reddit"; the live account when it differs or none is
   set), who it posts as when the gate resolved it (8.10: `acting`, `identity_line` such as "Posts as
   biz-a (Page)", which a chat confirmation shows as it is, and `identity_warning` for an identity
-  agentos does not know, with its raw id), and the digest. A value the card cannot show whole says so: a vault value ("a vault value
+  openajar does not know, with its raw id), and the digest. A value the card cannot show whole says so: a vault value ("a vault value
   is here; it will be sent"), a secret shape the card hides, characters past the display limit
   (counted; "the approval binds all of them"). An unrecognised request (`<site>.unknown`) has a
   `headline`: "Unrecognised request to Reddit, shape: POST /path with field, field...". It cannot
   be edited ("deny it and tell the agent what to change"). The panel shows its summary and preview
   until it renders the card type; the controller gets `card` and `content_digest` in
   `approval_request` exactly as for other approvals.
-- A standing approval for "this post, and the same again": `agentos approvals standing add
+- A standing approval for "this post, and the same again": `openajar approvals standing add
   --from-approval <id>` binds `tool:browser_act`, the lane and the digest.
 - The agent: `approval_pending` with the id, then `approval_wait`, then the same call. Refusals say
   "nothing was sent".
 
 ### 8.4 What the route costs (measured)
 
-`scripts/spikes/commit_gate.py` in the `agentos-stealth-node` image (Camoufox 0.5.9, Firefox 158,
+`scripts/spikes/commit_gate.py` in the `openajar-stealth-node` image (Camoufox 0.5.9, Firefox 158,
 Playwright 1.62.0, loopback pages as in section 3), 2026-11-04:
 
 | Route held for a whole visit | `p2` after `p1` | Reload | Page load median |
@@ -704,7 +704,7 @@ later than the act's settling left unheld. Both are why the route now lasts for 
   on) is never gated: the listener applies the grant's checks and lets it go, traced only while the
   owner observes the lane. A publish that arrives by a hop reaches the site once before the lane is
   held, and a hop into a publish no rule names is not held at all.
-- **A host no rule names** is not routed: a lane on a site agentos has no rules for publishes as
+- **A host no rule names** is not routed: a lane on a site openajar has no rules for publishes as
   before (with "Ask me first" on, a click that submits a form by POST there waits for a person
   before it runs, 8.13; a script's own request does not) (the listener records `unmatched_publish` for an agent's press, and `unruled_request` for
   any other non-GET to a host of the lane's site list; 8.12).
@@ -800,9 +800,9 @@ fails. A visit that ends an agent's drive binds the drive again before control r
 
 ### 8.9 The gate log: the owner's own allowlist
 
-`agentos lane gate-log <lane> [--since 24h]` (and `GET /api/lanes/{ws}/{name}/gate-log?since=`) lists
+`openajar lane gate-log <lane> [--since 24h]` (and `GET /api/lanes/{ws}/{name}/gate-log?since=`) lists
 what the gate classified without a rule while agents drove the lane: the lane's `gate_classified`
-rows grouped by shape (host, path, method and operation name; `agentos.node.gateshapes`), with the
+rows grouped by shape (host, path, method and operation name; `openajar.node.gateshapes`), with the
 field names every row had, how many field sets, how each was classified (`gated`, `read`, `let go`)
 and why, the GraphQL catch-all that matched, first and last seen, and a count (rows are traced once
 per shape a second, so it counts seconds with that shape). Never a value: the rows hold names only.
@@ -822,7 +822,7 @@ the node. The gate log and the action log say where each promotion holds:
 | `--as-commit <name>` | a commit rule `<site>.<kind>[.<detail>]` (a kind of `post`, `comment`, `like`, `follow`, `join`; not a built-in id) for that host, path, method and operation, before the built-in rules: the gate holds it under that name, and its card says which rule (unverified) |
 
 Field names are shown so the owner can judge a shape; they are not matched (optional fields come
-and go). Promotions are the node's own, stored in `AGENTOS_HOME/gate-shapes.json` (mode 600, at
+and go). Promotions are the node's own, stored in `OPENAJAR_HOME/gate-shapes.json` (mode 600, at
 most 500), each with who promoted it and when, never in code; every change writes a `gate_shape`
 row (who, which shape, as what) to the action log. A change takes a lock (`gate-shapes.json.lock`,
 so the daemon and the CLI never lose each other's update), writes a unique 600 temp file, fsyncs
@@ -844,10 +844,10 @@ nothing.
 
 Built 2026-11-05 (owner decision, option 2: automation, standing approvals and schedules run on
 logins that manage Pages). A lane is a login; a surface is who you post as
-(`agentos.core.models.Surface`). Connector tools target surfaces and check the identity on the
+(`openajar.core.models.Surface`). Connector tools target surfaces and check the identity on the
 page (`assert_identity`); an agent that drives the raw lane went through the gate with nothing
 checking whether the post goes out as the profile, as the Page it meant, or as another Page the
-login manages. `agentos.node.acting` reads it from the normalized request and resolves it.
+login manages. `openajar.node.acting` reads it from the normalized request and resolves it.
 
 **Read, per site** (`ACTING`; the first acting field present decides, a later one that names
 another identity makes it unrecognized; the fallback `av` decides when no other is present, and next
@@ -888,7 +888,7 @@ parameters), and its publishes went to the listener only. On a lane whose site i
 (its pinned account's site, its name, its site list or a surface through it), or that none of them
 describes, the flow driver now binds the gate's
 route for the run (`LaneGuard.flow_identity`, `commitgate.flow_identity_check`): a commit rule's
-request its page sends is read and resolved, and one that acts as an identity agentos does not
+request its page sends is read and resolved, and one that acts as an identity openajar does not
 know, or whose body the gate cannot read, is aborted (block rule `identity_unrecognized`), since
 nobody is there to ask. The lane's own account and its surfaces go as before. The route has one
 owner: a drive that ends under a flow hands it to the flow, a drive that begins takes it over, and
@@ -897,12 +897,12 @@ flow runs. Whether the run's grant covers the surface a flow posts as, and that 
 first switch, are not checked here (the run was authorized on its lane, and reads its routine's
 and its lane's switches when it starts).
 
-**The gate log** (8.9) lists the identities agentos did not know (`gate_identity` rows in the
+**The gate log** (8.9) lists the identities openajar did not know (`gate_identity` rows in the
 lane's egress trace: site, raw id, field, rule, whether a flow sent it, why, first and last seen;
 never a value of the post), with the hint to add a surface for a Page the login manages.
 
 **Measured on a real browser** (`acting` in `scripts/spikes/commit_gate.py`, the
-`agentos-stealth-node` image, 2026-11-05: the real LaneGuard, route and ActGate, the loopback
+`openajar-stealth-node` image, 2026-11-05: the real LaneGuard, route and ActGate, the loopback
 composer sending `actor_id`, read as a site whose login can post as a Page):
 
 | Click | Authorized on | Reached the server |
@@ -954,8 +954,8 @@ that fails closes it, an earlier fill's window included.
 
 **Who can open one.** The vault, after the entry passed `decide` for this lane, this page and this
 field, and `ctx.authorize` passed: `open_login` has one caller, the typist, which has one caller,
-`agentos.vault.login`. The domain is the stored entry's, never an argument, so a page, a tool argument
-or a model cannot reach it. `agentos.vault` does not import `agentos.node`: the call goes through the
+`openajar.vault.login`. The domain is the stored entry's, never an argument, so a page, a tool argument
+or a model cannot reach it. `openajar.vault` does not import `openajar.node`: the call goes through the
 `Typist` interface, and an adapter without it opens no window.
 
 **How it ends.** On expiry, and with the drive (`end_drive`): a person taking over, a pause or a hold,
@@ -981,7 +981,7 @@ What it does not catch by itself: a new publish named like a query (`...Query`) 
 READ_OPS (taken for a read), a new host the rules do not name (not routed), and anything sent while no
 agent drives (below).
 
-**Rule health** (`agentos.node.rulehealth`). Read from the lanes' egress traces, names and shapes only:
+**Rule health** (`openajar.node.rulehealth`). Read from the lanes' egress traces, names and shapes only:
 
 - When each commit and write rule last matched, how often and on which lanes. Commit rules leave
   `observed_commit` and `blocked` rows; write rules now leave a `rule_hit` row (one per rule a second).
@@ -999,11 +999,11 @@ agent drives (below).
   flagged. `new_unknowns`, three or more new write-like shapes on one site within 24 hours.
   `no_rules`, below.
 
-Where the owner sees it: `agentos lane rules [lane] [--stale-days N] [--all] [--json]`, the doctor's
+Where the owner sees it: `openajar lane rules [lane] [--stale-days N] [--all] [--json]`, the doctor's
 `effect_rules` check (a warning per flag, never a failure), and `GET /api/rules/health` (the owner
 only). A stale flag ends with the command that fixes it.
 
-**The fix is data, not code.** The owner names the new shape a commit rule: `agentos lane gate-log
+**The fix is data, not code.** The owner names the new shape a commit rule: `openajar lane gate-log
 <lane> --as-commit comment.v2 --shape <id>` (8.9). It is stored on the node (`gate-shapes.json`),
 written to the action log, and every running guard reads it within 2 s: no deploy, no restart.
 `--observed` lists the shapes observe mode saw too (`observed_request` rows no commit or write rule
@@ -1029,11 +1029,11 @@ by shape, one row per shape a minute. Nothing is blocked: many sites read throug
 no site list traces nothing there (only rule hosts are its own). The `no_rules` flag names every lane
 whose site list, or the site it is expected to be signed into (its account, or its name:
 `biz-a/x`, `biz-b/twitter`), has hosts no effect rule names: x.com, threads.net, tiktok.com,
-youtube.com, bsky.app have none today, so publishes there are never gated. `agentos lane sites` says so
+youtube.com, bsky.app have none today, so publishes there are never gated. `openajar lane sites` says so
 when such a host is on the list.
 
 **Not done.** No Needs you card for a flag: a question needs a grant, and drift has none; the doctor
-and `agentos lane rules` are where the owner looks. No effect rules for a new site from the owner: a
+and `openajar lane rules` are where the owner looks. No effect rules for a new site from the owner: a
 commit rule on a host no rule names would put that host on the gate's route, and every unknown POST
 there would then be held while an agent drives (reads through POST included), so it stays a code
 change with its plumbing reads. Rule hits are not kept past the trace's two files.
@@ -1104,14 +1104,14 @@ which is all that is known.
 click or Enter sent it (`submit_like`, while the act runs). Anything else no rule reads (telemetry, a
 sync, a request sent while typing, during a navigation or between acts) is held and not sent, and
 nobody is asked (`held_unknown`): the act's `egress_blocked` lists it with rule `unrecognised` and
-what is known ("agentos does not recognise this request (POST host/path) ... It was held and not
-sent, and nobody was asked"), the gate log and `agentos lane rules` show its shape as before
+what is known ("openajar does not recognise this request (POST host/path) ... It was held and not
+sent, and nobody was asked"), the gate log and `openajar lane rules` show its shape as before
 (`gate_classified`, decision `gated`), and the owner can promote it there. A body the node cannot
 read is held the same way (no more `publish_unbound` for a telemetry beacon). The card of an unknown
-request that remains says in plain words what is known: `headline` ("A request agentos does not
+request that remains says in plain words what is known: `headline` ("A request openajar does not
 recognise, to Facebook: POST /path"), `explain` (it cannot tell whether it posts; whether it carries
 the agent's words and where; that denying is safe), `deny_safe`, and `shape` (method, path, field
-names); the summary reads "Send a request agentos does not recognise to ... It carries text the agent
+names); the summary reads "Send a request openajar does not recognise to ... It carries text the agent
 typed: ...".
 
 **A true result.** Such a hold never fails the act: `browser_act` returns ok with what its read-back
@@ -1132,7 +1132,7 @@ held shapes.
 
 **LinkedIn's bot-defence frame** (`li.protechts.net`, HUMAN Security) is a `frame:` entry of the
 suggested LinkedIn list: blocking it makes the account look like a bot. A lane built before this
-needs `agentos lane sites <lane> suggest linkedin` again. No other suggested list had a frame refused
+needs `openajar lane sites <lane> suggest linkedin` again. No other suggested list had a frame refused
 in the test.
 
 **Ask me first on a site without rules** (finding 10). The gate never sees a host no rule names, so

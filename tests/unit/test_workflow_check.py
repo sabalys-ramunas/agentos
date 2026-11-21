@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from agentos.core.models import Effect
-from agentos.runner.models import SendsSpec
-from agentos.runner.workflows.check import Field, Operation, check
-from agentos.runner.workflows.models import WorkflowDefinition
+from openajar.core.models import Effect
+from openajar.runner.models import SendsSpec
+from openajar.runner.workflows.check import Field, Operation, check
+from openajar.runner.workflows.models import WorkflowDefinition
 
 
 def op(id_, *, effect=Effect.READ, produces=(), sends=None, targets=(), params=None, lane="harbor/shop", required=()):

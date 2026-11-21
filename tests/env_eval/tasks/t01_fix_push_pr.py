@@ -53,7 +53,7 @@ TASK = Task(
     id="t01_fix_push_pr",
     title="fix a failing test, push a branch, open the pull request, close",
     repo="calc",
-    sessions=[Session("In agentos, fix the failing tests in {repo}, push the fix on a branch and open the pull "
+    sessions=[Session("In openajar, fix the failing tests in {repo}, push the fix on a branch and open the pull "
                       "request.")],
     check=check, perfect=perfect, careless=careless,
 )

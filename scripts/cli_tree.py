@@ -1,4 +1,4 @@
-"""Record the `agentos` command tree: every command and group path, the function it runs and
+"""Record the `openajar` command tree: every command and group path, the function it runs and
 its parameters. `--write` refreshes tests/fixtures/cli/old_tree.json (only ever from the tree
 as it was before the C1 regrouping: that file is what the hidden aliases must keep working)."""
 
@@ -15,7 +15,7 @@ FIXTURE = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "cli" 
 
 def target(cmd) -> str:
     fn = cmd.callback
-    fn = getattr(fn, "wraps_command", fn)  # agentos.cli_groups.with_flag: the command it extends
+    fn = getattr(fn, "wraps_command", fn)  # openajar.cli_groups.with_flag: the command it extends
     fn = getattr(fn, "__wrapped__", fn)
     if fn is None:
         return ""
@@ -44,7 +44,7 @@ def walk(cmd, path: tuple[str, ...] = ()) -> dict[str, dict]:
 
 
 def tree() -> dict[str, dict]:
-    from agentos.cli import app
+    from openajar.cli import app
 
     return walk(typer.main.get_command(app))
 

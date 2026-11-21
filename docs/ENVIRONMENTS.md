@@ -13,8 +13,8 @@ This page is the user guide. The design, the decisions and the exact tool shapes
 
 ## Set it up
 
-Everything here runs on the node, as the owner (`sudo agentos ...` on a node installed with
-`deploy/install-node.sh`, or with `AGENTOS_HOME` pointing at a dev node's home).
+Everything here runs on the node, as the owner (`sudo openajar ...` on a node installed with
+`deploy/install-node.sh`, or with `OPENAJAR_HOME` pointing at a dev node's home).
 
 ### Connect a repository
 
@@ -60,14 +60,14 @@ What the token page says when a token does not work:
 At the node, the same in one command, and the card closes on its own within a minute:
 
 ```
-agentos environments repo add github.com/me/shop --token   # a token, read from a prompt (no admin rights needed)
-agentos environments repo add github.com/me/shop           # a deploy key: it prints the key for a repo admin to add
-agentos environments repo list                             # what is connected, with which key or token
-agentos environments repo remove github.com/me/shop        # disconnect it, and delete the key made for it
+openajar environments repo add github.com/me/shop --token   # a token, read from a prompt (no admin rights needed)
+openajar environments repo add github.com/me/shop           # a deploy key: it prints the key for a repo admin to add
+openajar environments repo list                             # what is connected, with which key or token
+openajar environments repo remove github.com/me/shop        # disconnect it, and delete the key made for it
 ```
 
-`repo add` is the two steps of section 3 in one: `agentos vault git key add --host github.com --repo
-me/shop` (or `--token`) and `agentos vault git remote allow env github.com/me/shop`. Add the deploy
+`repo add` is the two steps of section 3 in one: `openajar vault git key add --host github.com --repo
+me/shop` (or `--token`) and `openajar vault git remote allow env github.com/me/shop`. Add the deploy
 key it prints with write access, so agents can push. When a key or token stops working later (the
 deploy key was removed, the token expired), the agent's next open gives the same card, to give a new
 one (at the node: `repo add ... --token --replace`).
@@ -75,16 +75,16 @@ one (at the node: `repo add ... --token --replace`).
 ### 1. Where the VMs come from
 
 **Docker** (no cloud account): each environment is an Ubuntu container with SSH on the node's own
-Docker. Good for trying it, for CI and for a node at home. Put this in `$AGENTOS_HOME/vms.toml`:
+Docker. Good for trying it, for CI and for a node at home. Put this in `$OPENAJAR_HOME/vms.toml`:
 
 ```toml
 provider = "docker"
 ```
 
-Then get its image once: `agentos environments setup --pull` downloads the prebuilt image for your
-version of agentos (`ghcr.io/sabalys-ramunas/agentos-env:<version>`, a minute or two), and builds it
-here when it cannot (10 to 15 minutes). `--build` always builds it here. `agentos setup --docker`
-does the same for you. Get it again after an upgrade when setup says the image is older than agentos.
+Then get its image once: `openajar environments setup --pull` downloads the prebuilt image for your
+version of openajar (`ghcr.io/sabalys-ramunas/agentos-env:<version>`, a minute or two), and builds it
+here when it cannot (10 to 15 minutes). `--build` always builds it here. `openajar setup --docker`
+does the same for you. Get it again after an upgrade when setup says the image is older than openajar.
 To never download it, set `docker_pull = ""` in `vms.toml`.
 
 What a docker machine is kept from, and what it is not:
@@ -108,27 +108,27 @@ What a docker machine is kept from, and what it is not:
   serves it to its own user only. macOS cannot tell which account opened a local connection, so
   another account on the same Mac could use it.
 
-`agentos environments setup` says the same.
+`openajar environments setup` says the same.
 
 **Hetzner Cloud**: make a project that holds nothing but these VMs (the token can delete any
 server in it), make a read-write API token in it, and give it to the node:
 
 ```
-agentos vm setup              # asks for the token, keeps it in $AGENTOS_HOME/secrets/hetzner.token (0600)
-agentos vm types              # what can be ordered today, and what each profile rents
+openajar vm setup              # asks for the token, keeps it in $OPENAJAR_HOME/secrets/hetzner.token (0600)
+openajar vm types              # what can be ordered today, and what each profile rents
 ```
 
 The node rents the cheapest server type that fits, unless you or the agent set a size. The
 location, your own profiles and the node's VM limits are in `vms.toml`
-([design/vms.md](design/vms.md#settings-agentos_homevmstoml)).
+([design/vms.md](design/vms.md#settings-openajar_homevmstoml)).
 
 **Morph Cloud**: machines that start from a snapshot in about a second, and that a save pauses with
 their memory, so an environment comes back in seconds with its dev server still running. Make an
 API key at cloud.morph.so and give it to the node:
 
 ```
-agentos vm setup --provider morph    # asks for the key, keeps it in $AGENTOS_HOME/secrets/morph.token (0600)
-agentos vm image build dev           # the dev snapshot environments start from (a few minutes, once)
+openajar vm setup --provider morph    # asks for the key, keeps it in $OPENAJAR_HOME/secrets/morph.token (0600)
+openajar vm image build dev           # the dev snapshot environments start from (a few minutes, once)
 ```
 
 Setup also pins the host key of Morph's SSH gateway (it prints its fingerprint) and sets `provider =
@@ -158,7 +158,7 @@ On Morph a machine of the `dev` snapshot's size (small, unless you built it bigg
 about a second; another size boots cold from it, in seconds more.
 
 It may also name a server type (`cpx42`) or one of your `vms.toml` profiles. The biggest an agent
-may ask for is `max_size` (default `xlarge`; `agentos environments allow --max-size large`); past
+may ask for is `max_size` (default `xlarge`; `openajar environments allow --max-size large`); past
 it the open is refused with `environment_limit`.
 
 ### 2. The image
@@ -167,7 +167,7 @@ Without one, each VM starts from Ubuntu 24.04 and installs git, curl, build tool
 Python with uv on first boot, which takes a few minutes. A snapshot boots ready in under a minute:
 
 ```
-agentos vm image build dev    # Hetzner: a snapshot with git, build tools, Python with uv, Node 22, Docker
+openajar vm image build dev    # Hetzner: a snapshot with git, build tools, Python with uv, Node 22, Docker
 ```
 
 The node uses the `dev` snapshot when it has one. The build applies the security updates of that day
@@ -179,15 +179,16 @@ runs the setup, which skips apt when every package is there and installs pnpm.
 Rebuild it to drop that. It also holds the browser for `browser = "vm"`
 (below), as does the docker image: Xvfb, x11vnc, fonts and Camoufox at the node's own versions, about
 3.3 GB more (Camoufox's build is 2.4 GB, most of it the fonts of the systems it can look like) and
-about two minutes more to build.
+about two minutes more to build. And the desktop (below): openbox, a terminal, a file manager, fonts
+and TigerVNC, about 90 MB more.
 
 ### Where the browser runs
 
-`browser` in `$AGENTOS_HOME/environments.toml` says where each new environment's browser runs:
+`browser` in `$OPENAJAR_HOME/environments.toml` says where each new environment's browser runs:
 
 ```toml
 browser = "node"   # the default: on the node, with its traffic through the VM
-browser = "vm"     # on the VM itself: for a node with no browser of its own, such as agentos on a Mac
+browser = "vm"     # on the VM itself: for a node with no browser of its own, such as openajar on a Mac
 ```
 
 With `"vm"` the browser, its screen and its live view run on the VM, bound to the VM's loopback only.
@@ -203,6 +204,184 @@ after the open returns: the first `browser_navigate` finds it running (or waits 
 start) instead of starting it then. A start that fails is only logged, and the first browser call
 starts it again.
 
+#### The desktop
+
+With `"vm"` the VM's screen is a desktop, not a bare browser: a wallpaper (a sunrise over foggy ridges), a
+top bar, the browser as a window with its own title bar, and a dock at the bottom with Browser, Terminal
+and Files, plus every other app while it has a window. The person watching the live view sees what the
+agent does, and after take over uses it as a computer. Its look is the openajar design ("Dawn"): light
+window frames, glass icons, and one violet for the agent.
+
+**The screen belongs to the environment, not to the browser.** It starts in the background as soon as the
+environment is ready (`environment_open` does not wait for it) and stays until the environment closes. The
+live view (`links.browser`) shows the desktop from then on: before the agent first uses the browser, and
+after the browser lane goes idle and closes (the node's `idle_seconds`). The browser window comes when the
+agent first uses the browser and goes when its lane closes; the wallpaper, the dock, the agent's terminal and
+every window a person opened stay.
+
+- **The top bar** shows the openajar mark and the environment's title on the left, what the agent is doing
+  in the middle ("Claude Code is using the browser", "is running a command", "is reading files", "is
+  editing files", "has control" when it is between steps, "is stopped", or "You have control"), and the
+  date and the time on the right, at the openajar computer's own time. The node tells it who has control
+  and which tool the agent calls; the agent's name is the one the live view uses. A long title or status is
+  cut with an ellipsis (the agent's name first, so the verb stays). It is drawn again only when its words
+  change and once a minute, and it reserves its height, so a maximized window sits between it and the dock.
+
+- **The browser** is a window with an even margin of wallpaper around it. It draws its own title bar, as a
+  browser does on a desktop: its tabs, with minimize and maximize beside them. Drag the tab strip to move
+  it, double-click it or press maximize to fill the screen (a maximized window stops above the dock), drag
+  its edge to resize it. It has no close button, and Alt+F4 minimizes it (the dock's Browser brings it back),
+  so a click never ends the agent's browser, its pages or its sign-ins. Ctrl+Q does nothing.
+- **The dock's Browser when no browser runs** opens it: the dock asks the node, which opens the
+  environment's browser lane as whoever has control (the person who took over, else the agent), the same
+  as the agent's first browser call would. "Opening the browser" shows over the dock until the window comes.
+  The ask comes from the machine, which is the agent's, so it never passes a stop or a freeze: nothing
+  opens while the agent is stopped there or the lane is frozen. The node acts on nothing else the machine
+  sends, and at most once every 10 seconds.
+- **The agent's terminal**: the window titled with the agent's name ("Claude Code · commands") starts with
+  "Read only. The commands Claude Code runs show here." and shows each `terminal_exec` as the node reads it:
+  the command, its output (stderr in red), then its exit code and time. A job
+  (`terminal_job_start`) shows one line with its id. It only shows: a command's result, timing, timeout and
+  cancellation are the same with it or without it, and a command shows at most 256 KB of its output
+  there (the rest is counted, and the agent still gets all of it).
+- **Terminal and Files** in the dock are the person's own: a shell in `/work` and a file manager on it.
+- **The window the agent uses comes to the front**: the browser when it drives the browser, its
+  terminal when it runs a command. Only when that changes, and never while a person has taken over
+  the browser: windows do not move under a person's hands.
+- **A GUI program** the agent starts (`terminal_exec` or a job) opens on this screen: commands get
+  `DISPLAY` and the screen's cookie while the desktop runs and the agent has the screen (a command started
+  while a person has control gets neither; a program started before keeps what it had), and its window gets a place in the dock, its own icon on the same
+  glass tile as the others. GTK programs, those and the ones a person starts, use the desktop's light theme
+  (`GTK_THEME=Adwaita`); terminals keep a dark body. The browser keeps its own look, which is part of what a
+  page sees.
+- **The agent's pointer**: the live view draws a large violet pointer with the agent's name where the agent
+  acts in the browser (where it moves, clicks, scrolls and types), since the node drives the page without
+  moving the screen's own pointer. The node knows the point in the page it aims at; the desktop's helper
+  tells the node where the browser window is on the screen (read from X, never from what the browser tells
+  pages), and the node sends the live view only the point on the screen. It glides between points, fades
+  after a few quiet seconds, and hides while a person has control and while the agent works in its
+  terminal. The screen tools (`screen_act`) move the screen's real pointer and tell the same labelled
+  pointer where they act, in screen pixels (typing and keys where the pointer is), so a person sees the
+  agent at work in a desktop app too. It adds no time to a tool call. The web app's environment page draws the same pointer over its
+  picture: the node sends it there as a `pointer` event on the panel's event stream, only while that page
+  shows the live view, never kept for a replay, and only to those who may watch that screen (the owner, and
+  members whose role watches). The machine's numbers are checked (whole numbers inside the
+  screen) before they place anything.
+
+**This is the agent's computer.** While a person has control, no openajar tool shows the agent the screen
+or types on it, and its commands are not handed the screen. That is a rule of the tools, not a wall: the
+agent's commands run as root on that machine, and root can read the screen's cookie and socket, the
+browser's profile and every file, so an agent that set out to could watch the screen or read what a
+person types there. Sign in on that screen only to accounts the agent is meant to use. The take over
+keeps the agent's own tools out of the person's way; it does not keep a hostile agent out of its own
+machine. [THREAT-MODEL.md](THREAT-MODEL.md) ("An environment's desktop") says the same.
+
+`desktop = false` in `environments.toml` turns it off: the browser fills the screen as before.
+
+```toml
+browser = "vm"
+desktop = true     # the default
+```
+
+The wallpaper is ours (`src/openajar/environments/desktop/wallpaper.svg`, and the same picture made ahead at
+1920x1080, `wallpaper-1920x1080.jpg`, so a new machine does not spend a second drawing it). Put your own at
+`$OPENAJAR_HOME/desktop/wallpaper.svg`, `.png` or `.jpg` (at most 8 MB): an SVG is drawn at the screen's
+size on the machine, a picture is fitted to it. It is read each time a screen starts. The wallpaper, the
+icons and the openajar mark are original work for openajar.
+
+The screen is TigerVNC's Xvnc, one process that is the X server and the VNC server, on a Unix socket only
+(no TCP listener), behind the same folder only root can open and the same cookie as before. A machine
+without it (an image from before the desktop) uses Xvfb and x11vnc as before. What it costs, measured on
+the docker provider (2 CPU): the desktop starts in 0.3 to 0.6 s; idle it uses no CPU (over a minute:
+openbox 0.0 %, the helper 0.03 % for its clock, Xvnc 0.0 % alone and 0.02 % with a viewer connected);
+openbox and the helper take about 60 MB; Terminal and Files about 30 MB each while open. While a page
+scrolls, Xvnc sends about 29 updates a second to the live view where Xvfb with x11vnc sent 16, for the
+same CPU; the top bar and the dock change nothing there (a client on the machine's own socket counted 52
+to 53 updates a second with the helper running and with it stopped). The x11vnc fallback runs with `-defer 5 -wait 5
+-nowf` (updates gathered and polled every 5 ms instead of 20, and a moved window shown whole).
+
+What a page reads with the desktop: the screen is 1920x1080 as before; the window is 1776x890, and as the
+browser draws its own title bar, `outerWidth`/`outerHeight` are 10 px larger than the window (the edge GTK
+draws round it with no compositor) and the page area is about 35 px taller than under a separate title bar.
+These are a real window's sizes, inside the screen. `screenX`/`screenY` and `screen.availHeight` are
+Camoufox's own pick at each launch, as before. Nothing a page reads is pinned by these numbers: the
+fingerprint pins the screen and the window size the browser is asked for.
+
+Where it comes from: `desktop.sh`, beside `browser.sh`, in the docker image (its label
+`org.agentos.desktop`), in the `dev` snapshot, and on a machine without it (or with an older version)
+when its environment opens, in the background (about a minute). A screen that starts before that is
+done waits up to a minute for it; if the desktop cannot be installed or started, the screen shows the
+browser alone and the node's log says why. A browser that opened on the bare screen while the desktop
+still installed keeps running: the desktop starts under it as soon as the install is done (the screen is
+not started again), and frames it maximized; the next time the browser opens it is a window as usual.
+
+**A screen that dies comes back.** The node asks each environment's screen once a pass (its regular check
+of environments, every `reap_interval_s`, a minute by default). If Xvnc died, the screen starts again;
+if only the desktop's parts died (openbox, the helper, or x11vnc on a machine without Xvnc), they start
+again on the running screen and every window on it stays. The live view retries on its own and shows the
+screen again without a reload. A browser that still runs is never under a screen that is started afresh:
+under it only what is missing starts. Nothing is checked while the screen is being started, the browser
+is opening or the desktop installs, and the check uses the screen's own lock, so it never races them. The check,
+like every command the node runs on the machine for the screen, is no use of the machine: it never
+keeps an environment from closing or saving for idleness.
+
+#### The agent's screen tools
+
+The browser tools read a page by its elements. For everything on the desktop that is not a web page (a
+calculator, an editor, a GUI the agent built or installed), the agent loads `tools_more("screen")`:
+
+- `screen_snapshot(on, window=None, image=true, proof=None)`: a PNG of the screen (or of one window's
+  area of it), the open windows (id, title, app, kind, place and size, which is in front, which are
+  minimized) and the pointer. The picture is at most 1280 px on its longest side, so a 1920x1080 screen
+  comes as 1280x720 with `scale` 1.5: a point in the picture times the scale is the screen pixel the
+  actions take. One window comes at its real size when it fits. The picture is in full colour when it fits
+  in 640 KB, else in 256 colours (the wallpaper's gradients are what make it large; an app's text and flat
+  colours survive), else smaller: MCP clients refuse a message over 1 MB, and base64 makes a PNG a third
+  larger. `image=false` gives only the windows and the pointer. `proof="..."` keeps the picture as proof, as
+  `browser_screenshot(proof=...)` does.
+- `screen_act(on, action, ...)`: click, double_click, right_click, move, drag (to_x, to_y), scroll
+  (direction, amount), type (text), key ("ctrl+s", "alt+F4", "ctrl+a Delete") and focus (a window by
+  its id, also from minimized). It answers the window in front after it, the windows that opened or
+  closed, and the pointer.
+- `screen_open(on, app=None, file=None)`: starts one of the desktop's apps (a `.desktop` entry by its
+  name or id, or a program on the PATH), detached and on the screen, and waits up to 8 s for its window;
+  without `app` it lists them. The agent installs an app first with `terminal_exec` (`apt-get install -y
+  galculator`). A GUI started with `terminal_exec` works too, but its window ties the command's output pipes
+  unless it is sent to the background with its output redirected; `screen_open` needs neither.
+
+Input is real X input through XTEST, from `desktop/screen_ctl.py` on the machine (python3-xlib, which
+desktop.sh already installs: no new package), paced as the browser's hands are (`openajar.node.human`):
+a look of 200 to 600 ms before the hand moves, a glide that bows a little to one side, slow at both ends
+and now and then a little past a far target (about 250 ms for a short reach, 700 ms across the screen), a
+pause before the press, a press held 50 to 230 ms; keys held about 85 ms with about 150 ms between key
+downs, Shift held round capitals, the odd letter pressed before the last is up. Text types at about 5
+characters a second, at most 600 characters a call. A character the keyboard has no key for (ą, €, an
+emoji) gets a spare key mapped for it while it is typed. Every key and button an action pressed is let go
+when it ends, also when it fails or runs out of time.
+
+The person comes first: while a person has control of the environment (its browser lane), every screen
+tool is refused with `human_in_control` (or `agent_paused`), `screen_snapshot` included, as every
+browser tool is then (a person may be typing a password during a hand-over), and the agent waits with
+`browser_wait_handback`. An action already running when a person takes over (or stops the agent) is stopped
+on the machine: the node hears the change, ends the action's command, and the script on the machine
+stops at its next pause between keys or steps, lets go of every key and button, and says how many
+characters it typed. A person gets the keyboard and the pointer back within about a second (the node's
+signal over the environment's SSH connection plus at most a few hundred milliseconds), and the agent's
+error says how much was done. Long text also goes in parts of 40 characters with control read before
+each. Each call is in the audit trail (what is typed included, as `browser_act`'s) and
+in `environment()`'s last calls (without the text). The top bar says "is using the desktop" meanwhile.
+
+Measured on the docker provider (2 CPU) with the default wallpaper: a snapshot takes 0.2 to 0.25 s on
+the machine and 0.45 s for the whole MCP call (the full colour picture is about 860 KB, so it goes in
+256 colours, about 100 KB); `image=false` takes 0.26 s; a click, glide and press included, about 1.4 to
+1.8 s; 80 characters of text about 13 to 15 s. Each call is one command over the environment's SSH connection:
+nothing new runs or listens on the machine between calls.
+
+What the agent cannot do with them yet: see the pointer drawn in the picture (its place is in
+`pointer`), read a window's text other than by the picture (no accessibility tree), or hold a key or a
+button across calls. A video proof (`browser_record`) records the whole screen, so with the desktop on it
+shows the desktop's windows too, not only the browser's page.
+
 A VM with the browser and one page open uses about 1 GB of memory (measured on the docker provider).
 The smallest size (`small`, 2 CPU and 4 GB, a Hetzner cx23) leaves room for a typical dev server; a
 heavy build next to a big dev server wants `size="medium"`.
@@ -217,11 +396,11 @@ the other declared ones), works only through that VM's own tunnel, and is revoke
 environment closes. An environment with no declared repository gets no token at all.
 
 ```
-agentos vault git key add --token --host github.com --repo 'me/*'   # a fine-grained token, read from a prompt
-agentos vault git remote allow env 'github.com/me/*'                # environments may clone and push these
+openajar vault git key add --token --host github.com --repo 'me/*'   # a fine-grained token, read from a prompt
+openajar vault git remote allow env 'github.com/me/*'                # environments may clone and push these
 ```
 
-Or a deploy key per repository: `agentos vault git key add --host github.com --repo me/shop` prints the
+Or a deploy key per repository: `openajar vault git key add --host github.com --repo me/shop` prints the
 public key to add on GitHub, with write access if agents should push. A push from an environment
 never asks you, the default branch included. Refused instead (`push_refused`: the agent pushes a
 new branch and opens a pull request): a force push or a delete of the default branch (or of a
@@ -233,7 +412,7 @@ turns that off for a repository). A public repository that is not declared is cl
 the VM, read only.
 
 How the clone travels. A private repository comes through the node's mirror, so its pack crosses the
-upload of the computer agentos runs on: the VM clones it blobless (every commit and tree, and only the
+upload of the computer openajar runs on: the VM clones it blobless (every commit and tree, and only the
 files the checkout needs; git fetches any other file through the gateway when a command needs it). A
 241 MiB repository is about 57 MiB that way. A declared repository the VM can read with no credential
 (a public one) is cloned and fetched straight from GitHub, at the cloud's own speed, and only its
@@ -248,14 +427,14 @@ money, so the node's limits bound it instead. They hold from the start, without 
 
 | Limit | Default | Changed with |
 |---|---|---|
-| open at once | 3 | `agentos environments allow --max-live N` |
-| the longest life, `extend` included | 8 hours | `agentos environments allow --max-hours H` |
-| booked in a month | EUR 50 | `agentos environments allow --monthly-eur E` |
-| the biggest machine (`size`) | `xlarge` (16 CPU, 32 GB) | `agentos environments allow --max-size large` |
-| machines kept warm for the next open | 0 | `agentos environments allow --warm N` |
+| open at once | 3 | `openajar environments allow --max-live N` |
+| the longest life, `extend` included | 8 hours | `openajar environments allow --max-hours H` |
+| booked in a month | EUR 50 | `openajar environments allow --monthly-eur E` |
+| the biggest machine (`size`) | `xlarge` (16 CPU, 32 GB) | `openajar environments allow --max-size large` |
+| machines kept warm for the next open | 0 | `openajar environments allow --warm N` |
 
 ```
-agentos environments allow --max-live 2 --max-hours 4 --monthly-eur 20
+openajar environments allow --max-live 2 --max-hours 4 --monthly-eur 20
 ```
 
 Past a limit the open (or an extend) is refused with `environment_limit`, whose message names the
@@ -266,7 +445,7 @@ one to its time limit, not only what it has cost so far. The node's own limits i
 `allow` grants nothing; it only writes the limits to `environments.toml`.
 
 How environments stay is set in the same file: `default_keep` (`save`, the default, or `none`),
-`allow_keep_live` (off until you turn it on) and `max_live_kept`. `agentos setup` asks the first
+`allow_keep_live` (off until you turn it on) and `max_live_kept`. `openajar setup` asks the first
 one, and turns the second on only when you choose it. See
 [Keeping an environment](#keeping-an-environment).
 
@@ -282,9 +461,9 @@ environment:
 | `none` | the git gateway and the hosts of bound secrets, nothing else |
 
 ```
-agentos environments allow --network limited                # the node's default
-agentos environments allow --host api.example.com           # one more host for limited (repeat --host)
-agentos environments allow --host .example.com              # a domain and every host under it
+openajar environments allow --network limited                # the node's default
+openajar environments allow --host api.example.com           # one more host for limited (repeat --host)
+openajar environments allow --host .example.com              # a domain and every host under it
 ```
 
 `allow_hosts` takes a host (`api.example.com`), a domain with its hosts (`.example.com` or
@@ -293,7 +472,7 @@ agentos environments allow --host .example.com              # a domain and every
 one is refused with `network_not_allowed` and the command that widens it: nothing an agent reads, and
 nothing in a repository, widens it. A machine keeps the network it opened with.
 
-`limited` reaches, on ports 80 and 443 (`agentos.environments.network.PRESET` is the exact list):
+`limited` reaches, on ports 80 and 443 (`openajar.environments.network.PRESET` is the exact list):
 npm, yarn, nodejs.org and JSR; PyPI and its files; crates.io and rustup; the Go module proxy and its
 checksum database; RubyGems, Packagist, NuGet; Maven Central and Gradle; Ubuntu's archive (and its
 country mirrors), security and ports hosts, and Hetzner's mirror; Docker Hub and ghcr.io; GitHub's
@@ -302,7 +481,7 @@ dependencies" lists of other agents: no google.com, no microsoft.com, no cloud c
 
 How it holds. The agent is root on its machine, so the network is closed outside it:
 
-- On Hetzner, a closed machine gets the node's second firewall (`agentos-<node>-<home>-closed`)
+- On Hetzner, a closed machine gets the node's second firewall (`openajar-<node>-<home>-closed`)
   instead of its usual one: SSH and ping in from the node as before, and one outbound rule (ping to
   the node), which makes Hetzner drop every other packet the machine sends. The firewall is stateful,
   so the node's SSH connection keeps working. It needs the `dev` image: a machine closed from its
@@ -328,7 +507,7 @@ the package managers follow the variables, and Docker's daemon gets a systemd dr
 when it runs). A program that ignores the proxy variables reaches nothing.
 
 What it refuses, it says and keeps. A request to a host that is not on the list gets a 403 whose body
-says `<host> is not on this environment's network list. The owner can allow it: agentos environments
+says `<host> is not on this environment's network list. The owner can allow it: openajar environments
 allow --host <host>`, and a refused CONNECT says it in its status line too (Python and Node's `https`
 print it; curl shows only "response 403"). The result of the `terminal_exec` or `terminal_job_read` whose command
 was refused names it: `network: {blocked_now: [hosts], fix}`. Nobody is asked. `environment()` and the
@@ -349,10 +528,10 @@ An app often needs an API key for its tests or its dev server (a payment API's t
 it once at the node, and the machine never holds it:
 
 ```
-agentos environments secret add STRIPE_SECRET_KEY --host api.stripe.com                 # every environment
-agentos environments secret add STRIPE_SECRET_KEY --host api.stripe.com --repo github.com/me/shop
-agentos environments secret list                                                        # names and hosts only
-agentos environments secret remove STRIPE_SECRET_KEY [--repo github.com/me/shop]
+openajar environments secret add STRIPE_SECRET_KEY --host api.stripe.com                 # every environment
+openajar environments secret add STRIPE_SECRET_KEY --host api.stripe.com --repo github.com/me/shop
+openajar environments secret list                                                        # names and hosts only
+openajar environments secret remove STRIPE_SECRET_KEY [--repo github.com/me/shop]
 ```
 
 The value is read from a prompt (or stdin with `--stdin`), never the command line, and kept in the
@@ -402,13 +581,13 @@ check, a staging site, a service's settings. Bind the login once at the node, an
 whenever it needs to, without asking anyone and without ever seeing the password:
 
 ```
-agentos environments login add github.com --user me@example.com --title "Shop fix"      # that computer
-agentos environments login add https://staging.example.com/login --repo github.com/me/shop
-agentos environments login add example.com --user me@example.com --all --totp           # every one, with codes
-agentos environments login add github.com --entry "github work" --title "Shop fix"       # one already in the vault
-agentos environments login list                                                          # names and scopes only
-agentos environments login remove github.com [--title "Shop fix"]
-agentos environments login "Shop fix" github.com                                         # sign it in now
+openajar environments login add github.com --user me@example.com --title "Shop fix"      # that computer
+openajar environments login add https://staging.example.com/login --repo github.com/me/shop
+openajar environments login add example.com --user me@example.com --all --totp           # every one, with codes
+openajar environments login add github.com --entry "github work" --title "Shop fix"       # one already in the vault
+openajar environments login list                                                          # names and scopes only
+openajar environments login remove github.com [--title "Shop fix"]
+openajar environments login "Shop fix" github.com                                         # sign it in now
 ```
 
 - **The binding.** The password (and with `--totp` the TOTP seed) is read from a hidden prompt, or
@@ -433,10 +612,10 @@ agentos environments login "Shop fix" github.com                                
   seed. When a site logs the browser out, the agent calls `login` again. A CAPTCHA, a device approval
   or a code sent by email or text is the person's: the result says `needs`, and you finish it in the
   live view (`links.browser`).
-- **You, again.** `agentos environments login "<title>" <site>` fills the login in that open
+- **You, again.** `openajar environments login "<title>" <site>` fills the login in that open
   environment's browser now, for when the agent is not running, and says what happened: signed in, or
   what needs you (with the live view's link). A saved environment comes back first with
-  `agentos environments resume "<title>"`.
+  `openajar environments resume "<title>"`.
 - **Where the password goes.** It is typed where the browser runs: with `browser = "vm"` (a laptop)
   into the VM's browser, over the connection the node already drives, so it passes through that
   browser's process; with `browser = "node"` it stays on the node. The session cookies the sign-in
@@ -446,14 +625,14 @@ agentos environments login "Shop fix" github.com                                
   after it, and the username as typed (the password field shows dots). Anything running as root on
   that machine could read what the browser holds: bind only what the computer's work needs
   ([THREAT-MODEL.md](THREAT-MODEL.md#logins-in-an-environments-browser)).
-- **The grant.** The `environments` special of `agentos connect` includes typing a bound login on
+- **The grant.** The `environments` special of `openajar connect` includes typing a bound login on
   environments. An agent connected before this change gets `special: this grant does not include
-  secret`: run `agentos connect` again.
+  secret`: run `openajar connect` again.
 
 ### 5. Check it
 
 ```
-agentos environments setup
+openajar environments setup
 ```
 
 It checks the provider (Docker running, or the Hetzner token), the image and the git
@@ -461,11 +640,11 @@ declarations, and says what is missing and the command that fixes it.
 
 ## Use it from an agent
 
-Connect your agent first (`agentos connect`, see the [README](../README.md#connect-claude-code-codex-and-t3-code)).
-The MCP intro tells every agent it can have an environment, and the `agentos-environment` skill
-(installed by `agentos connect` for Claude Code) teaches it the loop. You only have to ask:
+Connect your agent first (`openajar connect`, see the [README](../README.md#connect-claude-code-codex-and-t3-code)).
+The MCP intro tells every agent it can have an environment, and the `openajar-environment` skill
+(installed by `openajar connect` for Claude Code) teaches it the loop. You only have to ask:
 
-> Work on this in agentos: fix the failing checkout test, check the page on a phone, push a branch.
+> Work on this in openajar: fix the failing checkout test, check the page on a phone, push a branch.
 
 The loop: open, read and edit files, run the tests, start the dev server and look at it in the
 browser, keep a screenshot as proof and give you its link, push a branch and open the pull
@@ -516,10 +695,10 @@ node can clone) gets there two ways. The agent commits it to a branch, pushes it
    go through tool calls. An archive with no files is refused:
 
    ```
-   A="${TMPDIR:-/tmp}/agentos-work.tgz"; if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+   A="${TMPDIR:-/tmp}/openajar-work.tgz"; if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
      git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf "$A"
    else COPYFILE_DISABLE=1 tar --exclude node_modules --exclude .env ... -czf "$A" .; fi
-   curl --fail-with-body -T "${TMPDIR:-/tmp}/agentos-work.tgz" "<url>"
+   curl --fail-with-body -T "${TMPDIR:-/tmp}/openajar-work.tgz" "<url>"
    ```
 
 3. The node checks every file in the archive, then extracts it into the workdir (`/work/<name>`,
@@ -598,7 +777,7 @@ your account browsers (a post on `personal/x`, say) asks you as before.
 - **Waiting for a job to end.** `terminal_job_read(job, until_exit=true, wait_s=120)` returns when
   the job ends. When more is left after your offset than `max_bytes` (16 KB by default), stdout and
   stderr are each its start and its end, cut at line ends, as `terminal_exec` keeps them, with a marker
-  between them (`[agentos: 6452946 bytes skipped here, of 6468895 in all; read them with
+  between them (`[openajar: 6452946 bytes skipped here, of 6468895 in all; read them with
   stdout_offset=3992]`) and the same words in `note`. `next_stdout_offset` is then the end; a read
   at the offset the marker names pages through what was skipped. A read without `until_exit`, and
   one with `base64_output`, always gives the bytes right after your offset.
@@ -621,9 +800,9 @@ your account browsers (a post on `personal/x`, say) asks you as before.
   parent that printed its child's 137 and exited 0. For an ended job this happens before the read
   that reports the end returns. A clean end costs no call. Every machine has swap (see [What is on
   the VM](#what-is-on-the-vm-and-what-is-not)), so a heavy build slows down before it runs out.
-- **Jobs outlive a restart of agentos.** A `terminal_job_start` job runs on the VM on its own (its own
+- **Jobs outlive a restart of openajar.** A `terminal_job_start` job runs on the VM on its own (its own
   session, `setsid`), with its stdout and stderr in files there (`/tmp/agentos-wl/<id>.out` and
-  `.err`), and the node follows those files over SSH. A restart or an upgrade of the agentos service,
+  `.err`), and the node follows those files over SSH. A restart or an upgrade of the openajar service,
   a laptop that sleeps, or a dropped connection no longer ends a dev server: when the service starts
   again it finds each job still running on its machine and follows it again, and `terminal_job_read` goes
   on with the same job id and offsets. `terminal_job_cancel`, the job's timeout (also one that passed
@@ -643,11 +822,17 @@ your account browsers (a post on `personal/x`, say) asks you as before.
 browser's live view**, served by the node itself, the environment's browser as it is now. Take
 control to click or type yourself, then hand it back, from that link alone: the environment's
 browser holds no account, so no sign-in is needed (an account browser's link still needs your panel
-sign-in for that, [THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)). The agent waits until you hand
+sign-in for that, [THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)). On a server node an environment
+whose desktop is on needs that sign-in too: its dock opens a root terminal on the machine
+([THREAT-MODEL.md](THREAT-MODEL.md#an-environments-desktop)). The agent waits until you hand
 it back, watching it and your input count as use, so the reaper does not close it under you, and the trail records
 what you did as `link holder`. The link is on the node's own address as the agent reaches it (for an
 agent on your Mac, `http://localhost:7400` through its tunnel to the node), so it opens on that computer. In T3 Code the agent opens it in the preview pane
 beside the chat (`preview_open`), so you watch the browser while you talk to the agent.
+
+**Record a clip** with the button next to full screen (or **R**): it saves what you see as a video on
+your computer, with the agent's pointer in it, made in your browser and never uploaded
+([LOCAL.md](LOCAL.md#the-live-view)).
 
 How long a link works: it opens until its expiry (`links.browser_expires_at`, 15 minutes after it was
 made by default, `view_token_seconds` in node.toml), and a page that is open renews itself until 30
@@ -658,7 +843,7 @@ before it expires, then a new one; a link given earlier keeps working until its 
 ### Proof of the work
 
 `browser_screenshot(proof="checkout page after the fix")` keeps that screenshot as proof. It is
-stored on the node with the environment (`$AGENTOS_HOME/environments/<id>/proofs/`), recorded in the
+stored on the node with the environment (`$OPENAJAR_HOME/environments/<id>/proofs/`), recorded in the
 audit log, and kept for 30 days after the environment closes (at most 30 for one environment). The
 agent gets a link to it on the node's own address, good for 15 minutes (`environment()` and
 `environment_close` list every proof with a fresh one), which it gives you or saves with
@@ -689,7 +874,7 @@ The docker image and the `dev` image have ffmpeg. A machine from an older image 
 first recording (apt, through the network's proxy when it is `limited`: about a minute), and the
 result says so (`installed`); a machine whose network is `none` cannot, and the call fails with
 `recording_failed` and the fix. With `browser = "node"`, the node needs ffmpeg
-(`deploy/install-node.sh` installs it; `agentos doctor` warns when it is missing).
+(`deploy/install-node.sh` installs it; `openajar doctor` warns when it is missing).
 
 A video proof as `environment()`, `environment_close` and the web API list it:
 
@@ -732,7 +917,7 @@ the VM a frame took about 60 ms (the browser's JPEG is about 30 KB at 1920 pixel
 the node about 15 ms).
 
 The frames, an index and the calls made on the environment are in
-`$AGENTOS_HOME/environments/<id>/replay/`. One environment keeps at most 1,500 frames and 150 MB
+`$OPENAJAR_HOME/environments/<id>/replay/`. One environment keeps at most 1,500 frames and 150 MB
 (past that its oldest `change` frames go first, then its oldest others, never the save and close
 ones), every replay on the node together at most 1 GB (the oldest frames of closed environments go
 first; while only open ones hold it, new frames are skipped). The reaper removes a replay
@@ -752,7 +937,7 @@ only you read it, an account browser is never pictured, and the agent sees only 
 To look at one after the VM is gone:
 
 ```sh
-agentos environments replay e7k2m9p3x4q --out ./replay    # frames/, timeline.json and index.html
+openajar environments replay e7k2m9p3x4q --out ./replay    # frames/, timeline.json and index.html
 ```
 
 `index.html` is a page that steps through the frames (left and right arrows, space plays them), with
@@ -770,12 +955,12 @@ to you only (a member's role and an agent's grant get `denied`):
 
 ### Who the commits are by
 
-With a GitHub login saved (`agentos setup github`), an environment's git commits as you: your GitHub
+With a GitHub login saved (`openajar setup github`), an environment's git commits as you: your GitHub
 display name and your GitHub noreply address, `<id>+<login>@users.noreply.github.com`, so the commits
-link to your account without showing your email. agentos asks GitHub for the account's number once,
+link to your account without showing your email. openajar asks GitHub for the account's number once,
 with the saved login, and keeps it in `git/login.json`; only the name and the address reach the VM,
 never a token. Without a login (or when GitHub cannot be asked), commits are by the agent: its name and
-`agent@agentos.invalid`. An agent may still set its own with `git config` on the machine.
+`agent@openajar.invalid`. An agent may still set its own with `git config` on the machine.
 
 ### Pull requests
 
@@ -783,7 +968,7 @@ After `git push origin <branch>`, `environment_pull_request(title, body=None, ba
 draft=False)` opens the pull request on GitHub and returns its `url`, which the agent gives you.
 The VM has no `gh` and no credential: the node opens it through GitHub's API with the token the
 git gateway pushes with (a token declared for the repository or its owner first, else the GitHub
-login of agentos local, `agentos setup github`; a deploy key cannot open one). It works only for
+login of openajar local, `openajar setup github`; a deploy key cannot open one). It works only for
 a branch this environment created on the remote, into `base` or the repository's default branch;
 if one is open for that branch already, it returns that one. It never merges, closes or changes
 anything else, and the token never leaves the node. With no token it fails with
@@ -803,7 +988,7 @@ refuses the files (a protected branch, a token that may not write), the pull req
 `proofs.why` says why.
 
 Calling `environment_pull_request` again for an open pull request (more proof since) updates only
-agentos's own sections of its body, between their markers (`<!-- agentos:proofs:begin -->` and
+openajar's own sections of its body, between their markers (`<!-- agentos:proofs:begin -->` and
 `<!-- agentos:proofs:end -->`; the network's "Blocked during this work" the same way): the agent's
 text and anyone else's stay as they are. `environment_pull_request(proofs=false)` leaves the proofs
 out, and `pr_proofs = false` in `environments.toml` does so by default.
@@ -820,7 +1005,7 @@ listens on a free `127.0.0.1` port and sends each connection through the environ
 connection (its SOCKS proxy) to that port on the VM, so no new SSH session, key or firewall rule is
 needed, and only the node's own user may use it. It closes with the environment.
 
-- On agentos local the node is your computer: `url` is `http://127.0.0.1:<p>/`, open it as is.
+- On openajar local the node is your computer: `url` is `http://127.0.0.1:<p>/`, open it as is.
 - On a server node the port is on the server: run the `tunnel` line it gives
   (`ssh -N -L <p>:127.0.0.1:<p> <your node>`, the same as for the live view), then open `url`.
 
@@ -830,25 +1015,25 @@ the others say "On the machine only".
 From the CLI:
 
 ```
-agentos environments list           # the open ones (alias: agentos envs); --all: closed and failed too
-agentos environments show e7k2      # one in full: machine, cost, ports, git, last calls
-agentos environments close e7k2     # --discard to close with unsaved work
-agentos environments resume "Black Friday page"   # a save, by title or save id: held by no chat
+openajar environments list           # the open ones (alias: openajar envs); --all: closed and failed too
+openajar environments show e7k2      # one in full: machine, cost, ports, git, last calls
+openajar environments close e7k2     # --discard to close with unsaved work
+openajar environments resume "Black Friday page"   # a save, by title or save id: held by no chat
 ```
 
 The web app's Environments page shows the same, with each one's live browser, commands and git on
 its own page ([web/README.md](../web/README.md) says how to build and open it). Without a build, the
-live view links, the CLI and the terminal dashboard (`agentos open --terminal`) show the same.
+live view links, the CLI and the terminal dashboard (`openajar open --terminal`) show the same.
 
 ## Prepared machines
 
 A repository can say how its machine is set up, in a small file of its own,
-`.agentos/environment.toml`. With it, an open installs the dependencies and starts the app by
+`.openajar/environment.toml`. With it, an open installs the dependencies and starts the app by
 itself, and from the second open on it starts from a **prepared machine**: an image of a machine on
 which the setup already ran, as Codex cloud, Claude Code's cloud environments, Daytona and E2B do.
 
 ```toml
-# .agentos/environment.toml
+# .openajar/environment.toml
 setup = "pnpm install --frozen-lockfile"     # once, on a fresh machine: its result is the prepared machine
 refresh = "pnpm install --prefer-offline"    # on each open from a prepared machine, after the checkout
 start = "pnpm dev --host 0.0.0.0"            # the dev server, started as a job on each open
@@ -857,7 +1042,7 @@ ready_timeout_s = 120                        # how long the open waits for the p
 inputs = ["pnpm-lock.yaml"]                  # what makes a prepared machine stale (default: the lockfiles)
 ```
 
-Every key is optional, but `start` needs `port`, and `refresh` needs `setup`. A key agentos does not
+Every key is optional, but `start` needs `port`, and `refresh` needs `setup`. A key openajar does not
 know is an error that names it; the open goes on without the file and says why. Without `inputs`,
 the lockfiles and manifests the repository has are used: `package-lock.json`, `pnpm-lock.yaml`,
 `yarn.lock`, `bun.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `requirements*.txt`,
@@ -910,12 +1095,12 @@ and host keys (each new machine gets its own), the machine id and swap. Then it 
 (`docker commit` on Docker) and deletes the build machine. Caches stay: they make `refresh` fast.
 
 A build is the grant's that started it: an agent's open builds under that agent's own grant, and
-`agentos environments prepare` under the owner's. Its gateway token is that grant's and only fetches
+`openajar environments prepare` under the owner's. Its gateway token is that grant's and only fetches
 (no push, whatever the repository's declaration allows). If the grant is revoked or frozen while the
 build runs, the build stops within seconds: its machine is deleted and no snapshot is taken.
 
 **What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
-`setup`, `refresh`, each input file's content (by its git blob id), agentos's own setup version and
+`setup`, `refresh`, each input file's content (by its git blob id), openajar's own setup version and
 the ref. Change one and the next open runs setup again and builds a new one; `start` and `port` are
 not part of it. The ref: an open with no `ref` (the default branch) boots the repository's one
 shared build, from the default branch. An open of any other branch, tag or commit boots only a build
@@ -930,9 +1115,9 @@ like a save's (`snapshot_eur_per_gb_month`); on Docker it costs nothing. `prepar
 `environments.toml` turns builds off.
 
 ```
-agentos environments prepare github.com/me/shop [--ref <ref>] [--force]  # build it now, with its steps
-agentos environments prepared                                           # each one, its age and cost; the warm pool
-agentos environments prepared forget github.com/me/shop                 # delete them
+openajar environments prepare github.com/me/shop [--ref <ref>] [--force]  # build it now, with its steps
+openajar environments prepared                                           # each one, its age and cost; the warm pool
+openajar environments prepared forget github.com/me/shop                 # delete them
 ```
 
 `prepare` asks agentosd to build it (the build needs its git gateway) and follows the build's steps
@@ -944,7 +1129,7 @@ A warm machine is booted before anyone asks for it, so an open that matches it s
 the boot. It is **off by default**: nothing bills until an agent opens a machine.
 
 ```
-agentos environments allow --warm 1
+openajar environments allow --warm 1
 ```
 
 A running node takes it up at once. What is warmed: a machine booted from the image the newest open
@@ -966,7 +1151,7 @@ no token, no clone.
   between leaves it deleted by the environment's failed bring-up or by its time limit, never billed
   for ever. `prepared.warm` in the result says it came from the pool.
 
-`agentos environments prepared` and the node's report show the pool: how many are warm, since when,
+`openajar environments prepared` and the node's report show the pool: how many are warm, since when,
 and what they cost so far.
 
 ## Checkpoints
@@ -1012,11 +1197,11 @@ keep=...)`), else `default_keep` in `environments.toml`:
 
 The skill and the MCP intro tell the agent to keep the default, `save`, and to choose single use
 (`keep="none"`) only for a one-off fix, and `live` only when you ask for an always-on machine. To
-make single use the default again, set `default_keep = "none"` (or choose it in `agentos setup
+make single use the default again, set `default_keep = "none"` (or choose it in `openajar setup
 limits`). `live` is refused (`keep_live_not_allowed`) until you allow it:
 
 ```
-agentos environments allow --keep-live
+openajar environments allow --keep-live
 ```
 
 **On Morph, a save pauses the machine.** Morph can pause a machine with its memory, so there a
@@ -1041,7 +1226,7 @@ environment of that repository. Its result has `resumed`: where it came from (`s
 `files` when only the files were saved), the branch and head, the files and commits restored, a
 fresh `expires_at`, `signins`, what is `missing`, and the note the last agent left. The note is the
 agent's own text: the next agent reads it as data, never as instructions. To bring one back, say
-to your agent: "continue the shop in agentos".
+to your agent: "continue the shop in openajar".
 
 **The services.** Each `terminal_job_start` command that ran at the save (with the port its command
 names) is started again, and so is each server that listened on the machine at the save from a
@@ -1092,7 +1277,7 @@ snapshot and the files, after asking; an agent that opens that title again start
 machine. Agents forget finished work themselves with `environment_forget(title)`.
 `environment()` always lists the agent's `open` and `saved` ones.
 
-**You resume one yourself.** Without a chat: **Resume** on a save in the web app's Saved list, `agentos
+**You resume one yourself.** Without a chat: **Resume** on a save in the web app's Saved list, `openajar
 environments resume <title or save id>` on the node, or the Resume button on the saved environment's
 live-view link. It resumes the save as `environment_open` with its title does (a disk snapshot, or on
 Morph the paused machine, in seconds), within the same limits (`environment_limit` and
@@ -1101,7 +1286,7 @@ it in its live view at once (the CLI and the API give the link), and the next ag
 title takes it with its `resumed` record (`opened: "resumed"`). Its idle rule and time limit are any
 open environment's: while you watch it stays, and unused and unwatched it is saved again after
 `idle_minutes`. An agent's calls with the `on` of the closed one are refused with when it was saved
-and how to come back (`environment_open(title="...")`); agentos never resumes one on an agent's behalf.
+and how to come back (`environment_open(title="...")`); openajar never resumes one on an agent's behalf.
 
 **A saved environment's live-view link.** Once it is saved and its machine closed, the agent's
 `links.browser` shows a small page instead of an error: to you, signed in to the panel in that
@@ -1123,7 +1308,7 @@ open a fresh one under another title. `save_limit`: forget saves you no longer n
   environment page extends it, up to the same limit.
 - **The reaper** closes an environment that the agent forgot: idle (no call, no running command,
   nobody watching it and no input from you in its live view; in local mode also no use of the
-  agent's own `ssh agentos-<id>`, docs/LOCAL.md) for `idle_minutes` (default 60), or past its time
+  agent's own `ssh openajar-<id>`, docs/LOCAL.md) for `idle_minutes` (default 60), or past its time
   limit. Watching is a live view of its browser open (the node's link or the web app's) or a
   connection through an `environment_port` link (a dev server's page open on your computer): while
   one is open the environment is in use, and the idle time counts from when the last one closed. It
@@ -1159,7 +1344,7 @@ On it:
   The security updates are applied instead where nobody works yet: when a fresh Ubuntu VM is set up
   (before the machine is handed over; on a fresh VM Ubuntu's own run held the package lock at that
   moment anyway) and when the `dev` snapshot is built, so a machine from the snapshot is as patched as
-  the day it was built: rebuild it now and then (`agentos vm image build dev`, monthly is a good
+  the day it was built: rebuild it now and then (`openajar vm image build dev`, monthly is a good
   rhythm). A `keep: "live"` machine, which lives for weeks, gets them at a quiet moment: no call and no
   job for 30 minutes (`upgrade_quiet_minutes` in `environments.toml`), at most once a day, restarting
   no service. `machine.updates` in `environment()` and the panel says when they were applied, that they
@@ -1176,19 +1361,19 @@ On it:
   [Network](#network).
 - Whatever the agent installs. It is the agent's machine, by its title.
 - In local mode only: the public half of the environment's own ssh key in root's authorized_keys,
-  restricted to a terminal and commands (no forwarding), so `ssh agentos-<id>` works from the agent's
+  restricted to a terminal and commands (no forwarding), so `ssh openajar-<id>` works from the agent's
   shell (docs/LOCAL.md). A server node gives none: its agent is on another computer.
 
 Not on it:
 
-- agentos itself, a node token, a grant, the vault, any key or token, any account.
+- openajar itself, a node token, a grant, the vault, any key or token, any account.
 - The browser, with the default `browser = "node"`. It runs on the node, with its traffic carried
   through the VM (a SOCKS tunnel over SSH, DNS included), so `localhost` is the VM and sites see the
   VM's address. With `browser = "vm"` it runs on the VM (above). Either way it has no account and no
   saved login but the logins you bound to it ([Signing in](#signing-in)), whose sessions stay in it and
-  its saves; it is deleted with the environment. Its window fills a
-  1920x1080 screen, so pages show their desktop layout (an account browser's window is the size its
-  identity drew).
+  its saves; it is deleted with the environment. Its screen is 1920x1080, so pages show their desktop
+  layout: on the node its window fills it, on the VM's desktop it is a 1776x890 window (an account
+  browser's window is the size its identity drew).
 
 ## Limits
 
@@ -1204,29 +1389,29 @@ Not on it:
   `environment_download(path)` (a one-use link to a file or folder in `/work`).
 - The node checks where a push goes (declared repository, protected branch), not what the commits
   contain. Review a branch before you merge it.
-- On the dev node (`agentos dev up`), account browsers are simulated. The environment's machine,
+- On the dev node (`openajar dev up`), account browsers are simulated. The environment's machine,
   terminal, git and studio's checks are real.
 
 ## Troubleshooting
 
 | You see | What it means | What to do |
 |---|---|---|
-| `environment_limit` | `max_live`, the longest life or the month's budget is reached; the message says which | close one (`agentos environments list`), or raise that limit with `agentos environments allow` |
-| `network_not_allowed` | the agent asked for a wider network than the node's, the provider cannot close a machine, `none` cannot clone an undeclared repository, or a closed Hetzner machine has no `dev` image | the message names the command: `agentos environments allow --network ...`, `agentos environments repo add ...` or `agentos vm image build dev` |
-| a 403 that says a host "is not on this environment's network list" | the environment's network is `limited` or `none`, and that host is not allowed | `agentos environments allow --host <host>`; new environments get it |
+| `environment_limit` | `max_live`, the longest life or the month's budget is reached; the message says which | close one (`openajar environments list`), or raise that limit with `openajar environments allow` |
+| `network_not_allowed` | the agent asked for a wider network than the node's, the provider cannot close a machine, `none` cannot clone an undeclared repository, or a closed Hetzner machine has no `dev` image | the message names the command: `openajar environments allow --network ...`, `openajar environments repo add ...` or `openajar vm image build dev` |
+| a 403 that says a host "is not on this environment's network list" | the environment's network is `limited` or `none`, and that host is not allowed | `openajar environments allow --host <host>`; new environments get it |
 | a bound secret's API answers 401 | the request carried the placeholder: a body, plain HTTP, or another host than the bound one (`network.blocked` says which) | send the key in a header or the query, over HTTPS, to the bound host |
-| `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `agentos environments setup`; on Hetzner, `agentos vm types` (sold out in the location?) |
+| `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `openajar environments setup`; on Hetzner, `openajar vm types` (sold out in the location?) |
 | `state: "starting"` for minutes | first boot without the `dev` image installs the tools | wait, or build the image (step 2) |
 | `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account browser with `on` |
 | `which_environment` | a call without the machine's handle: no `on` from a client with no session id, or a title or an id in `on` | the agent passes the `on` its environment_open gave, or opens its own |
 | `environment_already_open` | the title names an open environment with another repository | the agent picks another title |
 | `environment_in_use` | another chat of the agent holds the live machine with this title | the agent opens its own with another title; `take_over=true` once the holder has been quiet for `take_over_minutes` |
-| `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `agentos environments show ID` |
+| `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `openajar environments show ID` |
 | `unsaved_work` on close | uncommitted changes or commits not pushed | commit and push, or close with `discard=true` if the work may go |
-| `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `agentos environments repo add github.com/me/shop --token` |
+| `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `openajar environments repo add github.com/me/shop --token` |
 | the token page says it did not work | the token did not work, and nothing was kept; the page says why | do what the page says (table in "Connect a repository"), then paste it again on the same page |
-| `repo_not_connected` | a node without approvals, or the clone on the machine still failed (its machine was deleted) | `agentos environments repo add github.com/me/shop` (the message names the repository) |
-| a push is refused | the repository is not declared for `env`, or it is fetch only | `agentos environments repo add github.com/me/shop` |
+| `repo_not_connected` | a node without approvals, or the clone on the machine still failed (its machine was deleted) | `openajar environments repo add github.com/me/shop` (the message names the repository) |
+| a push is refused | the repository is not declared for `env`, or it is fetch only | `openajar environments repo add github.com/me/shop` |
 | a push is refused with `push_refused` | it would force-push or delete the default branch (or a protected one), force-push or delete a branch the environment did not create, or move a tag | push a new branch and open a pull request |
 | `localhost:3000` does not load in the browser | nothing listens on that port on the VM | `environment()` lists the ports that listen; start the dev server with `terminal_job_start` |
 | `studio_blank_page` on a dev server | nothing rendered within the wait (15 s on a dev server) | a slow app: `ui_check(..., wait_for="main h1")`; else the app failed to render (the message quotes its console) |

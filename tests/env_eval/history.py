@@ -7,7 +7,8 @@ and host (or a named commit's), metric by metric.
 
 A metric regresses when it is worse by more than its threshold (a fraction) *and* by more than its
 noise floor (an absolute amount), so 3 s against 2 s, or one more call, is not a 50% regression.
-`finished` regresses on any drop. Everything else here is lower-is-better.
+`finished` regresses on any drop of one run a side; over repeats, only when Fisher's test calls it real or
+likely (env_eval.stats). Everything else here is lower-is-better.
 """
 
 from __future__ import annotations
@@ -167,16 +168,32 @@ def verdict(metric: str, old: float, new: float) -> tuple[str, bool]:
     return ("better", False) if -frac > threshold or not old else ("same", False)
 
 
+def _runs(rec: dict[str, Any], metric: str) -> int:
+    task = metric.rsplit(".", 1)[0]
+    return int(((rec.get("tasks") or {}).get(task) or {}).get("runs") or 0)
+
+
 def compare(base: dict[str, Any], new: dict[str, Any]) -> list[dict[str, Any]]:
-    """Every metric in both: old, new, the change as a fraction, better/worse/same, regressed."""
+    """Every metric in both: old, new, the change as a fraction, better/worse/same, regressed. A task's
+    finished rate over repeats on both sides changes only as far as Fisher's test says (stats.strength):
+    `strength` real or likely, with `p`; a change within the noise is "same"."""
+    from env_eval import stats
+
     a, b = metrics_of(base), metrics_of(new)
     rows = []
     for metric in sorted(set(a) & set(b)):
         old, now = a[metric], b[metric]
         word, bad = verdict(metric, old, now)
+        row: dict[str, Any] = {}
+        n_a, n_b = _runs(base, metric), _runs(new, metric)
+        if metric.endswith("." + FINISHED) and not metric.startswith("total.") and n_a > 1 and n_b > 1:
+            how, p = stats.strength(round(old * n_a), n_a, round(now * n_b), n_b)
+            row = {"strength": how, "p": round(p, 3)}
+            if how is None:
+                word, bad = "same", False
         change = (now - old) / old if old else 0.0
         rows.append({"metric": metric, "old": old, "new": now, "change": round(change, 3), "verdict": word,
-                     "regressed": bad})
+                     "regressed": bad, **row})
     return rows
 
 
@@ -186,5 +203,7 @@ def describe(rows: list[dict[str, Any]], *, only_changes: bool = True) -> list[s
         if only_changes and r["verdict"] == "same":
             continue
         mark = "REGRESSION" if r["regressed"] else r["verdict"]
+        if r.get("strength"):
+            mark += f" ({r['strength']}, p={r['p']})"
         lines.append(f"  {r['metric']:42} {r['old']:>10g} -> {r['new']:<10g} {r['change']:+7.1%}  {mark}")
     return lines

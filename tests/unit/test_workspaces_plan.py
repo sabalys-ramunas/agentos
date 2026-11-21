@@ -6,9 +6,9 @@ same platform or not, same workspace or not, planned or already existing, with a
 
 from __future__ import annotations
 
-from agentos.workspaces.models import Template, TemplateLane
-from agentos.workspaces.planner import approval_summary, make_plan, refusal
-from agentos.workspaces.rules import LaneFact, proxy_conflicts
+from openajar.workspaces.models import Template, TemplateLane
+from openajar.workspaces.planner import approval_summary, make_plan, refusal
+from openajar.workspaces.rules import LaneFact, proxy_conflicts
 
 
 def fact(lane: str, proxy: str | None, platform: str | None = None) -> LaneFact:

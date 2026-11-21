@@ -98,7 +98,7 @@ function LoadCell({ org, row }: { org: string; row: MachineRow }) {
   return (
     <div className="flex items-center justify-end gap-3">
       {values.length > 1 ? <Sparkline values={values} className="h-5 w-16" /> : null}
-      <span className={cn('w-10 text-right font-mono text-number tabular', busy ? 'text-warn' : 'text-fg')}>{row.cpu}%</span>
+      <span className={cn('w-10 text-right tabular', busy ? 'text-warn' : 'text-fg')}>{row.cpu}%</span>
     </div>
   );
 }
@@ -113,7 +113,7 @@ function MemoryCell({ row }: { row: MachineRow }) {
   return (
     <div className="flex items-center justify-end gap-3" title={row.memoryText ?? undefined}>
       <Meter value={row.node?.mem.used_mb ?? row.memory} max={row.node?.mem.total_mb ?? 100} label={`Memory of ${row.id}`} className="w-14" />
-      <span className="w-10 text-right font-mono text-number text-fg tabular">{row.memory}%</span>
+      <span className="w-10 text-right text-fg tabular">{row.memory}%</span>
     </div>
   );
 }
@@ -211,7 +211,7 @@ function MachinesTable({ rows, org, selected, table, onSelect, onSort }: { rows:
             return (
               <Tr key={row.id} selected={row.id === selected} onActivate={() => onSelect(row.id)} aria-label={`${row.vm ? row.name : row.id}, ${row.status.label}`}>
                 {/* The name keeps its own width; "Doing now" takes the rest while it shows. */}
-                <Td main className="@5xl:w-auto">
+                <Td main className="@5xl:w-auto @5xl:min-w-60">
                   <div className="flex min-w-0 items-center gap-3">
                     <MachineIcon row={row} />
                     <div className="grid min-w-0">
@@ -223,7 +223,7 @@ function MachinesTable({ rows, org, selected, table, onSelect, onSort }: { rows:
                 <Td>
                   {/* w-max: a bare grid reports no width of its own, and the column would squeeze the word. */}
                   <div className="grid w-max gap-1">
-                    <Status status={row.status} />
+                    <Status status={row.status} chip />
                     {row.vm && timeLeft(row.vm) ? <span className="text-caption whitespace-nowrap text-faint max-md:hidden">{timeLeft(row.vm)}</span> : null}
                   </div>
                 </Td>
@@ -376,7 +376,7 @@ export function Machines({ org, selected, table, addOpen, onAdd, onSelect, onSor
         <div className="grid min-w-0 gap-6">
           <Card className="@container overflow-hidden">
             <MachinesTable rows={sorted} org={org} selected={selected} table={table} onSelect={onSelect} onSort={onSort} />
-            <div className="border-t border-line px-5 py-3 text-caption text-faint">{totals(rows)}</div>
+            <div className="border-t border-line px-5 py-3 text-secondary text-faint">{totals(rows)}</div>
           </Card>
           {selected && !open ? (
             <Card>

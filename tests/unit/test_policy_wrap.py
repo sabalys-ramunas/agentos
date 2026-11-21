@@ -9,15 +9,15 @@ import sqlite3
 import pytest
 from test_policy_support import OWNER, SPECS, Clock, make_service
 
-from agentos.core.errors import LaneNotFound
-from agentos.core.models import Effect
-from agentos.core.presence import Presence
-from agentos.core.tools import ToolSpec, in_person
-from agentos.policy import ToolCallError, bind_request_token, request_token, visible_tools, wrap_tool
-from agentos.policy.grants import LaneCap, Specials
-from agentos.policy.manifest import manifest_hash
-from agentos.policy.routing import PolicyConfig
-from agentos.policy.tools import tool_specs
+from openajar.core.errors import LaneNotFound
+from openajar.core.models import Effect
+from openajar.core.presence import Presence
+from openajar.core.tools import ToolSpec, in_person
+from openajar.policy import ToolCallError, bind_request_token, request_token, visible_tools, wrap_tool
+from openajar.policy.grants import LaneCap, Specials
+from openajar.policy.manifest import manifest_hash
+from openajar.policy.routing import PolicyConfig
+from openajar.policy.tools import tool_specs
 
 
 @pytest.fixture
@@ -131,7 +131,7 @@ async def test_denied_maps_to_code_and_message(env):
     assert all_traces(svc)[0].status == "denied"
 
 
-async def test_error_factory_and_agentos_errors(env):
+async def test_error_factory_and_openajar_errors(env):
     svc, rt = env
 
     class SdkError(Exception):
@@ -303,7 +303,7 @@ async def test_locked_trace_db_never_fails_a_call(env, tmp_path):
 
 def test_trace_spill_file_survives_long_outages(env, tmp_path, monkeypatch):
     svc, _ = env
-    from agentos.policy.traces import TraceEvent, TraceStore
+    from openajar.policy.traces import TraceEvent, TraceStore
 
     monkeypatch.setattr(TraceStore, "MAX_PENDING", 3)
     locker = sqlite3.connect(tmp_path / "traces.db", timeout=0.1)

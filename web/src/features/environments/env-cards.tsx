@@ -1,159 +1,35 @@
-/** An environment's cards: its browser, the commands its terminal ran, git, ports, calls and the machine. */
+/**
+ * What sits under an environment's screen: the commands its terminal ran, what it did (each call in plain
+ * words, failures in red), its code, the ports that listen, and one quiet line for the machine and its price.
+ */
 import { Link } from '@tanstack/react-router';
-import { ArrowUpRight, Globe, MonitorCloud, Plug, SquareTerminal } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Cpu, FileText, Globe, Monitor, MonitorCloud, ScanEye, SquareTerminal } from 'lucide-react';
 import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { useAccess, useLane, useLaneAction } from '@/api/hooks';
-import { ApiError } from '@/api/http';
 import type { EnvDetail } from '@/api/types';
-import { BranchPill } from '@/components/ui/branch';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { CopyButton, Detail } from '@/components/ui/misc';
-import { Spinner } from '@/components/ui/spinner';
-import { Skeleton } from '@/components/ui/states';
-import { Status, StatusDot } from '@/components/ui/status';
 import { Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { dateTime, plural, safeUrl, timeAgo } from '@/lib/format';
+import { clock, dateTime, plural, safeUrl, timeAgo } from '@/lib/format';
 import { toolPlainTitle } from '@/lib/plain-node';
 import { useTechnical } from '@/lib/technical';
-import { ControlFrame } from '@/features/lane/control';
-import { LiveView } from '@/features/lane/live-view';
-import { SegmentedControl } from '@/components/ui/tabs';
 import { UnsavedList, unsavedWords } from './close-flow';
-import { ReplayCard } from './replay';
-import {
-  KEEP,
-  commandStatus,
-  hourly,
-  idleCost,
-  isJob,
-  isOpen,
-  keepOf,
-  providerName,
-  pullRequestLink,
-  shortCommit,
-} from './words';
-import { CALLS_SHOWN } from './environment-page';
+import { StatusPill } from './status-pill';
+import type { CallWords } from './words';
+import { KEEP, callWords, commandStatus, hourly, idleCost, isJob, isOpen, keepOf, machineWords, pullRequestLink } from './words';
 
-/** The middle of the browser card while there is no live view to show. */
-function Stage({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <div className="flex aspect-[16/10] flex-col items-center justify-center bg-inset p-6 text-center">
-      <div className="mb-4 text-faint [&_svg]:size-6">{icon}</div>
-      <h3 className="text-label">{title}</h3>
-      <p className="mt-1 max-w-sm text-body text-muted">{children}</p>
-    </div>
-  );
-}
-
-export function BrowserCard({ org, env }: { org: string; env: EnvDetail }) {
-  const [ws = 'env', name = ''] = env.lanes.browser.split('/');
-  const starting = env.state === 'starting';
-  // Concept: what its browser did so far, beside the live view, as a view of the same thing.
-  const [view, setView] = useState<'live' | 'replay'>('live');
-  const replayable = !starting && Boolean(env.replay?.frames);
-  return (
-    <section aria-label="Browser" className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h2 className="flex items-center gap-2 text-card-title">
-          <Globe aria-hidden="true" className="size-4 text-faint" />
-          Browser
-        </h2>
-        {view === 'live' ? (
-          <p className="min-w-0 text-secondary text-faint max-md:order-last max-md:w-full">
-            Its traffic leaves from the machine, so <span className="font-mono text-code-caption text-muted">localhost</span> is the machine.
-          </p>
-        ) : null}
-        {replayable ? (
-          <SegmentedControl<'live' | 'replay'>
-            label="Browser view"
-            value={view}
-            onValueChange={setView}
-            options={[
-              { value: 'live', label: 'Live' },
-              { value: 'replay', label: 'Replay so far' },
-            ]}
-            className="ml-auto"
-          />
-        ) : null}
-      </div>
-      {view === 'replay' && replayable ? (
-        <Card className="overflow-hidden">
-          <ReplayCard org={org} env={env} embedded />
-        </Card>
-      ) : starting ? (
-        <Card className="overflow-hidden">
-          <Stage icon={<Spinner />} title="Starting the machine">
-            The browser opens when the machine is ready, usually within two minutes.
-          </Stage>
-        </Card>
-      ) : env.viewer ? (
-        <BrowserLive org={org} ws={ws} name={name} />
-      ) : (
-        <Card className="overflow-hidden">
-          <Stage icon={<Globe />} title="No live view">
-            The node has no live view of this browser right now. It shows here once the agent opens a page.
-          </Stage>
-        </Card>
-      )}
-    </section>
-  );
-}
-
-function BrowserLive({ org, ws, name }: { org: string; ws: string; name: string }) {
-  const lane = useLane(org, ws, name);
-  const action = useLaneAction(org, ws, name);
-  const access = useAccess(org);
-  const [expanded, setExpanded] = useState(false);
-  if (lane.isPending) return <Skeleton className="aspect-[16/10] h-auto w-full rounded-xl" />;
-  if (!lane.data) {
-    return (
-      <Card className="overflow-hidden">
-        <Stage icon={<Globe />} title="The browser is not reachable">
-          {lane.error instanceof ApiError && lane.error.status === 404
-            ? 'The node does not list this browser now. It may be closing with the machine.'
-            : 'The live view could not be read. It tries again on its own.'}
-        </Stage>
-      </Card>
-    );
-  }
-  const canTake = access.can('lanes.control');
-  const awake = lane.data.state === 'warm' || lane.data.state === 'active';
-  return (
-    <ControlFrame org={org} lane={lane.data} canControl={canTake} expanded={expanded && awake}>
-      <LiveView
-        org={org}
-        lane={lane.data}
-        opening={action.isPending}
-        canOperate={access.can('lanes.operate')}
-        canTake={canTake}
-        onOpen={() => action.mutate('open')}
-        expanded={expanded && awake}
-        onExpandedChange={setExpanded}
-      />
-    </ControlFrame>
-  );
-}
+/** Steps shown before "All". */
+export const CALLS_SHOWN = 6;
 
 export function CommandsCard({ org, env, now }: { org: string; env: EnvDetail; now: number }) {
   const commands = env.commands;
   return (
     <Card className="overflow-hidden">
-      <CardHeader
-        title={
-          <>
-            <SquareTerminal aria-hidden="true" className="size-4 text-faint" />
-            Terminal
-          </>
-        }
-        meta={commands.length ? plural(commands.length, 'command') : undefined}
-        action={<span className="hidden font-mono text-code-caption text-faint sm:inline">{env.lanes.terminal}</span>}
-      />
+      <CardHeader title="Terminal" meta={commands.length ? plural(commands.length, 'command') : undefined} />
       {commands.length ? (
         <TableScroll>
-          <Table stack density="compact" aria-label="Commands">
+          <Table stack aria-label="Commands">
             <thead>
               <tr>
                 <Th>Command</Th>
@@ -165,26 +41,25 @@ export function CommandsCard({ org, env, now }: { org: string; env: EnvDetail; n
               {commands.map((command) => (
                 <Tr key={command.id}>
                   <Td main>
-                    <div className="flex min-w-0 items-center gap-2 font-mono text-code">
+                    {/* Long commands wrap; the time beside them stays on one line. */}
+                    <div className="flex min-w-0 gap-2 font-mono text-code whitespace-normal break-words">
                       <span aria-hidden="true" className="text-faint">
                         $
                       </span>
                       {isJob(command) ? (
-                        <Link to="/$org/runs/$id" params={{ org, id: command.id }} title={`${command.cmd} (its run page)`} className="min-w-0 truncate text-fg underline decoration-line-strong underline-offset-4 hover:decoration-fg">
+                        <Link to="/$org/runs/$id" params={{ org, id: command.id }} title={`${command.cmd} (its run page)`} className="min-w-0 text-fg underline decoration-line-strong underline-offset-4 hover:decoration-fg">
                           {command.cmd}
                         </Link>
                       ) : (
-                        <span title={command.cmd} className="min-w-0 truncate text-fg">
-                          {command.cmd}
-                        </span>
+                        <span className="min-w-0 text-fg">{command.cmd}</span>
                       )}
                     </div>
                   </Td>
                   <Td>
-                    <Status status={commandStatus(command)} />
+                    <StatusPill status={commandStatus(command)} />
                   </Td>
                   <Td numeric label="Started">
-                    <time dateTime={command.started_at} title={dateTime(command.started_at)} className="text-muted">
+                    <time dateTime={command.started_at} title={dateTime(command.started_at)} className="whitespace-nowrap text-muted">
                       {timeAgo(command.started_at, now)}
                     </time>
                   </Td>
@@ -195,86 +70,125 @@ export function CommandsCard({ org, env, now }: { org: string; env: EnvDetail; n
         </TableScroll>
       ) : (
         <p className="px-5 py-6 text-body text-muted">
-          {isOpen(env) ? 'Nothing has run yet. What the agent runs in the terminal shows here, and a job links to its output.' : 'Nothing ran in its terminal.'}
+          {isOpen(env) ? 'Nothing has run yet. What the agent runs in its terminal shows here, and a long one links to its output.' : 'Nothing ran in its terminal.'}
         </p>
       )}
     </Card>
   );
 }
 
-/** A pushed branch's way to review: GitHub's page that opens a pull request for it. */
-function PullRequestLink({ repo, branch }: { repo: string | null | undefined; branch: string }) {
-  const link = pullRequestLink(repo, branch);
-  if (!link) return null;
+const STEP_ICON: Record<CallWords['kind'], typeof Globe> = {
+  page: Globe,
+  command: SquareTerminal,
+  check: ScanEye,
+  file: FileText,
+  screen: Monitor,
+  machine: MonitorCloud,
+};
+
+export function StepsCard({ env, now }: { env: EnvDetail; now: number }) {
+  const [all, setAll] = useState(false);
+  const [technical] = useTechnical();
+  const calls = env.calls;
+  const shown = all ? calls : calls.slice(0, CALLS_SHOWN);
+  const count = calls.length >= 50 ? 'the newest 50 steps' : plural(calls.length, 'step');
   return (
-    <a
-      href={link}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={`Open a pull request for ${branch}`}
-      className="inline-flex shrink-0 items-center gap-1 text-caption font-medium link hover:underline"
-    >
-      Open a pull request
-      <ArrowUpRight className="size-3.5" aria-hidden />
-    </a>
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="What it did"
+        meta={calls.length ? count : undefined}
+        action={
+          calls.length > CALLS_SHOWN ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-expanded={all}
+              onClick={() => setAll((value) => !value)}
+              icon={<ChevronDown aria-hidden="true" className={cn('size-4 transition-transform duration-(--duration-fast)', all && 'rotate-180')} />}
+            >
+              {all ? `The newest ${CALLS_SHOWN}` : `All ${calls.length}`}
+            </Button>
+          ) : undefined
+        }
+      />
+      {calls.length ? (
+        <ol aria-label="Steps, newest first" className="divide-y divide-line">
+          {shown.map((call, index) => {
+            const words = callWords(call.tool, call.summary, toolPlainTitle);
+            const Icon = STEP_ICON[words.kind];
+            return (
+              <li key={`${call.at}:${index}`} className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 px-5 py-2">
+                <Icon aria-hidden="true" className="size-4 text-faint" />
+                <span className="grid min-w-0">
+                  <span className="truncate text-body font-medium text-fg" title={call.tool}>
+                    {technical ? <span className="font-mono text-code">{call.tool}</span> : words.title}
+                    {call.ok ? null : <span className="sr-only">. It failed</span>}
+                  </span>
+                  <span className={cn('truncate text-secondary', call.ok ? 'text-muted' : 'text-bad')} title={words.detail}>
+                    {words.detail}
+                  </span>
+                </span>
+                <time dateTime={call.at} title={dateTime(call.at)} className="text-secondary whitespace-nowrap text-faint">
+                  {timeAgo(call.at, now)}
+                </time>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="px-5 py-6 text-body text-muted">{isOpen(env) ? 'Nothing yet. Each step the agent takes shows here in plain words.' : 'It made no call.'}</p>
+      )}
+    </Card>
   );
 }
 
 export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
   const git = env.git;
+  const open = isOpen(env);
   const unsaved = env.unsaved && (env.unsaved.dirty_files.length || env.unsaved.unpushed.length) ? env.unsaved : null;
+  const branch = git?.branch ?? env.branch ?? null;
+  const last = git?.pushed[0];
+  const link = branch && git?.pushed.length ? pullRequestLink(env.repo, branch) : null;
+  const notPushed = git ? [git.dirty ? plural(git.dirty, 'changed file') : null, git.ahead ? plural(git.ahead, 'commit') : null].filter(Boolean).join(' and ') : '';
   return (
     <Card className="overflow-hidden">
-      <CardHeader title="Git" meta={git?.pushed.length ? `${plural(git.pushed.length, 'push', 'pushes')}` : undefined} />
+      <CardHeader title="Code" />
       {git ? (
-        <div className="grid gap-4 px-5 py-4">
-          {/* once closed the machine is gone, so there is no working copy left to count: only what was pushed */}
-          {isOpen(env) ? (
-            <dl className="grid divide-y divide-line">
-              <Detail label="Branch">{git.branch ? <BranchPill name={git.branch} main={git.branch === 'main' || git.branch === 'master'} /> : 'No branch checked out'}</Detail>
-              <Detail label="Not pushed">
-                <span className={cn('font-mono tabular', git.ahead ? 'text-warn' : 'text-faint')}>{plural(git.ahead, 'commit')}</span>
-              </Detail>
-              <Detail label="Changed files">
-                <span className={cn('font-mono tabular', git.dirty ? 'text-warn' : 'text-faint')}>{git.dirty}</span>
-              </Detail>
-            </dl>
-          ) : null}
-          {unsaved ? (
-            <div className="grid gap-3">
-              <p className="flex items-start gap-2 text-secondary text-fg">
-                <StatusDot tone="warn" className="mt-1" />
-                <span>
-                  <span className="font-medium text-warn">Unsaved work.</span> It has {unsavedWords(unsaved)}. Closing loses it unless the agent pushes first.
+        <div className="grid gap-4 px-5 pt-2 pb-5">
+          <dl className="grid divide-y divide-line">
+            <Detail label="Branch">{branch ? <span className="font-mono text-code [overflow-wrap:anywhere]">{branch}</span> : 'No branch'}</Detail>
+            {/* once closed the machine is gone, so there is no working copy left to count: only what was pushed */}
+            {open ? <Detail label="Not pushed">{notPushed ? <span className="font-medium text-warn">{notPushed}</span> : <span className="font-medium">Nothing</span>}</Detail> : null}
+            <Detail label="Pushed">
+              {last ? (
+                <span className="font-medium" title={dateTime(last.at)}>
+                  {git.pushed.length === 1 ? 'Once' : `${git.pushed.length} times`}, {timeAgo(last.at, now).toLowerCase()}
                 </span>
+              ) : (
+                <span className="text-faint">Nothing yet</span>
+              )}
+            </Detail>
+          </dl>
+          {unsaved && open ? (
+            <div className="grid gap-3">
+              <p className="text-secondary text-fg">
+                <span className="font-medium text-warn">Unsaved work.</span> It has {unsavedWords(unsaved)}. Closing loses it unless the agent pushes first.
               </p>
               <UnsavedList unsaved={unsaved} />
             </div>
           ) : null}
-          <div className="grid gap-2">
-            <h3 className="text-secondary font-medium text-fg">Pushed{git.branch && git.pushed.length && git.pushed.every((push) => push.branch === git.branch) ? <span className="font-normal text-faint"> to {git.branch}</span> : null}</h3>
-            {git.pushed.length ? (
-              <ul className="grid gap-2">
-                {git.pushed.map((push) => (
-                  <li key={`${push.commit}:${push.at}`} className="flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 font-mono text-code-caption text-fg" title={push.commit}>
-                      {shortCommit(push.commit)}
-                    </span>
-                    {push.branch !== git.branch ? <BranchPill name={push.branch} main={push.branch === 'main' || push.branch === 'master'} className="min-w-0" /> : null}
-                    <time dateTime={push.at} title={dateTime(push.at)} className="ml-auto shrink-0 text-caption text-faint">
-                      {timeAgo(push.at, now)}
-                    </time>
-                    <PullRequestLink repo={env.repo} branch={push.branch} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-secondary text-faint">Nothing pushed yet.</p>
-            )}
-          </div>
+          {link ? (
+            <div>
+              <Button asChild size="sm" icon={<ArrowUpRight className="size-4" />}>
+                <a href={link} target="_blank" rel="noreferrer">
+                  Open a pull request
+                </a>
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
-        <p className="px-5 py-4 text-body text-muted">{env.state === 'failed' ? 'It failed before the repository was cloned.' : env.repo ? 'The node did not report git for it.' : 'It was opened without a repository.'}</p>
+        <p className="px-5 py-5 text-body text-muted">{env.state === 'failed' ? 'It did not start, so nothing was cloned.' : env.repo ? 'The node did not say anything about its code.' : 'It was opened without a repository.'}</p>
       )}
     </Card>
   );
@@ -283,30 +197,17 @@ export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
 export function PortsCard({ env }: { env: EnvDetail }) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader
-        title={
-          <>
-            <Plug aria-hidden="true" className="size-4 text-faint" />
-            Ports
-          </>
-        }
-        meta={env.ports.length ? plural(env.ports.length, 'listening', 'listening') : undefined}
-      />
+      <CardHeader title="Ports" meta={env.ports.length ? plural(env.ports.length, 'listening', 'listening') : undefined} />
       {env.ports.length ? (
         <ul className="divide-y divide-line">
           {env.ports.map((port) => {
             const link = safeUrl(port.link ?? null) ?? (port.link?.startsWith('/') ? port.link : null);
             return (
-              <li key={port.port} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2">
-                <span className="font-mono text-code text-fg tabular">{port.port}</span>
-                <span className="min-w-0 flex-1 truncate text-secondary text-muted" title={port.process ?? undefined}>
-                  {port.process ?? 'Process not known'}
+              <li key={port.port} className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2">
+                <span className="w-12 font-mono text-code text-fg tabular">{port.port}</span>
+                <span className="min-w-0 flex-1 truncate text-body text-fg" title={port.process ?? undefined}>
+                  {port.process ?? <span className="text-faint">Not known</span>}
                 </span>
-                {link && port.tunnel ? (
-                  <p className="order-last w-full text-caption text-faint">
-                    First, on your computer: <code className="select-all font-mono text-code text-muted">{port.tunnel}</code>
-                  </p>
-                ) : null}
                 {link ? (
                   <Button asChild size="sm" icon={<ArrowUpRight className="size-4" />}>
                     <a href={link} target="_blank" rel="noreferrer" aria-label={`Open port ${port.port}${port.process ? `, ${port.process}` : ''}`}>
@@ -314,110 +215,55 @@ export function PortsCard({ env }: { env: EnvDetail }) {
                     </a>
                   </Button>
                 ) : (
-                  <span className="text-caption text-faint" title="The agent can share it with environment_port">
+                  <span className="text-secondary text-faint" title="The agent can share it with environment_port">
                     On the machine only
                   </span>
                 )}
+                {link && port.tunnel ? (
+                  <p className="w-full pl-16 text-caption text-faint">
+                    First, on your computer: <code className="font-mono text-code-caption text-muted select-all [overflow-wrap:anywhere]">{port.tunnel}</code>
+                  </p>
+                ) : null}
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="px-5 py-4 text-body text-muted">{env.state === 'starting' ? 'Nothing listens yet.' : 'Nothing listens on the machine. A dev server the agent starts shows here with a link.'}</p>
+        <p className="px-5 py-5 text-body text-muted">{env.state === 'starting' ? 'Nothing listens yet.' : 'Nothing listens on the machine. A site the agent starts shows here with a link.'}</p>
       )}
     </Card>
   );
 }
 
-export function CallsCard({ env, now }: { env: EnvDetail; now: number }) {
-  const [all, setAll] = useState(false);
-  // What each call did, in words; the tool's own name under Technical details.
+/** One quiet line for the machine: its size and place, its price, and when the node closes it. */
+export function MachineLine({ env }: { env: EnvDetail }) {
   const [technical] = useTechnical();
-  const shown = all ? env.calls : env.calls.slice(0, CALLS_SHOWN);
+  const open = isOpen(env);
+  const keep = KEEP[keepOf(env)];
   return (
-    <Card className="overflow-hidden">
-      <CardHeader title="Last calls" meta={env.calls.length >= 50 ? 'the newest 50' : env.calls.length ? plural(env.calls.length, 'call') : undefined} />
-      {env.calls.length ? (
-        <>
-          <ol aria-label="Calls, newest first" className="divide-y divide-line">
-            {shown.map((call, index) => (
-              <li key={`${call.at}:${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 px-5 py-2">
-                <StatusDot tone={call.ok ? 'ok' : 'bad'} className="mt-2" />
-                <span className="grid min-w-0">
-                  {technical ? (
-                    <span className="truncate font-mono text-code text-fg">{call.tool}</span>
-                  ) : (
-                    <span className="truncate text-body text-fg" title={call.tool}>
-                      {toolPlainTitle(call.tool)}
-                    </span>
-                  )}
-                  <span className="truncate text-secondary text-muted" title={call.summary}>
-                    {call.ok ? '' : <span className="sr-only">Failed: </span>}
-                    {call.summary}
-                  </span>
-                </span>
-                <time dateTime={call.at} title={dateTime(call.at)} className="pt-px text-caption text-faint tabular">
-                  {timeAgo(call.at, now)}
-                </time>
-              </li>
-            ))}
-          </ol>
-          {env.calls.length > CALLS_SHOWN ? (
-            <div className="border-t border-line px-3 py-2">
-              <Button variant="ghost" size="sm" aria-expanded={all} onClick={() => setAll((value) => !value)}>
-                {all ? `Show the newest ${CALLS_SHOWN}` : `Show all ${env.calls.length}`}
-              </Button>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <p className="px-5 py-4 text-body text-muted">No calls yet.</p>
-      )}
-    </Card>
-  );
-}
-
-export function MachineCard({ env }: { env: EnvDetail }) {
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader
-        title={
-          <>
-            <MonitorCloud aria-hidden="true" className="size-4 text-faint" />
-            Machine
-          </>
-        }
-      />
-      <dl className="grid divide-y divide-line px-5 py-2">
-        <Detail label="Provider">{providerName(env.machine.provider)}</Detail>
-        <Detail label="Type">
-          <span className="font-mono text-code-caption">{env.machine.server_type}</span>
-        </Detail>
-        <Detail label="Location">
-          <span className="font-mono text-code-caption">{env.machine.location}</span>
-        </Detail>
-        <Detail label="Price">{hourly(env.price_hourly_eur)}</Detail>
-        {env.keep ? (
-          <>
-            <Detail label="Stays">
-              <span title={KEEP[keepOf(env)].sentence}>{KEEP[keepOf(env)].label}</span>
-            </Detail>
-            <Detail label="While unused">{idleCost(env)}</Detail>
-          </>
-        ) : null}
-        <Detail label="Terminal">
+    <div className="grid gap-2 text-secondary text-muted">
+      <p className="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <Cpu aria-hidden="true" className="size-4 text-faint" />
+        <span>{machineWords(env.machine)}</span>
+        <span>{hourly(env.price_hourly_eur)}</span>
+        {open && env.state !== 'closing' ? <span>The node closes it at {clock(env.expires_at)} at the latest</span> : null}
+        {env.keep ? <span title={keep.sentence}>{idleCost(env)}</span> : null}
+      </p>
+      {technical ? (
+        <p className="flex flex-wrap items-center gap-x-5 gap-y-1 pl-9 font-mono text-code-caption text-faint">
+          <span>
+            {env.machine.server_type} in {env.machine.location}
+          </span>
           <span className="inline-flex items-center gap-1">
-            <span className="font-mono text-code-caption">{env.lanes.terminal}</span>
+            {env.lanes.terminal}
             <CopyButton text={env.lanes.terminal} label="Copy the terminal lane" />
           </span>
-        </Detail>
-        <Detail label="Browser">
           <span className="inline-flex items-center gap-1">
-            <span className="font-mono text-code-caption">{env.lanes.browser}</span>
+            {env.lanes.browser}
             <CopyButton text={env.lanes.browser} label="Copy the browser lane" />
           </span>
-        </Detail>
-      </dl>
-    </Card>
+        </p>
+      ) : null}
+    </div>
   );
 }

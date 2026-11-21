@@ -15,7 +15,7 @@ describe('auth', () => {
   it('redirects to sign in without a session', async () => {
     mockAuth.signedIn = false;
     const { router } = renderApp('/northwind-group');
-    expect(await screen.findByRole('heading', { name: 'Sign in to agentos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sign in to openajar' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/sign-in');
   });
 
@@ -32,14 +32,14 @@ describe('auth', () => {
   it('drops a next that points at another site', async () => {
     mockAuth.signedIn = false;
     const { router } = renderApp('/sign-in?next=//evil.example');
-    await screen.findByRole('heading', { name: 'Sign in to agentos' });
+    await screen.findByRole('heading', { name: 'Sign in to openajar' });
     expect(router.state.location.search).toEqual({});
   });
 
   it('never asks for a third-party password', async () => {
     mockAuth.signedIn = false;
     renderApp('/sign-in');
-    await screen.findByRole('heading', { name: 'Sign in to agentos' });
+    await screen.findByRole('heading', { name: 'Sign in to openajar' });
     expect(document.querySelector('input[type="password"]')).toBeNull();
   });
 
@@ -146,7 +146,7 @@ describe('auth', () => {
     mockAuth.signedIn = false;
     server.use(http.get('/api/auth/providers', () => HttpResponse.json({ magic_link: true, google: false, passkey: true })));
     renderApp('/sign-in');
-    await screen.findByRole('heading', { name: 'Sign in to agentos' });
+    await screen.findByRole('heading', { name: 'Sign in to openajar' });
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('link', { name: 'Continue with Google' })).not.toBeInTheDocument();
   });
@@ -214,7 +214,8 @@ describe('auth', () => {
     await user.click(screen.getByRole('button', { name: 'Join Aster Coffee' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/northwind-group/welcome'));
     expect(body).toEqual({ aup_accepted: true });
-    expect(await screen.findByRole('heading', { name: /Hi Priya\. You're helping Mara with/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome, Priya.' })).toBeInTheDocument();
+    expect(screen.getByText(/You're helping Mara with/)).toBeInTheDocument();
     expect(screen.getByText('Can this go out?')).toBeInTheDocument();
     expect(screen.getByText('Can it spend money?')).toBeInTheDocument();
     expect(screen.getByText('A quick question')).toBeInTheDocument();

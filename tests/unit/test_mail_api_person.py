@@ -8,9 +8,9 @@ import pytest
 from test_mail_api import BOX, Net, local
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.runner.mail import api as mail_api
-from agentos.runner.mail import connect as connecting
-from agentos.runner.mail.discovery import Found, Server
+from openajar.runner.mail import api as mail_api
+from openajar.runner.mail import connect as connecting
+from openajar.runner.mail.discovery import Found, Server
 
 TYPED = {
     "imap": {"host": "imap.smallmail.example", "port": 993, "security": "tls"},

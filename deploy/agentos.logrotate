@@ -1,4 +1,4 @@
-# agentos: the display logs (Xvfb, x11vnc, websockify) under AGENTOS_HOME/logs. The daemon's own
+# openajar: the display logs (Xvfb, x11vnc, websockify) under OPENAJAR_HOME/logs. The daemon's own
 # log is in the journal (or, outside systemd, logs/agentosd.jsonl, which agentosd rotates itself;
 # the *.log pattern below leaves it alone). Installed as /etc/logrotate.d/agentos by `deploy/install-node.sh --systemd`,
 # which replaces the path and the user below.

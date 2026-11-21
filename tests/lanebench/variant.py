@@ -1,4 +1,4 @@
-"""Variants: run the bench with other agent-facing text (`agentos lanebench run --variant DIR`).
+"""Variants: run the bench with other agent-facing text (`openajar lanebench run --variant DIR`).
 
 A variant is a folder of up to four files, each optional:
 
@@ -8,7 +8,7 @@ A variant is a folder of up to four files, each optional:
   the real entries, which also hold the recipe's prompt arguments.
 - `errors.json`: {error code: the next-step line MCP appends to errors of that code (`fix: ...`)}.
 
-`agentos lanebench export-text DIR` writes the current text in the same format, so a variant starts
+`openajar lanebench export-text DIR` writes the current text in the same format, so a variant starts
 as an edited copy. The bench serves its own MCP server in its own process, so a variant changes
 what that server says and nothing else: the instructions and tool descriptions are given to the
 bench's server when it is built, and the recipes and error lines are swapped in this process for
@@ -50,7 +50,7 @@ class Variant:
 
     def describe(self, specs: Sequence[Any]) -> list[Any]:
         """The specs with the variant's descriptions (copies: a provider's own specs are untouched)."""
-        from agentos.core.tools import ToolSpec
+        from openajar.core.tools import ToolSpec
 
         return [dataclasses.replace(s, description=self.tools[s.name])
                 if isinstance(s, ToolSpec) and s.name in self.tools else s for s in specs]
@@ -87,8 +87,8 @@ def digest(folder: Path) -> tuple[tuple[str, ...], str]:
 def load(folder: Path, *, tool_names: Sequence[str] | None = None) -> Variant:
     """Read and check a variant folder. Names that match nothing (a tool, a topic, an error code) are
     refused: a typo would otherwise run the bench on the old text and say nothing."""
-    from agentos.core import catalog
-    from agentos.node.tools import RECIPES
+    from openajar.core import catalog
+    from openajar.node.tools import RECIPES
 
     folder = Path(folder).expanduser()
     if not folder.is_dir():
@@ -127,8 +127,8 @@ def applied(variant: Variant | None) -> Iterator[None]:
     if variant is None:
         yield
         return
-    from agentos.core import catalog
-    from agentos.node import tools as node_tools
+    from openajar.core import catalog
+    from openajar.node import tools as node_tools
 
     saved_recipes = {topic: dict(node_tools.RECIPES[topic]) for topic in variant.recipes}
     saved_entries = catalog.entries
@@ -150,9 +150,9 @@ def applied(variant: Variant | None) -> Iterator[None]:
 
 def current_text(specs: Sequence[Any]) -> dict[str, Any]:
     """The agent-facing text as the bench serves it, in the variant format."""
-    from agentos.core import catalog
-    from agentos.mcp.registry import tool_description
-    from agentos.node.tools import INSTRUCTIONS, RECIPES
+    from openajar.core import catalog
+    from openajar.mcp.registry import tool_description
+    from openajar.node.tools import INSTRUCTIONS, RECIPES
 
     return {
         "instructions.md": INSTRUCTIONS,

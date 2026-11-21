@@ -8,12 +8,12 @@ import threading
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest, NotFound
-from agentos.core.models import Effect
-from agentos.policy import bind_request_token, wrap_tool
-from agentos.policy.errors import Conflict, Denied
-from agentos.policy.service import PolicyService
-from agentos.policy.tools import tool_specs
+from openajar.core.errors import ApprovalPending, InvalidRequest, NotFound
+from openajar.core.models import Effect
+from openajar.policy import bind_request_token, wrap_tool
+from openajar.policy.errors import Conflict, Denied
+from openajar.policy.service import PolicyService
+from openajar.policy.tools import tool_specs
 
 
 @pytest.fixture

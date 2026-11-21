@@ -4,12 +4,13 @@
  * A business can ask for more than the org and never less, so choosing one lifts the floor.
  */
 import { Link, useParams } from '@tanstack/react-router';
+import { Card } from '@/components/ui/card';
 import { ArrowRight, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAccess, useConfirmation, useSetConfirmation, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
 import type { ConfirmationView, ConfirmRow, Workspace } from '@/api/types';
-import { AgentMark, BusinessMark } from '@/components/brand/identity';
+import { AgentMark } from '@/components/brand/identity';
 import { Button } from '@/components/ui/button';
 import { InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { Switch } from '@/components/ui/toggle';
@@ -17,10 +18,11 @@ import { describeError } from '@/lib/errors';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/format';
 import type { Rung, Rungs } from '@/lib/confirm';
-import { businessRungs, FLOORS, rungIndex, rungsOf, RUNG_WORDS, ROWS, shapeOf, withBusinessRung, withRung } from '@/lib/confirm';
+import { businessRungs, FLOORS, rungIndex, rungsOf, RUNG_WORDS, shapeOf, withBusinessRung, withRung } from '@/lib/confirm';
 import { SettingsHeader } from '@/features/settings/page';
 import { DayShapeView } from './day-shape';
-import { FixedRow, LadderHead, LadderRow } from './ladder';
+import { LadderLegend, RowNotes, YesGrid } from './ladder';
+import type { GridScope } from './ladder';
 import './confirmations.css';
 
 const CHANGED_BY = { commit: 'confirmation.update', marked: 'confirmation.update', after_untrusted: 'confirmation.money', pay: 'confirmation.money', irreversible: 'confirmation.money' } as const;
@@ -35,43 +37,16 @@ function seenOn(view: ConfirmationView, row: ConfirmRow, business: string | null
   return `Yesterday: ${first.title}${stops.length > 1 ? `, and ${stops.length - 1} more` : ''}`;
 }
 
-function Scope({ workspaces, view, scope, onScope }: { workspaces: Workspace[]; view: ConfirmationView; scope: string | null; onScope: (id: string | null) => void }) {
-  const raised = (id: string) => Object.keys(view.overlays[id] ?? {}).length > 0;
-  const item = (id: string | null, label: string, mark: React.ReactNode, more: boolean) => (
-    <button
-      key={id ?? 'all'}
-      type="button"
-      role="radio"
-      aria-checked={scope === id}
-      onClick={() => onScope(id)}
-      className={cn(
-        'flex h-8 items-center gap-2 rounded-md px-2 text-secondary whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard',
-        scope === id ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg',
-      )}
-    >
-      {mark}
-      {label}
-      {more ? <span className="text-caption text-faint">asks for more</span> : null}
-    </button>
-  );
-  return (
-    <div role="radiogroup" aria-label="Where this applies" className="-mx-2 flex items-center gap-1 overflow-x-auto px-2">
-      {item(null, 'Everywhere', null, false)}
-      {workspaces.map((workspace) => item(workspace.id, workspace.name, <BusinessMark name={workspace.name} color={workspace.color} size={16} />, raised(workspace.id)))}
-    </div>
-  );
-}
-
 function ChatAnswers({ view, canChange, busy, onChange }: { view: ConfirmationView; canChange: boolean; busy: boolean; onChange: (on: boolean) => void }) {
   const on = view.setting.chat;
   return (
-    <section aria-label="Answers in chat" className="grid gap-4 rounded-xl border border-line p-6">
+    <Card role="region" aria-label="Answers in chat" className="grid gap-4 px-6 py-5">
       <div className="flex items-start gap-6">
         <div className="min-w-0 flex-1">
           <h3 className="text-section-title">Answers in chat</h3>
-          <p className="mt-1 max-w-[56ch] text-body text-pretty text-muted">
+          <p className="mt-1 max-w-[56ch] text-secondary text-pretty text-muted">
             {on
-              ? 'Your chat app can show a yes and a no, in words agentos wrote. Good for anyone without a Mac or an iPhone. Money, what can\'t be undone and anything after outside words never count there.'
+              ? 'Your chat app can show a yes and a no, in words openajar wrote. Good for anyone without a Mac or an iPhone. Money, what can\'t be undone and anything after outside words never count there.'
               : 'A yes in a chat counts for nothing now. Everything is answered here or in the Mac app, and a chat can still say no.'}
           </p>
         </div>
@@ -93,39 +68,43 @@ function ChatAnswers({ view, canChange, busy, onChange }: { view: ConfirmationVi
         </ul>
       ) : null}
       {on ? <p className="text-secondary text-pretty text-faint">A chat app that answers by itself would turn this yes into nothing. If you can&apos;t be sure of one, turn this off.</p> : null}
-    </section>
+    </Card>
   );
 }
 
 function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; workspaces: Workspace[] }) {
   const access = useAccess(org);
   const set = useSetConfirmation(org);
-  const [scope, setScope] = useState<string | null>(null);
-  const [peek, setPeek] = useState<{ row: ConfirmRow; rung: Rung } | null>(null);
-  const [lit, setLit] = useState<Rung | null>(null);
+  const [peek, setPeek] = useState<{ scope: string | null; row: ConfirmRow; rung: Rung } | null>(null);
   const [said, setSaid] = useState<{ row: ConfirmRow | 'chat'; words: string; bad?: boolean } | null>(null);
 
-  const org_rungs = useMemo(() => rungsOf(view.setting), [view.setting]);
+  const orgRungs = useMemo(() => rungsOf(view.setting), [view.setting]);
   const system = useMemo(() => rungsOf(view.system), [view.system]);
-  const overlay = scope ? view.overlays[scope] : undefined;
-  const rungs: Rungs = useMemo(() => (scope ? businessRungs(view.setting, overlay) : org_rungs), [scope, view.setting, overlay, org_rungs]);
-  const name = workspaces.find((item) => item.id === scope)?.name ?? null;
+  const rungsIn = (scope: string | null): Rungs => (scope ? businessRungs(view.setting, view.overlays[scope]) : orgRungs);
+  const nameOf = (scope: string | null) => workspaces.find((item) => item.id === scope)?.name ?? null;
+  const floorsIn = (scope: string | null): Record<ConfirmRow, Rung> => {
+    const floors = { ...FLOORS };
+    if (scope) for (const key of Object.keys(floors) as ConfirmRow[]) if (rungIndex(orgRungs[key]) > rungIndex(floors[key])) floors[key] = orgRungs[key];
+    return floors;
+  };
 
-  /** The rows with what is being pointed at. Marked and posts share one level once posts ask. */
+  // The day above is drawn for where the pointer is: everywhere, or the business being pointed at.
+  const scope = peek?.scope ?? null;
+  const rungs = rungsIn(scope);
   const seen = useMemo(() => {
     if (!peek) return rungs;
-    const moved = rungsOf(withRung({ ...view.setting, ...overlay }, peek.row, peek.rung));
-    return { ...rungs, ...moved };
-  }, [peek, rungs, view.setting, overlay]);
+    const overlay = peek.scope ? view.overlays[peek.scope] : undefined;
+    return { ...rungs, ...rungsOf(withRung({ ...view.setting, ...overlay }, peek.row, peek.rung)) };
+  }, [peek, rungs, view.setting, view.overlays]);
   const shape = useMemo(() => shapeOf(view.day, seen, scope), [view.day, seen, scope]);
   const base = useMemo(() => shapeOf(view.day, peek ? rungs : system, scope), [view.day, peek, rungs, system, scope]);
 
-  const pick = (row: ConfirmRow, rung: Rung) => {
+  const pick = (where: string | null, row: ConfirmRow, rung: Rung) => {
     setPeek(null);
     setSaid({ row, words: 'Telling your computers.' });
-    const body = scope ? { business: scope, overlay: withBusinessRung(view.setting, overlay, row, rung) } : { setting: withRung(view.setting, row, rung) };
+    const body = where ? { business: where, overlay: withBusinessRung(view.setting, view.overlays[where], row, rung) } : { setting: withRung(view.setting, row, rung) };
     set.mutate(body, {
-      onSuccess: () => setSaid({ row, words: `Saved: ${RUNG_WORDS[rung].word.toLowerCase()}.` }),
+      onSuccess: () => setSaid({ row, words: `Saved: ${RUNG_WORDS[rung].word.toLowerCase()}.${where ? ` Only ${nameOf(where)}.` : ''}` }),
       onError: (error) => setSaid(isCancelled(error) ? null : { row, words: `Back to the last saved choice. ${describeError(error)}`, bad: true }),
     });
   };
@@ -134,78 +113,68 @@ function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; 
     set.mutate({ setting: { ...view.setting, chat: on } }, { onError: (error) => !isCancelled(error) && setSaid({ row: 'chat', words: describeError(error), bad: true }) });
   };
 
-  const isSystem = !scope && JSON.stringify(view.setting) === JSON.stringify(view.system);
+  const isSystem = JSON.stringify(view.setting) === JSON.stringify(view.system);
   const more = shape.stopped - base.stopped;
+  const name = nameOf(scope);
   const note = peek
     ? more === 0
       ? 'That would change how strong the yes is, and no more would stop.'
       : more > 0
-        ? `That would stop ${more} more for a person on a day like this.`
-        : `That would let ${-more} more go on their own on a day like this.`
-    : scope
-      ? `Only ${name}. It can ask for more than everywhere else, never less.`
-      : more > 0
-        ? `That is ${more} more than the system default would stop.`
-        : 'This is the shape of the system default: most things on their own, money and the rest at a person.';
-
-  const noteOf = (row: ConfirmRow): { words: string | null; warn?: boolean } => {
-    if (said?.row === row) return { words: said.words, warn: said.bad };
-    if (!scope && (row === 'pay' || row === 'irreversible') && rungs[row] === 'signed_in') return { words: 'Lower than the system default: anyone signed in on an open laptop could say yes.', warn: true };
-    if (row === 'marked' && rungs.commit !== 'auto') return { words: 'Everything asks now, so these ask the same.' };
-    if (scope && rungIndex(rungs[row]) > rungIndex(org_rungs[row])) return { words: `Above everywhere else, for ${name}.` };
-    return { words: null };
-  };
-
-  const floorOf = (row: ConfirmRow): Rung => {
-    const floor = FLOORS[row];
-    if (!scope) return floor;
-    return rungIndex(org_rungs[row]) > rungIndex(floor) ? org_rungs[row] : floor;
-  };
+        ? `That would stop ${more} more for a person on a day like this${name ? ` in ${name}` : ''}.`
+        : `That would let ${-more} more go on their own on a day like this${name ? ` in ${name}` : ''}.`
+    : more > 0
+      ? `That is ${more} more than the system default would stop.`
+      : 'This is the shape of the system default: most things on their own, money and the rest at a person.';
+  const weak = (['pay', 'irreversible'] as const).some((row) => orgRungs[row] === 'signed_in');
 
   const canAny = access.can('confirmation.update');
-  const looks = view.day.ticks.filter((tick) => tick.kind === 'look' && (!scope || tick.business === scope)).length;
+  const scopes: GridScope[] = [
+    { id: null, name: 'Everywhere', rungs: orgRungs, floors: floorsIn(null) },
+    ...workspaces.map((workspace) => ({
+      id: workspace.id,
+      name: workspace.name,
+      color: workspace.color,
+      rungs: rungsIn(workspace.id),
+      floors: floorsIn(workspace.id),
+      raised: Object.keys(view.overlays[workspace.id] ?? {}).length > 0,
+    })),
+  ];
 
   return (
-    <div className="grid gap-8">
-      <DayShapeView day={view.day} shape={shape} note={note} lit={peek?.rung ?? lit} />
-      <section aria-label="How strong a yes each thing needs" className="grid gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <div className="min-w-0">
-            <h3 className="text-section-title">How strong a yes each thing needs</h3>
-            <p className="mt-1 text-secondary text-muted">{canAny ? 'Move a dot to change it. Point at a stop to see the day above change first.' : 'An owner or admin can change this.'}</p>
-          </div>
-          {!isSystem && canAny && !scope ? (
-            <Button size="sm" variant="ghost" icon={<RotateCcw className="size-4" />} onClick={() => set.mutate({ setting: view.system })}>
+    <div className="grid gap-4">
+      <DayShapeView day={view.day} shape={shape} note={note} lit={peek?.rung ?? null} />
+      <Card role="region" aria-labelledby="yes-grid-title" className="shadow-lift">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-6 pt-5">
+          <h3 id="yes-grid-title" className="text-section-title">
+            How strong a yes each thing needs
+          </h3>
+          <span className="text-secondary text-faint">{canAny ? 'Click a step to change it' : 'An owner or admin can change this.'}</span>
+          {!isSystem && canAny ? (
+            <Button size="sm" variant="ghost" className="ml-auto" icon={<RotateCcw className="size-4" />} onClick={() => set.mutate({ setting: view.system })}>
               Back to the system default
             </Button>
           ) : null}
         </div>
-        <Scope workspaces={workspaces} view={view} scope={scope} onScope={(id) => { setScope(id); setSaid(null); }} />
-        <LadderHead chat={view.setting.chat} lit={lit} onLit={setLit} />
-        <ul>
-          <FixedRow seen={`Yesterday: ${looks} of these`} />
-          {ROWS.map((row) => {
-            const words = noteOf(row.key);
-            const may = access.can(CHANGED_BY[row.key]);
-            return (
-              <LadderRow
-                key={row.key}
-                row={row}
-                rung={rungs[row.key]}
-                floor={floorOf(row.key)}
-                system={scope ? undefined : system[row.key]}
-                locked={row.key === 'pay' || row.key === 'irreversible'}
-                note={words.words}
-                warn={words.warn}
-                seen={seenOn(view, row.key, scope)}
-                onPeek={may ? (key, rung) => setPeek(rung ? { row: key, rung } : null) : undefined}
-                onPick={may ? pick : undefined}
-                onHover={setLit}
-              />
-            );
-          })}
-        </ul>
-      </section>
+        <div className="mt-4 border-y border-line px-6 py-3">
+          <LadderLegend chat={view.setting.chat} />
+        </div>
+        <YesGrid
+          scopes={scopes}
+          may={(row) => access.can(CHANGED_BY[row])}
+          onPeek={(where, row, rung) => setPeek(rung ? { scope: where, row, rung } : null)}
+          onPick={pick}
+        />
+        <div className="grid gap-4 border-t border-line px-6 py-4">
+          <p role="status" className={cn('min-h-5 text-secondary', said?.bad ? 'text-bad' : said ? 'text-muted' : 'text-faint')}>
+            {said && said.row !== 'chat'
+              ? said.words
+              : weak
+                ? 'Lower than the system default: anyone signed in on an open laptop could say yes to money or what cannot be undone.'
+                : 'A business can ask for more than everywhere else, never less. What sits under a row\'s lowest step is drawn, and cannot be chosen.'}
+          </p>
+          <RowNotes seen={(row) => seenOn(view, row, null)} />
+        </div>
+      </Card>
       <ChatAnswers view={view} canChange={canAny} busy={set.isPending} onChange={setChat} />
       {said?.row === 'chat' ? (
         <InlineError>

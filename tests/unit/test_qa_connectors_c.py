@@ -9,9 +9,9 @@ import pytest
 from connector_samples import LANE, bind, commit_op
 from test_connector_surfaces import _harness
 
-from agentos.core.models import RunStatus
-from agentos.runner.connectors.surfaces import PaceLimited
-from agentos.runner.fakes import OWNER
+from openajar.core.models import RunStatus
+from openajar.runner.connectors.surfaces import PaceLimited
+from openajar.runner.fakes import OWNER
 
 
 def test_qa_connectors_1_a_cancelled_run_that_already_posted_counts_toward_pace(tmp_path):

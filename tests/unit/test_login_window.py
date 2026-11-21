@@ -26,17 +26,17 @@ from test_vault_support import (
     private_home,
 )
 
-from agentos.core.errors import ApprovalPending
-from agentos.core.models import Effect
-from agentos.node import egress
-from agentos.node import vault_tools as tools
-from agentos.node.egress import LOGIN_WINDOW_S, Driver, EffectRule, EgressTrace, LaneGuard
-from agentos.node.routes import RouteDispatcher
-from agentos.node.typist import PlaywrightTypist
-from agentos.policy.errors import Denied
-from agentos.policy.grants import LaneCap, Specials
-from agentos.vault.errors import ResolutionDenied, SecretTooLong
-from agentos.vault.login import TYPE_MAX, fill_flow, login_flow
+from openajar.core.errors import ApprovalPending
+from openajar.core.models import Effect
+from openajar.node import egress
+from openajar.node import vault_tools as tools
+from openajar.node.egress import LOGIN_WINDOW_S, Driver, EffectRule, EgressTrace, LaneGuard
+from openajar.node.routes import RouteDispatcher
+from openajar.node.typist import PlaywrightTypist
+from openajar.policy.errors import Denied
+from openajar.policy.grants import LaneCap, Specials
+from openajar.vault.errors import ResolutionDenied, SecretTooLong
+from openajar.vault.login import TYPE_MAX, fill_flow, login_flow
 
 JSON = {"content-type": "application/json"}
 FORM = {"content-type": "application/x-www-form-urlencoded"}
@@ -265,12 +265,12 @@ def test_only_the_typist_and_the_vault_can_open_a_window():
     """Not a page, a tool or a model: the guard's method has one caller, and that one has one caller."""
     root = Path(__file__).resolve().parents[2]
     # a plain search, not git grep: an exported tree that is not a git repository yet runs it too
-    found = [str(path.relative_to(root)) for path in (root / "src" / "agentos").rglob("*.py")
+    found = [str(path.relative_to(root)) for path in (root / "src" / "openajar").rglob("*.py")
              if "open_login" in path.read_text(encoding="utf-8")]
-    assert sorted(found) == ["src/agentos/node/egress/__init__.py", "src/agentos/node/egress/guard.py",
-                             "src/agentos/node/egress/guard_login.py", "src/agentos/node/egress/rules.py", "src/agentos/node/typist.py",
-                             "src/agentos/vault/login.py",
-                             "src/agentos/vault/typist.py"]  # the guard (its window's length), its adapter, the fill, the protocol's docs
+    assert sorted(found) == ["src/openajar/node/egress/__init__.py", "src/openajar/node/egress/guard.py",
+                             "src/openajar/node/egress/guard_login.py", "src/openajar/node/egress/rules.py", "src/openajar/node/typist.py",
+                             "src/openajar/vault/login.py",
+                             "src/openajar/vault/typist.py"]  # the guard (its window's length), its adapter, the fill, the protocol's docs
     assert "guard.open_login(domain)" in inspect.getsource(PlaywrightTypist.open_login)
 
 

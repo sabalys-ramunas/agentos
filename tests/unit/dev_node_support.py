@@ -1,5 +1,5 @@
-"""`agentos dev up` in a thread of its own, for tests that call it the way a shell on this computer
-does: over real HTTP, with the agent grant it prints, from synchronous code (agentos.client.call)."""
+"""`openajar dev up` in a thread of its own, for tests that call it the way a shell on this computer
+does: over real HTTP, with the agent grant it prints, from synchronous code (openajar.client.call)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from agentos.dev.node import DevNode, run
+from openajar.dev.node import DevNode, run
 
 
 def free_port() -> int:

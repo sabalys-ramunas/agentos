@@ -11,17 +11,17 @@ import pytest
 from connector_samples import SITES as SAMPLE_SITES
 from connector_samples import connector, read_op
 
-from agentos.core.template import render
-from agentos.node.flow_driver import inside, own_filter, record_levels, tree_order
-from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
-from agentos.runner.connectors.lint import param_problems
-from agentos.runner.connectors.models import Commit
-from agentos.runner.connectors.steps import walk
-from agentos.runner.fakes import El, _picked
-from agentos.runner.models import ExtractField
-from agentos.runner.readvalues import typed_value
-from agentos.runner.siteapis.models import SAMPLE, compile_api, labelled, parse, shown_effect, to_connector
-from agentos.runner.util import url_problem
+from openajar.core.template import render
+from openajar.node.flow_driver import inside, own_filter, record_levels, tree_order
+from openajar.runner.connectors.compile import ConnectorInvalid, compile_connector
+from openajar.runner.connectors.lint import param_problems
+from openajar.runner.connectors.models import Commit
+from openajar.runner.connectors.steps import walk
+from openajar.runner.fakes import El, _picked
+from openajar.runner.models import ExtractField
+from openajar.runner.readvalues import typed_value
+from openajar.runner.siteapis.models import SAMPLE, compile_api, labelled, parse, shown_effect, to_connector
+from openajar.runner.util import url_problem
 
 SITES = {"instagram": ("instagram.com",)}
 

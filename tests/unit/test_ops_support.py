@@ -1,4 +1,4 @@
-"""Fakes shared by the ops tests: a Host with canned answers and a small AGENTOS_HOME.
+"""Fakes shared by the ops tests: a Host with canned answers and a small OPENAJAR_HOME.
 
 Imported by the other test_ops_* modules; it holds no tests of its own except a sanity check
 of the fakes.
@@ -12,9 +12,9 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from agentos.core.config import NodeConfig, save_config, save_proxies
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.core.system import Host
+from openajar.core.config import NodeConfig, save_config, save_proxies
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.core.system import Host
 
 TOKEN = "tok-SECRET-mcp-0123456789abcdef"
 PROXY_USER = "puser-SECRET"
@@ -34,7 +34,7 @@ def fingerprint(version: int = 158, **extra: Any) -> dict[str, Any]:
 
 def make_home(root: Path, *, lanes: dict[str, int | None] | None = None, proxies: bool = True,
               name: str = "test-node") -> NodeConfig:
-    """A home with node.toml, a proxy, agentos.db (WAL) with lane rows, and lane directories.
+    """A home with node.toml, a proxy, openajar.db (WAL) with lane rows, and lane directories.
     `lanes` maps lane id -> pinned Firefox version (None: not pinned yet)."""
     home = root / "home"
     home.mkdir(mode=0o700, parents=True)
@@ -45,7 +45,7 @@ def make_home(root: Path, *, lanes: dict[str, int | None] | None = None, proxies
         save_proxies(cfg, {"lt1": ProxyConfig(label="lt1", host="203.0.113.7", port=12323, username=PROXY_USER,
                                               password=PROXY_PASS)})
     lanes = {"personal/reddit": 158, "work/site": None} if lanes is None else lanes
-    db = sqlite3.connect(home / "agentos.db")
+    db = sqlite3.connect(home / "openajar.db")
     db.execute("PRAGMA journal_mode=WAL")
     db.execute("CREATE TABLE IF NOT EXISTS lanes (id TEXT PRIMARY KEY, spec TEXT NOT NULL, last_used TEXT, "
                "exit_ip TEXT)")
@@ -70,7 +70,7 @@ def make_home(root: Path, *, lanes: dict[str, int | None] | None = None, proxies
             path.chmod(0o600)
     db.commit()
     db.close()
-    (home / "agentos.db").chmod(0o600)
+    (home / "openajar.db").chmod(0o600)
     (home / "lanes").mkdir(mode=0o700, exist_ok=True)
     (home / "lanes").chmod(0o700)
     return cfg

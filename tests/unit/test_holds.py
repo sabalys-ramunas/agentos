@@ -1,4 +1,4 @@
-"""Lane holds after a bad signal (agentos.node.holds), pure functions."""
+"""Lane holds after a bad signal (openajar.node.holds), pure functions."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agentos.core.models import Signal
-from agentos.node import holds
-from agentos.node.holds import RATE_LIMIT_BACKOFF, Hold, hold_for, hold_for_report
-from agentos.node.sites import AccountCheck, SignalReport
+from openajar.core.models import Signal
+from openajar.node import holds
+from openajar.node.holds import RATE_LIMIT_BACKOFF, Hold, hold_for, hold_for_report
+from openajar.node.sites import AccountCheck, SignalReport
 
 NOW = datetime(2026, 11, 4, 3, 0, tzinfo=UTC)
 

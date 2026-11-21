@@ -12,14 +12,14 @@ from channel_support import agent, owner, start_controller, wait_for
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_freeze_mesh import start
 
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.node.channel import service, wire
-from agentos.node.channel.enroll import enroll
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.errors import Denied
-from agentos.policy.issuers import TrustedIssuers
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.node.channel import service, wire
+from openajar.node.channel.enroll import enroll
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.errors import Denied
+from openajar.policy.issuers import TrustedIssuers
 
 LANE = "personal/reddit"
 

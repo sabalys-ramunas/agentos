@@ -67,7 +67,7 @@ function Item({
     if (picked) ref.current?.scrollIntoView({ block: 'nearest' });
   }, [picked]);
   return (
-    <li ref={ref} data-picked={picked ? '' : undefined} className={cn('border-b border-line last:border-b-0', picked && 'bg-hover shadow-[inset_2px_0_0_var(--color-fg)]')}>
+    <li ref={ref} data-picked={picked ? '' : undefined} className={cn('border-b border-l-2 border-b-line last:border-b-0', picked ? 'border-l-accent bg-accent-soft' : 'border-l-transparent')}>
       <button
         type="button"
         aria-pressed={picked}
@@ -137,7 +137,7 @@ function Item({
                   title={`Seen ${plural(seen.count, 'time')} on ${keyWords(seen.screen)}`}
                   className={cn(
                     'inline-flex h-6 items-center gap-1 rounded-sm border px-1 font-mono text-code-caption',
-                    seen.screen === screen ? 'border-fg text-fg' : 'border-line text-muted hover:text-fg',
+                    seen.screen === screen ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line text-muted hover:text-fg',
                   )}
                 >
                   {keyWords(seen.screen)}

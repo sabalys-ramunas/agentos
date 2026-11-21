@@ -14,9 +14,9 @@ import random
 import pytest
 from test_policy_support import T0, make_service
 
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied, TokenInvalid
-from agentos.policy.grants import (
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied, TokenInvalid
+from openajar.policy.grants import (
     LADDER,
     ApproveCap,
     BrainCap,
@@ -32,7 +32,7 @@ from agentos.policy.grants import (
     Subject,
     widening_problems,
 )
-from agentos.policy.memory_rules import MemoryCap, check_memory
+from openajar.policy.memory_rules import MemoryCap, check_memory
 
 LANES = ["biz-a/x", "biz-a/insta", "biz-a/term", "biz-b/x", "personal/reddit"]
 LANE_PATTERNS = ["*", "biz-a/*", "biz-a/insta*", "biz-b/x", "personal/*", "biz-*/x", "biz-a/term"]

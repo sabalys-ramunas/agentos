@@ -4,7 +4,7 @@
  * that showed an error, an API call the node refused, a console error, a page wider than the screen.
  *
  *   node scripts/dev-node.mjs --port 7451 &
- *   AGENTOS_API_TARGET=http://127.0.0.1:7451 VITE_API_MODE=live pnpm dev --port 5311 &
+ *   OPENAJAR_API_TARGET=http://127.0.0.1:7451 VITE_API_MODE=live pnpm dev --port 5311 &
  *   node scripts/walk-node.mjs --port 7451 --app http://localhost:5311 [--only accounts,vault] [--shots dir]
  */
 import { mkdirSync, readFileSync } from 'node:fs';

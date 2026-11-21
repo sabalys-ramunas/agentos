@@ -1,5 +1,5 @@
 """Another connection holds a SQLite write lock while a coroutine of the daemon runs: the
-event loop must keep turning (agentos.core.sqlite). Shared by the store lock tests."""
+event loop must keep turning (openajar.core.sqlite). Shared by the store lock tests."""
 
 from __future__ import annotations
 

@@ -19,14 +19,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.camoufox.engine import CamoufoxEngine
+from openajar.core.models import LaneSpec, ProxyConfig
+from openajar.node.camoufox.engine import CamoufoxEngine
 
 pytestmark = pytest.mark.node
 
-DISPLAY = os.environ.get("AGENTOS_TEST_GUARD_DISPLAY", ":160")
-SECRET_PORT = int(os.environ.get("AGENTOS_TEST_GUARD_SECRET_PORT", "7461"))
-PROXY_PORT = int(os.environ.get("AGENTOS_TEST_GUARD_PROXY_PORT", "7462"))
+DISPLAY = os.environ.get("OPENAJAR_TEST_GUARD_DISPLAY", ":160")
+SECRET_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_SECRET_PORT", "7461"))
+PROXY_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_PROXY_PORT", "7462"))
 
 FETCH = """async (url) => {
   try { await fetch(url, {mode: 'no-cors', cache: 'no-store'}); return 'reached'; }

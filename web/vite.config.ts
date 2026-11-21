@@ -7,7 +7,7 @@ import { mockGuard } from './build/guard';
 import { afternoonZone } from './build/test-zone';
 
 // Several agents share a machine, so each can point its panel at its own cloud.
-const api = { target: process.env.AGENTOS_API_TARGET ?? 'http://localhost:8300', changeOrigin: false };
+const api = { target: process.env.OPENAJAR_API_TARGET ?? 'http://localhost:8300', changeOrigin: false };
 
 export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss(), mockGuard(mode, fileURLToPath(new URL('.', import.meta.url)))],

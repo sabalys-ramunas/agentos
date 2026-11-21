@@ -5,8 +5,8 @@ import base64
 import pytest
 from test_env_node_support import mgr, needs_node  # noqa: F401
 
-from agentos.core.config import NodeConfig, save_config, save_proxies
-from agentos.core.models import ProxyConfig
+from openajar.core.config import NodeConfig, save_config, save_proxies
+from openajar.core.models import ProxyConfig
 
 pytestmark = [pytest.mark.node, needs_node]
 

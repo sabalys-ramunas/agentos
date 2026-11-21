@@ -1,6 +1,6 @@
 """panel.db: a CLI holding its write lock never freezes the daemon. A session's touch on the
 event loop never waits for the lock (it is left for the next request), and a sign-in, made on
-the store's worker thread, is committed before the call returns (agentos.core.sqlite)."""
+the store's worker thread, is committed before the call returns (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ import sqlite3
 import pytest
 from lockheld import loop_stays_free
 
-from agentos.api.auth import PanelStore
-from agentos.api.errors import ApiError
+from openajar.api.auth import PanelStore
+from openajar.api.errors import ApiError
 
 
 async def test_a_sign_in_waits_for_the_lock_off_the_loop_and_is_saved(tmp_path):

@@ -9,6 +9,7 @@ import { useState } from 'react';
 import type { EnvDetail, EnvProof } from '@/api/types';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
+import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 
 /** "localhost:3000/offer": the page without its scheme, as a person reads an address. */
@@ -103,14 +104,14 @@ export function ProofsCard({ env, now }: { env: EnvDetail; now: number }) {
     <Card className="overflow-hidden">
       <CardHeader title="Proofs" meta={proofs.length ? proofsMeta(proofs) : undefined} />
       {proofs.length ? (
-        <ul aria-label="Proofs, newest first" className="grid grid-cols-2 gap-4 p-5 sm:grid-cols-3">
+        <ul aria-label="Proofs, newest first" className={cn('grid grid-cols-2 gap-4 p-5', proofs.length > 2 && 'sm:grid-cols-3')}>
           {proofs.map((proof) => (
             <Thumb key={proof.id} proof={proof} now={now} onOpen={() => setOpenId(proof.id)} />
           ))}
         </ul>
       ) : (
-        <p className="flex items-center gap-2 px-5 py-4 text-body text-muted">
-          <Images aria-hidden="true" className="size-4 shrink-0 text-faint" />
+        <p className="flex items-start gap-3 px-5 py-5 text-body text-muted">
+          <Images aria-hidden="true" className="size-4 shrink-0 translate-y-1 text-faint" />
           No proofs yet. When the agent keeps a screenshot or a video to show its work, it appears here, and stays after the machine is gone.
         </p>
       )}

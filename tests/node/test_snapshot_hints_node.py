@@ -11,8 +11,8 @@ import time
 
 import pytest
 
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.snapshot import HINT_BUDGET_MS, HINT_LIMIT, collect_facts, find_refs
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.snapshot import HINT_BUDGET_MS, HINT_LIMIT, collect_facts, find_refs
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 
@@ -20,9 +20,9 @@ pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 # invisible to a document observer). Only test harness state lives here.
 WATCH_MUTATIONS_JS = """
 () => {
-  window.__agentosTestMutations = [];
+  window.__openajarTestMutations = [];
   const log = (records) => {
-    for (const r of records) window.__agentosTestMutations.push(r.type + ':' + (r.attributeName || ''));
+    for (const r of records) window.__openajarTestMutations.push(r.type + ':' + (r.attributeName || ''));
   };
   const roots = [document];
   for (const el of document.querySelectorAll('*')) if (el.shadowRoot) roots.push(el.shadowRoot);
@@ -86,7 +86,7 @@ async def test_reading_hints_leaves_the_page_byte_identical(page, site_url, ia):
     await page.wait_for_timeout(400)  # give the page's own leak detector a few ticks
     assert await page.evaluate("document.documentElement.outerHTML") == html_before
     assert await page.evaluate(SHADOW_HTML_JS) == shadow_before
-    assert await page.evaluate("window.__agentosTestMutations") == []
+    assert await page.evaluate("window.__openajarTestMutations") == []
 
 
 async def test_three_hundred_unnamed_buttons_get_eighty_hints_within_the_budget(page, ia):

@@ -11,13 +11,13 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied
-from agentos.policy.meters import LimitReached, MeterPolicy, Meters, Scope
-from agentos.policy.routing import PolicyConfig, RoutingTable, Rule
-from agentos.policy.store import DB
-from agentos.policy.tools import grant_info
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied
+from openajar.policy.meters import LimitReached, MeterPolicy, Meters, Scope
+from openajar.policy.routing import PolicyConfig, RoutingTable, Rule
+from openajar.policy.store import DB
+from openajar.policy.tools import grant_info
 
 TZ = "Europe/Vilnius"
 VILNIUS = ZoneInfo(TZ)
@@ -293,9 +293,9 @@ def test_the_cli_shows_and_sets_a_lanes_limits(tmp_path, monkeypatch):
 
     from typer.testing import CliRunner
 
-    from agentos.policy.cli import app
+    from openajar.policy.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     runner = CliRunner()
     res = runner.invoke(app, ["grants", "meters", "--lane", "biz-a/ig", "--limit", "commits_per_day=6",
                               "--limit", "usd_per_day=2.5"])
@@ -350,7 +350,7 @@ async def test_a_parent_limit_shows_as_the_parents_and_names_the_parent(env):
 
 
 async def test_lane_taint_includes_turn_scoped_taint_and_clear_clears_it(env):
-    from agentos.policy.taint import family_key, turn_key
+    from openajar.policy.taint import family_key, turn_key
 
     svc, _, _ = env
     _g, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.IRREVERSIBLE)
@@ -425,8 +425,8 @@ async def test_meter_notices_go_to_the_grants_owner_and_the_node_owner_only(env,
     svc.notifier.update_config({"ntfy": {"topic": "agentos-owner-H5j8Kd2Sf6Gq9Wz3Yx7Pm1"}})
     svc.notifier.directory = Directory({"m_ops": [human("m_ops", ["biz-a"], approve=["commit"])],
                                         "m_mine": [human("m_mine", ["biz-b"])]})
-    svc.notifier.update_member("m_ops", {"topic": "agentos-ops-Q8w2Lm4Zp7Rt1Xc9Vb3Nk6"})
-    svc.notifier.update_member("m_mine", {"topic": "agentos-mine-Z8w2Lm4Zp7Rt1Xc9Vb3Nk6"})
+    svc.notifier.update_member("m_ops", {"topic": "openajar-ops-Q8w2Lm4Zp7Rt1Xc9Vb3Nk6"})
+    svc.notifier.update_member("m_mine", {"topic": "openajar-mine-Z8w2Lm4Zp7Rt1Xc9Vb3Nk6"})
     sent: list[dict] = []
     monkeypatch.setattr(svc.notifier, "send", lambda ev: sent.append(ev) or [])
     svc.set_lane_limits("biz-a/ig", {"commits_per_day": 1}, by="owner")
@@ -471,7 +471,7 @@ async def test_brain_spend_is_charged_to_the_grants_meters_and_its_lane(env):
 
 
 async def test_a_publish_the_guard_saw_counts_as_one_commit_and_past_the_limit_is_refused(env):
-    from agentos.node.tools import ActMeter
+    from openajar.node.tools import ActMeter
 
     svc, _, events = env
     svc.set_lane_limits("biz-a/ig", {"commits_per_day": 1}, by="owner")

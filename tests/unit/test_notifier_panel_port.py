@@ -6,9 +6,9 @@ import json
 
 from test_policy_support import Clock
 
-from agentos.core.config import NodeConfig
-from agentos.core.runtime import Runtime
-from agentos.policy.service import PolicyService
+from openajar.core.config import NodeConfig
+from openajar.core.runtime import Runtime
+from openajar.policy.service import PolicyService
 
 
 def service(home, port: int) -> PolicyService:

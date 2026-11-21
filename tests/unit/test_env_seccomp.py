@@ -1,6 +1,6 @@
 import errno
 
-from agentos.env import seccomp as sc
+from openajar.env import seccomp as sc
 
 PROG = sc.program()
 EPERM = sc.RET_ERRNO | errno.EPERM

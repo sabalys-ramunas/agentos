@@ -23,7 +23,7 @@ bio:
 phone: "+370 600 12345"
 website: https://acme.example
 links: {shop: https://acme.example/shop}
-photos: {avatar: sha256:..., cover: sha256:...}   # agentos profile photo acme/acme avatar me.jpg
+photos: {avatar: sha256:..., cover: sha256:...}   # openajar profile photo acme/acme avatar me.jpg
 voice:
   personality: Dry, confident, roasts itself before anyone else can.
   tone: short and a little cheeky
@@ -41,22 +41,22 @@ accounts:
 
 ## What happens when you change it
 
-1. You save (panel, or `agentos profile set acme/acme bio.short "..."`). Your save is live at once.
+1. You save (panel, or `openajar profile set acme/acme bio.short "..."`). Your save is live at once.
    An agent's save (`profile_update`) is a draft that waits for you: read it with
-   `agentos profile show acme/acme --version N`, then approve it in the panel or with
-   `agentos profile approve acme/acme --version N`. Your own edits build on the approved version,
+   `openajar profile show acme/acme --version N`, then approve it in the panel or with
+   `openajar profile approve acme/acme --version N`. Your own edits build on the approved version,
    so a waiting draft never goes live with them.
 2. The save says what changes where: "bio changes on 2 accounts".
 3. Each account then gets its fields, with no approval card (your save and the login you saved
    are your consent; "Ask me first" on a lane still makes that lane wait):
-   - **Learned fields change by themselves.** Once an agent has taught agentos how a site's field
+   - **Learned fields change by themselves.** Once an agent has taught openajar how a site's field
      is changed (see "Learning a site"), every account on that site gets it whenever you save.
-   - **Not learned yet:** `agentos profile status acme/acme` (or `profile_sync_status`) lists them.
+   - **Not learned yet:** `openajar profile status acme/acme` (or `profile_sync_status`) lists them.
      An agent can teach one, or change it by hand and mark it done (`profile_mark_synced`).
 
 ## Learning a site
 
-An agent teaches agentos a field once: `profile_learn_start(surface, field)`, then in the account's
+An agent teaches openajar a field once: `profile_learn_start(surface, field)`, then in the account's
 lane it logs in from the vault, opens the site's edit page, sets exactly the value, saves, opens the
 account's profile page and calls `profile_learn_finish` with the element that shows the new value.
 The node keeps what it saw itself (the recorded field and save click, the one save request it let
@@ -69,13 +69,13 @@ the field reads "Site changed", to be taught again.
 What keeps a lesson to exactly one profile edit, with no approval card:
 
 - Only a reviewed save request can be learned (`PROFILE_EDIT_ENDPOINTS` in
-  `src/agentos/node/sites.py`): today Instagram's bio and website. Other sites and fields read
+  `src/openajar/node/sites.py`): today Instagram's bio and website. Other sites and fields read
   "learnable: false" until their save request is reviewed and added there.
 - The one request let through must be that endpoint, carry exactly the value under the field's own
   key, and leave every other form field as the site said it was; the agent may type only that one
   value, and only the agent that started the lesson may act in the lane meanwhile.
 - A lesson is bound to the agent and grant that started it, never stops someone else's recording,
-  and is capped (3 a day per lane, 3 a week per field). A field agentos already knows is taught
+  and is capped (3 a day per lane, 3 a week per field). A field openajar already knows is taught
   again only after a sync saw the site change, or by you.
 - On a site that names accounts in its URLs (Instagram), the account comes from the handle you set
   on the lane, never from a URL the agent typed.
@@ -159,7 +159,7 @@ environments:                      # where it runs, and the vault entries its ke
   date, work history, education).
 - Every text is cleaned and capped like the rest of a profile, so text an agent brought in from a
   page reaches you as plain, visible words.
-- Logos, brand images and fonts are uploaded like photos (`profile_photo_put` or `agentos profile
+- Logos, brand images and fonts are uploaded like photos (`profile_photo_put` or `openajar profile
   photo`): SVG, PNG, JPEG, WebP, GIF, and WOFF2, WOFF, TTF or OTF. An SVG that runs code (a script,
   an event handler) is refused. A photo field takes only a photo, a font field only a font.
 
@@ -185,7 +185,7 @@ Only the approved version is served, never a waiting draft.
 `profile_propose(profile, change, reason)` is how an agent changes a brand, guidelines or
 references. The brand merges like `profile_update`; guidelines and references take a whole list
 or `{add: [...], remove: [ids or names]}`. It is always a draft, even from you, and it carries
-the agent's reason and a readable list of what changes. `agentos profile show acme/shop
+the agent's reason and a readable list of what changes. `openajar profile show acme/shop
 --version N` prints both above the profile; approve it as any other draft. An agent cannot
 approve it.
 
@@ -197,11 +197,11 @@ review browser, in light and dark at 360 and 1280 px, and reads it the way `ui_c
 in reverse:
 
 - custom properties the site declares become tokens with their own names, with how often its
-  CSS uses each (`$extensions.agentos.css_rules`) and how many of the page's values sit on them;
+  CSS uses each (`$extensions.openajar.css_rules`) and how many of the page's values sit on them;
 - where it declares none, the values it uses are clustered: colours (by delta E OK) into a
   palette with roles guessed from use (text, background, border, accent), spacing into a scale
   with its step, radii, and families, sizes and weights into a type scale. Each such token says
-  `heuristic` in its `$description` and `$extensions.agentos`;
+  `heuristic` in its `$description` and `$extensions.openajar`;
 - how it turns dark (prefers-color-scheme, a data-theme or data-mode attribute, a `dark` class,
   a stored theme), tried one by one and read back from the page;
 - component hints: `data-component` and `data-slot` values, and repeated class names (labelled
@@ -225,7 +225,7 @@ approve. Your own saves and text already approved are not screened.
 
 ## Commands and tools
 
-| CLI (`agentos profile ...`, also `agentos workspace profile ...`) | MCP tool |
+| CLI (`openajar profile ...`, also `openajar workspace profile ...`) | MCP tool |
 |---|---|
 | `list [workspace]` | `profile_list` |
 | `show acme/acme [--version N]` | `profile_get` |
@@ -244,7 +244,7 @@ The tools are in the `profiles` toolset (`tools_more(toolset="profiles")`), and 
 
 ## Sites
 
-Each site's profile fields and limits are in `src/agentos/profiles/mapping.py`: linkedin, facebook,
+Each site's profile fields and limits are in `src/openajar/profiles/mapping.py`: linkedin, facebook,
 instagram, reddit, x, threads, tiktok, youtube, medium. An account's site comes from its name
 (`acme/instagram`), or set `site:` on the account. A field becomes automatic once an agent has
-taught agentos how it is changed on that site (see "Learning a site").
+taught openajar how it is changed on that site (see "Learning a site").

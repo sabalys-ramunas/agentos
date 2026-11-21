@@ -12,9 +12,9 @@ from test_egress import AGENT, COMMITTER, FakeContext, FakePage, FakeRequest, Fa
 from test_egress_wiring import GuardedEngine
 from test_lanes import make
 
-from agentos.core.models import ControlState, LaneSpec
-from agentos.node.claims import Holder
-from agentos.node.routes import RouteDispatcher
+from openajar.core.models import ControlState, LaneSpec
+from openajar.node.claims import Holder
+from openajar.node.routes import RouteDispatcher
 
 LANE = "biz-a/instagram"
 CONFIGURE = "https://i.instagram.com/api/v1/media/configure/"

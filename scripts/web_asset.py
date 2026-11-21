@@ -1,8 +1,8 @@
-"""Package a built web app (web/dist) as the release asset `agentos web install` downloads.
+"""Package a built web app (web/dist) as the release asset `openajar web install` downloads.
 
     python3 scripts/web_asset.py [--dist web/dist] [--version X.Y.Z] [--out dist-release]
 
-Writes agentos-web-<version>.tar.gz and agentos-web-<version>.tar.gz.sha256 (sha256sum's format).
+Writes openajar-web-<version>.tar.gz and openajar-web-<version>.tar.gz.sha256 (sha256sum's format).
 The archive holds the files of web/dist at its top (index.html first), regular files and folders
 only, with fixed owners, modes and times, so the same build packs to the same bytes. It refuses a
 folder with no index.html, with a link in it, or with the mock backend in it (web/build/guard.ts
@@ -23,15 +23,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOCK_FILES = ("mockServiceWorker.js", "sw-mock.js")
-MOCK_MARKERS = (b"agentos-mock-backend", b"mockServiceWorker")
+MOCK_MARKERS = (b"openajar-mock-backend", b"mockServiceWorker")
 MTIME = 0  # fixed, so a rebuild of the same files gives the same archive
 
 
 def version_of_checkout() -> str:
-    text = (ROOT / "src" / "agentos" / "__init__.py").read_text()
+    text = (ROOT / "src" / "openajar" / "__init__.py").read_text()
     m = re.search(r'^__version__ = "([^"]+)"$', text, re.MULTILINE)
     if not m:
-        raise SystemExit("no __version__ in src/agentos/__init__.py")
+        raise SystemExit("no __version__ in src/openajar/__init__.py")
     return m.group(1)
 
 
@@ -92,7 +92,7 @@ def write_asset(dist: Path, version: str, out: Path) -> tuple[Path, str]:
         raise SystemExit(f"{version!r} is not a version like 0.3.0")
     data = pack(dist)
     out.mkdir(parents=True, exist_ok=True)
-    name = f"agentos-web-{version}.tar.gz"
+    name = f"openajar-web-{version}.tar.gz"
     digest = hashlib.sha256(data).hexdigest()
     (out / name).write_bytes(data)
     (out / f"{name}.sha256").write_text(f"{digest}  {name}\n")
@@ -102,7 +102,7 @@ def write_asset(dist: Path, version: str, out: Path) -> tuple[Path, str]:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--dist", type=Path, default=ROOT / "web" / "dist", help="the built web app (default: web/dist)")
-    p.add_argument("--version", help="the release (default: src/agentos/__init__.py's)")
+    p.add_argument("--version", help="the release (default: src/openajar/__init__.py's)")
     p.add_argument("--out", type=Path, default=ROOT / "dist-release", help="where to write (default: dist-release/)")
     args = p.parse_args(argv)
     path, digest = write_asset(args.dist.resolve(), args.version or version_of_checkout(), args.out)

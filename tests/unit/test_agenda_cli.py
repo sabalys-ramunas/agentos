@@ -1,4 +1,4 @@
-"""`agentos agenda ...`: the owner's view of the agenda from a shell on the node."""
+"""`openajar agenda ...`: the owner's view of the agenda from a shell on the node."""
 
 from __future__ import annotations
 
@@ -7,18 +7,18 @@ from datetime import UTC, datetime, timedelta
 
 from typer.testing import CliRunner
 
-from agentos.agenda.cli import app
-from agentos.core.runtime import Runtime
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import post_flow
-from agentos.runner.service import build as runner_build
+from openajar.agenda.cli import app
+from openajar.core.runtime import Runtime
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import post_flow
+from openajar.runner.service import build as runner_build
 
 FLOW = "biz-a.social.post"
 SOON = (datetime.now(UTC) + timedelta(days=30)).replace(hour=9, minute=0, second=0, microsecond=0)
 
 
 def _home(tmp_path, monkeypatch, *, ask_first: bool):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     runner = runner_build(Runtime(), home=tmp_path)
     runner.flows.save(post_flow())
     runner.store.close()

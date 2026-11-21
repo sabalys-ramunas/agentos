@@ -1,9 +1,9 @@
 """Flow execution and proof of done against the fake social site."""
 
-from agentos.core.driver import DriverTimeout
-from agentos.core.models import RunStatus, Signal
-from agentos.runner.fakes import BASE, Harness, post_flow
-from agentos.runner.util import json_size
+from openajar.core.driver import DriverTimeout
+from openajar.core.models import RunStatus, Signal
+from openajar.runner.fakes import BASE, Harness, post_flow
+from openajar.runner.util import json_size
 
 POST = {"role": "article", "name": "Post by Ieva"}
 POST_LIKE = {"role": "button", "name": "Like", "within": POST}

@@ -1,8 +1,10 @@
-"""The agentos web app's design tokens (the Mono style): the one place their values live.
+"""The openajar web app's design tokens (Dawn, on Mono's bones): the one place their values live.
 
 Copied from the style-mono prototype's build-tokens.py (removed with the classic panel), the
-approved Mono take (docs/design/style-style-mono.md). Changes from that copy are marked "web". The values are the
-prototype's; only where the files go, the font names and the --check mode differ.
+approved Mono take (docs/design/style-style-mono.md). Changes from that copy are marked "web". Dawn
+(2026-11-20, "W4 dawn" below) is the desktop's light brought to the app: an ink-blue cast on the
+neutrals, the night navy in dark, one violet (the agent's own colour), glass over the Dawn picture,
+a night sidebar, Full's larger type and less round corners (the owner: cards 10, not 14).
 
 Writes:
   web/tokens/tokens.json       Design Tokens (DTCG 2025.10) as a themes map: base, light, dark
@@ -45,10 +47,24 @@ def emit(path, text):
 # colours and the accent still read clean against it.
 # W3 mono: true white and true black with a cool, hue-free ramp in between (Vercel's grey scale is
 # the model: #fafafa page, #ebebeb hairline, #171717 ink; #000 page and #0a0a0a cards in dark).
-N_LIGHT = ["#ffffff", "#fafafa", "#f5f5f5", "#f0f0f0", "#ebebeb", "#e3e3e3", "#d4d4d4",
-           "#a8a8a8", "#8a8a8a", "#6b6b6b", "#525252", "#2e2e2e", "#171717"]
-N_DARK = ["#000000", "#0a0a0a", "#111111", "#171717", "#1c1c1c", "#262626", "#333333",
-          "#4d4d4d", "#707070", "#8f8f8f", "#a1a1a1", "#d4d4d4", "#ededed"]
+# W4 dawn: the same ramp with a trace of ink blue (the desktop's night sky), and dark is Dawn's night
+# navy, not black. Page #f6f6fa (Full), card white; night #090b16, card #0f1222.
+N_LIGHT = ["#ffffff", "#f6f6fa", "#f3f3f7", "#eeeef4", "#e7e7ee", "#dcdce5", "#cfcfdb",
+           "#a3a3b5", "#85859a", "#67677d", "#4f4f63", "#2d2f45", "#15172b"]
+N_DARK = ["#090b16", "#0f1222", "#141729", "#191d31", "#1e2238", "#22263d", "#353a55",
+          "#4e5373", "#6f7494", "#9095b2", "#b0b4cc", "#d6d8e6", "#eef0f7"]
+
+# W4 dawn: the violet, one hue from the agent's pointer on the desktop. A scale, the same in both
+# themes; roles below pick from it. What it is for: the agent (its pointer, its tag, an agent at
+# work), what is selected, the keyboard's focus, the primary button, the mark. Never a status, a
+# large background or decoration (web/DESIGN.md, "Violet").
+VIOLET = {"50": "#f4f1ff", "100": "#ebe5ff", "200": "#d9cfff", "300": "#bfaeff", "400": "#a08aff",
+          "500": "#8466ff", "600": "#6d4aff", "700": "#5b37e6", "800": "#4a2bbf", "900": "#3a2394",
+          "950": "#221559"}
+
+
+def vi(step):
+    return VIOLET[step]
 
 # semantic colours: name -> (light, dark, note). "{n.5}" aliases a ramp step.
 def n(i):
@@ -62,14 +78,16 @@ COLORS = {
     "surface.inset": (n(2), n(2), "Wells: code, pictures waiting to load, card footers. Never a table header."),
     "surface.raised": (n(0), n(3), "Menus, popovers, dialogs, sheets. Always with a shadow."),
     "surface.inverse": (n(12), n(11), "Tooltips and toasts: the one inverted surface."),
+    # W4 dawn: the stage a live screen sits on, dark in both themes (the control pill sits on it).
+    "surface.stage": ("#0b0d1a", "#070914", "Behind the live screen and pictures of it. Dark in both themes."),
     # web: a control on the inverse surface (the selection bar): text.inverse at 35, 14 and 22 percent.
     # Were color-mix() in button.tsx; text.inverse is white in light and black in dark.
     "inverse.line": ("rgba(255,255,255,0.35)", "rgba(0,0,0,0.35)", "A hairline on the inverse surface."),
     "inverse.hover": ("rgba(255,255,255,0.14)", "rgba(0,0,0,0.14)", "Hover on the inverse surface."),
     "inverse.pressed": ("rgba(255,255,255,0.22)", "rgba(0,0,0,0.22)", "Pressed on the inverse surface."),
     # translucent fills so they work on any surface
-    "fill.hover": ("rgba(0,0,0,0.035)", "rgba(255,255,255,0.05)", "Row and control hover."),
-    "fill.pressed": ("rgba(0,0,0,0.06)", "rgba(255,255,255,0.08)", "Pressed, open menu trigger."),
+    "fill.hover": ("rgba(21,23,43,0.04)", "rgba(255,255,255,0.05)", "Row and control hover."),
+    "fill.pressed": ("rgba(21,23,43,0.07)", "rgba(255,255,255,0.08)", "Pressed, open menu trigger."),
     # lines
     # W3 mono: the hairline almost disappears (#ebebeb on #fafafa, #262626 on #000).
     "line.default": (n(4), n(5), "Every hairline: cards, rows, header bottom."),
@@ -85,11 +103,19 @@ COLORS = {
     # W3 mono: the accent is ink. What is selected is black in light and white in dark; colour is
     # kept for meaning (the kinds of work, and status). Focus stays blue, the one colour that only
     # ever means "the keyboard is here".
-    "accent.text": (n(12), n(12), "Links (underlined) and the selected tab's word. Ink, not a hue."),
-    "accent.fill": (n(12), n(12), "Checked checkbox, switch on, selected chip, progress that is not a status."),
-    "accent.soft": (n(3), n(4), "A selected row or item: tint under text."),
-    "accent.line": (n(6), n(7), "A selected item's edge, a drop target."),
-    "focus.ring": ("#006bff", "#3d8bff", "The keyboard focus ring. 3:1 against every surface. The one blue."),
+    # W4 dawn: what is selected is violet again (the selected tab's word, a selected nav item, a
+    # checked box, a switch on). Links stay ink with an underline. Focus is the violet ring.
+    "accent.text": (vi("700"), vi("300"), "The selected tab's word, a selected item's word. Violet."),
+    "accent.fill": (vi("600"), vi("500"), "Checked checkbox, switch on, selected chip, progress that is not a status."),
+    "accent.soft": (vi("50"), "rgba(132,102,255,0.14)", "A selected row or item: tint under text."),
+    "accent.line": (vi("200"), "#3d3380", "A selected item's edge, a drop target."),
+    "focus.ring": (vi("600"), vi("400"), "The keyboard focus ring. 3:1 against every surface. Violet."),
+    # W4 dawn: Full's primary is the violet pill (white words 5.2:1). Dark keeps violet 600 under its
+    # words: violet 500 would carry white at only 4:1.
+    "action.primary": (vi("600"), vi("600"), "The one primary button on a screen."),
+    "action.primary-hover": (vi("700"), vi("700"), ""),
+    "action.on-primary": ("#ffffff", "#ffffff", "Words on the primary."),
+    "link.text": (n(12), n(12), "A link: ink with an underline, never a hue."),
     # status: text reads as words, dot is the mark, fill tints a badge or a row, line edges it
     "status.ok.text": ("#14733f", "#4cc27a", ""),
     "status.ok.dot": ("#1e9a52", "#3fb46e", ""),
@@ -103,19 +129,20 @@ COLORS = {
     "status.bad.dot": ("#e5484d", "#e5484d", ""),
     "status.bad.fill": ("#fdeeee", "#2d1213", ""),
     "status.bad.line": ("#f3c2c3", "#5c2224", ""),
-    # W3 mono: running is the normal state, so it takes ink and a moving ring, not a hue. That keeps
-    # every hue free for meaning: green passed, amber needs a look, red failed, and the kinds.
-    "status.live.text": (n(12), n(12), "An agent acting right now. Ink; the ringed, pulsing dot says it."),
-    "status.live.dot": (n(12), n(12), ""),
-    "status.live.fill": (n(3), n(4), ""),
-    "status.live.line": (n(7), n(7), ""),
+    # W3 mono: running took ink and a moving ring. W4 dawn: an agent at work is the agent's violet,
+    # as a ring that never pulses (Starting is the same ring dashed). Green, amber and red keep their
+    # meaning, and the test kind moved off violet to plum so no kind shares the agent's hue.
+    "status.live.text": (vi("700"), "#c4b8ff", "An agent at work right now. Violet; a ringed dot that never pulses."),
+    "status.live.dot": (vi("600"), vi("400"), ""),
+    "status.live.fill": (vi("50"), "rgba(132,102,255,0.14)", ""),
+    "status.live.line": (vi("200"), "#4a3f99", ""),
     "status.idle.text": (n(10), n(10), "Queued, sleeping, skipped: no colour, a hollow mark."),
     "status.idle.dot": (n(8), n(8), ""),
     "status.idle.fill": (n(2), n(3), ""),
     "status.idle.line": (n(6), n(6), ""),
     # terminal and ANSI: themed, every colour 4.5:1 on terminal.bg
     # W3 mono: a terminal is black in both themes. Output is the one thing that looks like a screen.
-    "terminal.bg": ("#0a0a0a", "#050505", "A terminal or log block. Dark in both themes."),
+    "terminal.bg": ("#0b0d1a", "#070914", "A terminal or log block. Dark in both themes (the stage's night)."),
     "terminal.text": ("#e5e5e5", "#e5e5e5", ""),
     "terminal.dim": ("#8a8a8a", "#8a8a8a", "Timestamps, the prompt, faint (ANSI 2) output."),
     # web: a divider inside a terminal (was `border-white/10`, a class that does not exist here).
@@ -133,19 +160,62 @@ COLORS = {
     "diff.del.mark": ("#c0282e", "#ff6b70", "The - sign and the gutter edge."),
     # charts
     "chart.line": (n(10), n(10), "A sparkline's stroke: data reads in text colour."),
-    "chart.area": ("rgba(0,0,0,0.05)", "rgba(255,255,255,0.06)", "Under a sparkline."),
+    "chart.area": ("rgba(21,23,43,0.05)", "rgba(255,255,255,0.06)", "Under a sparkline."),
     "chart.bar": (n(7), n(7), "A bar in a small chart."),
     "chart.bar-strong": (n(12), n(12), "The bar that is the point (now, this run). Ink."),
     "chart.grid": (n(4), n(4), "Chart gridlines and the bar track."),
     # overlay
-    "overlay.scrim": ("rgba(0,0,0,0.32)", "rgba(0,0,0,0.72)", "Behind a dialog or sheet."),
+    "overlay.scrim": ("rgba(11,13,26,0.36)", "rgba(3,4,10,0.72)", "Behind a dialog or sheet."),
     # shadow colours
-    "shadow.color-1": ("rgba(0,0,0,0.04)", "rgba(0,0,0,0.40)", ""),
-    "shadow.color-2": ("rgba(0,0,0,0.08)", "rgba(0,0,0,0.56)", ""),
+    "shadow.color-1": ("rgba(21,23,43,0.04)", "rgba(0,0,0,0.40)", ""),
+    "shadow.color-2": ("rgba(21,23,43,0.12)", "rgba(0,0,0,0.60)", ""),
     # W3 mono: a card's lift. Light: a 1 px shadow under the hairline, so a card sits on the page.
     # Dark: no shadow can show on black, so a 1 px light on the card's top edge does it instead.
-    "shadow.color-card": ("rgba(0,0,0,0.05)", "rgba(0,0,0,0)", "Under a card, light only."),
-    "highlight.card": ("rgba(255,255,255,0)", "rgba(255,255,255,0.06)", "The top edge of a card, dark only."),
+    "shadow.color-card": ("rgba(21,23,43,0.05)", "rgba(0,0,0,0)", "Under a card, light only."),
+    "highlight.card": ("rgba(255,255,255,0)", "rgba(255,255,255,0.05)", "The top edge of a card, dark only."),
+    # W4 dawn: glass, only over the Dawn picture or the stage (Home's window, chips on a screen's
+    # picture). Never on a plain page, where it would only look grey. A 22 px blur behind it.
+    "glass.fill": ("rgba(255,255,255,0.78)", "rgba(16,19,38,0.72)", "Glass over the Dawn picture: Home's cards."),
+    "glass.line": ("rgba(255,255,255,0.6)", "rgba(255,255,255,0.12)", "Glass's edge."),
+    "glass.highlight": ("rgba(255,255,255,0.8)", "rgba(255,255,255,0.1)", "Glass's top light."),
+    "glass.shadow": ("rgba(10,14,40,0.35)", "rgba(0,0,0,0.6)", "Under glass."),
+    "glass.dark-fill": ("rgba(10,13,30,0.55)", "rgba(10,13,30,0.6)", "Dark glass on a picture: a chip on a screen, the sidebar's foot."),
+    "glass.dark-line": ("rgba(255,255,255,0.16)", "rgba(255,255,255,0.14)", ""),
+    # web: Dawn's one-off mixes, named (were color-mix() in the screens). Hover on dark glass; the white
+    # pill on the night and its press; the hairline inside a violet or white pill; the ring of a screen
+    # you control; the window edge of the sign-in card on the Dawn picture.
+    "glass.dark-hover": ("rgba(52,55,74,0.62)", "rgba(52,55,74,0.66)", "Hover on dark glass."),
+    "night.pill-hover": ("rgba(255,255,255,0.86)", "rgba(255,255,255,0.86)", "The white pill on the night, hovered."),
+    "night.pill-pressed": ("rgba(255,255,255,0.76)", "rgba(255,255,255,0.76)", "The white pill on the night, pressed."),
+    "night.ring": ("rgba(255,255,255,0.22)", "rgba(255,255,255,0.22)", "The ring round a screen a person controls, at rest."),
+    "pill.edge-on-primary": ("rgba(255,255,255,0.4)", "rgba(255,255,255,0.4)", "A hairline inside the violet pill (its count, its key)."),
+    "pill.edge-on-light": ("rgba(11,13,26,0.3)", "rgba(7,9,20,0.3)", "A hairline inside the white pill on the night."),
+    "window.edge": ("rgba(21,23,43,0.08)", "rgba(255,255,255,0.08)", "The edge of a window on the Dawn picture (sign-in)."),
+    # web: soft halos round a field or a chosen choice (outlines, so studio sees them)
+    "halo.focus": ("rgba(109,74,255,0.22)", "rgba(160,138,255,0.22)", "The halo round a focused field."),
+    "halo.bad": ("rgba(229,72,77,0.18)", "rgba(229,72,77,0.18)", "The halo round a focused field in error."),
+    "halo.accent": ("rgba(109,74,255,0.14)", "rgba(132,102,255,0.14)", "The halo round a chosen choice."),
+    "accent.half": ("rgba(109,74,255,0.5)", "rgba(132,102,255,0.5)", "The violet at half strength: a rung of the ladder on its way."),
+    # W4 dawn: the scrim that keeps white words readable on the Dawn picture, darkest where they sit;
+    # dark mode dims the whole picture by about a third.
+    "dawn.scrim": ("rgba(8,12,34,0.55)", "rgba(5,7,20,0.66)", "Under the words on the Dawn picture."),
+    "dawn.dim": ("rgba(9,11,22,0)", "rgba(9,11,22,0.36)", "Over the Dawn picture at night."),
+    # W4 dawn: the night sidebar, the same night sky in both themes with the sunrise at its foot.
+    # Its own words, lines and fills: white on the night, every one AA where it sits.
+    "sidebar.sky-1": ("#0a1030", "#060a1f", "The sidebar's sky, top to foot."),
+    "sidebar.sky-2": ("#121a42", "#0b1130", ""),
+    "sidebar.sky-3": ("#1b2452", "#121a42", ""),
+    "sidebar.sky-4": ("#2e3566", "#252c58", ""),
+    "sidebar.glow-1": ("#6c5e86", "#4b4470", "The sunrise at the sidebar's foot."),
+    "sidebar.glow-2": ("#b98e8c", "#7c6680", ""),
+    "sidebar.text": ("#ffffff", "#ffffff", "Words on the night sidebar."),
+    "sidebar.text-secondary": ("rgba(255,255,255,0.8)", "rgba(255,255,255,0.78)", "A place's name at rest."),
+    "sidebar.text-tertiary": ("rgba(255,255,255,0.64)", "rgba(255,255,255,0.6)", "Group headings, counts, keys."),
+    "sidebar.line": ("rgba(255,255,255,0.12)", "rgba(255,255,255,0.1)", ""),
+    "sidebar.fill-hover": ("rgba(255,255,255,0.07)", "rgba(255,255,255,0.06)", ""),
+    "sidebar.fill-selected": ("rgba(255,255,255,0.14)", "rgba(255,255,255,0.12)", "The place you are on."),
+    "sidebar.focus": (vi("300"), vi("300"), "The focus ring on the night: violet 300 holds 3:1 there."),
+    "sidebar.foot": ("rgba(8,11,32,0.62)", "rgba(6,8,24,0.6)", "The glass the org switcher sits on, over the glow."),
     # web: the hover lift of a card that opens something (--shadow-hover).
     "shadow.color-hover": ("rgba(0,0,0,0.16)", "rgba(0,0,0,0.7)", "The soft drop under a card that lifts on hover."),
     # web: one step stronger than pressed, for a skeleton's band and a few bars. Was hand-written in aliases.css.
@@ -174,7 +244,8 @@ COLORS = {
 # (checked below), and always drawn with the kind's own icon and word, never colour alone.
 KINDS = {
     #          mark (L, D)              text (L, D)              soft (L, D)              line (L, D)
-    "test":   (("#9a5bd6", "#b18cfa"), ("#7a3fbf", "#c4a8ff"), ("#f6f0fd", "#1a1328"), ("#e3d3f7", "#3d2d66"), "Tests: a suite run with agentos run."),
+    # W4 dawn: tests are plum, off the agent's violet.
+    "test":   (("#7a2f7d", "#c66cc6"), ("#7a2f7d", "#d98ad8"), ("#f8eff8", "#22102a"), ("#e8cde8", "#542a5a"), "Tests: a suite run with openajar run."),
     "design": (("#c8337f", "#f06bb0"), ("#ad2a6d", "#f58cc2"), ("#fcf0f6", "#26101c"), ("#f3c9de", "#5c2443"), "Design: ui_check, ui_diff, a brand change."),
     "build":  (("#0b6e88", "#3fc6dc"), ("#0b6e88", "#5fd3e6"), ("#ebf6f9", "#09201f"), ("#b9dde7", "#18505b"), "Build and CI: a build, an install, lint and types."),
     "server": (("#1e40af", "#4c7dff"), ("#1e40af", "#86a8ff"), ("#eef1fb", "#0e1730"), ("#c6cff0", "#243d73"), "Dev server: a service that stays on."),
@@ -191,14 +262,40 @@ FIXED_COLORS = {
     "identity.5": "#b84a33", "identity.6": "#527a32", "identity.7": "#b0477a", "identity.8": "#62697a",
     "identity.ink": "#ffffff",
     "status.ink": "#111111",
-    "brand.mark": "#db2777",
+    "brand.mark": "#6d4aff",
 }
+for _k, _v in VIOLET.items():
+    FIXED_COLORS[f"violet.{_k}"] = _v
+# W4 dawn: the openajar mark "Window a" (components/ui/misc.tsx Logo): a white tile with a violet a.
+FIXED_COLORS.update({
+    "mark.tile-top": "#ffffff", "mark.tile-bottom": "#e7e3fb", "mark.edge": "rgba(10,10,20,0.12)",
+    "mark.a-top": "#8a6dff", "mark.a-bottom": "#4b2fe0",
+    # A switch's thumb: white on the control grey and on the violet, in both themes.
+    "control.thumb": "#ffffff",
+})
+# W4 dawn: the wrapper tile, the dock's squircle with a soft top light, for the app's own things (a kind
+# of ask, a channel, a settings section). Never for an action. Each is a gradient top to bottom with a
+# white glyph; the white holds 3:1 on the lower stop (a graphic, WCAG 1.4.11).
+TILES = {
+    "violet": ("#9a82ff", "#5b37e6"), "blue": ("#7cc4ff", "#2563eb"), "pink": ("#ff9cc7", "#d6337f"),
+    "amber": ("#ffd877", "#d97706"), "green": ("#7be3a6", "#16a05a"), "ink": ("#4a505e", "#15171d"),
+    "teal": ("#6fdde6", "#0b8aa0"),
+    # The danger zone's tile: what cannot be undone. A mark beside red words, never a status of its own.
+    "red": ("#ff9a8f", "#d4372a"),
+}
+for _k, (_top, _bottom) in TILES.items():
+    FIXED_COLORS[f"tile.{_k}-top"] = _top
+    FIXED_COLORS[f"tile.{_k}-bottom"] = _bottom
 
 SPACE = {"0": 0, "px": 1, "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "8": 32, "10": 40, "12": 48, "16": 64}
 # W3 mono: crisper corners (cards 10, not 12); a display size for Home's sentence.
-RADIUS = {"none": 0, "sm": 4, "md": 6, "lg": 8, "xl": 10, "full": 999}
-SIZE = {"font.11": 11, "font.12": 12, "font.13": 13, "font.14": 14, "font.16": 16, "font.20": 20, "font.24": 24, "font.28": 28, "font.32": 32, "font.40": 40}
-LEADING = {"16": 16, "20": 20, "24": 24, "28": 28, "32": 32, "36": 36, "40": 40, "44": 44}
+# W4 dawn: the mockup's 14 px cards were too round for the owner; cards stay 10 and the rest steps
+# with them: 4 marks and keys, 6 fields and menu items, 8 pictures and menus, 10 cards and dialogs,
+# 14 the stage and Home's window, full for every button, chip and the control pill.
+RADIUS = {"none": 0, "sm": 4, "md": 6, "lg": 8, "xl": 10, "2xl": 14, "full": 999}
+SIZE = {"font.11": 11, "font.12": 12, "font.13": 13, "font.14": 14, "font.15": 15, "font.16": 16, "font.17": 17, "font.18": 18,
+        "font.20": 20, "font.24": 24, "font.26": 26, "font.28": 28, "font.32": 32, "font.34": 34, "font.40": 40, "font.44": 44}
+LEADING = {"16": 16, "18": 18, "20": 20, "22": 22, "24": 24, "26": 26, "28": 28, "32": 32, "36": 36, "40": 40, "44": 44, "50": 50}
 WEIGHT = {"regular": 400, "medium": 500, "semibold": 600}
 # W2: IBM Plex, Workbench's choice (an instrument's character, not the face every dev tool uses).
 # Geist stays next in line, so a page that ships only Geist (foundations.html) still renders in it.
@@ -210,19 +307,22 @@ MONO = ["Geist Mono Variable", "ui-monospace", "SF Mono", "Menlo", "monospace"]
 # role -> (family, size, weight, leading, tracking em, note)
 # W3 mono: tight headings (Geist at -0.03 to -0.045 em), 14 px body like every Vercel surface,
 # table heads at 13 medium in the tertiary ink with no band, numbers in Geist Mono 13.
+# W4 dawn: Full's scale, one step larger for the reading roles (a person who sits with it all day):
+# body 15/22, a row's second line 14/20, the lede 17/26, sections 18/26, the page title 34/40 and
+# Home's sentence 44/50. Data roles (table heads, numbers, code, captions) keep Mono's sizes.
 TYPE = {
-    "display": ("sans", 40, "semibold", 44, -0.045, "Home's sentence. One per app, at most."),
-    "page-title": ("sans", 28, "semibold", 36, -0.035, "One per page, the h1."),
+    "display": ("sans", 44, "semibold", 50, -0.04, "Home's sentence. One per app, at most."),
+    "page-title": ("sans", 34, "semibold", 40, -0.032, "One per page, the h1."),
+    "section-title": ("sans", 18, "semibold", 26, -0.015, "A section of a page, a dialog title."),
+    "page-title-compact": ("sans", 26, "semibold", 32, -0.03, "The page title, and Home's sentence, on a phone."),
+    "lede": ("sans", 17, "regular", 26, -0.01, "The sentence under a page title. text.secondary."),
+    "card-title": ("sans", 15, "semibold", 22, -0.01, "The title of a card, a sheet section, a list group."),
     "headline": ("sans", 32, "semibold", 40, -0.035, "The sentence that opens a focused page: a sign-in, a list's summary, an amount to pay."),
     "heading": ("sans", 20, "semibold", 28, -0.02, "A heading inside a wide page, a step's question, a figure on a card."),
-    "section-title": ("sans", 16, "semibold", 24, -0.015, "A section of a page, a dialog title."),
-    "page-title-compact": ("sans", 24, "semibold", 32, -0.03, "The page title, and Home's sentence, on a phone."),
-    "lede": ("sans", 16, "regular", 24, -0.01, "The sentence under a page title. text.secondary."),
-    "card-title": ("sans", 14, "semibold", 20, -0.01, "The title of a card, a sheet section, a list group."),
     "table-header": ("sans", 13, "medium", 20, -0.005, "Column heads. text.tertiary, sentence case, no band."),
     "label": ("sans", 14, "medium", 20, -0.006, "Buttons, tabs, form labels."),
-    "body": ("sans", 14, "regular", 20, -0.006, "Everything read: cells, paragraphs."),
-    "secondary": ("sans", 13, "regular", 20, -0.003, "A row's second line, descriptions. text.secondary."),
+    "body": ("sans", 15, "regular", 22, -0.006, "Everything read: cells, paragraphs."),
+    "secondary": ("sans", 14, "regular", 20, -0.003, "A row's second line, descriptions. text.secondary."),
     "caption": ("sans", 12, "regular", 16, 0, "Timestamps, footnotes, help under a field. text.tertiary."),
     "number": ("mono", 13, "regular", 20, 0, "Numbers in tables and lists: tabular figures, right aligned."),
     "stat": ("sans", 28, "semibold", 32, -0.035, "The big number of a stat tile. Tabular figures."),
@@ -237,9 +337,10 @@ TRACKING = {"tight": -0.024, "snug": -0.012, "body": -0.006, "none": 0, "wide": 
 DURATION = {"fast": 100, "base": 150, "slow": 200, "settle": 280}
 EASE = {"standard": [0.2, 0, 0, 1], "enter": [0, 0, 0.2, 1], "exit": [0.4, 0, 1, 1], "settle": [0.16, 1, 0.3, 1]}
 Z = {"base": 0, "raised": 1, "sticky": 10, "header": 20, "dropdown": 30, "overlay": 40, "dialog": 50, "toast": 60, "tooltip": 70}
-CONTROL = {"sm": 28, "md": 32, "lg": 40}
+# W4 dawn: Full's controls are a step taller (a 36 button, 40 large, fields 40).
+CONTROL = {"sm": 30, "md": 36, "lg": 40}
 # web: the shell's sizes and the page's measure. Were hand-written in aliases.css.
-LAYOUT = {"topbar-height": 56, "rail-width": 240, "tabbar-height": 56, "page-max": 1120}
+LAYOUT = {"topbar-height": 56, "rail-width": 248, "tabbar-height": 56, "page-max": 1200}  # W4 dawn: 248, 1200
 # web: the widths a layout changes at (Tailwind's sm to 2xl, the same values, now named here).
 BREAKPOINT = {"sm": 640, "md": 768, "lg": 1024, "xl": 1280, "2xl": 1536}
 ROW = {"compact": 40, "default": 52, "relaxed": 60, "header": 40}
@@ -287,7 +388,7 @@ def tok(type_, value, desc=None, cssvar=None):
     if desc:
         d["$description"] = desc
     if cssvar:
-        d["$extensions"] = {"agentos": {"cssVar": cssvar}}
+        d["$extensions"] = {"openajar": {"cssVar": cssvar}}
     return d
 
 
@@ -361,7 +462,7 @@ for k, v in SHADOWS.items():
 
 doc = {
     "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
-    "$description": "agentos foundations. Source of truth for tokens.css. Themes map: base holds what both themes share, light and dark lay over it.",
+    "$description": "openajar foundations. Source of truth for tokens.css. Themes map: base holds what both themes share, light and dark lay over it.",
     "base": base, "light": light, "dark": dark,
 }
 emit(OUT / "tokens.json", json.dumps(doc, indent=2) + "\n")
@@ -400,7 +501,7 @@ def theme_block(idx):
 
 css = []
 css.append("""/*
- * agentos foundations: design tokens.
+ * openajar foundations: design tokens.
  *
  * GENERATED by web/tokens/build-tokens.py, with web/tokens/tokens.json. Do not edit: change the
  * script and run it. src/styles/tokens.test.ts fails if the two drift.
@@ -419,7 +520,7 @@ css.append("")
 css.append("  /* Identity hues: a fill on a small mark (avatar, workspace), never a surface or text. White initials pass 4.5:1. */")
 css.append("  /* status-ink: a number or glyph drawn on a status dot colour (a finding pin). 4.5:1 on ok, warn and bad dots. */")
 for k, v in FIXED_COLORS.items():
-    css.append("  %s: %s;" % (color_var(k), v))
+    css.append("  %s: %s;" % (color_var(k), cssval_color(v)))
 css.append("")
 css.append("  /* Type */")
 css.append("  --font-family-sans: %s;" % ", ".join("'%s'" % f if " " in f else f for f in SANS))
@@ -571,6 +672,8 @@ for i in range(1, 9):
 PAIRS.append(("identity.ink", "brand.mark", 4.5))
 for st in ["ok", "warn", "bad"]:
     PAIRS.append(("status.ink", f"status.{st}.dot", 4.5))
+for _k in TILES:
+    PAIRS.append(("identity.ink", f"tile.{_k}-bottom", 3.0))
 
 # W3 mono: every kind's word reads on every surface and on its own tile; its mark holds 3:1.
 for k in KINDS:
@@ -578,6 +681,13 @@ for k in KINDS:
         PAIRS.append((f"kind.{k}.text", s_, 4.5))
     PAIRS.append((f"kind.{k}.mark", "surface.card", 3.0))
     PAIRS.append((f"kind.{k}.mark", "surface.page", 3.0))
+
+# W4 dawn: the primary pill's words, and the new kinds of surface.
+PAIRS.append(("action.on-primary", "action.primary", 4.5))
+PAIRS.append(("action.on-primary", "action.primary-hover", 4.5))
+PAIRS.append(("text.inverse", "surface.inverse", 4.5))
+for t in ["text.primary", "text.secondary", "text.tertiary", "accent.text"]:
+    PAIRS.append((t, "status.live.fill", 4.5))
 
 rows, fails = [], 0
 for fg, bg, need in PAIRS:
@@ -595,6 +705,53 @@ for fg, bg, need in PAIRS:
     rows.append((fg, bg, need, res, ok))
 for fg, bg, need, res, ok in rows:
     print("%-4s %-24s on %-28s need %.1f  light %5.2f  dark %5.2f" % ("ok" if ok else "FAIL", fg, bg, need, res[0], res[1]))
+
+
+# W4 dawn: layered surfaces. Each is drawn bottom to top: a solid colour, then translucent layers, then
+# the words (themselves translucent on the night sidebar). Checked in both themes like the pairs.
+def over(top, under_rgb):
+    r, g, b, a = parse(top)
+    return (r * a + under_rgb[0] * (1 - a), g * a + under_rgb[1] * (1 - a), b * a + under_rgb[2] * (1 - a))
+
+
+def layered(idx, stack):
+    """stack: a colour name or literal first (opaque), then names or literals laid over it."""
+    def val(x):
+        if x.startswith("#") or x.startswith("rgba"):
+            return x
+        return resolve(FIXED_COLORS[x] if x in FIXED_COLORS else COLORS[x][idx], idx)
+    base_rgb = parse(val(stack[0]))[:3]
+    for layer in stack[1:]:
+        base_rgb = over(val(layer), base_rgb)
+    return base_rgb
+
+
+# The Dawn picture's darkest and lightest skies, and its mountains, where glass and words sit on it.
+DAWN = ["#0d1430", "#33487c", "#7284ab", "#c6a89e", "#fff0d2"]
+LAYERED = []  # (fg stack, bg stack, need, label)
+SIDE_BG = ["sidebar.sky-1", "sidebar.sky-2", "sidebar.sky-3", "sidebar.sky-4"]
+for bg in SIDE_BG:
+    for t, need in (("sidebar.text", 4.5), ("sidebar.text-secondary", 4.5), ("sidebar.text-tertiary", 4.5), ("sidebar.focus", 3.0)):
+        LAYERED.append(([bg, t], [bg], need, f"{t} on {bg}"))
+    LAYERED.append(([bg, "sidebar.fill-selected", "sidebar.text"], [bg, "sidebar.fill-selected"], 4.5, f"selected place on {bg}"))
+    # On the selected place a count steps up to the secondary words (the rail does it).
+    LAYERED.append(([bg, "sidebar.fill-selected", "sidebar.text-secondary"], [bg, "sidebar.fill-selected"], 4.5, f"a count on the selected place on {bg}"))
+for bg in ["sidebar.glow-1", "sidebar.glow-2"]:
+    for t in ("sidebar.text", "sidebar.text-secondary", "sidebar.text-tertiary"):
+        LAYERED.append(([bg, "sidebar.foot", t], [bg, "sidebar.foot"], 4.5, f"{t} on the foot over {bg}"))
+for sky in DAWN:
+    for t in ("text.primary", "text.secondary"):
+        LAYERED.append(([sky, "dawn.dim", "glass.fill", t], [sky, "dawn.dim", "glass.fill"], 4.5, f"{t} on glass over {sky}"))
+    LAYERED.append(([sky, "glass.dark-fill", "#ffffff"], [sky, "glass.dark-fill"], 4.5, f"white on dark glass over {sky}"))
+# Home's words sit on the left of the picture, over the scrim, where the sky is dark to mid.
+for sky in DAWN[:4]:
+    LAYERED.append(([sky, "dawn.dim", "dawn.scrim", "rgba(255,255,255,0.86)"], [sky, "dawn.dim", "dawn.scrim"], 4.5, f"the lede on the picture over {sky}"))
+for fg, bg, need, label in LAYERED:
+    res = [ratio(layered(idx, fg), layered(idx, bg)) for idx in (0, 1)]
+    ok = all(r >= need for r in res)
+    fails += (not ok)
+    rows.append((label, "", need, res, ok))
+    print("%-4s %-62s need %.1f  light %5.2f  dark %5.2f" % ("ok" if ok else "FAIL", label, need, res[0], res[1]))
 print("pairs", len(rows), "fails", fails)
 
 # W3 mono: colour-blind check. The kind marks against each other and against the status dots, in
@@ -628,6 +785,7 @@ def _seen(hexv, mat):
 
 
 import itertools
+
 cvd_fails = 0
 for idx, th in ((0, "light"), (1, "dark")):
     marks = {f"kind.{k}": KINDS[k][0][idx] for k in KINDS}

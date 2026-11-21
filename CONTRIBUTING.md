@@ -1,6 +1,6 @@
-# Contributing to agentos
+# Contributing to openajar
 
-Thanks for helping. agentos is alpha: the design moves, and a short issue before a large
+Thanks for helping. openajar is alpha: the design moves, and a short issue before a large
 change saves everyone time.
 
 ## The dev loop (no node needed)
@@ -11,7 +11,7 @@ Everything except the real browser runs on a laptop (macOS or Linux, Python 3.12
 uv sync                          # once: the Python env with the dev tools
 uv run python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
                                  # once: the fingerprint model a few unit tests read (they may not reach the network)
-uv run agentos dev up --seed     # a fake node on 127.0.0.1:7450 (see docs/DEVELOPING.md)
+uv run openajar dev up --seed     # a fake node on 127.0.0.1:7450 (see docs/DEVELOPING.md)
 make check                       # what CI runs: lint (with layers and size limits), dead code, shell syntax, em dash check, type check, unit tests
 ```
 
@@ -25,7 +25,7 @@ to `make check` before you push. `make merge-check` is the quick check after a m
 the route matrices, and the generated docs.
 
 Unit tests never start a browser. They drive the real MCP server, CLI and daemon against the
-fakes in `src/agentos/dev/` and `tests/unit/fakes.py`. [docs/DEVELOPING.md](docs/DEVELOPING.md)
+fakes in `src/openajar/dev/` and `tests/unit/fakes.py`. [docs/DEVELOPING.md](docs/DEVELOPING.md)
 has the details: the fake node, recorded fixtures, where things live.
 
 ## Testing on a node
@@ -35,7 +35,7 @@ everywhere else. To run them on an Ubuntu 24.04 box you control, put one line in
 `.agentos-node.env` at the top of your checkout (it is gitignored):
 
 ```
-AGENTOS_NODE=mynode:/srv/agentos-dev
+OPENAJAR_NODE=mynode:/srv/agentos-dev
 ```
 
 `mynode` is the box's name in your `~/.ssh/config`, and `/srv/agentos-dev` is a directory on it
@@ -66,7 +66,7 @@ are there for that.
 
 ## Responsible use
 
-agentos drives real accounts. Contributions that exist to break a platform's rules (mass
+openajar drives real accounts. Contributions that exist to break a platform's rules (mass
 account creation, spam, ban evasion, scraping people) will not be merged. See
 [docs/RESPONSIBLE-USE.md](docs/RESPONSIBLE-USE.md).
 

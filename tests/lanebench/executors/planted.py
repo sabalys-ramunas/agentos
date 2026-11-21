@@ -1,5 +1,5 @@
 """Planted bad runs: executors that break one rule on purpose, so the tests can show each gate
-fails when it should (and that the same run done right passes). Tests only; `agentos lanebench`
+fails when it should (and that the same run done right passes). Tests only; `openajar lanebench`
 does not offer them.
 
 Each runs on a task picked for it (test_lanebench_node.py) and does the task the wrong way:
@@ -23,10 +23,10 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
-from agentos.core.locator import Locator
-from agentos.node import human
 from lanebench.executors import ExecResult, RunContext
 from lanebench.tasks import Task
+from openajar.core.locator import Locator
+from openajar.node import human
 
 
 def _loc(spec: dict[str, Any], lang: str = "en") -> Locator:

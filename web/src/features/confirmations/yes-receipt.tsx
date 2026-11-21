@@ -1,6 +1,6 @@
 /**
  * A yes, on the record: who, where and how strong. A yes in chat is as much a yes as any, so it reads
- * the same, and it says plainly that agentos wrote the question and the agent could not answer it.
+ * the same, and it says plainly that openajar wrote the question and the agent could not answer it.
  */
 import { AppWindow, Fingerprint, Laptop, MessageCircle } from 'lucide-react';
 import type { ConfirmLevel, ConfirmMethodId } from '@/api/types';
@@ -64,7 +64,7 @@ export function YesReceipt({ by, at, method, level, where }: YesReceiptProps) {
         </div>
       </dl>
       {method === 'chat' ? (
-        <p className="border-t border-line p-4 text-secondary text-pretty text-muted">agentos wrote the question and the chat app showed it. The agent could not change the words, and could not answer for you.</p>
+        <p className="border-t border-line p-4 text-secondary text-pretty text-muted">openajar wrote the question and the chat app showed it. The agent could not change the words, and could not answer for you.</p>
       ) : null}
     </section>
   );

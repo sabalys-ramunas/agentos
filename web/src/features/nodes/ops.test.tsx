@@ -27,7 +27,7 @@ describe('the sentence a person reads first', () => {
     expect(backupAnswer(empty)).toMatch(/^No backup yet\./);
     const now = Date.parse(AT);
     const item = (state: 'verified' | 'failed' | 'not_checked', hoursAgo = 3) => ({
-      name: 'agentos-dev-20261106T090000Z.tar.gz.age',
+      name: 'openajar-dev-20261106T090000Z.tar.gz.age',
       created_at: new Date(now - hoursAgo * 3_600_000).toISOString(),
       size: 1024,
       check: { state, at: null, error: null },
@@ -77,16 +77,16 @@ describe('the computer ops screens', () => {
     const version = await screen.findByRole('region', { name: 'Version' });
     expect(await within(version).findByText(/cannot see a newer release/)).toBeInTheDocument();
     expect(version.querySelector('code')).toBeNull();
-    expect(within(version).getByText(/Upgrading restarts agentos on this machine/)).toBeInTheDocument();
+    expect(within(version).getByText(/Upgrading restarts openajar on this machine/)).toBeInTheDocument();
   });
 
   it('shows the command a check needs under Technical details, and the sentence without it', async () => {
     writeTechnical(db.user.id, true);
     renderApp(`${PATH}?tab=health`);
     const version = await screen.findByRole('region', { name: 'Version' });
-    expect(await within(version).findByText(/Upgrading restarts agentos on this machine/)).toBeInTheDocument();
+    expect(await within(version).findByText(/Upgrading restarts openajar on this machine/)).toBeInTheDocument();
     // The command is split into words for display, so it is read as the code element's text.
-    expect(version.querySelector('code')?.textContent).toBe('agentos upgrade --source <your agentos checkout>');
+    expect(version.querySelector('code')?.textContent).toBe('openajar upgrade --source <your openajar checkout>');
   }, 15_000);
 
   beforeEach(() => writeTechnical(db.user.id, false));
@@ -104,7 +104,7 @@ describe('the computer ops screens', () => {
     renderApp(`${PATH}?tab=backups`);
     const restore = await screen.findByRole('region', { name: 'Restore' });
     expect(within(restore).getByText(/Restoring writes over everything on this machine/)).toBeInTheDocument();
-    expect(restore.querySelector('code')?.textContent).toMatch(/^agentos backup restore .*--passphrase-file/);
+    expect(restore.querySelector('code')?.textContent).toMatch(/^openajar backup restore .*--passphrase-file/);
   });
 
   it('starts and stops a service, and reads its log when asked', async () => {

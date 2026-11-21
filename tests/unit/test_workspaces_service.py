@@ -6,10 +6,10 @@ from __future__ import annotations
 import pytest
 from testkit.workspaces import Harness
 
-from agentos.core.errors import InvalidRequest, LaneNotFound, NotFound, ServiceUnavailable
-from agentos.workspaces.errors import WorkspaceConflict
-from agentos.workspaces.models import PLAN_MAX_LANES
-from agentos.workspaces.service import build, derived_name
+from openajar.core.errors import InvalidRequest, LaneNotFound, NotFound, ServiceUnavailable
+from openajar.workspaces.errors import WorkspaceConflict
+from openajar.workspaces.models import PLAN_MAX_LANES
+from openajar.workspaces.service import build, derived_name
 
 SOCIAL_LANES = ["instagram", "facebook", "reddit", "medium", "blog", "linkedin"]
 
@@ -43,7 +43,7 @@ def test_create_keeps_the_fields_it_is_given_and_lowercases_the_color(h):
 
 def test_create_refuses_a_duplicate_and_points_at_update(h):
     h.service.create_workspace("acme")
-    with pytest.raises(WorkspaceConflict, match="already exists; change it with: agentos workspace update acme"):
+    with pytest.raises(WorkspaceConflict, match="already exists; change it with: openajar workspace update acme"):
         h.service.create_workspace("acme")
 
 
@@ -494,7 +494,7 @@ def test_a_damaged_database_makes_the_service_unavailable_not_a_traceback(tmp_pa
     home = tmp_path / "home"
     home.mkdir()
     (home / "workspaces.db").write_bytes(b"garbage" * 300)
-    from agentos.core.runtime import Runtime
+    from openajar.core.runtime import Runtime
 
     with pytest.raises(ServiceUnavailable, match="Lanes are not affected"):
         build(Runtime(), home=home, labels=lambda: set())
@@ -533,7 +533,7 @@ async def test_a_lane_created_but_not_recorded_is_still_listed_as_created(h, mon
 def test_delete_is_refused_while_the_workspace_has_memory(h):
     from testkit.memory import fake_memory
 
-    from agentos.memory import Caller
+    from openajar.memory import Caller
 
     h.service.create_workspace("acme")
     m = fake_memory(h.home)
@@ -551,7 +551,7 @@ def test_delete_is_refused_while_the_workspace_has_memory(h):
 def test_delete_with_memory_through_the_memory_service(h):
     from testkit.memory import fake_memory
 
-    from agentos.memory import Caller
+    from openajar.memory import Caller
 
     h.service.create_workspace("acme")
     m = fake_memory(h.home)

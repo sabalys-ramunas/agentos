@@ -1,4 +1,4 @@
-"""`agentos node templates`: the listing, one template's path and variables, and the manifest checks."""
+"""`openajar node templates`: the listing, one template's path and variables, and the manifest checks."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.ops import templates
+from openajar.cli import app
+from openajar.ops import templates
 
 runner = CliRunner()
 REPO_TEMPLATES = Path(__file__).resolve().parents[2] / "deploy" / "templates"
@@ -20,7 +20,7 @@ def test_the_real_templates_are_listed_in_name_order():
     names = [line.split()[0] for line in r.output.splitlines() if line and not line.startswith(("Show", " "))]
     assert names == sorted(names)
     assert "hetzner" in names
-    assert "Show one with: agentos node templates NAME" in r.output
+    assert "Show one with: openajar node templates NAME" in r.output
 
 
 def test_showing_one_template_prints_its_path_and_variables():

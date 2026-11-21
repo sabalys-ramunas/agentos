@@ -18,10 +18,10 @@ from pathlib import Path
 import pytest
 from test_policy_support import Clock
 
-from agentos.policy import anchors, auditlog
-from agentos.policy.auditlog import SIG_CTX, canonical, mark_hash, row_hash, sign
-from agentos.policy.traces import TraceEvent, TraceStore
-from agentos.policy.util import iso
+from openajar.policy import anchors, auditlog
+from openajar.policy.auditlog import SIG_CTX, canonical, mark_hash, row_hash, sign
+from openajar.policy.traces import TraceEvent, TraceStore
+from openajar.policy.util import iso
 
 COLS = (*auditlog.ROW_COLUMNS, "prev", "hash")
 HOUR = 3600

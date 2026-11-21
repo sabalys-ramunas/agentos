@@ -639,7 +639,7 @@ function discover(address: string): MailDiscovery {
   const domain = address.split('@')[1]?.toLowerCase() ?? '';
   const base = { address, domain, computers: COMPUTERS, provider: null, site: null, password: null, incoming: null, outgoing: null, source: null };
   if (domain.startsWith('gmail.') || domain.startsWith('googlemail.')) {
-    return { ...base, result: 'found', provider: 'Gmail', site: 'gmail', password: 'app_password', incoming: 'imap.gmail.com, port 993', outgoing: 'smtp.gmail.com, port 465', source: 'agentos\'s own list of large mail providers' };
+    return { ...base, result: 'found', provider: 'Gmail', site: 'gmail', password: 'app_password', incoming: 'imap.gmail.com, port 993', outgoing: 'smtp.gmail.com, port 465', source: 'openajar\'s own list of large mail providers' };
   }
   if (domain.startsWith('icloud.') || domain.startsWith('me.')) return { ...base, result: 'later', provider: 'iCloud', site: 'icloud' };
   if (domain === 'lindqvist-yachts.example') return { ...base, result: 'not_found' };

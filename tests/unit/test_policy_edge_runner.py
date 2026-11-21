@@ -12,10 +12,10 @@ from __future__ import annotations
 import pytest
 from test_policy_support import Clock, make_service
 
-from agentos.core.models import Effect
-from agentos.policy.errors import Denied
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.tools import flow_run
+from openajar.core.models import Effect
+from openajar.policy.errors import Denied
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.tools import flow_run
 
 PARAMS = {"caption": "hi", "image": "x.png"}
 FLOW = "biz-a.social.post"

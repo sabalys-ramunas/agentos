@@ -53,7 +53,7 @@ screenshots are in `style-mono/shots/ref/` (git-ignored), with `probe.json` hold
 - **Motion.** Short (100 to 200 ms), opacity and small translations, nothing bouncing.
 - **Empty states.** An icon in a small bordered tile, one bold line, one sentence, one action.
 
-What I did not take: layouts, the triangle, the wordmark, Resend's serif, marketing scale. agentos
+What I did not take: layouts, the triangle, the wordmark, Resend's serif, marketing scale. openajar
 keeps its rail, its sentences and its mono-caps kind labels, which neither product has.
 
 ## 2. The style in five rules
@@ -80,7 +80,7 @@ keeps its rail, its sentences and its mono-caps kind labels, which neither produ
 
 | Kind | Where it shows | Mark, light / dark | Icon |
 |---|---|---|---|
-| Tests (`agentos run` suites) | slider cards, Runs rows, a run's page, Problems, Needs you (a new lane) | violet `#9a5bd6` / `#b18cfa` | flask |
+| Tests (`openajar run` suites) | slider cards, Runs rows, a run's page, Problems, Needs you (a new lane) | violet `#9a5bd6` / `#b18cfa` | flask |
 | Design (ui_check, ui_diff, a brand change) | check cards and pages, the Checks table, Brand's proposal, Problems | pink `#c8337f` / `#f06bb0` | the check frame |
 | Build and CI (builds, installs, lint and types, migrations) | slider, Runs rows, a run's page, Needs you (push, VM) | teal `#0b6e88` / `#3fc6dc` | box |
 | Dev server | slider, Runs rows | blue `#1e40af` / `#4c7dff` | radio |
@@ -246,7 +246,7 @@ It still checks every text pair (112 now, all pass AA) and adds the colour-blind
 
 ## 7. Checked with studio
 
-`agentos studio up --port 7492 --no-skill` under a scratch HOME, the prototype served over a
+`openajar studio up --port 7492 --no-skill` under a scratch HOME, the prototype served over a
 threaded local server, the tools called over MCP. `ui_check` on eight screens (360, 768, 1280,
 light and dark), fixed, then again; `system_check` against `style-mono/tokens.json` at 375 and 1440;
 `ui_image` on findings.

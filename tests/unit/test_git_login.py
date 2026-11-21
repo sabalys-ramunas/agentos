@@ -1,4 +1,4 @@
-"""The GitHub login for environments (agentos.git.login): a token in the vault that serves any
+"""The GitHub login for environments (openajar.git.login): a token in the vault that serves any
 repository of workspace env, and, while the owner said yes, counts every repository on its host as
 declared for env. No network: probes and vaults are fakes, the one real vault lives in tmp_path."""
 
@@ -7,10 +7,10 @@ from __future__ import annotations
 import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.git import keys as keymod
-from agentos.git import login
-from agentos.git.remotes import Remotes
-from agentos.git.wire import Remote, parse_remote
+from openajar.git import keys as keymod
+from openajar.git import login
+from openajar.git.remotes import Remotes
+from openajar.git.wire import Remote, parse_remote
 
 GH = Remote("github.com", "me/shop")
 TOKEN = "gho_" + "a" * 36
@@ -98,8 +98,8 @@ async def test_store_seals_the_token_and_never_writes_it_in_the_setting(tmp_path
 
 
 async def test_vm_token_for_an_undeclared_repo_follows_the_setting(tmp_path):
-    from agentos.git.gateway import token_digest
-    from agentos.git.service import GitService
+    from openajar.git.gateway import token_digest
+    from openajar.git.service import GitService
 
     svc = GitService(None, tmp_path, host_port=0)
     lane = "env/t-1"
@@ -116,8 +116,8 @@ async def test_vm_token_for_an_undeclared_repo_follows_the_setting(tmp_path):
 
 
 async def test_access_checks_with_the_login_before_anything_is_rented(tmp_path):
-    from agentos.core.runtime import Runtime
-    from agentos.git.service import GitService
+    from openajar.core.runtime import Runtime
+    from openajar.git.service import GitService
 
     rt = Runtime()
     vault = LoginVault()
@@ -140,7 +140,7 @@ async def test_access_checks_with_the_login_before_anything_is_rented(tmp_path):
 
 async def test_an_environment_opens_on_a_private_repo_the_login_reaches(node):  # noqa: F811
     """End to end on the fake node: nothing declared, the login on, the check passes with the login."""
-    from agentos.git.service import GitService
+    from openajar.git.service import GitService
 
     repo = "example.test/me/private"
     home = node["mgr"].home
@@ -160,7 +160,7 @@ async def test_an_environment_opens_on_a_private_repo_the_login_reaches(node):  
         out = await opened(node, repo=repo)
         assert out["state"] == "ready" and out["repo"] == repo and with_login == [True]
         login.set_any_repo(home, False)  # the owner turned it off: the same repository is not connected,
-        # so the agent gets the card to connect it (agentos.environments.connect), and nothing is rented
+        # so the agent gets the card to connect it (openajar.environments.connect), and nothing is rented
         again = await node["call"]("environment_open", title=TITLE + " two", repo=repo, session="chat-2")
         assert again["status"] == "approval_pending" and again["kind"] == "repo_connect", again
     finally:

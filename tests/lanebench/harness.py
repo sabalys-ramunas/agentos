@@ -87,12 +87,12 @@ class Slot:
     @classmethod
     def from_env(cls, default: int | None = None) -> Slot:
         env = os.environ
-        if env.get("AGENTOS_TEST_DISPLAY_BASE") and env.get("AGENTOS_TEST_VIEWER_BASE"):
-            d = int(env["AGENTOS_TEST_DISPLAY_BASE"])
-            return cls(d // 10, d, int(env.get("AGENTOS_TEST_VNC_BASE", 5000 + d)), int(env["AGENTOS_TEST_VIEWER_BASE"]))
-        n = env.get("AGENTOS_TEST_SLOT")
+        if env.get("OPENAJAR_TEST_DISPLAY_BASE") and env.get("OPENAJAR_TEST_VIEWER_BASE"):
+            d = int(env["OPENAJAR_TEST_DISPLAY_BASE"])
+            return cls(d // 10, d, int(env.get("OPENAJAR_TEST_VNC_BASE", 5000 + d)), int(env["OPENAJAR_TEST_VIEWER_BASE"]))
+        n = env.get("OPENAJAR_TEST_SLOT")
         if n is None and default is None:
-            raise ValueError("no slot: pass --slot or set AGENTOS_TEST_SLOT")
+            raise ValueError("no slot: pass --slot or set OPENAJAR_TEST_SLOT")
         return cls.of(int(n) if n is not None else int(default))
 
     @property
@@ -127,7 +127,7 @@ def checker_host() -> str:
 
 def assert_checker_unlisted(sites: list[str], host: str) -> None:
     """The checker's host must never be on a lane's site list (it would be a page the lane may open)."""
-    from agentos.node.egress import in_sites
+    from openajar.node.egress import in_sites
 
     if in_sites(sites, host, frame=True):
         raise RuntimeError(f"the checker's host {host} is on the lane's site list {sites}")
@@ -138,7 +138,7 @@ def bench_effect_rules(host: str) -> tuple[Any, ...]:
     named by a rule, and the guard lets it go only inside the vault's login window (8.11). The
     interstitials (cookies, consent, save login, device approval) publish nothing and are named as
     writes, as a reviewed site's plumbing would be."""
-    from agentos.node.egress import EffectRule
+    from openajar.node.egress import EffectRule
 
     writes = r"/api/(like|follow|comment|draft|upload|settings|notifications|device-approve|save-login|consent|cookies)"
     return (EffectRule("lanebench.read.recorder", "lanebench", host, r"/__lb/input", effect="read", verified=True),
@@ -156,14 +156,14 @@ class Bench:
     executor_options: dict[str, Any] = field(default_factory=dict)
 
     async def __aenter__(self) -> Bench:  # noqa: PYI034 - a dataclass, never subclassed
-        from agentos.core.config import NodeConfig
-        from agentos.node import egress
-        from agentos.node.daemon import node_runtime
-        from agentos.node.files import NodeFiles
-        from agentos.node.flow_driver import driver_factory
-        from agentos.node.interaction import PlaywrightInteraction
-        from agentos.node.lanes import build_lane_manager
-        from agentos.node.typist import typist_factory
+        from openajar.core.config import NodeConfig
+        from openajar.node import egress
+        from openajar.node.daemon import node_runtime
+        from openajar.node.files import NodeFiles
+        from openajar.node.flow_driver import driver_factory
+        from openajar.node.interaction import PlaywrightInteraction
+        from openajar.node.lanes import build_lane_manager
+        from openajar.node.typist import typist_factory
 
         self.checker_host = checker_host()
         for host, port in ((SITE_HOST, self.slot.site_port), (self.checker_host, self.slot.checker_port)):
@@ -234,8 +234,8 @@ class Bench:
         return f"lanebench/{task.id}"[:72]
 
     async def _prepare(self, task: Task, lane_id: str, session: str | None, cookie: str) -> Any:
-        from agentos.node import egress
-        from agentos.node.lanes import ResourcesLow
+        from openajar.node import egress
+        from openajar.node.lanes import ResourcesLow
 
         loop = asyncio.get_running_loop()
         deadline = loop.time() + RESOURCES_WAIT_S
@@ -291,9 +291,9 @@ class Bench:
     def _stage_files(self, task: Task, lane_id: str) -> None:
         """The task's files (`files`) in the lane's inbox in the run's home: by name for a flow, and
         in the files index, where an agent finds them with browser_files and uploads them by id."""
-        from agentos.node.flow_driver import inbox_dir
-        from agentos.node.io_tools import lane_files
         from lanebench.sites.app import FIXTURE_FILES
+        from openajar.node.flow_driver import inbox_dir
+        from openajar.node.io_tools import lane_files
 
         if not task.files:
             return
@@ -305,7 +305,7 @@ class Bench:
             lane_files(self.runtime, lane_id).put_bytes(name, data)
 
     async def run_task(self, task: Task, executor: Executor) -> dict[str, Any]:
-        from agentos.core.models import LaneSpec
+        from openajar.core.models import LaneSpec
 
         lane_id = self.lane_id(task)
         sites = [SITE_HOST]
@@ -401,8 +401,8 @@ class Bench:
 
     async def patch_cases(self, task: Task, patch: dict[str, Any] | None, lane_id: str) -> list[dict[str, Any]]:
         """Try the patch on the page as served and on every parity case, against the target."""
-        from agentos.core.locator import Locator
-        from agentos.node.flow_driver import PlaywrightFlowDriver
+        from openajar.core.locator import Locator
+        from openajar.node.flow_driver import PlaywrightFlowDriver
 
         if not patch or gates.patch_problems(patch):
             return []
@@ -439,7 +439,7 @@ class Bench:
     def _humanized(self, lane_id: str) -> bool:
         """Whether the lane's browser glides pointer moves itself, from the config it was started
         with. Unknown counts as no: the gate then judges every move rather than none."""
-        from agentos.node.camoufox.engine import browser_pids, read_browser_config
+        from openajar.node.camoufox.engine import browser_pids, read_browser_config
 
         try:
             pids = browser_pids(self.config.profile_dir(lane_id))
@@ -473,9 +473,9 @@ class Bench:
 
 
 def home_root(root: Path | None = None) -> Path:
-    """Where the run's throwaway home goes: `root`, else AGENTOS_TEST_ROOT, else the checkout's
+    """Where the run's throwaway home goes: `root`, else OPENAJAR_TEST_ROOT, else the checkout's
     .node-home/lanebench. Never the system temp dir (a tmpfs on Ubuntu)."""
-    base = Path(root or os.environ.get("AGENTOS_TEST_ROOT") or HOME_ROOT).expanduser()
+    base = Path(root or os.environ.get("OPENAJAR_TEST_ROOT") or HOME_ROOT).expanduser()
     base.mkdir(parents=True, exist_ok=True)
     return base
 
@@ -483,11 +483,11 @@ def home_root(root: Path | None = None) -> Path:
 @contextlib.asynccontextmanager
 async def bench_vault(home: Path):
     """A key-file vault in the run's home, unsealed, holding the fixture account for every bench
-    lane: what a node's owner sets up with `agentos vault add`. Only a login task's stand-in grant
+    lane: what a node's owner sets up with `openajar vault add`. Only a login task's stand-in grant
     holds `secret`, so only a login task can use it."""
-    from agentos.vault import crypto
-    from agentos.vault.service import VaultService, keyfile_path
-    from agentos.vault.store import VaultStore
+    from openajar.vault import crypto
+    from openajar.vault.service import VaultService, keyfile_path
+    from openajar.vault.store import VaultStore
 
     key = os.urandom(32)
     crypto.write_keyfile(keyfile_path(home), key)

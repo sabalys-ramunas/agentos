@@ -3,10 +3,10 @@
 Status: being built (branch t3/environments). This page is the plan and the contract between the
 builders; docs/ENVIRONMENTS.md is the user guide.
 
-## What agentos is
+## What openajar is
 
-agentos gives every agent its own computer in the cloud. You open a chat, and when the agent
-decides it needs one (or you tell it to work in agentos), it asks for an **environment**: a fresh
+openajar gives every agent its own computer in the cloud. You open a chat, and when the agent
+decides it needs one (or you tell it to work in openajar), it asks for an **environment**: a fresh
 VM with a terminal, a real browser and your repository on it. It works there, not on your laptop,
 commits and pushes a branch, and when it is done the VM is deleted. You can watch its browser and
 its commands live, from the web app or from the chat (T3 Code, Claude Code, Codex), and take over.
@@ -43,7 +43,7 @@ brand, logged-in browser lanes for your own accounts and routines.
 
 ## Decisions (owner, 2026-11-13)
 
-- An environment is a **cloud VM**, rented by the node (Hetzner first, through `agentos.vms`).
+- An environment is a **cloud VM**, rented by the node (Hetzner first, through `openajar.vms`).
 - **One chat holds a live machine** (2026-11-16, the owner: "Only one agent chat should have access
   to the same machine at the same time, even if it is the same project. Another chat should only be
   able to request a new VM."). It replaces "the title names the computer" of the same day, under
@@ -81,7 +81,7 @@ brand, logged-in browser lanes for your own accounts and routines.
   - Opening one costs money, so the node's limits bound it, and they hold without any command:
     at most `max_live` open at once (3), the longest life (8 hours, `extend` included), and a
     monthly budget that counts open environments to their time limits (EUR 50). Past one:
-    `environment_limit`, naming the limit and the command that raises it. `agentos environments
+    `environment_limit`, naming the limit and the command that raises it. `openajar environments
     allow` changes the limits; it grants nothing. The grant still needs the `vm` special for the
     lane. Untrusted text never changes this.
   - A push never asks, on any branch, the default branch included. A force push or a delete of
@@ -98,14 +98,14 @@ brand, logged-in browser lanes for your own accounts and routines.
 
 ## How it is built
 
-- **Machine**: a VM from `agentos.vms` (`VmManager.plan/create/destroy`), lane `env/<id>` (an SSH
+- **Machine**: a VM from `openajar.vms` (`VmManager.plan/create/destroy`), lane `env/<id>` (an SSH
   terminal lane, so `terminal_exec`, `terminal_job_*`, `shell_*`, services work unchanged). Image: the
   `dev` snapshot when the node has one, else Ubuntu 24.04 with git, curl, build tools, Node 22 and
   Python with uv installed by cloud-init. Working folder `/work`.
 - **Git**: the VM's SSH connection carries a reverse tunnel to a gateway listener of its own on the
   node (127.0.0.1:3129 on the VM goes to it), and the VM's git config sends the environment's repo
   there (`url.<gateway>/github.com/me/shop.insteadOf`) with its token. Clone, fetch and push of
-  that repo go through it, declared in workspace `env` (the owner declares `agentos git remote
+  that repo go through it, declared in workspace `env` (the owner declares `openajar git remote
   allow env github.com/me/*`). Every other repo, and a public repo that is not declared, is fetched
   directly on the VM.
 - **Browser**: a browser lane on the node, `env/<id>-browser`, with no account, no vault entry and
@@ -115,7 +115,7 @@ brand, logged-in browser lanes for your own accounts and routines.
   proxy, so `ui_check` on `http://localhost:3000` checks the dev server on the VM.
 - **Browser on the VM** (2026-11-15, for local mode: a node on a Mac has no Linux browser stack).
   `environments.toml` `browser = "vm"` (default `"node"`, kept per environment as `Environment.browser`).
-  The lane stays the node's `env/<id>-browser`; `agentos.environments.vmbrowser.install` puts a router
+  The lane stays the node's `env/<id>-browser`; `openajar.environments.vmbrowser.install` puts a router
   in front of the lane manager's engine and displays, so only that lane launches elsewhere. On the VM
   (`vmbrowser_ctl.py`, sent with each call over the terminal lane's SSH): Xvfb :99 with its own cookie,
   x11vnc on `/run/agentos-browser/vnc.sock` (no TCP), and Camoufox's browser server
@@ -129,7 +129,7 @@ brand, logged-in browser lanes for your own accounts and routines.
   removes the browser lane before the tunnel goes.
 - **Ports**: `environment()` lists listening TCP ports on the VM (`ss -ltnp`). For each the node can
   forward, it gives a link the human can open (the node forwards it over SSH, behind the app's sign-in).
-- **Routing** (`agentos.environments.picking`, `routing`): an environment is found only by its own
+- **Routing** (`openajar.environments.picking`, `routing`): an environment is found only by its own
   grant family. A call without `on` goes, with an MCP session id (header `mcp-session-id`), to that
   session's bound environment; without one (2026-07-28, stdio), to the family's only open one
   (a kept one the agent let go does not count), and with several it fails with `which_environment`,
@@ -143,9 +143,9 @@ brand, logged-in browser lanes for your own accounts and routines.
 ## Keeping (owner, 2026-11-15)
 
 "Every agent gets its own computer that stays." The agent's inference stays on the person's laptop;
-agentos (on the laptop or a server) rents the machines, and nothing runs an agent while the laptop is
+openajar (on the laptop or a server) rents the machines, and nothing runs an agent while the laptop is
 closed. An environment's `keep` says what happens to its machine when the work stops
-(agentos.environments.saving):
+(openajar.environments.saving):
 
 | keep | Close by the agent | Idle (`idle_minutes`) | Time limit, or a laptop that woke past it |
 |---|---|---|---|
@@ -154,10 +154,10 @@ closed. An environment's `keep` says what happens to its machine when the work s
 | `save` | saved, then deleted (no `unsaved_work`) | saved, then deleted | saved, then deleted |
 
 - `live` bills the machine all month (a cx23 is about EUR 7.80), so the owner opts in
-  (`allow_keep_live`, `agentos environments allow --keep-live`) and `max_live_kept` (1) caps them; else
+  (`allow_keep_live`, `openajar environments allow --keep-live`) and `max_live_kept` (1) caps them; else
   `keep_live_not_allowed`. Its VM is `kept`: max_hours and vms.toml max_ttl_minutes do not bound it, the
   monthly budget does.
-- The default keep is environments.toml `default_keep` ("save" since 2026-11-18: agentos is a computer
+- The default keep is environments.toml `default_keep` ("save" since 2026-11-18: openajar is a computer
   that stays; "none" stays one argument away; "live" there needs the opt-in).
 - While a `save` one works, a file-level autosave runs every `autosave_minutes` (15) after use, without
   a snapshot; only the newest autosave of a title is kept, and none older than a full save.
@@ -182,7 +182,7 @@ that is always made:
   (`environment_save(note=...)`), framed as untrusted when they come back.
 - Never saved: process memory, the gateway token (a resume mints a new one), the SSH keys.
 
-**Where:** `$AGENTOS_HOME/environments/saves/<family>/<title>/<save id>/` (folders 0700, files 0600):
+**Where:** `$OPENAJAR_HOME/environments/saves/<family>/<title>/<save id>/` (folders 0700, files 0600):
 `manifest.json` (what the listing shows, readable while the vault is sealed) and the payload sealed with
 ChaCha20-Poly1305 in 1 MB pieces under a 32-byte key the vault holds as the machine secret
 `agentos/environments/saves-key` (encrypt_saves; a node with no vault keeps them unsealed and logs it).
@@ -192,7 +192,7 @@ sha256 matches the machine's, the tarball lists and holds only saved folders, ea
 the snapshot is taken and checked listed, then the save is sealed and moved into place, and only then is
 the machine deleted. A save that fails keeps the machine (`save_failed`), tells the owner once, and is
 tried again after 10 minutes. Past the time limit the VMs' reaper gives an environment's VM 15 more
-minutes (agentos.vms.manager.ENV_SAVE_GRACE) before it deletes it whatever happened, and the owner's
+minutes (openajar.vms.manager.ENV_SAVE_GRACE) before it deletes it whatever happened, and the owner's
 notice says when.
 
 **Resume:** `environment_open` with a title its grant family saved (from any chat) resumes the newest save
@@ -213,7 +213,7 @@ keeps its save, so nothing billed is lost track of.
 **Cost:** Hetzner bills snapshots per GB a month by their compressed size. `snapshot_eur_per_gb_month`
 defaults to EUR 0.0119 (Hetzner's list price, net of VAT, 2026; the code had no price before). Kept
 snapshots show in `environment()`'s `saved`, the web data (`cost_eur_month`, `snapshots_eur_month`) and
-`agentos environments saves`.
+`openajar environments saves`.
 
 ## Contract
 
@@ -243,7 +243,7 @@ Since 2026-11-15 the result adds `keep`, and when it resumes a save `resumed`: `
 note, missing: [...]}` (while it still comes up, `state: "restoring"` and zero counts; environment() gives
 the whole of it once it is ready).
 
-Since 2026-11-18, for a repository with `.agentos/environment.toml` (ENVIRONMENTS.md, "Prepared machines"),
+Since 2026-11-18, for a repository with `.openajar/environment.toml` (ENVIRONMENTS.md, "Prepared machines"),
 the result and `environment()` add `prepared`: `{used: true, from: {commit, built_at, age}, checkout, refresh,
 setup_s: {build, here, saved}}` when the machine booted from a prepared machine, else `{used: false, why,
 setup: {command, ok, exit_code, seconds, tail?}, build: {started, why?}}`; `prepared.warm` when it came from the
@@ -295,11 +295,11 @@ chat whose environment is starting or whose tunnel is down; it never checks the 
 A repository the node cannot read is checked before anything is rented (`GitService.access`: declared
 for `env` with the vault's key or token, or public). Since 2026-11-15 the open does not end there:
 it returns `status: "approval_pending"` with `kind: "repo_connect"`, the card's `approval_id`, a
-`review_url` and a `fallback` line (`ssh <node> agentos environments repo add <repo> --token`), and
-`can_answer_in_chat: false` (agentos.environments.connect). The card is a question in Needs you, one
+`review_url` and a `fallback` line (`ssh <node> openajar environments repo add <repo> --token`), and
+`can_answer_in_chat: false` (openajar.environments.connect). The card is a question in Needs you, one
 per repository (a second open reuses it). From the card the owner, in person and with the panel's
 step-up, opens the node's own token page (`POST /api/repo-connect/{id}/form`, a `repo_token` form in
-agentos.node.forms, docs/API.md), so the web app never holds the token (docs/WEB-NODE.md), and
+openajar.node.forms, docs/API.md), so the web app never holds the token (docs/WEB-NODE.md), and
 pastes it there; the node checks it with GitHub's API and with
 `git ls-remote` as the gateway fetches, keeps it as `repo add --token` does, and approves the card, so
 `approval_wait` returns and the same open goes through. A token needs no admin rights on the
@@ -349,7 +349,7 @@ on the node's own address (`/view/env/<id>-browser/proof/<proof>.png?t=...`, 15 
 file tools `file_read`, `file_write` and `file_edit` are in the everyday list with
 terminal_exec and route without `on` to the terminal lane.
 
-Uploads (added 2026-11-15, agentos.environments.uploads): `environment_upload(dest: str | None = None)`
+Uploads (added 2026-11-15, openajar.environments.uploads): `environment_upload(dest: str | None = None)`
 (the terminals toolset, routed without `on` to the terminal lane; authorized as `exec` on it, so it
 never waits for a person) returns `{"url", "expires_at", "dest", "max_bytes", "pack", "send", "next"}`.
 `url` is a signed link on the node's own address, `/view/env/<id>/upload?t=...`, signed with the viewer
@@ -364,7 +364,7 @@ PUT|POST /view/env/{id}/upload?t=...   a .tar.gz or .tar body -> {dest, files, b
                                        paths (the first 10), more?, sha256, next}
 ```
 
-The node streams the body to `$AGENTOS_HOME/environments/<id>/uploads/` (512 MB at most, two at once
+The node streams the body to `$OPENAJAR_HOME/environments/<id>/uploads/` (512 MB at most, two at once
 on a node, one at a time in an environment), checks every member before the VM sees any (no absolute
 path, no `..`, a regular file, folder or link only, tarfile's data filter on an empty folder so no
 link leaves `dest`; 200,000 members and 4 GB unpacked at most), then streams it over the
@@ -375,7 +375,7 @@ the environment closed), 403 `frozen`, 409 `busy` or `environment_not_ready` (th
 VM failed, with its words). Each upload is an audit row (tool `environment.upload`, the link's grant,
 the archive's sha256) and a call `upload` in `environment()`'s last calls.
 
-Downloads (added 2026-11-15, agentos.environments.downloads), the reverse: `environment_download(path:
+Downloads (added 2026-11-15, openajar.environments.downloads), the reverse: `environment_download(path:
 str)` (the terminals toolset, routed without `on` to the terminal lane, authorized as `exec` on it, so it
 never waits for a person) packs a file or a folder under `/work` and returns `{"url", "expires_at",
 "path", "kind", "files", "bytes", "sha256", "max_bytes", "fetch", "unpack", "next"}`. The agent runs
@@ -387,7 +387,7 @@ never waits for a person) packs a file or a folder under `/work` and returns `{"
    followed; links inside a folder are packed as links, never followed.
 2. `EnvManager.get_archive(lane, src, dest_file, paths=, gzip=, timeout_s=, max_bytes=)` runs
    `tar -czf - ./<name>` in `src` in the lane (over the environment's SSH for a VM lane, as
-   put_archive) and streams stdout into `$AGENTOS_HOME/environments/<id>/downloads/d<hex>.tgz` (made
+   put_archive) and streams stdout into `$OPENAJAR_HOME/environments/<id>/downloads/d<hex>.tgz` (made
    new, mode 600). Past `max_bytes` it ends the workload, deletes the partial file and raises
    ArchiveTooLarge. It returns `{"bytes", "files"}`; `paths` are relative to `src` (no absolute path,
    no `..`, each passed as `./<path>` so a name never reads as an option). Kept environments use it
@@ -411,7 +411,7 @@ opened; any other is not found. `calls[].summary` is scrubbed as the audit log's
 
 ### CLI
 
-`agentos environments` (alias `agentos envs`): `list`, `show ID`, `download ID PATH [--to DIR]` (agentosd
+`openajar environments` (alias `openajar envs`): `list`, `show ID`, `download ID PATH [--to DIR]` (agentosd
 packs it as for `environment_download`, through `POST /api/environments/{id}/download` with the node
 token; the CLI fetches the link and unpacks it into DIR with tarfile's data filter, skipping and naming
 any link that points outside), `close ID [--discard]` (a keep `save` one is saved first), `allow` (the
@@ -428,6 +428,6 @@ limits that bound `environment_open`: `--max-live`, `--max-hours`, `--monthly-eu
 
 | Builder | Owns |
 |---|---|
-| E1 core | `src/agentos/environments/` (new), the `on` default routing, `src/agentos/vms/` changes, `src/agentos/api/web/environments.py`, CLI, tests under `tests/unit/test_environments*.py` |
+| E1 core | `src/openajar/environments/` (new), the `on` default routing, `src/openajar/vms/` changes, `src/openajar/api/web/environments.py`, CLI, tests under `tests/unit/test_environments*.py` |
 | E2 web | `web/src/features/environments/`, the rail and Home entry, mocks and hooks for the routes above |
-| E3 front door | README.md, docs/ENVIRONMENTS.md, docs/VISION.md, docs/ARCHITECTURE.md, the MCP intro (`INSTRUCTIONS` in src/agentos/node/tools/recipes.py), `whoami` text, the skill `src/agentos/client/skills/agentos-environment/`, CLI root help, the public export |
+| E3 front door | README.md, docs/ENVIRONMENTS.md, docs/VISION.md, docs/ARCHITECTURE.md, the MCP intro (`INSTRUCTIONS` in src/openajar/node/tools/recipes.py), `whoami` text, the skill `src/openajar/client/skills/openajar-environment/`, CLI root help, the public export |

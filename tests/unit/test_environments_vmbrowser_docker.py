@@ -3,7 +3,7 @@ browser stack (deploy/environments, browser.sh), the node's real lane manager wi
 Playwright on this computer driving the machine's Camoufox through the environment's SSH tunnel.
 
 Skipped unless docker answers and the image has the browser (label org.agentos.browser). Build it with
-`agentos environments setup --build`, or name another image with AGENTOS_TEST_ENV_IMAGE. What it proves:
+`openajar environments setup --build`, or name another image with OPENAJAR_TEST_ENV_IMAGE. What it proves:
 the environment opens with browser = "vm"; a page served on the machine's localhost loads in the
 machine's browser and reads back as an outline; a screenshot at a phone width is kept as proof on the
 node; the live view's socket speaks VNC; closing the environment stops it all and deletes the container.
@@ -21,19 +21,19 @@ import uuid
 import pytest
 from test_policy_support import make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings as TermSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.environments import vmbrowser
-from agentos.environments.manager import EnvironmentManager
-from agentos.environments.models import EnvSettings
-from agentos.vms.manager import VmManager
-from agentos.vms.models import VmSettings
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings as TermSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.environments import vmbrowser
+from openajar.environments.manager import EnvironmentManager
+from openajar.environments.models import EnvSettings
+from openajar.vms.manager import VmManager
+from openajar.vms.models import VmSettings
 
-IMAGE = os.environ.get("AGENTOS_TEST_ENV_IMAGE", "agentos-env:latest")
+IMAGE = os.environ.get("OPENAJAR_TEST_ENV_IMAGE", "agentos-env:latest")
 
 
 def _ready() -> bool:
@@ -55,13 +55,13 @@ pytestmark = pytest.mark.skipif(not _ready(), reason=f"needs docker with the {IM
 
 
 def containers(node_name: str) -> list[str]:
-    return subprocess.run(["docker", "ps", "-aq", "--filter", f"label=agentos-node={node_name}"],
+    return subprocess.run(["docker", "ps", "-aq", "--filter", f"label=openajar-node={node_name}"],
                           capture_output=True, text=True, check=False).stdout.split()
 
 
 @pytest.fixture
 async def node(tmp_path):
-    from agentos.node.lanes import build_lane_manager
+    from openajar.node.lanes import build_lane_manager
 
     home = tmp_path / "h"  # short: the tunnel's sockets live in a temp folder, the lanes' under home
     home.mkdir()
@@ -103,8 +103,8 @@ async def _rfb_banner(path: str) -> bytes:
 
 
 async def test_the_browser_runs_on_the_machine(node):
-    from agentos.node.interaction import create_interaction
-    from agentos.node.tools.shots import png_size, shot_at_width
+    from openajar.node.interaction import create_interaction
+    from openajar.node.tools.shots import png_size, shot_at_width
 
     mgr, envs, lanes, grant = node["mgr"], node["envs"], node["lanes"], node["grant"]
     eid = mgr.planned_id("session:s1", "Shop page")
@@ -125,7 +125,7 @@ async def test_the_browser_runs_on_the_machine(node):
     lane = env.browser_lane
     info = await lanes.open(lane)
     assert info.viewer is not None and info.viewer.vnc_socket == mgr.tunnel_of(env.id).vnc_path
-    assert (await _rfb_banner(info.viewer.vnc_socket)).startswith(b"RFB 003.")  # the live view reaches x11vnc
+    assert (await _rfb_banner(info.viewer.vnc_socket)).startswith(b"RFB 003.")  # the live view reaches its VNC server
 
     interaction = create_interaction()
     session = lanes.live_session(lane)
@@ -135,7 +135,11 @@ async def test_the_browser_runs_on_the_machine(node):
     snap = await interaction.snapshot(page)
     assert marker in snap.text and "Next" in snap.text  # rendered and read on the machine
     wide = await interaction.screenshot(page)
-    assert png_size(wide)[0] == 1920
+    on_desktop = mgr._vm_browsers.desktops.get(lane, False)  # an image with desktop.sh: a window on a desktop
+    assert png_size(wide)[0] == (vmbrowser.DESKTOP_WINDOW[0] if on_desktop else 1920)
+    if on_desktop:  # a command's GUI goes to that screen
+        shown = await mgr.envs().exec(env.terminal_lane, 'echo "$DISPLAY"', timeout_s=30)
+        assert (shown.stdout or "").strip() == ":99"
     phone = await shot_at_width(interaction, page, 390, full_page=False)
     assert png_size(phone)[0] == 390
     proof = mgr.keep_proof(mgr.get(env.id), phone, title="the page on a phone", page_url=page.url,
@@ -152,8 +156,12 @@ async def test_the_browser_runs_on_the_machine(node):
     print(f"copied from the machine's browser: {copied!r}")
 
     ps = await envs.exec(env.terminal_lane, "ps -eo comm | sort -u", timeout_s=30)
-    assert "Xvfb" in ps.stdout and "x11vnc" in ps.stdout and "camoufox-bin" in ps.stdout
+    screen = ("Xvnc",) if "Xvnc" in ps.stdout else ("Xvfb", "x11vnc")  # Xvnc where desktop.sh put it
+    assert all(p in ps.stdout for p in screen) and "camoufox-bin" in ps.stdout
+    if on_desktop:
+        assert "openbox" in ps.stdout and "Xvnc" in ps.stdout
     listening = await envs.exec(env.terminal_lane, "ss -ltnH", timeout_s=30)
+    assert not [ln for ln in listening.stdout.splitlines() if ":59" in ln.split()[3]]  # no VNC port on TCP
     browser_port = [ln for ln in listening.stdout.splitlines() if ":47613 " in ln]
     assert browser_port and all("127.0.0.1:47613" in ln for ln in browser_port)  # loopback only
     mem = await envs.exec(env.terminal_lane, "echo $(( $(cat /sys/fs/cgroup/memory.current) / 1048576 )) MB in all; "

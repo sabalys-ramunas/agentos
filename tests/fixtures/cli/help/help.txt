@@ -1,5 +1,5 @@
 
- Usage: agentos help [OPTIONS] COMMAND [ARGS]...
+ Usage: openajar help [OPTIONS] COMMAND [ARGS]...
 
  The everyday commands, and the version.
 
@@ -7,6 +7,6 @@
 │ --help          Show this message and exit.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ version  Print the agentos version.                                          │
+│ version  Print the openajar version.                                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

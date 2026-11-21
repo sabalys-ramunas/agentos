@@ -93,7 +93,7 @@ What a person, an agent or a developer's file holds (JSON or YAML):
   connector cannot.
 - **Any domain.** `site` is `"web"`, a generic key whose hosts are `domain` and its subdomains: every
   `navigate` must sit under `domain`, as lint checks today. If `domain` belongs to a site in
-  `agentos.node.sites.SITES`, the compiler uses that site key and `acting_as: account`, so the wrong
+  `openajar.node.sites.SITES`, the compiler uses that site key and `acting_as: account`, so the wrong
   account check still applies. A site with no table row uses the new `acting_as: {"kind": "lane"}`: the
   lane's own session, no identity cookie to check. `kind: lane` is only legal on `saved_by.kind: local`.
   On a site with a row, the compiler adds an `assert_identity` step after the first `navigate`; a lane
@@ -152,7 +152,7 @@ flows.
 
 1. **Discover.** `discover(on, url?)` looks at the page in the lane and returns candidates. It works
    from the same accessibility outline as `browser_snapshot`, in pure Python
-   (`agentos.runner.siteapis.discover`), so it adds no JavaScript of its own to the page (the outline is
+   (`openajar.runner.siteapis.discover`), so it adds no JavaScript of its own to the page (the outline is
    taken as `browser_snapshot` takes it) and can be tested from stored outlines. It finds repeated shapes (table rows, list items, repeated articles, cards of
    siblings with the same role shape), and proposes `{name, items, fields, sample, count, confidence}`
    with field names from table headers or accessible names. Sample values are clipped and labelled
@@ -326,9 +326,9 @@ those need a vouch, in the panel or with `--vouch`. Once active an endpoint is t
 `GET|POST /api/site-apis`, `GET|PATCH|DELETE /api/site-apis/{api}`, `POST
 /api/site-apis/{api}/activate|pause|try`, `POST /api/site-apis/discover`, `GET
 /api/site-apis/{api}/usage`, `GET|POST /api/site-keys`, `PATCH|DELETE /api/site-keys/{id}`. Owner or
-admin as in `agentos.api.mounts`; activate, keys and widening need the owner.
+admin as in `openajar.api.mounts`; activate, keys and widening need the owner.
 
-`agentos site-api discover|new|try|activate|pause|list|show|openapi|remove` and `agentos site-api keys
+`openajar site-api discover|new|try|activate|pause|list|show|openapi|remove` and `openajar site-api keys
 add|list|revoke`.
 
 A pause is a state on the draft: its runs wait and every entry point answers `paused`

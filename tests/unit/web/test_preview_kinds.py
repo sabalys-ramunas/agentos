@@ -1,13 +1,13 @@
 """The Needs you previews told from what an approval binds: a git push, a cloud machine, a new lane and a command
-in one (agentos.api.web.cardwords). The content is the approval's preview, as the node writes it (indented JSON,
+in one (openajar.api.web.cardwords). The content is the approval's preview, as the node writes it (indented JSON,
 cut at its length limit with a note), so a long push log still reads."""
 
 from __future__ import annotations
 
 import json
 
-from agentos.api.web import cardwords
-from agentos.api.web.decisions import Ctx, approval_out
+from openajar.api.web import cardwords
+from openajar.api.web.decisions import Ctx, approval_out
 
 PUSH = {"git_push": "github.com/harbor/shop", "refs": [
     {"ref": "refs/heads/main", "kind": "update", "old": "a" * 40, "new": "b" * 40, "force": True, "protected": True,

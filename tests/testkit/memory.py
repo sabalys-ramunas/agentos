@@ -1,5 +1,5 @@
 """In-memory stand-ins for the policy, vault and privacy ports, so memory runs without a real
-policy service (tests, and `agentos dev up` until Brief B lands). Same pattern as
+policy service (tests, and `openajar dev up` until Brief B lands). Same pattern as
 workspaces/fakes.py.
 
 `FakePolicy` keeps two ledgers like the real policy will: the 12-hour labels routing uses
@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from agentos.memory.models import Caller, MemoryScope
-from agentos.memory.ports import MemoryPorts
-from agentos.memory.service import MemoryService
+from openajar.memory.models import Caller, MemoryScope
+from openajar.memory.ports import MemoryPorts
+from openajar.memory.service import MemoryService
 
 TAINT_TTL_S = 12 * 3600
 

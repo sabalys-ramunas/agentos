@@ -20,10 +20,10 @@ from workflow_support import (
     workflow,
 )
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, RunStatus
-from agentos.runner.schedules import sign_webhook
-from agentos.runner.workflows.service import WorkflowInvalid
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, RunStatus
+from openajar.runner.schedules import sign_webhook
+from openajar.runner.workflows.service import WorkflowInvalid
 
 POST = "biz-a.social.post"
 READ = "biz-a.social.read"
@@ -112,7 +112,7 @@ async def test_each_step_is_authorized_on_its_own_and_one_approval_does_not_cove
 
 
 async def test_a_loop_of_commits_asks_for_each_item(node, monkeypatch):
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     node.h.save(read_flow(produces=[{"key": "xs", "type": "list", "untrusted": False}]), by=OWNER_P)
     monkeypatch.setattr(engine.Walk, "_output", lambda self, child, op: ({"xs": ["a", "b"]}, set()) if op.flow_id == READ else ({}, set()))
@@ -305,7 +305,7 @@ def test_a_workflow_that_lets_outside_text_choose_is_refused_at_save(node, step,
 
 
 async def test_a_value_an_operation_labels_untrusted_when_it_runs_cannot_decide_either(node, monkeypatch):
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     node.h.save(read_flow("biz-a.social.vip", produces=[{"key": "vip", "untrusted": False}]), by=OWNER_P)
     monkeypatch.setattr(engine.Walk, "_output", lambda self, child, op: ({"vip": "yes"}, {"vip"}))
@@ -335,7 +335,7 @@ async def test_an_agents_mark_on_a_flow_does_not_make_page_text_trusted(node):
 
 
 def test_a_param_used_in_an_address_is_a_target_so_outside_text_cannot_fill_it(node):
-    from agentos.runner.fakes import BASE
+    from openajar.runner.fakes import BASE
 
     node.h.save({"id": "biz-a.social.go", "lane": LANE, "effect": "read",
                  "params": {"properties": {"where": {"type": "string"}}},

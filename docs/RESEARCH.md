@@ -1,11 +1,11 @@
 # Research
 
-The evidence behind agentos: what people struggle with, and what they ask for. Gathered
+The evidence behind openajar: what people struggle with, and what they ask for. Gathered
 November 2026 from GitHub issues, Hacker News, vendor and security write-ups, and
 platform docs. Reaction counts are as of then. Items marked (weak) are single-source,
 vendor, or self-reported, and should be treated with caution.
 
-## Pain points agentos targets
+## Pain points openajar targets
 
 ### Running many agents overloads the local machine
 
@@ -16,7 +16,7 @@ vendor, or self-reported, and should be treated with caution.
 - [#101376](https://github.com/anthropics/claude-code/issues/101376): idle sessions kept
   about 121 node processes and 10 GB of MCP servers alive.
 
-Workarounds (restart, cap concurrency, buy a spare Mac mini) treat the symptom. agentos
+Workarounds (restart, cap concurrency, buy a spare Mac mini) treat the symptom. openajar
 moves the browsers, and later the agent processes, onto nodes with memory caps.
 
 ### Cloud and remote agents have no real browser
@@ -29,7 +29,7 @@ moves the browsers, and later the agent processes, onto nodes with memory caps.
 - Hermes [#18715](https://github.com/NousResearch/hermes-agent/issues/18715): "remote
   brain, local hands."
 
-This is agentos's core use case.
+This is openajar's core use case.
 
 ### Agents collide when they share a browser, and lose their logins
 
@@ -55,7 +55,7 @@ the direct answer.
 - cua [#3136](https://github.com/trycua/cua/issues/3136): an agent "had to infer both
   conditions from visible page text," i.e. there was no structured blocked signal.
 
-agentos's answer is parity for your own accounts (persistent profile, one steady proxy,
+openajar's answer is parity for your own accounts (persistent profile, one steady proxy,
 a coherent engine), a startup self-check, and a structured blocked state with backoff.
 Not evasion at scale (see PRINCIPLES.md).
 
@@ -123,11 +123,11 @@ pre-approval problem.
 - A one-click RCE in a widely-run agent (CVE-2026-25253) came from unchecked WebSocket
   origins, with tens of thousands of instances exposed.
 
-This is why agentos is closed by default, why grants are enforced at the node (so a
+This is why openajar is closed by default, why grants are enforced at the node (so a
 hijacked agent is boxed by what it holds), and why flows are curated rather than an open
 marketplace. A real hole to design around: attached agents (Claude Code, Codex) keep
 their own shell and network tools, so grants are advisory unless the attached agent is
-locked down to route side effects through agentos.
+locked down to route side effects through openajar.
 
 ## What people are asking for (demand signals)
 
@@ -159,7 +159,7 @@ locked down to route side effects through agentos.
 
 - **MCP from phone apps.** The MCP spec (2026-07-28) and custom connectors in the Claude
   and ChatGPT apps mean a self-hosted MCP server with a public HTTPS endpoint and OAuth
-  can be used from a phone. This is agentos's distribution channel.
+  can be used from a phone. This is openajar's distribution channel.
   ([spec changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog))
 - **Nodes as the environment for computer-use models.** Gemini, Claude and OpenAI shipped
   computer-use models; none host the machine they run on. Nodes fill that.
@@ -184,5 +184,5 @@ For sharing access without sharing passwords, the trusted patterns are: Tailscal
 share-a-device (a shared node answers you but cannot reach into your network), Plaid's
 "manage my access" page with one-click revoke, 1Password's email-verified share links,
 and above all the platforms' own delegation (Facebook Page roles, OAuth grants, seller
-user invites), which keep the account with its owner. agentos adopts the share-a-lane and
+user invites), which keep the account with its owner. openajar adopts the share-a-lane and
 official-delegation routes, and drops login-capture pages (PRINCIPLES.md #9).

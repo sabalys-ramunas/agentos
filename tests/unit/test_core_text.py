@@ -1,10 +1,10 @@
-"""agentos.core.text.first_line, pinned against the private copies it replaced."""
+"""openajar.core.text.first_line, pinned against the private copies it replaced."""
 
 from __future__ import annotations
 
 import pytest
 
-from agentos.core.text import first_line
+from openajar.core.text import first_line
 
 
 def copy_200(e):  # webbotauth/route.py, node/egress/helpers.py

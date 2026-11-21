@@ -1,7 +1,7 @@
 """Shared fixtures for env node tests (imported by the test_env_*_node.py modules).
 
-Needs Linux, root and bubblewrap. Each test gets its own AGENTOS_HOME under
-$AGENTOS_ENV_TEST_DIR (default: <repo>/.home-test) and must leave no mount, cgroup,
+Needs Linux, root and bubblewrap. Each test gets its own OPENAJAR_HOME under
+$OPENAJAR_ENV_TEST_DIR (default: <repo>/.home-test) and must leave no mount, cgroup,
 network namespace or process behind.
 """
 
@@ -17,10 +17,10 @@ from pathlib import Path
 
 import pytest
 
-from agentos.env.manager import EnvManager
-from agentos.env.paths import EnvSettings
+from openajar.env.manager import EnvManager
+from openajar.env.paths import EnvSettings
 
-TEST_DIR = Path(os.environ.get("AGENTOS_ENV_TEST_DIR", Path(__file__).resolve().parents[2] / ".home-test"))
+TEST_DIR = Path(os.environ.get("OPENAJAR_ENV_TEST_DIR", Path(__file__).resolve().parents[2] / ".home-test"))
 
 CAN_RUN = sys.platform.startswith("linux") and hasattr(os, "geteuid") and os.geteuid() == 0 \
     and shutil.which("bwrap") is not None

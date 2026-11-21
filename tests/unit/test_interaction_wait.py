@@ -9,9 +9,9 @@ from typing import Any
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, RefNotFound
-from agentos.core.models import Signal
-from agentos.node.interaction import (
+from openajar.core.errors import InvalidRequest, RefNotFound
+from openajar.core.models import Signal
+from openajar.node.interaction import (
     DialogGuard,
     DialogPending,
     PlaywrightInteraction,
@@ -19,10 +19,10 @@ from agentos.node.interaction import (
     ref_state_met,
     url_matches,
 )
-from agentos.node.interaction import pages as ia_pages
-from agentos.node.interaction import waits as ia_waits
-from agentos.node.interaction.readback import _MARKERS_JS, _STATE_JS
-from agentos.node.interaction.waits import _VIEW_JS
+from openajar.node.interaction import pages as ia_pages
+from openajar.node.interaction import waits as ia_waits
+from openajar.node.interaction.readback import _MARKERS_JS, _STATE_JS
+from openajar.node.interaction.waits import _VIEW_JS
 
 UPLOADING = "- main:\n  - paragraph [ref=e3] [box=1,2,3,4]: Uploading 45%\n  - button \"Post\" [ref=e7] [disabled]"
 SHARED = "- main:\n  - paragraph [ref=e3] [box=1,2,3,4]: Your post was shared\n  - button \"Post\" [ref=e7]"
@@ -399,8 +399,8 @@ async def test_settle_returns_once_the_network_is_quiet_and_never_waits_long(int
 async def test_a_tab_closing_mid_action_is_fine_but_a_browser_closing_is_an_engine_error(inter):
     """A popup that closes itself leaves its opener; a browser that dies leaves no tab, and the
     action may be half done (found by the chaos run: tests/soak/test_chaos.py)."""
-    from agentos.core.errors import EngineError
-    from agentos.core.models import ActionKind
+    from openajar.core.errors import EngineError
+    from openajar.core.models import ActionKind
 
     opener, popup = WaitPage(), WaitPage()
     popup.context = opener.context

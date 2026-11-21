@@ -1,6 +1,6 @@
 # Node channel protocol (v1)
 
-How a node talks to a controller. The open-source controller (`agentos up`, M5) and
+How a node talks to a controller. The open-source controller (`openajar up`, M5) and
 the hosted cloud controller both implement this exactly, so a node can point at
 either one by changing a URL and a join token. Version 1, frozen once both sides ship;
 changes after that are additive or bump `v`.
@@ -60,7 +60,7 @@ changes after that are additive or bump `v`.
 
 1. The owner creates a **join token** in the controller (single use, expires in 1 hour,
    scoped to one org, optionally to a node name and capabilities).
-2. The node generates an Ed25519 **node key** (kept at `AGENTOS_HOME/secrets/node.key`,
+2. The node generates an Ed25519 **node key** (kept at `OPENAJAR_HOME/secrets/node.key`,
    600) and connects with:
    `enroll { join_token, node_pubkey, name, version, os, arch, capabilities, max_warm_lanes }`
 3. The controller answers:
@@ -96,7 +96,7 @@ Capabilities: `browser`, `terminal`, `service`, `android`, `gpu`, `render`, `bra
 | `stream_close` | `{ stream_id, reason }` | a stream ended, and why (both ways) |
 | `error` | `{ code, message, re?, stream_id? }` | a message or a stream was refused (invalid, unknown type, a stream that could not open) |
 | `audit_anchor` | `{ anchors: [ { v, chain, n, seq, hash, kid, at, kind? } ] }` (max 50) | audit checkpoint and retention heads, no content; `kind` is `pruned` for a retention mark (`seq` and `hash` are then its "pruned through"), absent for a checkpoint; answered with `audit_anchor_receipt`, or `error unsupported` by an older controller |
-| `audit_anchors_get` | `{ after?, page?, limit? }` | the heads the controller holds for this node, for `agentos audit verify --anchors`; with `after` (`""` for the first page, then the `next` it was given) one page of up to `page` (at most 1,000) in (chain, mark) order; without it, the newest `limit` (at most 2,000), as before paging; answered with `audit_anchors_result` |
+| `audit_anchors_get` | `{ after?, page?, limit? }` | the heads the controller holds for this node, for `openajar audit verify --anchors`; with `after` (`""` for the first page, then the `next` it was given) one page of up to `page` (at most 1,000) in (chain, mark) order; without it, the newest `limit` (at most 2,000), as before paging; answered with `audit_anchors_result` |
 
 ### Controller to node
 | type | body | notes |
@@ -125,7 +125,7 @@ Capabilities: `browser`, `terminal`, `service`, `android`, `gpu`, `render`, `bra
 ### Results and content
 `content` uses the same shapes as MCP tool results: `{ "type": "text", "text": "..." }`
 and `{ "type": "image", "mime_type": "image/png", "stream_id": "..." }` (image bytes
-arrive on a stream). Error codes are those in `agentos.core.errors`
+arrive on a stream). Error codes are those in `openajar.core.errors`
 (`approval_pending` carries `approval_id`).
 
 ## Message examples
@@ -340,7 +340,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
       "tools": [
         {
           "name": "whoami",
-          "description": "Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, account browser counts by st...",
+          "description": "Which openajar node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, account browser counts by st...",
           "input_schema": {
             "properties": {},
             "title": "whoamiArguments",
@@ -425,9 +425,9 @@ rewrites this section, and CI fails when the code's messages change shape or thi
     "payload": {
       "programs": [
         {
-          "name": "agentos",
+          "name": "openajar",
           "version": "<version>",
-          "source": "agentos",
+          "source": "openajar",
           "scope": "node",
           "lanes": []
         },
@@ -1015,12 +1015,12 @@ rewrites this section, and CI fails when the code's messages change shape or thi
     "kind": "node",
     "payload": {
       "guide": {
-        "instructions": "agentos can give you your own cloud computer: a VM with a terminal, a real browser and your repo. Take one when asked to work in agentos or on a VM, or for buil...",
+        "instructions": "openajar can give you your own cloud computer: a VM with a terminal, a real browser and your repo. Take one when asked to work in openajar or on a VM, or for buil...",
         "prompts": [
           {
             "name": "post_image",
             "title": "Post an image with a caption",
-            "description": "agentos: post on a site with an image: browser_file_put, browser_upload, the approval, the readback.",
+            "description": "openajar: post on a site with an image: browser_file_put, browser_upload, the approval, the readback.",
             "arguments": [
               {
                 "name": "on",
@@ -1033,12 +1033,12 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on <browser>. Its tools are in the accounts toolset: tools_more(toolset=\"accounts\") first i..."
+            "text": "Use the openajar MCP tools for this job.\nPost an image with a caption on <browser>. Its tools are in the accounts toolset: tools_more(toolset=\"accounts\") first i..."
           },
           {
             "name": "hand_to_human",
             "title": "Hand a browser to the human and wait",
-            "description": "agentos: let the human take the browser (login, captcha, checkpoint), then carry on.",
+            "description": "openajar: let the human take the browser (login, captcha, checkpoint), then carry on.",
             "arguments": [
               {
                 "name": "on",
@@ -1051,7 +1051,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nHand <browser> to the human, then carry on.\n1. browser_view(on=\"<browser>\"): it returns a url and an ssh tunnel command...."
+            "text": "Use the openajar MCP tools for this job.\nHand <browser> to the human, then carry on.\n1. browser_view(on=\"<browser>\"): it returns a url and an ssh tunnel command...."
           }
         ]
       }
@@ -1138,7 +1138,7 @@ other undated signed message, so a node and its controller are upgraded together
 ## v1 clarifications
 
 Both implementations follow these: the open-source node and controller
-(`agentos.node.channel`, `agentos.controller`) and the hosted cloud. They pin what the
+(`openajar.node.channel`, `openajar.controller`) and the hosted cloud. They pin what the
 sections above leave open, and add only optional fields or messages, so v1 stays v1.
 Most of them match the hosted cloud's own pinning.
 
@@ -1168,7 +1168,7 @@ not retry an enrollment with the same token. Node names are lowercase letters, d
 dashes, at most 31. `enroll` may carry `proof` (additive): the node key's Ed25519 signature,
 base64url, over `"agentos-node-enroll:v1:" + nonce + ":" + node_pubkey`, where `nonce` is the
 `challenge` of that socket, so the node reads the challenge before it enrolls. The self-hosted
-controller (`agentos.controller`) requires it: an enroll without a proof, or with one that does
+controller (`openajar.controller`) requires it: an enroll without a proof, or with one that does
 not verify, is `invalid`, and the join token is not spent. A node older than the proof cannot
 enroll there until it is updated; a controller that does not know `proof` ignores it. `hello`
 may carry `epoch` (additive): an opaque id (letters, digits, `_`,
@@ -1205,8 +1205,8 @@ see "Freshness and replay".
 **Limits.** A text frame over 1 MiB gets `error` with `invalid` and keeps the connection;
 a frame over 8 MiB closes it (1009). Unknown types get `error` with `unsupported`.
 
-**Grants.** A `grant_token` is an `agentos.policy` token, version 2 (prefix `agt2_`), specified
-with test vectors in `src/agentos/policy/TOKENS.md` and `tests/fixtures/tokens/vectors.json`.
+**Grants.** A `grant_token` is an `openajar.policy` token, version 2 (prefix `agt2_`), specified
+with test vectors in `src/openajar/policy/TOKENS.md` and `tests/fixtures/tokens/vectors.json`.
 Its authority block names `iss` (`org:<org id>` for a controller, `node:<id>` for a node's own
 grants), `aud` (the target `node:<node id>` for per-call tokens) and `kid`; a node picks the key by
 issuer and kid, checks the audience, and refuses `unknown_issuer`, `unknown_key`, `retired_key`
@@ -1235,7 +1235,7 @@ ceiling and its own limits like any org grant, traces and approvals name the mem
 and it is never an in-person co-sign: what needs a person answers `approval_pending`.
 
 **Invoke outcomes.** A cancelled call answers `result` with `ok: false` and code `cancelled`;
-one that ran past its deadline, code `deadline_exceeded` (both in `agentos.core.errors`). A
+one that ran past its deadline, code `deadline_exceeded` (both in `openajar.core.errors`). A
 call that waits for a human answers `ok: false`, `error { code: "approval_pending", message:
 <summary>, approval_id }`, with the tool's own text in `content`. Retrying the same call_id
 while the approval is pending returns that cached answer; once it is approved, the retry runs
@@ -1264,7 +1264,7 @@ next welcome sends the list again). A single definition too large to send is log
 out. After the tools, `{ guide: { instructions, prompts: [ { name, title, description, arguments:
 [ { name, description, required } ], text } ] } }` (additive): the node's MCP server instructions
 and its prompts, each rendered with no arguments. The controller serves them from its own `/mcp`
-for the node's org (agentos.controller.guide), so an agent there reads the node's rules on
+for the node's org (openajar.controller.guide), so an agent there reads the node's rules on
 captchas, checkpoints, logins and page text. `run`: the run with `{ id, lane, flow, status, summary, ... }`. Trace `principal` is
 the id string; traces never carry the grant path or arguments.
 
@@ -1305,13 +1305,13 @@ outside the node's own names, and no IP address.
 - `{ system: { os, arch, kernel, cpu_model, cores, mem_total_mb, disk_total_mb, gpu, timezone,
   uptime_s, version, protocol, python, agentosd_started_at } }`, after each welcome (unknown values
   are null).
-- `{ programs: [ { name, version, source, scope, lanes, pinned_hash?, installed_at? } ] }`: agentos
+- `{ programs: [ { name, version, source, scope, lanes, pinned_hash?, installed_at? } ] }`: openajar
   and its browser stack (`scope: "node"`), what env lanes installed (`"lane"`, with the lanes), and
   what env base images bake in (`"base_image"`, with the image's content hash).
 - `{ services: [ { name, lane, state, health?, restarts, started_at, last_exit?, ports } ] }`:
   agentosd itself and each service lane's process; `state` is `running`, `starting`, `restarting`,
   `stopped` or `failed`.
-- `{ doctor: [ { id, name, status, detail, fix, at } ] }`: `agentos doctor` run offline (no proxy is
+- `{ doctor: [ { id, name, status, detail, fix, at } ] }`: `openajar doctor` run offline (no proxy is
   probed, so no exit IP is read), first a while after start and then every 15 minutes; `status` is
   `ok`, `warn` or `fail` (a skipped check is left out), and IP addresses in `detail` and `fix` read
   `[address]`. So do IP addresses in a run's `summary` and `error.message`.
@@ -1354,7 +1354,7 @@ with no `stream_open` or `stream_ready`.
   `service` (default all), `level` the lowest of `debug`, `info`, `warn`, `error` (default
   `info`). A bad value is `error` `invalid`. The payload is one JSON object per line, `{ at, source,
   level, logger, message, lane }`, read from what agentosd writes (journald under systemd, else
-  `AGENTOS_HOME/logs/agentosd.jsonl` and its rotated copies); `at` is the line's UTC time
+  `OPENAJAR_HOME/logs/agentosd.jsonl` and its rotated copies); `at` is the line's UTC time
   (`2026-11-04T10:00:00.123Z`), or null when the line has none. Every line is redacted on the node
   before it is sent: agentosd's own log scrubbers (the node token, vault values, proxy
   credentials), the vault's scrub, and the redaction traces use (one-time codes and session
@@ -1367,7 +1367,7 @@ with no `stream_open` or `stream_ready`.
   stream, and a controller should store nothing either.
 
 **Mesh freeze (additive, signed).** `mesh_freeze { frozen: true, freeze_id, reason, by, ts, sig }`
-freezes the node as part of the mesh (agentos.freeze): every agent stops, every grant that can
+freezes the node as part of the mesh (openajar.freeze): every agent stops, every grant that can
 reach the node is revoked, in-flight `invoke`s are cancelled, and the browsers are kept. `{ frozen:
 false, ts, sig }` lifts a mesh freeze the controller set, never a freeze made on the node itself.
 `welcome` carries the current state as `mesh_freeze` (signed, dated at the welcome), and the node
@@ -1381,7 +1381,7 @@ over, as the node's own viewer does. The node answers `error` only on a refusal;
 arrives as a `lane` event. A peer that does not know it answers `unsupported`.
 
 **Controller ceiling (additive).** The node's owner bounds what a controller may do on the node,
-in node.toml and never from the controller (`agentos.policy.ceiling`, docs/CONTROLLER.md): the
+in node.toml and never from the controller (`openajar.policy.ceiling`, docs/CONTROLLER.md): the
 highest ladder effect a grant from the org may use, which specials (`secret`, `exec`,
 `install_overlay`, `install_base`, `service`, `brain`, `memory`; an allowlist, so a special the
 node does not list is refused) it may use, and which streams the
@@ -1417,7 +1417,7 @@ never applied: standing approvals arrive only signed, as `standing` below.
 
 **Standing approvals (additive, signed).** The owner's standing approvals from a controller's
 panel ("20 posts on aster/instagram until Friday"), applied by the node as its own
-(src/agentos/policy/ROUTING.md, "Standing approvals"). A node that applies them says so in
+(src/openajar/policy/ROUTING.md, "Standing approvals"). A node that applies them says so in
 `hello.supports` (`["standing"]`); one that does not answers `unsupported`.
 
 ```
@@ -1444,7 +1444,7 @@ Held = event { kind: "standing", payload: { id, used, remaining, state } }'s pay
   (the node keeps the larger of its own and this, so a lower count never refills it). `until` is
   ISO 8601 UTC, at most 90 days ahead, and within the node owner's limits below. `targets` are `flow:<id>@<version>`,
   `connector:<site>.<op>@<contract>` or `tool:<name>`; `contents` are content digests
-  (`sha256:<64 hex>`, `agentos.policy.approvals.content_digest` of the call's content). `note`
+  (`sha256:<64 hex>`, `openajar.policy.approvals.content_digest` of the call's content). `note`
   (300 characters kept) and `created_by` (the person, 80 characters, recorded as
   `controller:<created_by>`) are shown on the node.
 - Refusal codes: `effect_not_allowed`, `controller_ceiling`, `too_long`, `expired`,
@@ -1456,7 +1456,7 @@ Held = event { kind: "standing", payload: { id, used, remaining, state } }'s pay
   in `refused` and in `withdrawn`. Sending a valid item for it again brings it back with its uses.
 - `state` is `active`, `used_up`, `expired`, `revoked` or `withdrawn`; `remaining` is `count` minus
   `used`. The node sends the `standing` event (outboxed) on every use and every end, also one made
-  on the node (the owner's `agentos approvals standing revoke`, a freeze), so a controller sets its
+  on the node (the owner's `openajar approvals standing revoke`, a freeze), so a controller sets its
   own count from `used` as sent, never by adding.
 - `welcome` carries `standing` for a node whose hello `supports` it: the same signed body, a `set`
   of everything the node should hold plus a `revoke` of the ids the node has not confirmed
@@ -1511,7 +1511,7 @@ Level: "chat" | "signed_in" | "present" | "device_key"
   working for everything that does not require more.
 - **A device.** A `device_key` proof carries `{ device, signature }`, and the node checks the
   signature against the public key it holds, over the approval's id and content digest
-  (`agentos.policy.confirm.signed_message`). That check is the node's own, so the limit does not
+  (`openajar.policy.confirm.signed_message`). That check is the node's own, so the limit does not
   bind it, and a device signs only for a person who may decide the approval. The cloud cannot sign
   for a device.
 - **Refusals.** An `approved` below what the approval requires is `error { code: "proof_too_weak",
@@ -1541,7 +1541,7 @@ Level: "chat" | "signed_in" | "present" | "device_key"
 "Ask me first" switch, and so does each account (a lane, or a connector surface) for what an agent
 does there outside any routine. Off is the default. With it on, a commit waits for a person; with
 it off, a commit runs on its own. Pay and irreversible actions always wait, whatever the switch
-says, and the safety overlays can still make a call wait (src/agentos/policy/ROUTING.md, "Ask me
+says, and the safety overlays can still make a call wait (src/openajar/policy/ROUTING.md, "Ask me
 first"). The node holds the switches in its policy database and is the source of truth; a
 controller reads them from the inventory and changes them with a signed `ask_first`. A node that
 applies them says so in `hello.supports` (`"ask_first"`); one that does not answers `unsupported`.
@@ -1569,7 +1569,7 @@ Setting { scope, id, ask_first, set_by, by_person, set_at, why? }
   lane's switch is on. `browser_act` is a draft call, not a commit: a publish its click sets off is
   held by the commit gate and authorized as a commit on its lane, so on a lane whose switch is on
   it waits for a person's approval of exactly what it sends (`approval_pending`), and a publish to
-  a host no effect rule names still goes through (src/agentos/policy/ROUTING.md, "Clicks"). A commit on no lane (a workspace plan, node settings)
+  a host no effect rule names still goes through (src/openajar/policy/ROUTING.md, "Clicks"). A commit on no lane (a workspace plan, node settings)
   always asks.
 - **What runs and what asks.**
 
@@ -1588,7 +1588,7 @@ Setting { scope, id, ask_first, set_by, by_person, set_at, why? }
 - **Who may change it.** Turning it on (stricter) may come from anyone who can reach the flow's
   lane: the owner, a member, a controller, or an agent (`flow_save(definition, ask_first=true)`,
   or `ask_first_on(flow=... | lane=...)`). Turning it off needs a person: the owner (the CLI
-  `agentos flows ask-first <id> off`, or the node panel signed in: `POST /api/ask-first`), a
+  `openajar flows ask-first <id> off`, or the node panel signed in: `POST /api/ask-first`), a
   member signed in to the node panel whose role may set standing approvals in that workspace
   (admin), or a controller relaying a person (this message). A bearer token on the HTTP API (an
   agent's grant, or the owner token, which agents are often given) only turns it on. An agent

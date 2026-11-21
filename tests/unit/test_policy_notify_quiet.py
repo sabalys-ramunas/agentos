@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agentos.policy.quiet_hours import (
+from openajar.policy.quiet_hours import (
     MEMBER_DEFAULTS,
     OWNER_DEFAULTS,
     Timing,

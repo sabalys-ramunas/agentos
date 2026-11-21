@@ -1,5 +1,5 @@
-"""Connecting a private repository from the chat (agentos.environments.connect): environment_open gives
-the agent a card, the owner opens the node's own token page from it (agentos.environments.form) and
+"""Connecting a private repository from the chat (openajar.environments.connect): environment_open gives
+the agent a card, the owner opens the node's own token page from it (openajar.environments.form) and
 pastes a token there, the node checks the token with GitHub (mocked here) and with git, keeps it, and
 approves the card. The token is in no tool result, API answer, error, card, approval, trace, log line
 or file other than the sealed vault, and no API route takes one."""
@@ -17,14 +17,14 @@ import pytest
 from test_environments import TITLE, node  # noqa: F401  (node is a fixture)
 from test_vault_support import make_vault
 
-from agentos.api import ApiSettings, build_api
-from agentos.api.auth import PanelStore
-from agentos.core.models import Principal
-from agentos.environments import connect
-from agentos.git import keys as keymod
-from agentos.git.credentials import git_credentials, put_token
-from agentos.git.service import GitService
-from agentos.vault.secret import Secret
+from openajar.api import ApiSettings, build_api
+from openajar.api.auth import PanelStore
+from openajar.core.models import Principal
+from openajar.environments import connect
+from openajar.git import keys as keymod
+from openajar.git.credentials import git_credentials, put_token
+from openajar.git.service import GitService
+from openajar.vault.secret import Secret
 
 REPO = "github.com/acme/private-app"
 TOKEN = "github_pat_11AAAAAAA0Secret0Token0For0Tests0Only0zz"  # what a person pastes
@@ -145,7 +145,7 @@ async def test_the_agent_gets_one_card_and_nothing_is_rented(panel):
     assert first["repo"] == REPO and first["can_answer_in_chat"] is False
     assert first["approval_id"] in first["review_url"] and "needs-you" in first["review_url"]
     assert "preview_open" in first["next"] and "approval_wait" in first["next"] and "same arguments" in first["next"]
-    assert f"agentos environments repo add {REPO} --token" in first["fallback"]
+    assert f"openajar environments repo add {REPO} --token" in first["fallback"]
     assert first["fallback"].startswith("At the node: ssh ") and "no admin rights" in first["fallback"]
     again = await card(panel)  # a second call for the same repository reuses the open card
     assert again["approval_id"] == first["approval_id"]
@@ -204,7 +204,7 @@ async def test_a_collaborator_connects_from_the_chat_and_the_token_goes_nowhere_
     opened = await panel["call"]("environment_open", title=TITLE, repo=REPO)
     results.append(opened)
     assert opened["state"] == "ready" and opened["repo"] == REPO, opened
-    # kept as `agentos environments repo add --token` keeps it: a token for this one repository, declared for env
+    # kept as `openajar environments repo add --token` keeps it: a token for this one repository, declared for env
     [cred] = await git_credentials(panel["vault"])
     assert cred.type == "token" and cred.repos == ("acme/private-app",) and cred.host == "github.com"
     assert await panel["vault"].get_secret(cred.ref, purpose="test") == TOKEN
@@ -219,7 +219,7 @@ async def test_a_collaborator_connects_from_the_chat_and_the_token_goes_nowhere_
 
 
 def keymod_remote():
-    from agentos.git.wire import parse_remote
+    from openajar.git.wire import parse_remote
 
     return parse_remote(REPO)
 
@@ -264,7 +264,7 @@ def test_a_member_cannot_open_the_page(tmp_path):
     from test_api_members import join, owner, role
     from test_node_panel import Node, bearer
 
-    from agentos.environments.manager import EnvironmentManager
+    from openajar.environments.manager import EnvironmentManager
 
     n = Node(tmp_path)
     try:
@@ -355,7 +355,7 @@ async def test_the_page_is_the_nodes_own_and_safe(panel):
         assert "<script" not in text and " src=" not in text and "<link" not in text  # nothing from outside
         assert "repo scope" in text and "Contents: Read" in text and "Read and write to push" in text
         assert "https://github.com/settings/personal-access-tokens/new" in text
-        assert "https://github.com/settings/tokens/new?scopes=repo&amp;description=agentos" in text
+        assert "https://github.com/settings/tokens/new?scopes=repo&amp;description=openajar" in text
         assert "—" not in text and f"Connect {REPO}" in text
         # another site cannot post a token into it, and the page only works over https or on this computer
         r = await c.post(trip["form_url"], content=b"token=x", headers={"Origin": "https://evil.example",
@@ -409,7 +409,7 @@ async def test_a_revoked_token_gets_the_same_card_and_a_new_one_replaces_it(pane
 
 
 async def test_the_card_closes_when_the_repository_is_connected_at_the_node(panel):
-    """`agentos environments repo add --token` on the node: the reaper's sweep sees it and approves the card."""
+    """`openajar environments repo add --token` on the node: the reaper's sweep sees it and approves the card."""
     approval_id = (await card(panel))["approval_id"]
     assert await connect.sweep(panel["mgr"]) == []  # nothing declared yet: not even checked
     await put_token(panel["vault"], "github.com", ["acme/private-app"], Secret(TOKEN))
@@ -482,7 +482,7 @@ def test_the_card_words_hold_no_secret_and_no_em_dash():
 def test_the_request_rows_ask_once_per_repository(tmp_path):
     from test_policy_support import make_service
 
-    from agentos.environments.store import EnvironmentStore
+    from openajar.environments.store import EnvironmentStore
 
     policy, _rt = make_service(tmp_path)
     store = EnvironmentStore(tmp_path / "environments.db")
@@ -504,8 +504,8 @@ async def test_a_repo_the_github_login_cannot_find_is_repo_not_found_and_no_card
     """T3: a made-up repository got a card asking for a token, with a cut-off reason ("was n."). With
     the node's GitHub login on (any_repo), GitHub's 404 means it does not exist or the login cannot see
     it: repo_not_found, no card, and nothing rented."""
-    from agentos.git import login
-    from agentos.policy.wrap import ToolCallError
+    from openajar.git import login
+    from openajar.policy.wrap import ToolCallError
 
     n = panel
     await login.store(n["vault"], n["mgr"].home, TOKEN, login="octo-dev", source="gh", any_repo=True)
@@ -524,8 +524,8 @@ async def test_a_repo_the_github_login_cannot_find_is_repo_not_found_and_no_card
 
 
 def test_a_long_reason_is_cut_at_a_word_never_mid_word():
-    from agentos.environments import repos
-    from agentos.git.service import RepoAccess
+    from openajar.environments import repos
+    from openajar.git.service import RepoAccess
 
     slug = "github.com/sabalys-ramunas/this-repo-does-not-exist-42"
     access = RepoAccess(slug, False, None, declared=True, credential="github-login", kind="ssh",

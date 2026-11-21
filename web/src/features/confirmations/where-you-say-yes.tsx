@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useConfirmMethods, useConfirmation } from '@/api/hooks';
 import type { ConfirmLevel, ConfirmMethodId, ConfirmMethodView } from '@/api/types';
 import { SiteMark } from '@/components/brand/site-mark';
+import { Choice, ChoiceGroup } from '@/components/ui/choice';
 import { QueryView, Skeleton } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { METHOD_WORDS, reaches, rungOfLevel, RUNG_WORDS, rungsOf } from '@/lib/confirm';
@@ -114,31 +115,24 @@ function Page({ org, methods, jobs }: { org: string; methods: ConfirmMethodView[
   return (
     <div className="grid gap-10">
       <section aria-label="The places you have" className="grid gap-4">
-        <div role="radiogroup" aria-label="Choose a job" className="grid gap-2 sm:grid-cols-3">
+        <ChoiceGroup label="Choose a job" value={job.id} onValueChange={setJobId} columns={3}>
           {jobs.map((item) => (
-            <button
+            <Choice
               key={item.id}
-              type="button"
-              role="radio"
-              aria-checked={item.id === job.id}
-              onClick={() => setJobId(item.id)}
-              className={cn(
-                'flex min-w-0 items-center gap-3 rounded-xl border p-3 text-left transition-colors duration-(--duration-fast) ease-standard',
-                item.id === job.id ? 'border-fg' : 'border-line hover:border-line-strong',
-              )}
-            >
-              <SiteMark site={item.site} size={20} label={false} />
-              <span className="min-w-0">
-                <span className="block truncate text-secondary font-medium">{item.label}</span>
-                <span className="flex items-center gap-1 text-caption text-faint">
+              value={item.id}
+              className="p-3"
+              icon={<SiteMark site={item.site} size={24} label={false} />}
+              title={item.label}
+              description={
+                <span className="flex items-center gap-1">
                   <RungIcon rung={rungOfLevel(item.level)} className="size-3" />
                   {RUNG_WORDS[rungOfLevel(item.level)].word}
                 </span>
-              </span>
-            </button>
+              }
+            />
           ))}
-        </div>
-        <p aria-live="polite" className="tabular text-heading text-balance">
+        </ChoiceGroup>
+        <p aria-live="polite" className="tabular text-section-title text-balance">
           {placesWords(enough.length, job.level, job.noun)}
         </p>
         <div>
@@ -165,10 +159,10 @@ function Page({ org, methods, jobs }: { org: string; methods: ConfirmMethodView[
           </p>
         ) : null}
       </section>
-      <section aria-label="When agentos is closed" className="grid gap-1 border-t border-line pt-6">
+      <section aria-label="When openajar is closed" className="grid gap-1 border-t border-line pt-6">
         <h3 className="text-section-title">When the app is closed</h3>
         <p className="max-w-[64ch] text-body text-pretty text-muted">
-          With agentos Cloud, an alert reaches your Mac or phone even with the app closed. A computer with no cloud has nothing to carry it, so alerts arrive while the app is open. Nothing is lost either way: it waits in Needs you.
+          With openajar Cloud, an alert reaches your Mac or phone even with the app closed. A computer with no cloud has nothing to carry it, so alerts arrive while the app is open. Nothing is lost either way: it waits in Needs you.
         </p>
       </section>
       <Coming methods={later} />

@@ -6,8 +6,8 @@ import inspect
 
 from fakes import ControlFakeLaneManager, FakeLaneManager
 
-from agentos.node.interfaces import DisplayManager, LaneManager
-from agentos.node.lanes import LaneManagerImpl
+from openajar.node.interfaces import DisplayManager, LaneManager
+from openajar.node.lanes import LaneManagerImpl
 
 
 def methods(proto) -> dict:
@@ -36,7 +36,7 @@ def test_the_plain_fake_leaves_out_only_the_human_control_actions():
 
 
 def test_displays_take_a_size():
-    from agentos.node.display import DisplayManagerImpl
+    from openajar.node.display import DisplayManagerImpl
 
     assert "size" in keywords(DisplayManager.acquire) and "size" in keywords(DisplayManagerImpl.acquire)
     assert callable(DisplayManagerImpl.healthy)

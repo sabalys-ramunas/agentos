@@ -1,4 +1,4 @@
-"""Whose an environment is (agentos.environments): only the grant family that opened it acts on its
+"""Whose an environment is (openajar.environments): only the grant family that opened it acts on its
 lanes, reads it or closes it, and the owner and that member in the web app; ids cannot be guessed;
 the VM's one gateway token reaches its own repository only, through its own tunnel, until it
 closes; one chat holds an environment at a time, and a chat that lost it or reconnected is told
@@ -13,22 +13,22 @@ from types import SimpleNamespace
 import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.api.bridge import panel_specials
-from agentos.client.choices import DEFAULT_SPECIALS
-from agentos.core.errors import LaneNotFound
-from agentos.core.models import Effect, utcnow
-from agentos.environments import manager as envmod
-from agentos.environments.manager import EnvironmentManager, new_id
-from agentos.environments.models import ID_RE, Environment
-from agentos.git.gateway import Refused
-from agentos.git.service import GitService
-from agentos.policy.wrap import ToolCallError
+from openajar.api.bridge import panel_specials
+from openajar.client.choices import DEFAULT_SPECIALS
+from openajar.core.errors import LaneNotFound
+from openajar.core.models import Effect, utcnow
+from openajar.environments import manager as envmod
+from openajar.environments.manager import EnvironmentManager, new_id
+from openajar.environments.models import ID_RE, Environment
+from openajar.git.gateway import Refused
+from openajar.git.service import GitService
+from openajar.policy.wrap import ToolCallError
 
 HOST = "example.test"
 
 
 def default_grant(node, subject: str):  # noqa: F811
-    """The grant `agentos connect` gives an agent by default."""
+    """The grant `openajar connect` gives an agent by default."""
     return node["policy"].issue(subject={"id": subject}, workspaces=["*"], ceiling=Effect.COMMIT,
                                 specials=panel_specials(DEFAULT_SPECIALS))
 
@@ -80,7 +80,7 @@ async def test_the_family_reaches_it_and_the_owner_only_outside_mcp(node):  # no
 
 
 async def test_the_default_grant_opens_its_own_and_works_there(node):  # noqa: F811
-    # finding 2: the grant agentos connect gives by default opens one and runs commands on it, asking nobody
+    # finding 2: the grant openajar connect gives by default opens one and runs commands on it, asking nobody
     _g, tok = default_grant(node, "claude-code")
     out = await node["call"]("environment_open", title="Mine", session="chat-d", tok=tok)
     assert out["state"] == "ready", out
@@ -159,8 +159,8 @@ async def test_the_vm_token_reaches_its_own_repository_only_and_never_a_command_
     with pytest.raises(Refused, match="another lane"):
         gw.caller(token, listener_lane="env/eother")
     # another declared repository: refused
-    from agentos.git.gateway import Request
-    from agentos.git.wire import Remote
+    from openajar.git.gateway import Request
+    from openajar.git.wire import Remote
 
     req = Request("GET", "/x", {"x-agentos-git": token}, b"")
     with pytest.raises(Refused, match="reaches only example.test/me/shop"):
@@ -303,7 +303,7 @@ def test_reaches_is_the_family_and_people_outside_mcp():
 def panel(tmp_path):
     from test_api_members import Node
 
-    from agentos.core.ratelimit import RateLimiter
+    from openajar.core.ratelimit import RateLimiter
 
     n = Node(tmp_path)
     n.api_app.state.api.limiter = RateLimiter(per_key=10_000, global_max=10_000)

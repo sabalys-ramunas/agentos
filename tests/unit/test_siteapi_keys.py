@@ -11,13 +11,13 @@ from openapi_spec_validator import OpenAPIV31SpecValidator
 from siteapi_http_support import API, OTHER, OWNER, READ_PATH, SURFACE, TOKEN, Node
 from typer.testing import CliRunner
 
-from agentos.core import layout, migrate
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import Principal
-from agentos.runner.siteapis import http_migrations
-from agentos.runner.siteapis.cli import app as site_api_app
-from agentos.runner.siteapis.http_store import HttpStore
-from agentos.runner.siteapis.keys import KEY_RE, SUBJECT, KeyGate, token_hash
+from openajar.core import layout, migrate
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.core.models import Principal
+from openajar.runner.siteapis import http_migrations
+from openajar.runner.siteapis.cli import app as site_api_app
+from openajar.runner.siteapis.http_store import HttpStore
+from openajar.runner.siteapis.keys import KEY_RE, SUBJECT, KeyGate, token_hash
 
 AGENT = Principal(kind="agent", id="claude-code")
 ADMIN_LIKE = {"kind": "local", "id": "owner", "installed_by": "owner", "owner": "owner"}
@@ -255,7 +255,7 @@ def test_the_keys_database_is_found_by_the_migrator_and_so_by_a_backup():
 # ---- the CLI ----
 
 def owner_cli(node, *args):
-    return CliRunner().invoke(site_api_app, list(args), env={"AGENTOS_HOME": str(node.config.home)})
+    return CliRunner().invoke(site_api_app, list(args), env={"OPENAJAR_HOME": str(node.config.home)})
 
 
 async def test_keys_add_list_and_revoke_from_the_cli(node):

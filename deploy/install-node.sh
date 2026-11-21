@@ -1,40 +1,40 @@
 #!/usr/bin/env bash
-# Install or upgrade an agentos node on Ubuntu 24.04. Safe to run again.
+# Install or upgrade an openajar node on Ubuntu 24.04. Safe to run again.
 #
 #   sudo deploy/install-node.sh --systemd        production: /opt/agentos, /var/lib/agentos, agentosd.service
 #   sudo deploy/install-node.sh --systemd --user agentos --hardened
 #                                                the same, run as the unprivileged `agentos` user with the
 #                                                hardened unit (deploy/agentosd-hardened.service)
 #
-#   INSTALL_PREFIX=/srv/agentos-dev/mcp AGENTOS_HOME=/srv/agentos-dev/mcp/.agentos-home \
-#     AGENTOS_INIT_ARGS="--mcp-port 7430 --display-base 130 --viewer-base 6130" \
+#   INSTALL_PREFIX=/srv/agentos-dev/mcp OPENAJAR_HOME=/srv/agentos-dev/mcp/.agentos-home \
+#     OPENAJAR_INIT_ARGS="--mcp-port 7430 --display-base 130 --viewer-base 6130" \
 #     deploy/install-node.sh --dev               a dev copy: no /opt, no systemd
 #
 # Options:
 #   --systemd        install, enable and (re)start agentosd.service (paths follow INSTALL_PREFIX
-#                    and AGENTOS_HOME)
+#                    and OPENAJAR_HOME)
 #   --dev            also install the dev dependency group (pytest, ruff) for node tests
 #   --skip-apt       skip apt packages and Playwright's system deps (already installed, or not root)
 #   --skip-browser   skip the Camoufox browser download
-#   --user NAME      run agentosd as this system user: creates it (home = AGENTOS_HOME, no shell), gives
-#                    it AGENTOS_HOME, and puts its Camoufox browser in AGENTOS_HOME/.cache
+#   --user NAME      run agentosd as this system user: creates it (home = OPENAJAR_HOME, no shell), gives
+#                    it OPENAJAR_HOME, and puts its Camoufox browser in OPENAJAR_HOME/.cache
 #   --hardened       install deploy/agentosd-hardened.service (needs --user): read-only system and code,
 #                    private /tmp and /dev, no capabilities, memory caps. Also creates the brain user
 #                    and installs deploy/agentos-runas.service, the root helper that starts brains as
 #                    that user for the unprivileged agentosd (an install without --hardened removes it)
-#   --no-restart     with --systemd: install and enable the unit but do not (re)start it (agentos upgrade
+#   --no-restart     with --systemd: install and enable the unit but do not (re)start it (openajar upgrade
 #                    runs migrations first, then starts it)
 #   --yes            with --systemd: restart agentosd even when lanes other sessions hold are open. Without
-#                    it the installer names those lanes (`agentos node restart --check`), installs the code,
-#                    does not restart, and exits 3; restart later with `agentos node restart`
+#                    it the installer names those lanes (`openajar node restart --check`), installs the code,
+#                    does not restart, and exits 3; restart later with `openajar node restart`
 #   --render-unit P  write the unit as it would be installed to P and change nothing in systemd (to
 #                    check it with `systemd-analyze verify P` in a dev prefix)
 #   --backup-timer   with --systemd: also install agentos-backup.timer (daily; needs
-#                    AGENTOS_HOME/secrets/backup.pass, chmod 600)
+#                    OPENAJAR_HOME/secrets/backup.pass, chmod 600)
 #
 # With --systemd it also writes /usr/local/bin/agentos, a small wrapper that runs the CLI with the
-# node's AGENTOS_HOME, as the service user when root calls it (root only for the commands that need
-# root: upgrade, backup restore, migrate-service-user). So `sudo agentos doctor` works on the node.
+# node's OPENAJAR_HOME, as the service user when root calls it (root only for the commands that need
+# root: upgrade, backup restore, migrate-service-user). So `sudo openajar doctor` works on the node.
 #
 # The web app is built here when Node.js is installed. Without it, a build that came with the
 # source (a web/dist built from the same sources) is used; with neither, the node has no web UI
@@ -42,16 +42,16 @@
 #
 # Environment:
 #   INSTALL_PREFIX     code and .venv (default /opt/agentos)
-#   AGENTOS_HOME       node data: node.toml, agentos.db, secrets, lanes (default /var/lib/agentos)
-#   AGENTOS_INIT_ARGS  extra arguments for `agentos node init` on first install
-#   AGENTOS_BRAIN_USER the user brains run as with --hardened (default agentos-brain)
+#   OPENAJAR_HOME       node data: node.toml, openajar.db, secrets, lanes (default /var/lib/agentos)
+#   OPENAJAR_INIT_ARGS  extra arguments for `openajar node init` on first install
+#   OPENAJAR_BRAIN_USER the user brains run as with --hardened (default agentos-brain)
 #   UV_PYTHON          Python for the venv (default 3.12)
 set -euo pipefail
 
-INSTALL_PREFIX="${INSTALL_PREFIX:-/opt/agentos}"
-AGENTOS_HOME="${AGENTOS_HOME:-/var/lib/agentos}"
-AGENTOS_INIT_ARGS="${AGENTOS_INIT_ARGS:-}"
-BRAIN_USER="${AGENTOS_BRAIN_USER:-agentos-brain}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-/opt/openajar}"
+OPENAJAR_HOME="${OPENAJAR_HOME:-/var/lib/openajar}"
+OPENAJAR_INIT_ARGS="${OPENAJAR_INIT_ARGS:-}"
+BRAIN_USER="${OPENAJAR_BRAIN_USER:-agentos-brain}"
 export UV_PYTHON="${UV_PYTHON:-3.12}"
 APT_PACKAGES=(xvfb x11vnc xdotool x11-xkb-utils xclip fonts-liberation fonts-noto-color-emoji imagemagick rsync curl
               bubblewrap e2fsprogs iproute2 util-linux logrotate  # bubblewrap to util-linux: env lanes
@@ -91,7 +91,7 @@ say() { printf '\n==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
 
-# Code and venv must be readable by a service user; AGENTOS_HOME is made private (700) below.
+# Code and venv must be readable by a service user; OPENAJAR_HOME is made private (700) below.
 umask 022
 
 if [ -n "$SERVICE_USER" ]; then
@@ -100,17 +100,18 @@ if [ -n "$SERVICE_USER" ]; then
 fi
 [ "$HARDENED" = 0 ] || [ -n "$SERVICE_USER" ] || die "--hardened needs --user (the hardened unit never runs as root)"
 if [ "$HARDENED" = 1 ]; then
-  [[ "$BRAIN_USER" =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] || die "AGENTOS_BRAIN_USER must be a plain system user name"
+  [[ "$BRAIN_USER" =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] || die "OPENAJAR_BRAIN_USER must be a plain system user name"
   [ "$BRAIN_USER" != root ] && [ "$BRAIN_USER" != "$SERVICE_USER" ] \
-    || die "AGENTOS_BRAIN_USER must differ from root and from --user (brains must not read AGENTOS_HOME)"
+    || die "OPENAJAR_BRAIN_USER must differ from root and from --user (brains must not read OPENAJAR_HOME)"
 fi
 
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-[ -f "$SRC_DIR/pyproject.toml" ] && grep -q '^name = "agentos"' "$SRC_DIR/pyproject.toml" \
-  || die "run this from an agentos checkout ($SRC_DIR has no agentos pyproject.toml)"
+PROJECT_RE='^name = "(openajar|agentos)"'  # legacy-name: a checkout or an install from before the rename
+[ -f "$SRC_DIR/pyproject.toml" ] && grep -Eq "$PROJECT_RE" "$SRC_DIR/pyproject.toml" \
+  || die "run this from an openajar checkout ($SRC_DIR has no openajar pyproject.toml)"
 
 # Normalize before any guard or rsync --delete: a trailing slash, "..", or a symlink must not
-# change what the guards see (a trailing slash on AGENTOS_HOME once made rsync --delete wipe
+# change what the guards see (a trailing slash on OPENAJAR_HOME once made rsync --delete wipe
 # the token, the database and every lane profile). Pure bash, so it also runs on macOS.
 normpath() {  # lexical absolute path: no ".", ".." or empty segments, no trailing "/"
   local path="$1" seg out=""
@@ -143,36 +144,36 @@ refuse_system_path() {  # $1 = variable name, $2 = path
   esac
 }
 [ -n "$INSTALL_PREFIX" ] || die "INSTALL_PREFIX is empty"
-[ -n "$AGENTOS_HOME" ] || die "AGENTOS_HOME is empty"
-case "$INSTALL_PREFIX$AGENTOS_HOME" in *$'\n'*) die "paths with newlines are not supported" ;; esac
+[ -n "$OPENAJAR_HOME" ] || die "OPENAJAR_HOME is empty"
+case "$INSTALL_PREFIX$OPENAJAR_HOME" in *$'\n'*) die "paths with newlines are not supported" ;; esac
 INSTALL_PREFIX="$(normpath "$INSTALL_PREFIX")"
-AGENTOS_HOME="$(normpath "$AGENTOS_HOME")"
+OPENAJAR_HOME="$(normpath "$OPENAJAR_HOME")"
 PREFIX_REAL="$(physpath "$INSTALL_PREFIX")"
-HOME_REAL="$(physpath "$AGENTOS_HOME")"
+HOME_REAL="$(physpath "$OPENAJAR_HOME")"
 SRC_REAL="$(physpath "$SRC_DIR")"
 refuse_system_path INSTALL_PREFIX "$INSTALL_PREFIX"
-refuse_system_path AGENTOS_HOME "$AGENTOS_HOME"
+refuse_system_path OPENAJAR_HOME "$OPENAJAR_HOME"
 refuse_system_path INSTALL_PREFIX "$PREFIX_REAL"  # a symlink that points at a system directory
-refuse_system_path AGENTOS_HOME "$HOME_REAL"
-[ "$PREFIX_REAL" != "$HOME_REAL" ] || die "INSTALL_PREFIX and AGENTOS_HOME must differ"
-case "$PREFIX_REAL/" in "$HOME_REAL"/*) die "INSTALL_PREFIX cannot be inside AGENTOS_HOME" ;; esac
+refuse_system_path OPENAJAR_HOME "$HOME_REAL"
+[ "$PREFIX_REAL" != "$HOME_REAL" ] || die "INSTALL_PREFIX and OPENAJAR_HOME must differ"
+case "$PREFIX_REAL/" in "$HOME_REAL"/*) die "INSTALL_PREFIX cannot be inside OPENAJAR_HOME" ;; esac
 if [ "$WITH_SYSTEMD" = 1 ]; then
   [ "$(id -u)" = 0 ] || die "need root for --systemd (nothing was changed)"
-  case "$INSTALL_PREFIX$AGENTOS_HOME" in
-    *[%\"\\\#\&]*) die "with --systemd, INSTALL_PREFIX and AGENTOS_HOME cannot contain % \" \\ # or &" ;;
+  case "$INSTALL_PREFIX$OPENAJAR_HOME" in
+    *[%\"\\\#\&]*) die "with --systemd, INSTALL_PREFIX and OPENAJAR_HOME cannot contain % \" \\ # or &" ;;
   esac
   if [ "$HARDENED" = 1 ]; then
     case "$HOME_REAL/" in
-      /root/*|/home/*|/run/user/*) die "the hardened unit hides /root and /home (ProtectHome); put AGENTOS_HOME elsewhere" ;;
+      /root/*|/home/*|/run/user/*) die "the hardened unit hides /root and /home (ProtectHome); put OPENAJAR_HOME elsewhere" ;;
     esac
   fi
 fi
-# Options for `agentos node init`, split like a shell would (quotes and backslashes are
+# Options for `openajar node init`, split like a shell would (quotes and backslashes are
 # honoured) but never glob-expanded or evaluated.
 INIT_ARGS=()
-if [ -n "$AGENTOS_INIT_ARGS" ]; then
-  parsed="$(printf '%s' "$AGENTOS_INIT_ARGS" | xargs printf '%s\n')" \
-    || die "AGENTOS_INIT_ARGS has unbalanced quotes: $AGENTOS_INIT_ARGS"
+if [ -n "$OPENAJAR_INIT_ARGS" ]; then
+  parsed="$(printf '%s' "$OPENAJAR_INIT_ARGS" | xargs printf '%s\n')" \
+    || die "OPENAJAR_INIT_ARGS has unbalanced quotes: $OPENAJAR_INIT_ARGS"
   while IFS= read -r arg; do INIT_ARGS+=("$arg"); done <<< "$parsed"
 fi
 if [ "$PREFIX_REAL" != "$SRC_REAL" ]; then
@@ -192,8 +193,8 @@ foreign_entries() {
   done
 }
 if [ -d "$INSTALL_PREFIX" ] && [ -n "$(foreign_entries)" ] \
-  && ! grep -qs '^name = "agentos"' "$INSTALL_PREFIX/pyproject.toml"; then
-  die "$INSTALL_PREFIX is not empty and is not an agentos install; pick another INSTALL_PREFIX"
+  && ! grep -Eqs "$PROJECT_RE" "$INSTALL_PREFIX/pyproject.toml"; then
+  die "$INSTALL_PREFIX is not empty and is not an openajar install; pick another INSTALL_PREFIX"
 fi
 
 # ---- system packages ----
@@ -228,7 +229,8 @@ if [ "$PREFIX_REAL" != "$SRC_REAL" ]; then
   excludes=(--exclude /.venv/ --exclude .git --exclude __pycache__ --exclude '*.pyc'
             --exclude .pytest_cache --exclude .ruff_cache --exclude /poc/shots/
             --exclude /poc/profiles/ --exclude /poc/fingerprints/ --exclude /poc/secrets.json
-            --exclude /web/dist/)  # the prefix builds its own web/dist: a copied one would replace the build it made
+            --exclude /web/dist/ --exclude /web/node_modules/)  # the prefix builds its own web/dist with its own
+  # node_modules: a copied build would replace the one it made, and a checkout's packages are for its own platform
   for keep in "${KEEP_DIRS[@]}"; do excludes+=(--exclude "/$keep/"); done
   case "$HOME_REAL" in  # never delete node data that lives inside the prefix
     "$PREFIX_REAL"/*) excludes+=(--exclude "/${HOME_REAL#"$PREFIX_REAL"/}/") ;;
@@ -286,18 +288,18 @@ fi
 (cd "$INSTALL_PREFIX" && uv sync "${sync_args[@]}")
 
 # ---- browser ----
-# Root keeps the browser in its own cache; a service user keeps it in AGENTOS_HOME/.cache, the
+# Root keeps the browser in its own cache; a service user keeps it in OPENAJAR_HOME/.cache, the
 # cache dir the unit points XDG_CACHE_HOME at (it must be writable: Camoufox writes a fontconfig
 # file there at launch). Backups leave .cache out.
 BROWSER_ENV=()
 if [ -n "$SERVICE_USER" ]; then
-  BROWSER_ENV=(env "XDG_CACHE_HOME=$AGENTOS_HOME/.cache")
+  BROWSER_ENV=(env "XDG_CACHE_HOME=$OPENAJAR_HOME/.cache")
 fi
 if [ "$SKIP_BROWSER" = 0 ]; then
-  if [ -n "$SERVICE_USER" ] && [ ! -e "$AGENTOS_HOME/.cache/camoufox" ] && [ -d "$HOME/.cache/camoufox" ]; then
-    say "Copying the installed Camoufox browser into $AGENTOS_HOME/.cache for $SERVICE_USER"
-    mkdir -p "$AGENTOS_HOME/.cache"
-    cp -a "$HOME/.cache/camoufox" "$AGENTOS_HOME/.cache/camoufox"
+  if [ -n "$SERVICE_USER" ] && [ ! -e "$OPENAJAR_HOME/.cache/camoufox" ] && [ -d "$HOME/.cache/camoufox" ]; then
+    say "Copying the installed Camoufox browser into $OPENAJAR_HOME/.cache for $SERVICE_USER"
+    mkdir -p "$OPENAJAR_HOME/.cache"
+    cp -a "$HOME/.cache/camoufox" "$OPENAJAR_HOME/.cache/camoufox"
   fi
   if (cd "$INSTALL_PREFIX" && ${BROWSER_ENV[@]+"${BROWSER_ENV[@]}"} "$VENV_PY" -c \
       "from camoufox.pkgman import camoufox_path; camoufox_path(download_if_missing=False)") >/dev/null 2>&1; then
@@ -333,58 +335,58 @@ if [ -n "$SERVICE_USER" ]; then
     say "User $SERVICE_USER already exists"
   else
     [ "$(id -u)" = 0 ] || die "need root to create the user $SERVICE_USER"
-    say "Creating the system user $SERVICE_USER (home $AGENTOS_HOME, no login shell)"
-    useradd --system --user-group --home-dir "$AGENTOS_HOME" --no-create-home \
-      --shell /usr/sbin/nologin --comment "agentos node daemon" "$SERVICE_USER"
+    say "Creating the system user $SERVICE_USER (home $OPENAJAR_HOME, no login shell)"
+    useradd --system --user-group --home-dir "$OPENAJAR_HOME" --no-create-home \
+      --shell /usr/sbin/nologin --comment "openajar node daemon" "$SERVICE_USER"
   fi
 fi
 
 # ---- node data ----
-say "Preparing AGENTOS_HOME at $AGENTOS_HOME"
-mkdir -p "$AGENTOS_HOME"
-chmod 700 "$AGENTOS_HOME"
-if [ -f "$AGENTOS_HOME/node.toml" ]; then
-  echo "node.toml already exists; keeping its token. Show the connect lines with: agentos node init"
+say "Preparing OPENAJAR_HOME at $OPENAJAR_HOME"
+mkdir -p "$OPENAJAR_HOME"
+chmod 700 "$OPENAJAR_HOME"
+if [ -f "$OPENAJAR_HOME/node.toml" ]; then
+  echo "node.toml already exists; keeping its token. Show the connect lines with: openajar node init"
 else
-  AGENTOS_HOME="$AGENTOS_HOME" "$INSTALL_PREFIX/.venv/bin/agentos" node init ${INIT_ARGS[@]+"${INIT_ARGS[@]}"}
+  OPENAJAR_HOME="$OPENAJAR_HOME" "$INSTALL_PREFIX/.venv/bin/openajar" node init ${INIT_ARGS[@]+"${INIT_ARGS[@]}"}
 fi
 if [ -n "$SERVICE_USER" ]; then
-  [ "$(id -u)" = 0 ] || [ "$(id -un)" = "$SERVICE_USER" ] || die "need root to give $AGENTOS_HOME to $SERVICE_USER"
-  say "Giving $AGENTOS_HOME to $SERVICE_USER"
-  chown -R "$SERVICE_USER:$SERVICE_USER" "$AGENTOS_HOME"
-  chmod -R go-rwx "$AGENTOS_HOME"
+  [ "$(id -u)" = 0 ] || [ "$(id -un)" = "$SERVICE_USER" ] || die "need root to give $OPENAJAR_HOME to $SERVICE_USER"
+  say "Giving $OPENAJAR_HOME to $SERVICE_USER"
+  chown -R "$SERVICE_USER:$SERVICE_USER" "$OPENAJAR_HOME"
+  chmod -R go-rwx "$OPENAJAR_HOME"
   # The service user must reach its code and own its home; a parent directory it cannot traverse
   # (for example a dev prefix under /root) would make the service fail at start.
   reach=1
-  runuser -u "$SERVICE_USER" -- test -x "$INSTALL_PREFIX/.venv/bin/agentos" 2>/dev/null || reach=0
+  runuser -u "$SERVICE_USER" -- test -x "$INSTALL_PREFIX/.venv/bin/openajar" 2>/dev/null || reach=0
   # the script is not enough: its interpreter is a link that can point where the user cannot go
   runuser -u "$SERVICE_USER" -- "$INSTALL_PREFIX/.venv/bin/python" -c '' 2>/dev/null || reach=0
-  runuser -u "$SERVICE_USER" -- test -w "$AGENTOS_HOME" 2>/dev/null || reach=0
+  runuser -u "$SERVICE_USER" -- test -w "$OPENAJAR_HOME" 2>/dev/null || reach=0
   if [ "$reach" = 0 ]; then
-    msg="$SERVICE_USER cannot run $INSTALL_PREFIX/.venv/bin/agentos or write $AGENTOS_HOME (a parent directory is not traversable)"
+    msg="$SERVICE_USER cannot run $INSTALL_PREFIX/.venv/bin/openajar or write $OPENAJAR_HOME (a parent directory is not traversable)"
     if [ "$WITH_SYSTEMD" = 1 ]; then die "$msg"; else warn "$msg"; fi
   fi
 fi
 
 # ---- systemd ----
-# The unit as it will be installed: paths follow INSTALL_PREFIX and AGENTOS_HOME, and with --user the
-# service runs as that user with HOME and XDG_CACHE_HOME in AGENTOS_HOME.
+# The unit as it will be installed: paths follow INSTALL_PREFIX and OPENAJAR_HOME, and with --user the
+# service runs as that user with HOME and XDG_CACHE_HOME in OPENAJAR_HOME.
 render_unit() {
   local template="$INSTALL_PREFIX/deploy/agentosd.service"
   [ "$HARDENED" = 1 ] && template="$INSTALL_PREFIX/deploy/agentosd-hardened.service"
   local user_lines=""
   if [ -n "$SERVICE_USER" ] && [ "$HARDENED" = 0 ]; then
-    user_lines="User=$SERVICE_USER\nGroup=$SERVICE_USER\nEnvironment=\"HOME=$AGENTOS_HOME\"\nEnvironment=\"XDG_CACHE_HOME=$AGENTOS_HOME/.cache\""
+    user_lines="User=$SERVICE_USER\nGroup=$SERVICE_USER\nEnvironment=\"HOME=$OPENAJAR_HOME\"\nEnvironment=\"XDG_CACHE_HOME=$OPENAJAR_HOME/.cache\""
   fi
-  sed -e "s#/var/lib/agentos#$AGENTOS_HOME#g" -e "s#/opt/agentos#$INSTALL_PREFIX#g" \
+  sed -e "s#/var/lib/agentos#$OPENAJAR_HOME#g" -e "s#/opt/agentos#$INSTALL_PREFIX#g" \
       -e "s#^User=agentos\$#User=$SERVICE_USER#" -e "s#^Group=agentos\$#Group=$SERVICE_USER#" "$template" |
     if [ -n "$user_lines" ]; then sed -e "s#^\[Service\]\$#[Service]\n$user_lines#"; else cat; fi
 }
 
 # agentos-runas, the root helper a hardened (unprivileged) agentosd asks to start brains as the
-# brain user (src/agentos/runas.py): its fixed caller and brain user come from here.
+# brain user (src/openajar/runas.py): its fixed caller and brain user come from here.
 render_runas_unit() {
-  sed -e "s#/opt/agentos#$INSTALL_PREFIX#g" -e "s#--caller agentos #--caller $SERVICE_USER #g" \
+  sed -e "s#/opt/agentos#$INSTALL_PREFIX#g" -e "s#--caller openajar #--caller $SERVICE_USER #g" \
       -e "s#--brain-user agentos-brain\$#--brain-user $BRAIN_USER#" "$INSTALL_PREFIX/deploy/agentos-runas.service"
 }
 
@@ -408,7 +410,7 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
     else
       say "Creating the brain user $BRAIN_USER (home /var/lib/$BRAIN_USER, no login shell)"
       useradd --system --user-group --create-home --home-dir "/var/lib/$BRAIN_USER" \
-        --shell /usr/sbin/nologin --comment "agentos brains" "$BRAIN_USER"
+        --shell /usr/sbin/nologin --comment "openajar brains" "$BRAIN_USER"
     fi
     brain_home="$(getent passwd "$BRAIN_USER" | cut -d: -f6)"
     [ -d "$brain_home" ] || install -d -m 700 -o "$BRAIN_USER" -g "$BRAIN_USER" "$brain_home"
@@ -416,7 +418,7 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
     say "Installing agentos-runas.service (starts brains as $BRAIN_USER for $SERVICE_USER)"
     render_runas_unit > /etc/systemd/system/agentos-runas.service.new
     mv /etc/systemd/system/agentos-runas.service.new /etc/systemd/system/agentos-runas.service
-    "$INSTALL_PREFIX/.venv/bin/python" -I -S -B "$INSTALL_PREFIX/src/agentos/runas.py" check --caller "$SERVICE_USER" --brain-user "$BRAIN_USER" \
+    "$INSTALL_PREFIX/.venv/bin/python" -I -S -B "$INSTALL_PREFIX/src/openajar/runas.py" check --caller "$SERVICE_USER" --brain-user "$BRAIN_USER" \
       || die "agentos-runas refuses this setup (above); agentosd.service is installed but brains would not start"
   elif [ -f /etc/systemd/system/agentos-runas.service ]; then
     say "Removing agentos-runas.service (agentosd runs as root and starts brains itself)"
@@ -424,7 +426,7 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
     rm -f /etc/systemd/system/agentos-runas.service
   fi
 
-  say "Bounding logs (journald limits, logrotate for $AGENTOS_HOME/logs)"
+  say "Bounding logs (journald limits, logrotate for $OPENAJAR_HOME/logs)"
   mkdir -p /etc/systemd/journald.conf.d
   if ! cmp -s "$INSTALL_PREFIX/deploy/journald-agentos.conf" /etc/systemd/journald.conf.d/agentos.conf; then
     install -m 644 "$INSTALL_PREFIX/deploy/journald-agentos.conf" /etc/systemd/journald.conf.d/agentos.conf
@@ -432,15 +434,15 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
   fi
   if [ -d /etc/logrotate.d ]; then
     owner="${SERVICE_USER:-root}"
-    sed -e "s#/var/lib/agentos#$AGENTOS_HOME#g" -e "s#su root root#su $owner $owner#" \
+    sed -e "s#/var/lib/agentos#$OPENAJAR_HOME#g" -e "s#su root root#su $owner $owner#" \
       "$INSTALL_PREFIX/deploy/agentos.logrotate" > /etc/logrotate.d/agentos
     chmod 644 /etc/logrotate.d/agentos
   fi
 
   if [ "$BACKUP_TIMER" = 1 ]; then
-    [ -f "$AGENTOS_HOME/secrets/backup.pass" ] || die "--backup-timer needs $AGENTOS_HOME/secrets/backup.pass (chmod 600)"
+    [ -f "$OPENAJAR_HOME/secrets/backup.pass" ] || die "--backup-timer needs $OPENAJAR_HOME/secrets/backup.pass (chmod 600)"
     say "Installing agentos-backup.timer (daily)"
-    sed -e "s#/var/lib/agentos#$AGENTOS_HOME#g" -e "s#/opt/agentos#$INSTALL_PREFIX#g" \
+    sed -e "s#/var/lib/agentos#$OPENAJAR_HOME#g" -e "s#/opt/agentos#$INSTALL_PREFIX#g" \
       "$INSTALL_PREFIX/deploy/agentos-backup.service" > /etc/systemd/system/agentos-backup.service
     install -m 644 "$INSTALL_PREFIX/deploy/agentos-backup.timer" /etc/systemd/system/agentos-backup.timer
   fi
@@ -453,7 +455,7 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
     # A restart closes every open lane, including lanes other sessions hold: name them, and only go
     # on when none has a holder (or with --yes). Exit 3 from the check means a lane has one.
     set +e
-    AGENTOS_HOME="$AGENTOS_HOME" "$INSTALL_PREFIX/.venv/bin/agentos" node restart --check
+    OPENAJAR_HOME="$OPENAJAR_HOME" "$INSTALL_PREFIX/.venv/bin/openajar" node restart --check
     check=$?
     set -e
     [ "$check" != 3 ] || RESTART_HELD=1
@@ -462,7 +464,7 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
     echo "Not restarting agentosd (--no-restart)."
   elif [ "$RESTART_HELD" = 1 ]; then
     warn "not restarting agentosd: the lanes above are in use by other sessions, and a restart would close them."
-    warn "The new code is installed and runs after the next restart: agentos node restart (it asks first),"
+    warn "The new code is installed and runs after the next restart: openajar node restart (it asks first),"
     warn "or run the installer again with --yes."
   else
     [ "$HARDENED" = 0 ] || systemctl restart agentos-runas.service
@@ -471,26 +473,26 @@ if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
   fi
 fi
 
-# ---- the agentos command on the node ----
+# ---- the openajar command on the node ----
 # /usr/local/bin/agentos: the node's CLI with its home, as the service user when root runs it, so
-# files it writes in AGENTOS_HOME stay the service user's. Commands that need root stay root.
+# files it writes in OPENAJAR_HOME stay the service user's. Commands that need root stay root.
 WRAPPER=""
 if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$RENDER_UNIT" ]; then
   WRAPPER=/usr/local/bin/agentos
-  if [ -e "$WRAPPER" ] && ! grep -q '^# agentos-node-wrapper' "$WRAPPER" 2>/dev/null; then
+  if [ -e "$WRAPPER" ] && ! grep -q '^# openajar-node-wrapper' "$WRAPPER" 2>/dev/null; then
     warn "$WRAPPER exists and is not this installer's; leaving it as it is"
     WRAPPER=""
   else
-    say "Installing $WRAPPER (the CLI with AGENTOS_HOME=$AGENTOS_HOME${SERVICE_USER:+, as $SERVICE_USER})"
+    say "Installing $WRAPPER (the CLI with OPENAJAR_HOME=$OPENAJAR_HOME${SERVICE_USER:+, as $SERVICE_USER})"
     mkdir -p /usr/local/bin
     cat > "$WRAPPER.new" <<WRAP
 #!/bin/sh
-# agentos-node-wrapper: written by deploy/install-node.sh (run it again to update). The node's CLI,
+# openajar-node-wrapper: written by deploy/install-node.sh (run it again to update). The node's CLI,
 # with the node's home. Root runs it as the service user, except for the commands that need root.
-bin=$INSTALL_PREFIX/.venv/bin/agentos
-home=$AGENTOS_HOME
+bin=$INSTALL_PREFIX/.venv/bin/openajar
+home=$OPENAJAR_HOME
 user=${SERVICE_USER}
-export AGENTOS_HOME="\$home"
+export OPENAJAR_HOME="\$home"
 if [ -z "\$user" ] || [ "\$(id -u)" != 0 ]; then
   exec "\$bin" "\$@"
 fi
@@ -498,19 +500,19 @@ case "\$1 \$2 \$3" in
   "upgrade "*|"node upgrade "*|"migrate-service-user "*|"node migrate-service-user "*|"backup restore "*|"node backup restore "*)
     exec "\$bin" "\$@" ;;
 esac
-exec runuser -u "\$user" -- env HOME="\$home" AGENTOS_HOME="\$home" XDG_CACHE_HOME="\$home/.cache" "\$bin" "\$@"
+exec runuser -u "\$user" -- env HOME="\$home" OPENAJAR_HOME="\$home" XDG_CACHE_HOME="\$home/.cache" "\$bin" "\$@"
 WRAP
     chmod 755 "$WRAPPER.new"
     mv "$WRAPPER.new" "$WRAPPER"
   fi
 fi
 
-say "Done. agentos is at $INSTALL_PREFIX/.venv/bin/agentos, node data at $AGENTOS_HOME"
+say "Done. openajar is at $INSTALL_PREFIX/.venv/bin/openajar, node data at $OPENAJAR_HOME"
 if [ -n "$WRAPPER" ]; then
   if [ -n "$SERVICE_USER" ]; then
-    echo "On this node, run it as root with: sudo agentos doctor (it runs as $SERVICE_USER with AGENTOS_HOME=$AGENTOS_HOME)."
+    echo "On this node, run it as root with: sudo openajar doctor (it runs as $SERVICE_USER with OPENAJAR_HOME=$OPENAJAR_HOME)."
   else
-    echo "On this node, run it with: sudo agentos doctor (AGENTOS_HOME=$AGENTOS_HOME)."
+    echo "On this node, run it with: sudo openajar doctor (OPENAJAR_HOME=$OPENAJAR_HOME)."
   fi
 fi
 if [ ! -f "$INSTALL_PREFIX/web/dist/index.html" ]; then
@@ -519,7 +521,7 @@ if [ ! -f "$INSTALL_PREFIX/web/dist/index.html" ]; then
   warn "  - install Node.js 22 here and run this installer again, or"
   warn "  - build on your computer, in your checkout: (cd web && pnpm install && pnpm build);"
   warn "    then copy that checkout here with its builds (scripts/sync-node.sh --web DIR, or rsync) and run this installer again"
-  warn "    from that copy. \`agentos connect HOST --install\` from a checkout sends it, builds included, on a new node."
+  warn "    from that copy. \`openajar connect HOST --install\` from a checkout sends it, builds included, on a new node."
 fi
 if [ "$WITH_SYSTEMD" = 1 ] && [ -z "$SERVICE_USER" ] && [ -z "$RENDER_UNIT" ]; then
   say "Note: agentosd runs as root. On a new node, install with --user agentos --hardened instead (deploy/README.md)."

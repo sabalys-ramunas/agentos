@@ -1,5 +1,5 @@
-"""Other planned work on the agenda's timeline (agentos.agenda.service._managed): the next keepalive
-visit per lane (agentos.keepalive.service.planned), projected read only, never stored, never planned again."""
+"""Other planned work on the agenda's timeline (openajar.agenda.service._managed): the next keepalive
+visit per lane (openajar.keepalive.service.planned), projected read only, never stored, never planned again."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from types import SimpleNamespace
 from test_keepalive import LANE, node  # noqa: F401 - the keepalive node fixture
 from typer.testing import CliRunner
 
-from agentos.agenda.service import build
-from agentos.core.config import NodeConfig, save_config
-from agentos.core.runtime import Runtime
-from agentos.ops import control
+from openajar.agenda.service import build
+from openajar.core.config import NodeConfig, save_config
+from openajar.core.runtime import Runtime
+from openajar.ops import control
 
 
 class AtClock:
@@ -41,7 +41,7 @@ async def test_keepalive_projects_each_lanes_next_visit_and_nothing_after_it(nod
     for lane, item in by_lane.items():
         assert item["approx"] is True and item["effect"] == "read" and item["workspace"] == "biz-a"
         assert item["at"] == node.service.status(lane)["next_at"]  # the plan the rounds decide on
-        assert item["manage"] == f"agentos lane keepalive {lane}"
+        assert item["manage"] == f"openajar lane keepalive {lane}"
     assert node.service.planned(now, now + timedelta(minutes=1))["items"] == []  # not in the range
     assert node.service.planned(now, now + timedelta(days=12), workspace="biz-b")["items"] == []
 
@@ -51,7 +51,7 @@ async def test_a_lane_with_keepalive_off_has_no_visit_and_says_why(node):  # noq
     node.service.set_opt_out(LANE, True)
     out = node.service.planned(now, now + timedelta(days=12))
     assert [i["lane"] for i in out["items"]] == ["biz-a/other"]
-    assert out["skipped"] == [{"lane": LANE, "reason": f"{LANE} opted out (agentos lane keepalive {LANE} --on)"}]
+    assert out["skipped"] == [{"lane": LANE, "reason": f"{LANE} opted out (openajar lane keepalive {LANE} --on)"}]
     save_config(node.cfg.model_copy(update={"keepalive": False}))
     off = node.service.planned(now, now + timedelta(days=12))
     assert off["items"] == [] and off["enabled"] is False and "off on this node" in off["note"]
@@ -68,7 +68,7 @@ async def test_the_timeline_shows_keepalive_visits_read_only_and_can_hide_them(n
     from starlette.applications import Starlette
     from starlette.testclient import TestClient
 
-    from agentos.agenda.api import routes
+    from openajar.agenda.api import routes
 
     runtime = node.service.runtime
     runtime.register("keepalive", node.service)
@@ -114,9 +114,9 @@ async def test_the_ops_socket_serves_what_a_service_plans(node):  # noqa: F811
 
 
 def test_the_cli_says_when_agentosd_cannot_be_asked(tmp_path, monkeypatch):
-    from agentos.agenda.cli import app
+    from openajar.agenda.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     save_config(NodeConfig(home=tmp_path))
     result = CliRunner().invoke(app, ["list"])
     assert result.exit_code == 0, result.output

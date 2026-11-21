@@ -1,105 +1,120 @@
-/** The top of an environment's page: its name and state, more time, and the facts tiles. */
+/**
+ * The top of an environment's page, on the night band: its name and state (and "You have control" while it is
+ * yours), who works in it, since when, how it stays and its repository, and more time and Close on glass.
+ * On a phone the two buttons move under the panels, where a thumb reaches them.
+ */
 import { Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAccess, useExtendEnvironment } from '@/api/hooks';
 import { ApiError } from '@/api/http';
 import type { EnvDetail } from '@/api/types';
-import { BranchPill } from '@/components/ui/branch';
+import { PictureChip } from '@/components/screen-picture';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
-import { StatStrip, StatTile } from '@/components/ui/stat-tile';
-import { Status, StatusDot } from '@/components/ui/status';
-import { NoValue } from '@/components/ui/table';
+import { StatusDot } from '@/components/ui/status';
+import { cn } from '@/lib/cn';
 import { clock, dateTime, timeAgo } from '@/lib/format';
 import { CloseEnvironment } from './close-flow';
 import { WatchLine } from './resume';
-import {
-  ENV_STATE_SENTENCE,
-  ENV_STATUS,
-  KEEP,
-  SHORT_MS,
-  ageOf,
-  agentWords,
-  closedReason,
-  euro,
-  hourly,
-  isOpen,
-  keepOf,
-  leftOf,
-  machineWhere,
-  repoName,
-  span,
-} from './words';
-import { EXTEND } from './environment-page';
+import { ENV_STATE_SENTENCE, ENV_STATUS, KEEP, agentWords, isOpen, keepOf, leftOf, leftWords, repoName } from './words';
 
-export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now: number }) {
+export const EXTEND = [
+  { minutes: 30, label: '30 minutes' },
+  { minutes: 60, label: '1 hour' },
+  { minutes: 120, label: '2 hours' },
+];
+
+/** May this person give it more time or close it, now? */
+export function useActionable(org: string, env: EnvDetail): boolean {
   const access = useAccess(org);
-  const canOperate = access.can('lanes.operate');
-  const actionable = isOpen(env) && env.state !== 'closing';
-  // the branch it is on now (the agent may have made one), else the one it was opened on
-  const branch = env.git?.branch ?? env.branch;
+  return isOpen(env) && env.state !== 'closing' && access.can('lanes.operate');
+}
+
+/** One fact after the first, with its dot, kept together on one line. */
+function Part({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <header className="grid gap-3">
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        <div className="grid w-full min-w-0 gap-2 md:w-auto md:flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 tabIndex={-1} className="min-w-0 text-page-title-compact [overflow-wrap:anywhere] md:text-page-title">
-              {env.title}
-            </h1>
-            <span title={ENV_STATE_SENTENCE[env.state]}>
-              <Status status={ENV_STATUS[env.state]} />
-            </span>
-          </div>
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted">
-            <span>{agentWords(env.agent)}</span>
-            <span aria-hidden="true" className="text-faint">
-              ·
-            </span>
-            <span title={dateTime(env.created_at)}>opened {timeAgo(env.created_at, now).toLowerCase()}</span>
-            {env.keep ? (
-              <>
-                <span aria-hidden="true" className="text-faint">
-                  ·
-                </span>
-                <span title={KEEP[keepOf(env)].sentence}>{KEEP[keepOf(env)].label}</span>
-              </>
-            ) : null}
-            {env.repo ? (
-              <>
-                <span aria-hidden="true" className="text-faint">
-                  ·
-                </span>
-                <span className="min-w-0 truncate font-mono text-code" title={env.repo}>
-                  {repoName(env.repo)}
-                </span>
-                {branch ? <BranchPill name={branch} main={branch === 'main' || branch === 'master'} /> : null}
-              </>
-            ) : null}
-          </p>
-          {isOpen(env) && env.watched?.viewers ? (
-            <p className="text-secondary text-muted">
-              <WatchLine watched={env.watched} />
-            </p>
-          ) : null}
+    <span className={cn('whitespace-nowrap', className)}>
+      <span aria-hidden="true" className="px-2 text-faint">
+        ·
+      </span>
+      {children}
+    </span>
+  );
+}
+
+/** `actions`: Extend and Close sit here (from 768 px); on a phone they follow the panels (PhoneActions). */
+export function EnvHeader({ org, env, now, yours, actions }: { org: string; env: EnvDetail; now: number; yours: boolean; actions: boolean }) {
+  const actionable = useActionable(org, env);
+  const status = ENV_STATUS[env.state];
+  const left = leftOf(env, now);
+  return (
+    <header className="grid gap-x-6 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+      <div className="grid min-w-0 gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 tabIndex={-1} className="min-w-0 text-page-title-compact text-fg [overflow-wrap:anywhere] md:text-page-title">
+            {env.title}
+          </h1>
+          <span title={yours ? 'Your keyboard and mouse go to its screen' : ENV_STATE_SENTENCE[env.state]}>
+            <PictureChip className="h-8 text-label">
+              {yours ? <span aria-hidden="true" className="size-2 rounded-full bg-[var(--sidebar-text)]" /> : <StatusDot tone={status.tone} starting={status.starting} />}
+              {yours ? 'You have control' : status.label}
+            </PictureChip>
+          </span>
         </div>
-        {actionable && canOperate ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <ExtendMenu org={org} env={env} />
-            <CloseEnvironment org={org} env={env} />
-          </div>
+        {/* Each fact is one flex item with its dot, so a line breaks between facts (JSX leaves no space there)
+            and no dot is left at the end of a line. */}
+        <p className="flex min-w-0 flex-wrap items-baseline text-body text-muted">
+          <span className="whitespace-nowrap">{agentWords(env.agent)}</span>
+          <Part className={cn(left !== null && 'max-md:hidden')}>
+            <span title={dateTime(env.created_at)}>opened {timeAgo(env.created_at, now).toLowerCase()}</span>
+          </Part>
+          {left !== null ? <Part className="md:hidden">{leftWords(left)}</Part> : null}
+          {env.keep ? (
+            <Part>
+              <span title={KEEP[keepOf(env)].sentence}>{KEEP[keepOf(env)].label}</span>
+            </Part>
+          ) : null}
+          {env.repo ? (
+            <Part className="max-md:hidden">
+              <span className="inline-block max-w-80 truncate align-bottom font-mono text-code text-faint" title={env.repo}>
+                {repoName(env.repo)}
+              </span>
+            </Part>
+          ) : null}
+        </p>
+        {isOpen(env) && env.watched?.viewers ? (
+          <p className="text-secondary text-muted">
+            <WatchLine watched={env.watched} />
+          </p>
         ) : null}
       </div>
+      {actionable && actions ? (
+        <div className="flex items-center gap-2">
+          <ExtendMenu org={org} env={env} glass />
+          <CloseEnvironment org={org} env={env} glass />
+        </div>
+      ) : null}
     </header>
   );
 }
 
-function ExtendMenu({ org, env }: { org: string; env: EnvDetail }) {
+/** Extend and Close side by side, full width, for a phone (under the panels). */
+export function PhoneActions({ org, env, className }: { org: string; env: EnvDetail; className?: string }) {
+  if (!useActionable(org, env)) return null;
+  return (
+    <div className={cn('grid grid-cols-2 gap-3', className)}>
+      <ExtendMenu org={org} env={env} className="h-11 w-full" />
+      <CloseEnvironment org={org} env={env} className="h-11 w-full" />
+    </div>
+  );
+}
+
+function ExtendMenu({ org, env, glass = false, className }: { org: string; env: EnvDetail; glass?: boolean; className?: string }) {
   const extend = useExtendEnvironment(org);
   return (
     <Menu>
       <MenuTrigger asChild>
-        <Button icon={<Clock className="size-4" />} loading={extend.isPending}>
+        <Button variant={glass ? 'glass' : 'secondary'} className={className} icon={<Clock className="size-4" />} loading={extend.isPending}>
           Extend
         </Button>
       </MenuTrigger>
@@ -122,67 +137,5 @@ function ExtendMenu({ org, env }: { org: string; env: EnvDetail }) {
         ))}
       </MenuContent>
     </Menu>
-  );
-}
-
-export function ClosedNotice({ env }: { env: EnvDetail }) {
-  const failed = env.state === 'failed';
-  const lead = failed ? 'It failed to start.' : env.closed_at ? `Closed ${timeAgo(env.closed_at).toLowerCase()}.` : 'Closed.';
-  return (
-    <Card role="status" className="flex items-start gap-3 px-5 py-4">
-      <StatusDot tone={failed ? 'bad' : 'neutral'} className="mt-2" />
-      <p className="min-w-0 text-body">
-        <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
-        <span className="mt-1 block text-secondary text-faint">
-          {keepOf(env) === 'save' && !failed
-            ? 'Its machine and browser are deleted, and its work is saved: resume it below, or an agent brings it back when it opens it again.'
-            : 'Its machine and browser are deleted. What is below is what the node kept.'}
-        </span>
-      </p>
-    </Card>
-  );
-}
-
-/** A span as a big number and its small unit, so a tile at a tablet width keeps it on one line: "1 h" and "45 min". */
-function spanTile(ms: number): { value: string; unit?: string } {
-  const minutes = Math.floor(Math.max(0, ms) / 60_000);
-  if (minutes < 1) return { value: 'Under 1', unit: 'min' };
-  if (minutes < 60) return { value: String(minutes), unit: 'min' };
-  const hours = Math.floor(minutes / 60);
-  if (hours >= 48) return { value: String(Math.round(hours / 24)), unit: 'days' };
-  return { value: `${hours} h`, unit: minutes % 60 ? `${minutes % 60} min` : undefined };
-}
-
-export function Facts({ env, now }: { env: EnvDetail; now: number }) {
-  const open = isOpen(env);
-  const left = leftOf(env, now);
-  const leftTile = left !== null && left > 0 ? spanTile(left) : null;
-  const ranTile = spanTile(ageOf(env, now));
-  return (
-    <StatStrip>
-      {open ? (
-        <StatTile
-          label="Time left"
-          value={left === null ? <NoValue /> : leftTile ? leftTile.value : 'Ends now'}
-          unit={leftTile?.unit}
-          tone={left !== null && left < SHORT_MS ? 'warn' : undefined}
-          hint={env.state === 'closing' ? 'Closing now' : `The node closes it at ${clock(env.expires_at)} at the latest`}
-        />
-      ) : (
-        <StatTile label="Ran for" value={ranTile.value} unit={ranTile.unit} hint={env.closed_at ? `Closed ${dateTime(env.closed_at)}` : undefined} />
-      )}
-      <StatTile label={open ? 'Cost so far' : 'Cost'} value={euro(env.cost_eur)} hint={hourly(env.price_hourly_eur)} />
-      <StatTile
-        label="Machine"
-        value={`${env.machine.cpu} CPU`}
-        unit={`${env.machine.memory_gb} GB`}
-        hint={machineWhere(env.machine)}
-      />
-      <StatTile
-        label="Last call"
-        value={env.last_call_at ? timeAgo(env.last_call_at, now) : <NoValue />}
-        hint={open ? `Open for ${span(ageOf(env, now))}` : env.last_call_at ? dateTime(env.last_call_at) : 'The agent made no call'}
-      />
-    </StatStrip>
   );
 }

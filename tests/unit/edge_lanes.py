@@ -8,10 +8,10 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import ProxyConfig, ViewerInfo
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
+from openajar.core.config import NodeConfig
+from openajar.core.models import ProxyConfig, ViewerInfo
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
 
 
 class FakePage:
@@ -27,7 +27,7 @@ class FakePage:
 
 
 class FormlessLocator:
-    """What browser_act reads before a click (agentos.node.fields.read_form_diff): no form here."""
+    """What browser_act reads before a click (openajar.node.fields.read_form_diff): no form here."""
 
     async def evaluate(self, js: str, arg=None) -> None:
         return None

@@ -3,12 +3,23 @@
  * needs, a business's status sentence, a sentence for what an agent did, and the page's answer
  * to "is everything OK, and what needs me?" (structure.md section 5, visual.md P2).
  */
-import type { HealthState, HomeFace, Lane, TraceEvent, Workspace } from '@/api/types';
+import type { EnvState, HealthState, HomeFace, Lane, TraceEvent, Workspace } from '@/api/types';
 import { laneName } from '@/lib/labels';
 import { SITES, siteName, siteOf } from '@/lib/sites';
 import type { Condition, LaneContext, PersonState } from '@/lib/states';
 import { laneCondition, STATE_WORDS } from '@/lib/states';
 import { FREEZE_WORDS } from '@/lib/vocabulary';
+
+/** What an environment's agent is doing, in a few words under its picture on Home ("Codex · Starting its computer"). */
+export const ENV_DOING: Record<EnvState, string> = {
+  starting: 'Starting its computer',
+  ready: 'Ready for its first step',
+  working: 'At work now',
+  idle: 'Waiting for its next step',
+  closing: 'Closing its computer',
+  closed: 'Closed',
+  failed: 'Its computer did not start',
+};
 
 export const FACE_STATE: Record<HomeFace, PersonState> = {
   all_good: 'good',

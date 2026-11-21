@@ -1,5 +1,5 @@
-"""Structured logs (agentos.core.logs): ids from the context on every line, JSON out, secrets
-scrubbed before anything is written, and `agentos logs` reading them back with filters."""
+"""Structured logs (openajar.core.logs): ids from the context on every line, JSON out, secrets
+scrubbed before anything is written, and `openajar logs` reading them back with filters."""
 
 from __future__ import annotations
 
@@ -16,19 +16,19 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from typer.testing import CliRunner
 
-from agentos.core import logs
-from agentos.core.config import NodeConfig, save_proxies
-from agentos.core.errors import EngineError
-from agentos.core.models import Effect, LaneSpec, ProxyConfig
-from agentos.core.tools import ToolSpec
-from agentos.ops import logs as reader
+from openajar.core import logs
+from openajar.core.config import NodeConfig, save_proxies
+from openajar.core.errors import EngineError
+from openajar.core.models import Effect, LaneSpec, ProxyConfig
+from openajar.core.tools import ToolSpec
+from openajar.ops import logs as reader
 
 NODE_TOKEN = "node-token-for-the-logs-test"
 PROXY_PASSWORD = "hunter2-proxy"
 VAULT_VALUE = "correct horse battery staple 42"  # a login entry's password
 MACHINE_VALUE = "machine secret for the brain 7"  # a machine secret (a brain's subscription token)
 
-log = logging.getLogger("agentos.test.logs")
+log = logging.getLogger("openajar.test.logs")
 
 
 @pytest.fixture(autouse=True)
@@ -90,7 +90,7 @@ def test_a_json_line_carries_the_ids_and_the_journal_priority():
     raw = stream.getvalue().strip()
     assert raw.startswith("<4>{")
     line = json.loads(raw[3:])
-    assert line["msg"] == "opened it" and line["level"] == "warn" and line["logger"] == "agentos.test.logs"
+    assert line["msg"] == "opened it" and line["level"] == "warn" and line["logger"] == "openajar.test.logs"
     assert (line["lane"], line["workspace"], line["grant"], line["request"]) == ("personal/reddit", "personal",
                                                                                 "g_7", "rq_9")
 
@@ -115,7 +115,7 @@ def test_off_systemd_lines_go_to_the_file_as_json_and_to_the_terminal_readable(t
         log.info("step done")
     stored = (tmp_path / "logs" / logs.LOG_FILE).read_text().strip()
     assert json.loads(stored)["run"] == "run_3"
-    assert "INFO  agentos.test.logs [run=run_3] step done" in stream.getvalue()
+    assert "INFO  openajar.test.logs [run=run_3] step done" in stream.getvalue()
 
 
 def test_message_traceback_and_ids_are_scrubbed_and_a_failing_scrubber_withholds_the_line():
@@ -169,7 +169,7 @@ async def test_a_request_with_a_grant_token_a_proxy_password_and_a_vault_value_l
     (message, traceback, error), then grep every output: the file, the terminal, the journal."""
     from test_vault_support import make_vault, private_home
 
-    from agentos.node.daemon import build_services, install_log_scrubbers, node_runtime, serve
+    from openajar.node.daemon import build_services, install_log_scrubbers, node_runtime, serve
 
     home = private_home(tmp_path)
     make_vault(home)  # a key-file vault on disk: the service unseals it when it starts
@@ -187,10 +187,10 @@ async def test_a_request_with_a_grant_token_a_proxy_password_and_a_vault_value_l
     manager = FakeLaneManager(config)
     await manager.create(LaneSpec(id="personal/reddit"))
     runtime = node_runtime(config, manager, FakeInteraction())
-    build_services(runtime, ["agentos.policy.service", "agentos.vault.service"])
+    build_services(runtime, ["openajar.policy.service", "openajar.vault.service"])
 
     async def leaky(ctx, *, on: str, note: str) -> str:
-        from agentos.core.tools import current_request_token
+        from openajar.core.tools import current_request_token
 
         log.info("leaky got %s with bearer %s", note, current_request_token())
         try:
@@ -235,7 +235,7 @@ async def test_a_request_with_a_grant_token_a_proxy_password_and_a_vault_value_l
     assert "inner failure quoting" in next(line for line in lines if line["msg"] == "leaky traceback")["exc"]
 
 
-# ---- agentos logs ----
+# ---- openajar logs ----
 
 def write_lines(home, lines, name=logs.LOG_FILE):
     folder = home / "logs"
@@ -246,12 +246,12 @@ def write_lines(home, lines, name=logs.LOG_FILE):
 
 
 LINES = [
-    {"ts": "2026-11-04T08:00:00.000Z", "level": "info", "logger": "agentos.node", "msg": "old", "lane": "biz-a/ig",
+    {"ts": "2026-11-04T08:00:00.000Z", "level": "info", "logger": "openajar.node", "msg": "old", "lane": "biz-a/ig",
      "workspace": "biz-a"},
-    {"ts": "2026-11-04T09:00:00.000Z", "level": "warn", "logger": "agentos.node", "msg": "slow", "lane": "biz-a/x",
+    {"ts": "2026-11-04T09:00:00.000Z", "level": "warn", "logger": "openajar.node", "msg": "slow", "lane": "biz-a/x",
      "workspace": "biz-a", "grant": "g_1", "run": "run_1"},
-    {"ts": "2026-11-04T09:30:00.000Z", "level": "debug", "logger": "agentos.mcp", "msg": "noise", "grant": "g_2"},
-    {"ts": "2026-11-04T09:40:00.000Z", "level": "error", "logger": "agentos.node", "msg": "boom",
+    {"ts": "2026-11-04T09:30:00.000Z", "level": "debug", "logger": "openajar.mcp", "msg": "noise", "grant": "g_2"},
+    {"ts": "2026-11-04T09:40:00.000Z", "level": "error", "logger": "openajar.node", "msg": "boom",
      "lane": "personal/reddit", "workspace": "personal", "request": "rq_1"},
 ]
 
@@ -329,19 +329,19 @@ def test_journal_lines_read_journalctl_output():
                                                                                                    "agentosd"]
 
 
-def test_agentos_logs_prints_filtered_lines(tmp_path, monkeypatch):
-    from agentos.cli import app
+def test_openajar_logs_prints_filtered_lines(tmp_path, monkeypatch):
+    from openajar.cli import app
 
     write_lines(tmp_path, LINES)
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     run = CliRunner().invoke(app, ["logs", "--source", "file", "--lane", "biz-a/*", "--level", "warn"])
     assert run.exit_code == 0, run.output
-    assert run.output.splitlines() == ["2026-11-04 09:00:00 WARN  agentos.node [lane=biz-a/x grant=g_1 run=run_1] slow"]
+    assert run.output.splitlines() == ["2026-11-04 09:00:00 WARN  openajar.node [lane=biz-a/x grant=g_1 run=run_1] slow"]
     as_json = CliRunner().invoke(app, ["logs", "--source", "file", "--request", "rq_1", "--json"])
     assert [json.loads(raw) for raw in as_json.output.splitlines()] == [LINES[3]]
     bad = CliRunner().invoke(app, ["logs", "--source", "file", "--since", "soon"])
     assert bad.exit_code == 2 and "cannot read --since" in bad.output
     empty = tmp_path / "empty"
-    monkeypatch.setenv("AGENTOS_HOME", str(empty))
+    monkeypatch.setenv("OPENAJAR_HOME", str(empty))
     none = CliRunner().invoke(app, ["logs", "--source", "file"])
     assert none.exit_code == 1 and "no log in" in none.output

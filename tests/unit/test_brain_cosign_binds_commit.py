@@ -9,11 +9,11 @@ import subprocess
 import pytest
 from testkit.brains import FakeCtx, add, make_service, wait_status
 
-from agentos.brains import bundle as bundle_mod
-from agentos.brains.models import ContextBundle, GitRef
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
+from openajar.brains import bundle as bundle_mod
+from openajar.brains.models import ContextBundle, GitRef
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
 
 P = Principal(id="claude-code", thread="T-1")
 ENV = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x", "GIT_COMMITTER_NAME": "t",

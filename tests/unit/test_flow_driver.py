@@ -12,16 +12,16 @@ from typing import Any
 
 import pytest
 
-from agentos.core.driver import ElementNotFound
-from agentos.core.errors import AgentPaused, HumanInControl, LaneBusy, PolicyDenied
-from agentos.core.locator import Locator
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, RunKind, RunStatus
-from agentos.core.runtime import Runtime
-from agentos.node import flow_driver as fd
-from agentos.node import flow_match, flow_recorder
-from agentos.runner.fakes import FakeDriver, Harness, driver_factory, social_site
-from agentos.runner.recorder import Recorder
-from agentos.runner.store import RunnerStore
+from openajar.core.driver import ElementNotFound
+from openajar.core.errors import AgentPaused, HumanInControl, LaneBusy, PolicyDenied
+from openajar.core.locator import Locator
+from openajar.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, RunKind, RunStatus
+from openajar.core.runtime import Runtime
+from openajar.node import flow_driver as fd
+from openajar.node import flow_match, flow_recorder
+from openajar.runner.fakes import FakeDriver, Harness, driver_factory, social_site
+from openajar.runner.recorder import Recorder
+from openajar.runner.store import RunnerStore
 
 # ---------------------------------------------------------------- names and paths
 
@@ -145,7 +145,7 @@ def test_inbox_resolver_from_a_files_service_is_still_confined(inbox, tmp_path):
 
 
 def test_inbox_dir_sources(tmp_path, monkeypatch):
-    from agentos.core.config import NodeConfig
+    from openajar.core.config import NodeConfig
 
     class Files:
         def inbox_dir(self, lane_id):
@@ -154,7 +154,7 @@ def test_inbox_dir_sources(tmp_path, monkeypatch):
     assert fd.inbox_dir(Runtime(files=Files()), "biz-a/social") == tmp_path / "svc" / "biz-a/social"
     cfg = NodeConfig(home=tmp_path / "home")
     assert fd.inbox_dir(Runtime(config=cfg), "biz-a/social") == tmp_path / "home/lanes/biz-a/social/files/inbox"
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "env"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "env"))
     assert fd.inbox_dir(Runtime(), "biz-a/social") == tmp_path / "env/lanes/biz-a/social/files/inbox"
 
 
@@ -225,7 +225,7 @@ def test_gate_is_a_no_op_without_control_records():
 
 
 async def test_factory_holds_the_lane_as_a_flow_and_yields_a_driver(tmp_path, monkeypatch):
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     lanes = Lanes()
     factory = fd.driver_factory(Runtime(lanes=lanes, interaction="ia"))
     async with factory("biz-a/social") as driver:

@@ -15,8 +15,8 @@ from lanebench.executors.mcp_agent import agent_specs
 
 @pytest.fixture
 def specs(tmp_path):
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
 
     return agent_specs(Runtime(config=NodeConfig(home=tmp_path / "home")))
 
@@ -26,8 +26,8 @@ def names(specs) -> list[str]:
 
 
 def test_export_writes_the_four_files_and_loads_back_unchanged(tmp_path, specs):
-    from agentos.core import catalog
-    from agentos.node.tools import INSTRUCTIONS, RECIPES
+    from openajar.core import catalog
+    from openajar.node.tools import INSTRUCTIONS, RECIPES
 
     out = tmp_path / "base"
     counts = variant.export(out, specs)
@@ -63,9 +63,9 @@ def test_the_digest_follows_the_contents(tmp_path):
 
 
 def test_recipes_and_error_lines_change_for_the_run_and_come_back(tmp_path):
-    from agentos.core import catalog
-    from agentos.mcp.registry import with_catalog_lines
-    from agentos.node import tools as node_tools
+    from openajar.core import catalog
+    from openajar.mcp.registry import with_catalog_lines
+    from openajar.node import tools as node_tools
 
     before_steps = node_tools.RECIPES["post_image"]["steps"]
     before_line = with_catalog_lines("busy: someone holds the lane")
@@ -83,7 +83,7 @@ def test_recipes_and_error_lines_change_for_the_run_and_come_back(tmp_path):
 
 
 def test_tool_descriptions_change_on_copies_only(tmp_path, specs):
-    from agentos.mcp.registry import tool_description
+    from openajar.mcp.registry import tool_description
 
     (tmp_path / "tools.json").write_text(json.dumps({"browser_snapshot": "Read the page."}))
     v = variant.load(tmp_path, tool_names=names(specs))
@@ -98,10 +98,10 @@ async def test_the_bench_mcp_server_says_the_variant(tmp_path, specs):
     """The server the executor builds: the variant's instructions and descriptions, nothing else."""
     from mcp import Client
 
-    from agentos.core.config import NodeConfig
-    from agentos.core.runtime import Runtime
-    from agentos.mcp.registry import build_mcp
     from lanebench.executors.mcp_agent import agent_providers
+    from openajar.core.config import NodeConfig
+    from openajar.core.runtime import Runtime
+    from openajar.mcp.registry import build_mcp
 
     (tmp_path / "v").mkdir()
     (tmp_path / "v" / "instructions.md").write_text("Only these words.")
@@ -120,7 +120,7 @@ async def test_the_bench_mcp_server_says_the_variant(tmp_path, specs):
 def test_the_cli_refuses_a_variant_without_the_mcp_agent(tmp_path):
     from typer.testing import CliRunner
 
-    from agentos.lanebench_cli import app
+    from openajar.lanebench_cli import app
 
     (tmp_path / "instructions.md").write_text("x")
     got = CliRunner().invoke(app, ["run", "--executor", "replay", "--variant", str(tmp_path), "--slot", "52"])
@@ -130,7 +130,7 @@ def test_the_cli_refuses_a_variant_without_the_mcp_agent(tmp_path):
 def test_the_cli_exports_text(tmp_path):
     from typer.testing import CliRunner
 
-    from agentos.lanebench_cli import app
+    from openajar.lanebench_cli import app
 
     got = CliRunner().invoke(app, ["export-text", str(tmp_path / "out")])
     assert got.exit_code == 0, got.output

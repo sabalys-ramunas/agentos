@@ -7,9 +7,9 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
-from agentos.core.models import RunStatus
-from agentos.policy.traces import TraceEvent
-from agentos.runner.models import Run
+from openajar.core.models import RunStatus
+from openajar.policy.traces import TraceEvent
+from openajar.runner.models import Run
 
 ORG = "/api/orgs/local"
 
@@ -67,7 +67,7 @@ def test_the_activity_export_is_a_csv_or_ndjson_file_of_the_same_log(client, nod
     _call(node, "browser_act", "ok", effect="commit")
     csv_reply = client.get(f"{ORG}/activity/export", params={"format": "csv"})
     assert csv_reply.status_code == 200
-    assert csv_reply.headers["content-disposition"].startswith('attachment; filename="agentos-activity-')
+    assert csv_reply.headers["content-disposition"].startswith('attachment; filename="openajar-activity-')
     lines = csv_reply.text.splitlines()
     assert lines[0] == "id,at,kind,tool,lane,workspace,principal,effect,status,summary,run_id"
     assert "browser_act" in lines[1]
@@ -261,7 +261,7 @@ def test_a_call_a_person_made_is_started_by_hand_on_the_row_and_in_its_detail(cl
 
 def test_a_lane_control_row_says_which_action_it_was() -> None:
     """The action rides on the trace's own args, so History can say took over or handed back. Anything else is None."""
-    from agentos.api.web import history
+    from openajar.api.web import history
 
     row = {"id": "tr_1", "at": "2026-11-07T10:00:00Z", "kind": "panel", "tool": "panel.lane.control", "lane": "biz-a/social",
            "principal": "owner", "principal_kind": "human", "effect": None, "status": "ok",
@@ -329,13 +329,13 @@ def test_a_refused_call_says_it_was_stopped_before_it_ran(client, node) -> None:
     [story] = _today_calls(client)
     assert story["verdict"] == "not_run"
     assert story["sentence"] == "Stopped before clicking on Biz A's Instagram"
-    assert story["verdict_text"].startswith("agentos refused this call before it ran, so nothing happened.")
+    assert story["verdict_text"].startswith("openajar refused this call before it ran, so nothing happened.")
     assert "Did not" not in story["sentence"]
 
 
 def test_an_agents_own_mistake_is_not_blamed_on_the_site():
     """Full test 2026-11-10: a call with a bad ref read "Something went wrong on the site. Watch the account"."""
-    from agentos.api.web import telling
+    from openajar.api.web import telling
 
     assert telling.plain_failure("ref must look like e12 (or f3e12 inside a frame); copy it from the latest "
                                  "browser_snapshot") == "The agent's request was not valid, so nothing happened on the site."
@@ -351,7 +351,7 @@ def test_the_histogram_reads_the_four_approval_states_at_once_and_counts_them(mo
     import asyncio
     from datetime import UTC, datetime
 
-    from agentos.api.web import history
+    from openajar.api.web import history
 
     now = datetime.now(UTC).isoformat()
     waiting: list[str] = []
@@ -389,7 +389,7 @@ def test_an_environment_session_is_one_done_story_named_by_its_title(client, nod
     """2026-11-15 test, F4: eleven commands in an environment were eleven "Not checked" warnings on
     "Env's Esrkyfqerme". They are one story, by the environment's title, done, with the commands behind
     Technical details."""
-    from agentos.api.web import history
+    from openajar.api.web import history
 
     monkeypatch.setattr(history.envs_web, "titles", lambda api: {"esrkyfqerme": "qa-env-2026-11-15"})
     for index in range(3):  # a call from before the 2026-11-19 rename keeps its old name, and counts the same

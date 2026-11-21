@@ -58,7 +58,7 @@ const CAPTION: Partial<Record<ConnectStage, (computer: string, provider: string)
   'hand-over': (computer, provider) => `It goes from you to ${computer}, then to ${provider}. That is the whole trip.`,
   waiting: (computer) => `Your password goes from you to ${computer} only when you press Connect on the form there.`,
   checks: (computer, provider) => `${computer} signs in to ${provider} twice: once to read, once to send.`,
-  done: (computer) => `The password stays on ${computer}. agentos Cloud knows the mailbox is healthy, and that is all it knows.`,
+  done: (computer) => `The password stays on ${computer}. openajar Cloud knows the mailbox is healthy, and that is all it knows.`,
 };
 
 const ORDER: ConnectStage[] = ['found', 'password', 'hand-over', 'waiting', 'checks', 'done'];
@@ -110,7 +110,7 @@ function keyAtOf(stage: ConnectStage, ending: Ending | null): KeyAt {
 function captionOf(stage: ConnectStage, found: MailDiscovery | undefined, computer: string, provider: string | null): string {
   if (found?.result === 'later') return 'Nothing was sent anywhere, and nothing was saved.';
   if (stage === 'found' && found && found.result !== 'found') return 'Your password has not gone anywhere. It waits until the names are right.';
-  return CAPTION[stage]?.(computer, provider ?? 'your mail') ?? 'Your password will go from you to your own computer, and from there to your mail. Never through agentos Cloud.';
+  return CAPTION[stage]?.(computer, provider ?? 'your mail') ?? 'Your password will go from you to your own computer, and from there to your mail. Never through openajar Cloud.';
 }
 
 /** A mailbox is connected from the computer that holds its password, so the cloud says so instead of a form. */

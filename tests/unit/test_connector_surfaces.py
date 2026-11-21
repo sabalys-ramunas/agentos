@@ -17,19 +17,19 @@ from connector_samples import (
 from pydantic import ValidationError
 from test_policy_support import Clock
 
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import ActsAs, Effect, Principal, RunStatus, Surface
-from agentos.core.tools import bind_request_token
-from agentos.mcp.registry import build_mcp
-from agentos.policy.errors import Denied
-from agentos.policy.service import PolicyService
-from agentos.policy.wrap import wrap_tool
-from agentos.runner import tools as runner_tools
-from agentos.runner.connectors.compile import compile_connector
-from agentos.runner.connectors.models import Connector
-from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.connectors.tools import connector_status, connectors_list
-from agentos.runner.fakes import OWNER, FakeCtx, FakeLanes, Harness
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import ActsAs, Effect, Principal, RunStatus, Surface
+from openajar.core.tools import bind_request_token
+from openajar.mcp.registry import build_mcp
+from openajar.policy.errors import Denied
+from openajar.policy.service import PolicyService
+from openajar.policy.wrap import wrap_tool
+from openajar.runner import tools as runner_tools
+from openajar.runner.connectors.compile import compile_connector
+from openajar.runner.connectors.models import Connector
+from openajar.runner.connectors.service import ConnectorService
+from openajar.runner.connectors.tools import connector_status, connectors_list
+from openajar.runner.fakes import OWNER, FakeCtx, FakeLanes, Harness
 
 AGENT = Principal(kind="agent", id="claude-code", thread="T-1")
 PAGE = {"id": "biz-a/social-page", "lane": "personal/social", "acts_as": {"kind": "fb_page", "id": "biz-a", "name": "biz-a"}}
@@ -85,7 +85,7 @@ def test_only_the_owner_binds_and_removes_surfaces(tmp_path):
     assert created and s.created_by == "owner" and s.lane == "personal/social"
     again, created = surfaces.put({**PAGE, "site": "social", "title": "biz-a on social"}, by=OWNER)
     assert not created and again.created_at == s.created_at and again.title == "biz-a on social"
-    with pytest.raises(InvalidRequest, match="not a site agentos knows"):
+    with pytest.raises(InvalidRequest, match="not a site openajar knows"):
         surfaces.put({**PAGE, "site": "myspace"}, by=OWNER)
     with pytest.raises(InvalidRequest, match="does not exist"):
         surfaces.put({**PAGE, "site": "social", "lane": "personal/nowhere"}, by=OWNER)
@@ -194,7 +194,7 @@ def test_one_tool_per_operation_named_site_op(tmp_path):
     assert not any(n.startswith("flow_connector") for n in specs)
     post = specs["social_post_photo"]
     assert post.effect == Effect.COMMIT and post.lane_arg == "on"
-    from agentos.mcp.registry import tool_params
+    from openajar.mcp.registry import tool_params
 
     params = {p.name: p for p in tool_params(post)}
     assert set(params) == {"on", "caption", "image", "wait_seconds", "idempotency_key", "not_before"}
@@ -289,7 +289,7 @@ def test_the_panel_api_binds_surfaces_and_queues_runs_through_them(tmp_path):
     from starlette.applications import Starlette
     from starlette.testclient import TestClient
 
-    from agentos.runner.connectors import api
+    from openajar.runner.connectors import api
 
     h = _harness(tmp_path)
     h.runner.surfaces.sites = SITES
@@ -313,18 +313,18 @@ def test_the_panel_api_binds_surfaces_and_queues_runs_through_them(tmp_path):
 
 
 def test_the_mounts_serve_the_connector_routes_as_owner_routes():
-    from agentos.api.mounts import MOUNTS
+    from openajar.api.mounts import MOUNTS
 
-    mounted = MOUNTS["agentos.runner.connectors.api"]
+    mounted = MOUNTS["openajar.runner.connectors.api"]
     assert ("/api/connectors/{operation}/run", "POST") in mounted and ("/api/surfaces", "POST") in mounted
 
 
 def test_the_cli_binds_lists_runs_and_unbinds(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from agentos.cli import app
+    from openajar.cli import app
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     h = Harness(tmp_path)  # the same runner.db the CLI opens
     ConnectorService(h.flows, sites=SITES).install(compile_connector(connector(), sites=SITES), by=OWNER)
     bind(h)
@@ -341,14 +341,14 @@ def test_the_cli_binds_lists_runs_and_unbinds(tmp_path, monkeypatch):
     assert r.exit_code == 1 and "come from the surface's binding" in r.output
     r = cli.invoke(app, ["connector", "bind", "biz-a/x", "--site", "myspace", "--lane", "biz-a/x", "--acts-as",
                          "account", "--id", "1"])
-    assert r.exit_code == 1 and "not a site agentos knows" in r.output
+    assert r.exit_code == 1 and "not a site openajar knows" in r.output
     assert cli.invoke(app, ["connector", "health"]).exit_code == 0
     r = cli.invoke(app, ["connector", "unbind", "biz-a/facebook-page"])
     assert r.exit_code == 0 and "removed" in r.output and "\u2014" not in r.output
 
 
 def test_the_panels_flow_run_plans_a_connector_operation_on_its_surface(tmp_path):
-    from agentos.api.bridge import FlowsAdapter
+    from openajar.api.bridge import FlowsAdapter
 
     h = _harness(tmp_path)
     bind(h, **PAGE)

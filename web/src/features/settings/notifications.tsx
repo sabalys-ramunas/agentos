@@ -1,12 +1,14 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { useRunsAlone } from '@/features/nodes/add-node';
-import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useAccess, useNotifications, usePushConfig, useProviders, useSaveNotifications, useTestNotification, useWebhooks } from '@/api/hooks';
 import type { NotificationSettings, QuietHours, Webhook, WebhookEvent } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
-import { Input } from '@/components/ui/field';
+import { Input, Label } from '@/components/ui/field';
+import { SaveStatus, SettingRow } from '@/components/ui/form';
+import { AppTile } from '@/components/ui/tile';
+import { Mail, Moon } from 'lucide-react';
 import { Select } from '@/components/ui/select';
 import { QueryView, Skeleton } from '@/components/ui/states';
 import { Switch } from '@/components/ui/toggle';
@@ -15,24 +17,6 @@ import { describeError } from '@/lib/errors';
 import { DigestPreview } from './digest-preview';
 import { SettingsHeader } from './page';
 import { PushCard } from './push-device';
-
-function Row({ label, hint, children, htmlFor }: { label: string; hint: ReactNode; children: ReactNode; htmlFor?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-6 py-3 first:pt-0 last:pb-0">
-      <div className="min-w-0">
-        {htmlFor ? (
-          <label htmlFor={htmlFor} className="text-body">
-            {label}
-          </label>
-        ) : (
-          <p className="text-body">{label}</p>
-        )}
-        <p className="text-secondary text-faint">{hint}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 const BATCH = [
   { value: '0', label: 'At once' },
@@ -86,13 +70,13 @@ function QuietStrip({ quiet }: { quiet: QuietHours }) {
         {pieces.map(([start = 0, end = 0]) => (
           <span
             key={start}
-            className="absolute inset-y-0 bg-fill-strong transition-[left,width] duration-(--duration-base) ease-standard"
+            className="absolute inset-y-0 border-x border-accent-line bg-accent-soft transition-[left,width] duration-(--duration-base) ease-standard"
             style={{ left: `${(start / day) * 100}%`, width: `${((end - start) / day) * 100}%` }}
           />
         ))}
         <span className="absolute inset-y-0 w-px bg-fg" style={{ left: `${(now / day) * 100}%` }} />
       </div>
-      <div className="mono tabular flex justify-between text-caption text-faint" aria-hidden="true">
+      <div className="mono tabular flex justify-between text-code-caption text-faint" aria-hidden="true">
         <span>00:00</span>
         <span>06:00</span>
         <span>12:00</span>
@@ -112,9 +96,7 @@ function ClockField({ id, label, value, onCommit }: { id: string; label: string;
   useEffect(() => setDraft(value), [value]);
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-secondary text-muted">
-        {label}
-      </label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         type="time"
@@ -180,15 +162,15 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
   const rows = routes(value, hooks, pushable);
   return (
     <Card>
-      <div className="p-6 pb-4">
-        <h2 className="text-section-title">Where things go</h2>
-        <p className="mt-1 text-body text-muted">Worked out from your choices on this page. Whatever is off, approvals still wait in Needs you.</p>
+      <div className="px-6 pt-5 pb-4">
+        <h3 className="text-section-title">Where things go</h3>
+        <p className="mt-1 text-secondary text-muted">Worked out from your choices on this page. Whatever is off, approvals still wait in Needs you.</p>
       </div>
       {/* A real table from a tablet up. On a phone each event is a short list instead. */}
       <table className="hidden w-full border-t border-line text-left md:table">
         <caption className="sr-only">Where each kind of event goes</caption>
         <thead>
-          <tr className="h-10 border-b border-line text-secondary text-faint">
+          <tr className="h-10 border-b border-line text-table-header text-faint">
             <th scope="col" className="pl-6 font-normal">
               Event
             </th>
@@ -263,11 +245,7 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
 }
 
 function SaveState({ save }: { save: ReturnType<typeof useSaveNotifications> }) {
-  return (
-    <span role="status" className={cn('block min-h-5 text-secondary', save.isError ? 'text-bad' : 'text-faint')}>
-      {save.isPending ? 'Saving' : save.isError ? `${describeError(save.error)} Your last saved choice is back.` : save.isSuccess ? 'Saved' : ''}
-    </span>
-  );
+  return <SaveStatus state={save.status} error={save.isError ? `${describeError(save.error)} Your last saved choice is back.` : null} />;
 }
 
 function Form({ org, value }: { org: string; value: NotificationSettings }) {
@@ -292,9 +270,10 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
   const zones = [...new Set([zone, browserZone(), ...ZONES])].map((item) => ({ value: item, label: item.replaceAll('_', ' ') }));
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PushCard org={org} enabledInSettings={value.push} />
       <FormCard
+        tile={<AppTile tone="blue" icon={Mail} size="sm" />}
         title="Channels"
         description={alone ? 'Yours alone, on this computer. Nobody else sees or changes them.' : 'Yours alone, in this organization. Nobody else sees or changes them.'}
         footnote={save.isIdle ? undefined : <SaveState save={save} />}
@@ -307,18 +286,18 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
         }
       >
         <div className="divide-y divide-line">
-          <Row
+          <SettingRow
             label="Push to my devices"
             hint={pushable ? 'Turns push off everywhere at once, without removing any device.' : 'Not available here, so nothing is pushed. Approvals still wait in Needs you.'}
           >
             <Switch aria-label="Push to my devices" checked={value.push && pushable} disabled={!pushable} onCheckedChange={(push) => patch({ push })} />
-          </Row>
+          </SettingRow>
           {emailable ? (
             <>
-              <Row label="Urgent email" hint="Payments and irreversible actions, the moment they ask.">
+              <SettingRow label="Urgent email" hint="Payments and irreversible actions, the moment they ask.">
                 <Switch aria-label="Urgent email" checked={value.email_urgent} onCheckedChange={(email_urgent) => patch({ email_urgent })} />
-              </Row>
-              <Row label="Email digest" hint={`What your agents did, and what waits. It lands at ${value.digest?.label ?? `08:00 in ${zone.replaceAll('_', ' ')}`}.`}>
+              </SettingRow>
+              <SettingRow label="Email digest" hint={`What your agents did, and what waits. It lands at ${value.digest?.label ?? `08:00 in ${zone.replaceAll('_', ' ')}`}.`}>
                 <Select
                   className="w-32 shrink-0"
                   aria-label="Email digest"
@@ -330,16 +309,20 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
                     { value: 'weekly', label: 'Weekly' },
                   ]}
                 />
-              </Row>
+              </SettingRow>
             </>
           ) : null}
         </div>
-        {sendsEmail === false ? <p className="mt-4 text-secondary text-faint">This computer sends no email. Approvals still wait in Needs you.</p> : null}
+        {sendsEmail === false ? <p className="text-secondary text-faint">This computer sends no email. Approvals still wait in Needs you.</p> : null}
       </FormCard>
       <WhereThingsGo org={org} value={value} pushable={pushable} emailable={emailable} />
-      <FormCard title="Timing" description="When a push may reach you. Nothing is lost while it waits: everything stays in Needs you.">
+      <FormCard
+        tile={<AppTile tone="violet" icon={Moon} size="sm" />}
+        title="Timing"
+        description="When a push may reach you. Nothing is lost while it waits: everything stays in Needs you."
+      >
         <div className="divide-y divide-line">
-          <Row label="Group routine approvals" hint="Several that arrive close together come as one push. Urgent ones never wait.">
+          <SettingRow label="Group routine approvals" hint="Several that arrive close together come as one push. Urgent ones never wait.">
             <Select
               className="w-36 shrink-0"
               aria-label="Group routine approvals"
@@ -347,17 +330,17 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
               onValueChange={(minutes) => patch({ batch_minutes: Number(minutes) })}
               options={BATCH.some((item) => item.value === String(value.batch_minutes)) ? BATCH : [...BATCH, { value: String(value.batch_minutes), label: `${value.batch_minutes} minutes` }]}
             />
-          </Row>
-          <Row label="Quiet hours" hint="Pushes wait until the end, in the time zone below.">
+          </SettingRow>
+          <SettingRow label="Quiet hours" hint="Pushes wait until the end, in the time zone below.">
             <Switch aria-label="Quiet hours" checked={value.quiet_hours.enabled} onCheckedChange={(enabled) => quiet({ enabled })} />
-          </Row>
+          </SettingRow>
           {value.quiet_hours.enabled ? (
             <div className="grid gap-4 py-4">
               <div className="grid gap-4 sm:grid-cols-[repeat(2,minmax(0,8rem))_minmax(0,1fr)]">
                 <ClockField id="quiet-from" label="From" value={value.quiet_hours.from} onCommit={(from) => quiet({ from })} />
                 <ClockField id="quiet-to" label="To" value={value.quiet_hours.to} onCommit={(to) => quiet({ to })} />
                 <div className="grid gap-2">
-                  <span id="quiet-zone" className="text-secondary text-muted">
+                  <span id="quiet-zone" className="text-label text-fg">
                     Time zone
                   </span>
                   <Select aria-describedby="quiet-zone" aria-label="Time zone" value={zone} onValueChange={(timezone) => quiet({ timezone })} options={zones} />
@@ -367,13 +350,13 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
             </div>
           ) : null}
           {value.quiet_hours.enabled ? (
-            <Row label="Urgent comes through" hint="Payments and irreversible actions still reach you in quiet hours.">
+            <SettingRow label="Urgent comes through" hint="Payments and irreversible actions still reach you in quiet hours.">
               <Switch
                 aria-label="Urgent comes through"
                 checked={value.quiet_hours.urgent_breaks_through}
                 onCheckedChange={(urgent_breaks_through) => quiet({ urgent_breaks_through })}
               />
-            </Row>
+            </SettingRow>
           ) : null}
         </div>
       </FormCard>
@@ -387,7 +370,7 @@ export function NotificationSettingsScreen() {
   const query = useNotifications(org);
   return (
     <>
-      <SettingsHeader title="Notifications" description="How agentos reaches you. Approvals always wait in Needs you, whatever you turn off." />
+      <SettingsHeader title="Notifications" description="How openajar reaches you. Approvals always wait in Needs you, whatever you turn off." />
       <QueryView card query={query} skeleton={<Skeleton className="h-96 rounded-xl" />}>
         {(data) => <Form org={org} value={data} />}
       </QueryView>

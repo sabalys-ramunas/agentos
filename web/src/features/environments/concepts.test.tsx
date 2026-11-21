@@ -64,7 +64,7 @@ describe('checkpoints as a line of work', () => {
   const change = (files: number, added: number) => ({ files_added: 0, files_changed: files, files_removed: 0, lines_added: added, lines_removed: 1 });
   const cp = (id: number, extra: Partial<EnvCheckpoint> = {}): EnvCheckpoint => ({ id, at: iso(id * 10), note: `c${id}`, auto: null, repos: [{ dir: '/work/shop', head: 'abc', files: 1, diff: change(id, id * 10) }], ...extra });
 
-  it('reads a rollback from the checkpoint agentos made before it, and puts the work it went back past on the side line', () => {
+  it('reads a rollback from the checkpoint openajar made before it, and puts the work it went back past on the side line', () => {
     const rows = checkpointRows([cp(1), cp(2), cp(3), cp(4), cp(5, { auto: 'before rollback to 3' }), cp(6)]);
     expect(rows.map((row) => (row.kind === 'checkpoint' ? `${row.number}${row.side ? ' side' : ''}${row.forks ? ' fork' : ''}` : row.kind))).toEqual(['now', '6', 'restore', '5 side', '4 side', '3 fork', '2', '1']);
     expect(rows[0]).toMatchObject({ kind: 'now', base: { number: 6 }, since: { files: 6, added: 60, removed: 1 } });
@@ -225,7 +225,7 @@ describe('the environment concepts on the mock', () => {
     expect(within(refused).getByText(/A secret's placeholder went here/)).toBeInTheDocument();
     expect(refused.textContent).toContain(allowCommand('api.segment.io'));
     await user.click(within(refused).getByRole('button', { name: 'Copy the command that allows fonts.googleapis.com' }));
-    expect(await navigator.clipboard.readText()).toBe('agentos environments allow --host fonts.googleapis.com');
+    expect(await navigator.clipboard.readText()).toBe('openajar environments allow --host fonts.googleapis.com');
     const secrets = screen.getByRole('region', { name: 'App secrets' });
     expect(within(secrets).getByText('PARCELPOINT_API_KEY')).toBeInTheDocument();
     expect(within(secrets).queryByRole('textbox')).not.toBeInTheDocument();
@@ -235,7 +235,7 @@ describe('the environment concepts on the mock', () => {
     const { user } = renderApp(`/${ORG}/environments/c5kp`);
     const list = await screen.findByRole('list', { name: 'Checkpoints, newest first' }, T);
     expect(within(list).getByText('Went back to 3')).toBeInTheDocument();
-    expect(within(list).getByText('Made by agentos')).toBeInTheDocument();
+    expect(within(list).getByText('Made by openajar')).toBeInTheDocument();
     await user.click(within(list).getByRole('button', { name: 'Show what changed since checkpoint 3' }));
     const dialog = await screen.findByRole('dialog', undefined, T);
     expect(await within(dialog).findByRole('region', { name: 'shop/src/cart/totals.ts' }, T)).toBeInTheDocument();
@@ -273,14 +273,14 @@ describe('the environment concepts on the mock', () => {
   });
 
   it('keeps a resume the node refuses in its dialog, with the fix', async () => {
-    const full = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `agentos environments allow --max-vms 4`.';
+    const full = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `openajar environments allow --max-vms 4`.';
     server.use(http.post('/api/orgs/:org/environments/saves/:id/resume', () => HttpResponse.json({ error: { code: 'environment_full', message: full } }, { status: 409 })));
     const { user } = renderApp(`/${ORG}/environments`);
     await user.click(await screen.findByRole('button', { name: 'Resume Checkout redesign' }, T));
     const dialog = await screen.findByRole('dialog', { name: 'Resume Checkout redesign?' });
     await user.click(within(dialog).getByRole('button', { name: 'Resume' }));
     expect(await within(dialog).findByRole('alert', undefined, T)).toHaveTextContent('No room for another machine now. Nothing was rented.');
-    expect(within(dialog).getByText('agentos environments allow --max-vms 4')).toBeInTheDocument();
+    expect(within(dialog).getByText('openajar environments allow --max-vms 4')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
@@ -290,7 +290,7 @@ describe('the environment concepts on the mock', () => {
     expect(within(table).getAllByText('harbor-supply/shop')).toHaveLength(2);
     expect(within(table).getByText('Build failed')).toBeInTheDocument();
     expect(within(table).getByText(/ERR_PNPM_FETCH_404/)).toBeInTheDocument();
-    expect(document.body.textContent).toContain('agentos environments allow --warm 0');
+    expect(document.body.textContent).toContain('openajar environments allow --warm 0');
     expect(screen.getByText('At most a month').parentElement).toHaveTextContent('€8.71');
   });
 });

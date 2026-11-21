@@ -62,8 +62,8 @@ def test_udp_sendto_is_refused(expect_attempt):
 
 @pytest.mark.network
 def test_the_network_marker_turns_the_guard_off():
-    assert not hasattr(socket.socket.connect, "__agentos_netguard__")
+    assert not hasattr(socket.socket.connect, "__openajar_netguard__")
 
 
 def test_without_the_marker_the_guard_is_on():
-    assert getattr(socket.socket.connect, "__agentos_netguard__", False)
+    assert getattr(socket.socket.connect, "__openajar_netguard__", False)

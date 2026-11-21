@@ -1,8 +1,8 @@
-"""`agentos setup`, the guided setup of local mode, run end to end with fakes.
+"""`openajar setup`, the guided setup of local mode, run end to end with fakes.
 
 Every outside thing is a fake: the Hetzner and GitHub APIs, gh, docker, the local service and its
-registration of Claude Code and Codex (agentos.local, built by another builder), and the test VM.
-HOME and AGENTOS_HOME are temp folders, so nothing touches this computer's real setup. The vault
+registration of Claude Code and Codex (openajar.local, built by another builder), and the test VM.
+HOME and OPENAJAR_HOME are temp folders, so nothing touches this computer's real setup. The vault
 is a real one, in the temp home.
 """
 
@@ -18,9 +18,9 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.core import webapp
-from agentos.setup import steps, webstep
+from openajar.cli import app
+from openajar.core import webapp
+from openajar.setup import steps, webstep
 
 HZ_TOKEN = "hz_" + "h" * 40
 GH_TOKEN = "gho_" + "g" * 36
@@ -49,7 +49,7 @@ class World:
     running: bool = False
     snapshot: bool | None = True  # the Hetzner project has the dev snapshot (None: Hetzner did not say)
     snapshot_fails: str | None = None
-    web_version: str = "0.0.0"  # set to agentos's own version by the fixture
+    web_version: str = "0.0.0"  # set to openajar's own version by the fixture
     web_fails: str | None = None
     calls: list = field(default_factory=list)
 
@@ -65,7 +65,7 @@ class World:
     def build_dev_snapshot(self, home, say):
         self.calls.append(("build snapshot",))
         if self.snapshot_fails:
-            from agentos.vms.models import VmError
+            from openajar.vms.models import VmError
 
             raise VmError(self.snapshot_fails)
         say("creating build VM vm_1 (cx23 in nbg1 from ubuntu-24.04)")
@@ -101,24 +101,24 @@ class World:
         return (user, None) if user else (None, "GitHub refused it (expired, revoked or mistyped)")
 
     def get_web_app(self, home):
-        """The release's web app, as agentos.setup.webapp.install leaves it (tests/unit/test_web_install.py
+        """The release's web app, as openajar.setup.webapp.install leaves it (tests/unit/test_web_install.py
         tests the real download)."""
-        from agentos.setup.webapp import Installed, WebAppMissing, _write_state
+        from openajar.setup.webapp import Installed, WebAppMissing, _write_state
 
         self.calls.append(("web install",))
         if self.web_fails:
             raise WebAppMissing(self.web_fails)
         app_dir = webapp.installed_dir(home)
         app_dir.mkdir(parents=True, exist_ok=True)
-        (app_dir / "index.html").write_text("<!doctype html><title>agentos</title>")
+        (app_dir / "index.html").write_text("<!doctype html><title>openajar</title>")
         _write_state(home, version=self.web_version, sha256="0" * 64, wanted=True)
         return Installed(version=self.web_version, sha256="0" * 64, files=1, path=app_dir)
 
     def open_test_vm(self, home):
         self.calls.append(("test_vm",))
-        return "Linux agentos-vm 6.8.0-49-generic #49-Ubuntu SMP x86_64 GNU/Linux", 0.0106
+        return "Linux openajar-vm 6.8.0-49-generic #49-Ubuntu SMP x86_64 GNU/Linux", 0.0106
 
-    # agentos.local (the contract of builder L1a)
+    # openajar.local (the contract of builder L1a)
     def status(self, home):
         return State(running=self.running, log_path=home / "logs" / "service.log")
 
@@ -135,10 +135,10 @@ class World:
     def register_clients(self, home, port, *, claude=True, codex=True, skills=True):
         self.calls.append(("register", port, claude, codex, skills))
         return ["Agent grant g_1 issued for claude-code@laptop: every workspace, up to write, specials none",
-                "Token stored in macOS Keychain (service agentos, account agentos-local)"] + [
-            w for w, on in (("Claude Code: added agentos to ~/.claude.json", claude),
-                                ("Codex: added agentos to ~/.codex/config.toml", codex),
-                                ("Skills: agentos-environment", skills)) if on]
+                "Token stored in macOS Keychain (service openajar, account openajar-local)"] + [
+            w for w, on in (("Claude Code: added openajar to ~/.claude.json", claude),
+                                ("Codex: added openajar to ~/.codex/config.toml", codex),
+                                ("Skills: openajar-environment", skills)) if on]
 
 
 @pytest.fixture
@@ -146,27 +146,27 @@ def world(tmp_path, monkeypatch):
     user = tmp_path / "user"
     user.mkdir()
     home = tmp_path / "agentos-home"
-    monkeypatch.setenv("HOME", str(user))  # nothing reaches the real ~/.claude.json, ~/.codex, ~/.agentos
-    monkeypatch.setenv("AGENTOS_HOME", str(home))
+    monkeypatch.setenv("HOME", str(user))  # nothing reaches the real ~/.claude.json, ~/.codex, ~/.openajar
+    monkeypatch.setenv("OPENAJAR_HOME", str(home))
     w = World(home)
     for name in ("hetzner_check", "docker_state", "get_docker_image", "gh_available", "gh", "github_user",
                  "open_test_vm", "dev_snapshot_state", "build_dev_snapshot"):
         monkeypatch.setattr(steps, name, getattr(w, name))
     modules = {"service": SimpleNamespace(status=w.status, start=w.start, stop=w.stop),
                "register": SimpleNamespace(register_clients=w.register_clients),
-               "paths": SimpleNamespace(default_home=lambda: user / ".agentos", DEFAULT_PORT=7410)}
+               "paths": SimpleNamespace(default_home=lambda: user / ".openajar", DEFAULT_PORT=7410)}
     monkeypatch.setattr(steps, "local", lambda name: modules[name])
     _keep_fields(monkeypatch)
     # The web app: the tests run as from a checkout that built it, so the web step asks nothing (the
     # web step's own tests below take the build away).
-    from agentos import __version__
+    from openajar import __version__
 
     w.web_version = __version__
     dist = tmp_path / "checkout" / "web" / "dist"
     dist.mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><title>agentos</title>")
-    monkeypatch.delenv("AGENTOS_PANEL_DIR", raising=False)
-    monkeypatch.delenv("AGENTOS_NO_WEB", raising=False)
+    (dist / "index.html").write_text("<!doctype html><title>openajar</title>")
+    monkeypatch.delenv("OPENAJAR_PANEL_DIR", raising=False)
+    monkeypatch.delenv("OPENAJAR_NO_WEB", raising=False)
     monkeypatch.setattr(webapp, "checkout_dist", lambda: dist)
     monkeypatch.setattr(webstep, "get_web_app", w.get_web_app)
     return w
@@ -174,11 +174,11 @@ def world(tmp_path, monkeypatch):
 
 def _keep_fields(monkeypatch):
     """environments.toml's keep keys (default_keep, allow_keep_live) come with kept environments
-    (agentos.environments.models). Until that model has them, the tests read and write them on a model
+    (openajar.environments.models). Until that model has them, the tests read and write them on a model
     that does, so the step is tested as it runs with them."""
     from typing import Literal
 
-    from agentos.environments import models
+    from openajar.environments import models
 
     if "default_keep" in models.EnvSettings.model_fields:
         return
@@ -191,7 +191,7 @@ def _keep_fields(monkeypatch):
 
 
 def run(*args, input=None):
-    return CliRunner().invoke(app, ["setup", *args], input=input, prog_name="agentos")
+    return CliRunner().invoke(app, ["setup", *args], input=input, prog_name="openajar")
 
 
 def _no_secrets(out: str) -> None:
@@ -207,16 +207,16 @@ def test_quick_start_with_hetzner_and_gh(world):
     out = r.output
     assert r.exit_code == 0, out
     _no_secrets(out)
-    assert "Welcome to agentos" in out and "about EUR 0.011 an hour" in out
+    assert "Welcome to openajar" in out and "about EUR 0.011 an hour" in out
     assert "nothing until a VM opens" in out
     for n, title in enumerate(("VMs", "GitHub", "Limits", "Your agents", "The web app", "SSH from your shell",
                                "Health check", "A test VM"), 1):
         assert f"Step {n} of 8: {title}" in out
     assert "The web app is served from this checkout's own build" in out
-    # ssh agentos-<id> from the person's shell: one Include at the top of ~/.ssh/config
+    # ssh openajar-<id> from the person's shell: one Include at the top of ~/.ssh/config
     ssh_config = Path(os.environ["HOME"]) / ".ssh" / "config"
     assert ssh_config.read_text().splitlines()[1] == f"Include {home}/ssh/config"
-    # VMs: the token where `agentos vm setup` keeps it, 0600; vms.toml says hetzner
+    # VMs: the token where `openajar vm setup` keeps it, 0600; vms.toml says hetzner
     token_file = home / "secrets" / "hetzner.token"
     assert token_file.read_text().strip() == HZ_TOKEN and oct(token_file.stat().st_mode & 0o777) == "0o600"
     vms = tomllib.loads((home / "vms.toml").read_text())
@@ -226,7 +226,7 @@ def test_quick_start_with_hetzner_and_gh(world):
     assert saved["login"] == "octo" and saved["source"] == "gh" and saved["any_repo"] is True
     assert GH_TOKEN not in (home / "git" / "login.json").read_text()
     assert (home / "vault.db").exists() and (home / "secrets" / "vault.key").exists()
-    assert "When gh signs in again or the token changes, run `agentos setup github` again" in out
+    assert "When gh signs in again or the token changes, run `openajar setup github` again" in out
     # limits: the low local defaults
     env = tomllib.loads((home / "environments.toml").read_text())
     assert env["monthly_eur"] == 10 and env["max_hours"] == 4 and env["max_live"] == 2
@@ -242,18 +242,18 @@ def test_quick_start_with_hetzner_and_gh(world):
     assert "ready  Service  running at http://127.0.0.1:7410/mcp" in out
     assert "ready  GitHub   octo (from gh): any repository it can reach" in out
     assert "ready  Agents   connected: Claude Code, Codex, Skills" in out
-    assert ("test_vm",) in world.calls and "It answered: Linux agentos-vm" in out and "EUR 0.011" in out
+    assert ("test_vm",) in world.calls and "It answered: Linux openajar-vm" in out and "EUR 0.011" in out
     assert "All set. Nothing bills until an agent opens a VM." in out
     assert "Next: start a new Claude Code session and ask:" in out
-    assert "work in agentos on github.com/octo/<repo>" in out
+    assert "work in openajar on github.com/octo/<repo>" in out
 
 
 def test_the_vault_holds_the_gh_token_for_the_gateway(world):
     import asyncio
 
-    from agentos.commands.base import cli_runtime
-    from agentos.git import keys as keymod
-    from agentos.git import login
+    from openajar.commands.base import cli_runtime
+    from openajar.git import keys as keymod
+    from openajar.git import login
 
     r = run("github", input="1\n\n")
     assert r.exit_code == 0, r.output
@@ -278,7 +278,7 @@ def test_step_by_step_asks_each_setting(world):
     assert vms["profiles"]["medium"]["min_cpu"] == 4 and "small" in vms["profiles"]
     saved = json.loads((home / "git" / "login.json").read_text())
     assert saved["source"] == "token" and saved["any_repo"] is False
-    assert "Connect repositories one by one: agentos environments repo add github.com/<owner>/<name>" in out
+    assert "Connect repositories one by one: openajar environments repo add github.com/<owner>/<name>" in out
     env = tomllib.loads((home / "environments.toml").read_text())
     assert (env["monthly_eur"], env["max_hours"], env["max_live"]) == (25, 6, 3)
     assert env["default_keep"] == "none" and "allow_keep_live" not in env
@@ -337,7 +337,7 @@ def test_no_to_the_dev_snapshot_builds_nothing_and_says_how_to_later(world):
     r = run("vms", input="1\n" + HZ_TOKEN + "\n\n\nn\n")
     assert r.exit_code == 0, r.output
     assert ("build snapshot",) not in world.calls
-    assert "`agentos vm image build dev`" in r.output and "—" not in r.output
+    assert "`openajar vm image build dev`" in r.output and "—" not in r.output
 
 
 def test_yes_never_builds_the_dev_snapshot(world, tmp_path):
@@ -414,16 +414,16 @@ def test_vms_again_restarts_a_running_service(world):
     world.running = True
     r = run("vms", "--docker", input="\nn\n")  # Docker (the default with --docker), no image build
     assert r.exit_code == 0, r.output
-    assert ("stop",) in world.calls and "Restarted the agentos service" in r.output
+    assert ("stop",) in world.calls and "Restarted the openajar service" in r.output
 
 
 def test_without_the_local_runtime_it_says_so(world, monkeypatch):
     def missing(name):
-        raise ModuleNotFoundError(f"No module named 'agentos.local.{name}'", name=f"agentos.local.{name}")
+        raise ModuleNotFoundError(f"No module named 'openajar.local.{name}'", name=f"openajar.local.{name}")
 
     monkeypatch.setattr(steps, "local", missing)
     r = run("agents")
-    assert r.exit_code == 0 and "not part of this build of agentos yet" in r.output
+    assert r.exit_code == 0 and "not part of this build of openajar yet" in r.output
     r = run("check")
     assert "to do  Service  not part of this build yet" in r.output
 
@@ -432,15 +432,15 @@ def test_check_says_each_piece_in_plain_words(world):
     r = run("check")
     out = r.output
     assert r.exit_code == 0, out
-    assert "to do  Service  not running: `agentos setup agents` starts it" in out
-    assert "to do  VMs      not set up: agentos setup vms" in out
+    assert "to do  Service  not running: `openajar setup agents` starts it" in out
+    assert "to do  VMs      not set up: openajar setup vms" in out
     assert "note   GitHub   no login: public repositories only" in out
     assert "ready  Limits" in out
 
 
 def test_stopping_early_says_how_to_go_on(world):
     r = run(input="1\n")  # quick start, then the input ends
-    assert r.exit_code == 1 and "Setup stopped" in r.output and "agentos setup --yes" in r.output
+    assert r.exit_code == 1 and "Setup stopped" in r.output and "openajar setup --yes" in r.output
 
 
 def test_an_unknown_step_is_refused(world):
@@ -449,19 +449,19 @@ def test_an_unknown_step_is_refused(world):
 
 
 def test_home_defaults_to_the_local_one(world, monkeypatch):
-    monkeypatch.delenv("AGENTOS_HOME")
+    monkeypatch.delenv("OPENAJAR_HOME")
     r = run("limits", "--yes")
     assert r.exit_code == 0, r.output
-    assert (Path(os.environ["HOME"]) / ".agentos" / "environments.toml").exists()
+    assert (Path(os.environ["HOME"]) / ".openajar" / "environments.toml").exists()
 
 
 # ------------------------------------------------------------------ the snapshot's outside calls, with a fake Hetzner
 
 
 def test_the_snapshot_check_reads_hetzner_and_tells_missing_from_unknown(tmp_path, monkeypatch):
-    from agentos.core.errors import ServiceUnavailable
-    from agentos.vms.manager import VmManager
-    from agentos.vms.models import VmError
+    from openajar.core.errors import ServiceUnavailable
+    from openajar.vms.manager import VmManager
+    from openajar.vms.models import VmError
 
     answers: list = []
 
@@ -480,9 +480,9 @@ def test_the_snapshot_check_reads_hetzner_and_tells_missing_from_unknown(tmp_pat
 
 
 def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, monkeypatch):
-    from agentos.environments import machine
-    from agentos.environments.vmbrowser import install_script
-    from agentos.vms.manager import VmManager, image_script
+    from openajar.environments import machine
+    from openajar.environments.vmbrowser import desktop_install_script, install_script
+    from openajar.vms.manager import VmManager, image_script
 
     seen = {}
 
@@ -496,10 +496,11 @@ def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, mon
     assert steps.build_dev_snapshot(tmp_path, said.append) == 0.02
     # the environment's setup too: a VM from the snapshot has its marker and pnpm, so its setup check is one
     # call; and no updates on their own mid-session (they are applied while the image is built)
-    script = image_script(machine.UPDATES_OFF + machine.setup_install() + install_script())
+    # and its desktop: the snapshot holds the screen's desktop too, so a machine from it has nothing to install
+    script = image_script(machine.UPDATES_OFF + machine.setup_install() + install_script() + desktop_install_script())
     assert script == machine.dev_image_script()
     assert seen == {"name": "dev", "script": script, "follow_ip": True}
-    assert script.index("AGENTOS_SETUP_SCRIPT") < script.index("cloud-init clean")
+    assert script.index("OPENAJAR_SETUP_SCRIPT") < script.index("cloud-init clean")
     assert said == ["taking the snapshot"]
 
 
@@ -538,7 +539,7 @@ def test_yes_saves_when_idle_and_asks_nothing_about_keeping(world):
 
 
 def test_ssh_adds_the_include_once_and_keeps_the_rest(world):
-    """`agentos setup ssh`: asked once, default yes, the line at the top, the person's config kept as it was."""
+    """`openajar setup ssh`: asked once, default yes, the line at the top, the person's config kept as it was."""
     ssh_config = Path(os.environ["HOME"]) / ".ssh" / "config"
     ssh_config.parent.mkdir(mode=0o700)
     ssh_config.write_text("Host *\n  ForwardAgent yes\n")
@@ -557,15 +558,15 @@ def test_no_to_ssh_changes_nothing_and_says_the_other_command(world):
     r = run("ssh", input="n\n")
     assert r.exit_code == 0, r.output
     assert not (Path(os.environ["HOME"]) / ".ssh" / "config").exists()
-    assert f"ssh -F {world.home}/ssh/config agentos-<id>" in r.output
+    assert f"ssh -F {world.home}/ssh/config openajar-<id>" in r.output
 
 
-# ---- the web app step (agentos.setup.webstep): the release's prebuilt copy, default yes
+# ---- the web app step (openajar.setup.webstep): the release's prebuilt copy, default yes
 
 
 @pytest.fixture
 def no_build(world, tmp_path, monkeypatch):
-    """An installed agentos: no checkout build beside the code, so the step offers the release's copy."""
+    """An installed openajar: no checkout build beside the code, so the step offers the release's copy."""
     monkeypatch.setattr(webapp, "checkout_dist", lambda: tmp_path / "no-checkout" / "web" / "dist")
     return world
 
@@ -582,7 +583,7 @@ def test_the_web_step_adds_the_app_by_default(no_build):
 
 def test_a_no_is_remembered_and_yes_mode_then_leaves_it_out(no_build):
     r = run("web", input="n\n")
-    assert r.exit_code == 0 and "No web app" in r.output and "agentos setup web" in r.output
+    assert r.exit_code == 0 and "No web app" in r.output and "openajar setup web" in r.output
     assert webapp.status(no_build.home).wanted is False
     assert ("web install",) not in no_build.calls
     r = run("--yes", "--docker", input="")  # the question's default is now the earlier no
@@ -606,14 +607,14 @@ def test_yes_mode_adds_the_app(no_build):
 
 def test_an_app_from_another_release_is_updated_without_a_question(no_build):
     no_build.get_web_app(no_build.home)
-    from agentos.setup.webapp import _write_state
+    from openajar.setup.webapp import _write_state
 
     _write_state(no_build.home, version="0.0.1", sha256="0" * 64, wanted=True)
     assert webapp.status(no_build.home).mismatched
     r = run("check", input="")
-    assert "to do" in r.output and "version 0.0.1 is installed, but this agentos is" in r.output
+    assert "to do" in r.output and "version 0.0.1 is installed, but this openajar is" in r.output
     r = run("web", input="")
-    assert r.exit_code == 0 and "is 0.0.1, and this agentos is" in r.output and "updating it" in r.output
+    assert r.exit_code == 0 and "is 0.0.1, and this openajar is" in r.output and "updating it" in r.output
     assert not webapp.status(no_build.home).mismatched
 
 

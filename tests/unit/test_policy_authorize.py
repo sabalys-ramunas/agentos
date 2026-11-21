@@ -8,13 +8,13 @@ import threading
 import pytest
 from test_policy_support import OWNER, PRESENT, Clock, make_service
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import Effect
-from agentos.policy.approval_binding import content_digest
-from agentos.policy.errors import Conflict, Denied
-from agentos.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
-from agentos.policy.routing import PolicyConfig, RoutingTable, Rule, load_policy_config
-from agentos.policy.service import PolicyService
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import Effect
+from openajar.policy.approval_binding import content_digest
+from openajar.policy.errors import Conflict, Denied
+from openajar.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
+from openajar.policy.routing import PolicyConfig, RoutingTable, Rule, load_policy_config
+from openajar.policy.service import PolicyService
 
 ALL = Specials(secret=LaneCap(), exec=LaneCap(), install_overlay=InstallCap(sources=["npm:left-pad@1.3.0"]),
                install_base={}, service=ServiceCap(max_ttl_s=3600),
@@ -421,7 +421,7 @@ async def test_a_command_on_the_node_itself_always_waits_for_a_person(env):
     """A workbench lane can read the vault and the node token (QA 2026-11-10, finding 29): its env tools
     send `runs_on_node`, and then neither an owner's routing row nor a standing approval lets it run alone."""
     svc, _ = env
-    why = "it runs on the node itself with no sandbox (workbench lane biz-a/wb). As agentos, ..."
+    why = "it runs on the node itself with no sandbox (workbench lane biz-a/wb). As openajar, ..."
     facts = {"isolated": False, "runs_on_node": why}
     svc.cfg.routing.rules = [Rule(effect="exec", then="auto", note="the owner turned exec on"), *svc.cfg.routing.rules]
     ctx, _ = ctx_for(svc)
@@ -687,7 +687,7 @@ def test_routing_render_has_no_em_dash():
 
 
 async def test_vm_always_asks_and_a_grant_limits_profiles_and_lanes(env):
-    from agentos.policy.grants import VmCap
+    from openajar.policy.grants import VmCap
     svc, _ = env
     ctx, _ = ctx_for(svc, specials=Specials(vm=VmCap(lanes=["biz-a/build-*"], profiles=["small"])))
     await pending(ctx.authorize(Effect.VM, lane_id="biz-a/build-1", content={"create": 1},

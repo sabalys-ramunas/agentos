@@ -114,9 +114,24 @@ function stageLabel(kind: ReturnType<typeof previewKind>, where: Where): string 
  * The preview on a soft stage tinted with the business colour, with a pill naming what it is.
  * `children` sits over the card: the done state draws its check there.
  */
-export function PostPreview({ approval, where, color, children, className }: CardProps & { children?: ReactNode; className?: string }) {
+export function PostPreview({ approval, where, color, children, className, bare }: CardProps & { children?: ReactNode; className?: string; bare?: boolean }) {
   const kind = previewKind(approval, where);
   const Card = CARDS[kind];
+  if (bare) {
+    // On the desk's card, as drawn: the preview itself, full width, with what it is said in one quiet line.
+    return (
+      <div className={cn('grid gap-2', className)}>
+        <p className="flex items-center gap-2 text-caption text-faint">
+          {where.site ? <SiteMark site={where.site} size={14} label={false} /> : null}
+          {stageLabel(kind, where)}
+        </p>
+        <div className="relative grid [&>article]:w-full [&>article]:max-w-none">
+          <Card approval={approval} where={where} color={color} />
+          {children}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={cn('relative flex flex-col items-center gap-4 rounded-lg border border-line bg-inset px-4 py-6 sm:px-6', className)}>
       <span className="inline-flex h-7 items-center gap-2 rounded-full border border-line bg-card px-3 text-caption text-muted">

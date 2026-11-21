@@ -1,6 +1,6 @@
 import pytest
 
-from agentos.core.errors import (
+from openajar.core.errors import (
     InvalidRequest,
     LaneExists,
     LaneQuarantined,
@@ -8,13 +8,13 @@ from agentos.core.errors import (
     PolicyDenied,
     ServiceUnavailable,
 )
-from agentos.core.runtime import Runtime
-from agentos.env import images
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import ImageTemplate
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
+from openajar.core.runtime import Runtime
+from openajar.env import images
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import ImageTemplate
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
 
 
 def make(tmp_path, **kw):
@@ -65,7 +65,7 @@ def test_browser_lane_in_the_runtime_blocks_the_id(tmp_path):
 async def test_second_owner_of_a_home_is_refused(tmp_path, mgr):
     await mgr.start()
     other = make(tmp_path)
-    with pytest.raises(ServiceUnavailable, match="another agentos process"):
+    with pytest.raises(ServiceUnavailable, match="another openajar process"):
         await other.start()
 
 
@@ -155,3 +155,20 @@ def test_template_and_tree_hashing(tmp_path):
         images.point_for("/home/x")
     assert images.parse_ref("dev-box@3") == ("dev-box", 3) and images.parse_ref("dev-box") == ("dev-box", None)
     assert set(images.BUILTIN_TEMPLATES) == {"dev-box", "render", "brain", "browser"}
+
+
+async def test_the_nodes_own_commands_never_count_as_use_even_two_at_once(mgr):
+    """A check of the machine (exec use=False) leaves the lane's last use as it was. Two of them at once
+    (the screen's check and the ssh check run every reaper pass) used to put back each other's touch, so a
+    saved environment with a desktop never went idle (found on a real machine, 2026-11-21)."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    mgr.create("ws/sb")
+    await mgr.exec("ws/sb", "true")
+    then = datetime(2026, 1, 1, tzinfo=UTC)
+    mgr.store.touch("ws/sb", at=then)
+    await asyncio.gather(*(mgr.exec("ws/sb", "sleep 0.1", use=False) for _ in range(4)))
+    assert mgr.store.last_used("ws/sb") == then
+    await mgr.exec("ws/sb", "true")  # an agent's command is use
+    assert mgr.store.last_used("ws/sb") > then

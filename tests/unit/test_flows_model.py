@@ -2,11 +2,11 @@
 
 import pytest
 
-from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.tools import TOOL_NAME_RE
-from agentos.runner.fakes import Harness, post_flow
-from agentos.runner.flows import lint, tool_name_for
-from agentos.runner.models import FlowDefinition, iter_steps, step_at
+from openajar.core.errors import InvalidRequest, NotFound
+from openajar.core.tools import TOOL_NAME_RE
+from openajar.runner.fakes import Harness, post_flow
+from openajar.runner.flows import lint, tool_name_for
+from openajar.runner.models import FlowDefinition, iter_steps, step_at
 
 
 def _flow(**kw):

@@ -8,16 +8,16 @@ from email.utils import format_datetime
 
 import pytest
 
-from agentos.vault.catcher import (
+from openajar.vault.catcher import (
     CatcherRule,
     ImapCodeCatcher,
     extract_code,
     sender_matches,
     validate_catcher_config,
 )
-from agentos.vault.errors import CatcherError, EntryInvalid
-from agentos.vault.secret import Secret
-from agentos.vault.totp import canonical_uri, code_at, parse_totp, seconds_left
+from openajar.vault.errors import CatcherError, EntryInvalid
+from openajar.vault.secret import Secret
+from openajar.vault.totp import canonical_uri, code_at, parse_totp, seconds_left
 
 RFC_SEED = base64.b32encode(b"12345678901234567890").decode()
 

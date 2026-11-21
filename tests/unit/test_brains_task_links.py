@@ -21,9 +21,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.brains import bundle as bundle_mod
-from agentos.brains.models import BrainKind, ContextBundle, GitRef, InlineFile, Runner
-from agentos.core.errors import InvalidRequest
+from openajar.brains import bundle as bundle_mod
+from openajar.brains.models import BrainKind, ContextBundle, GitRef, InlineFile, Runner
+from openajar.core.errors import InvalidRequest
 
 ENV = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x", "GIT_COMMITTER_NAME": "t",
        "GIT_COMMITTER_EMAIL": "t@x"}
@@ -176,7 +176,7 @@ def brain_user(home: Path) -> pwd.struct_passwd:
 def svc(tmp_path, monkeypatch):
     from testkit.brains import FakeVault, make_service
 
-    from agentos.core.runtime import Runtime
+    from openajar.core.runtime import Runtime
 
     s = make_service(tmp_path / "node", runtime=Runtime(vault=FakeVault()))
     bhome = tmp_path / "brainhome"
@@ -204,9 +204,9 @@ def test_files_for_the_brain_are_never_written_through_a_link(svc, host):
     os.symlink(host / "dir", home / ".codex")
     with pytest.raises(OSError):
         svc._write_brain_file(home / ".codex" / "auth.json", "credential", 0o600)
-    os.symlink(host / "secret", home / "agentos-mcp.json")
-    svc._write_brain_file(home / "agentos-mcp.json", "{}", 0o600)  # the link is replaced, not followed
-    assert not (home / "agentos-mcp.json").is_symlink()
+    os.symlink(host / "secret", home / "openajar-mcp.json")
+    svc._write_brain_file(home / "openajar-mcp.json", "{}", 0o600)  # the link is replaced, not followed
+    assert not (home / "openajar-mcp.json").is_symlink()
     untouched(host)
 
 
@@ -223,7 +223,7 @@ async def codex(svc):
 
 @pytest.mark.parametrize("plant", ["file", "dir", "hardlink"])
 async def test_a_linked_codex_login_is_never_read_back_into_the_vault(svc, host, plant):
-    from agentos.brains.credentials import brain_ref
+    from openajar.brains.credentials import brain_ref
 
     spec, before = await codex(svc)
     _, home = svc._brain_dirs("t1")
@@ -252,10 +252,10 @@ async def test_cleanup_never_deletes_through_a_swapped_home(svc, host):
     (base / "home" / "tmp").rmdir()
     (base / "home").rmdir()
     os.symlink(host / "dir", base / "home")
-    (host / "dir" / "agentos-mcp.json").write_text("{}")
+    (host / "dir" / "openajar-mcp.json").write_text("{}")
     rec = type("Rec", (), {"id": "t1", "lanes": [], "child_grant_id": None})()
     await svc._cleanup_task(rec)
-    assert (host / "dir" / "agentos-mcp.json").exists()
+    assert (host / "dir" / "openajar-mcp.json").exists()
 
 
 def test_the_bundle_lands_in_the_brain_home_with_its_links_kept_as_links(svc, tmp_path, host):

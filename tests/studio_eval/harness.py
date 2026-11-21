@@ -1,6 +1,6 @@
 """The studio agent experience eval (docs/design/studio-ax.md, rule 15): the parts a run is made of.
 
-- `Studio`: `agentos studio up` in a scratch HOME (never the real ~/.agentos), on a free port,
+- `Studio`: `openajar studio up` in a scratch HOME (never the real ~/.openajar), on a free port,
   with the agent grant's token read from its banner. One per agent kind, so runs never share
   state.
 - `Site`: the tasks' pages, copied fresh into a folder before each task and served on
@@ -11,7 +11,7 @@
   of text read, images.
 - `wrong_turns`: what a careful agent would not have done, read from the trace.
 - `claude_agent`: Claude Code headless (`claude -p`) with only the studio MCP server, file
-  Read/Edit/Write/Glob in the task's folder, and the agentos-studio skill appended to its
+  Read/Edit/Write/Glob in the task's folder, and the openajar-studio skill appended to its
   system prompt. Its stream-json transcript becomes the same Trace rows.
 """
 
@@ -36,8 +36,8 @@ from pathlib import Path
 from typing import Any, Self
 
 REPO = Path(__file__).resolve().parents[2]
-SKILL = REPO / "src/agentos/client/skills/agentos-studio/SKILL.md"
-AGENTOS = str(Path(sys.executable).parent / "agentos")   # the console script of this environment
+SKILL = REPO / "src/openajar/client/skills/openajar-studio/SKILL.md"
+OPENAJAR = str(Path(sys.executable).parent / "openajar")   # the console script of this environment
 LANE_TOOLS = {"browsers_list", "browser_open", "browser_close", "browser_view", "browser_claim", "browser_release", "browser_navigate",
               "browser_snapshot", "browser_act", "browser_screenshot", "browser_wait", "browser_tabs"}
 # A page that did not load or render is news about the page, not a wrong call.
@@ -57,7 +57,7 @@ def free_port() -> int:
 # ---- the studio server ----
 
 class Studio:
-    """`agentos studio up` on a scratch HOME. Use as a context manager."""
+    """`openajar studio up` on a scratch HOME. Use as a context manager."""
 
     def __init__(self, home: Path):
         self.home = home
@@ -73,19 +73,19 @@ class Studio:
 
     @property
     def agent_url(self) -> str:
-        """An agent's connection, as the line `agentos studio up` prints: the studio toolset listed,
+        """An agent's connection, as the line `openajar studio up` prints: the studio toolset listed,
         the rest through tools_more and tools_call."""
         return f"http://127.0.0.1:{self.port}/mcp?toolsets=studio"
 
     @property
     def node_home(self) -> Path:
-        return self.home / ".agentos" / "studio" / "node"
+        return self.home / ".openajar" / "studio" / "node"
 
     def __enter__(self) -> Self:
         self.home.mkdir(parents=True, exist_ok=True)
         env = {**os.environ, "HOME": str(self.home)}
         out = self.log.open("w")
-        self.proc = subprocess.Popen([AGENTOS, "studio", "up", "--port", str(self.port)],
+        self.proc = subprocess.Popen([OPENAJAR, "studio", "up", "--port", str(self.port)],
                                      env=env, stdout=out, stderr=subprocess.STDOUT, cwd=REPO)
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
@@ -97,7 +97,7 @@ class Studio:
                 break
             time.sleep(0.3)
         self.__exit__(None, None, None)
-        raise RuntimeError(f"agentos studio up did not start; see {self.log}")
+        raise RuntimeError(f"openajar studio up did not start; see {self.log}")
 
     def __exit__(self, *exc: object) -> None:
         if self.proc is not None and self.proc.poll() is None:
@@ -108,12 +108,12 @@ class Studio:
                 self.proc.kill()
 
     def owner(self, *args: str) -> str:
-        """An owner command on this studio's node (agentos profile approve ...)."""
-        env = {**os.environ, "HOME": str(self.home), "AGENTOS_HOME": str(self.node_home)}
-        done = subprocess.run([AGENTOS, *args], env=env, capture_output=True, text=True,
+        """An owner command on this studio's node (openajar profile approve ...)."""
+        env = {**os.environ, "HOME": str(self.home), "OPENAJAR_HOME": str(self.node_home)}
+        done = subprocess.run([OPENAJAR, *args], env=env, capture_output=True, text=True,
                               timeout=60, cwd=REPO, check=False)
         if done.returncode != 0:
-            raise RuntimeError(f"agentos {' '.join(args)} failed: {done.stderr.strip()[-300:]}")
+            raise RuntimeError(f"openajar {' '.join(args)} failed: {done.stderr.strip()[-300:]}")
         return done.stdout
 
 

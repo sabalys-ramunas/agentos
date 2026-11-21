@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily encrypted backup of AGENTOS_HOME
+Description=Daily encrypted backup of OPENAJAR_HOME
 
 [Timer]
 OnCalendar=*-*-* 04:00:00

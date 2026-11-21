@@ -5,14 +5,14 @@ from __future__ import annotations
 import pytest
 from starlette.testclient import TestClient
 
-from agentos.api import ApiSettings, PanelStore, build_api, create_login_code
-from agentos.api.auth import SESSION_COOKIE, origin_allowed
-from agentos.core import catalog
-from agentos.core.config import NodeConfig, save_config
-from agentos.core.errors import EngineError, LaneBusy, PolicyDenied
-from agentos.core.ratelimit import RateLimiter
-from agentos.core.runtime import Runtime
-from agentos.dev.apifakes import demo_runtime
+from openajar.api import ApiSettings, PanelStore, build_api, create_login_code
+from openajar.api.auth import SESSION_COOKIE, origin_allowed
+from openajar.core import catalog
+from openajar.core.config import NodeConfig, save_config
+from openajar.core.errors import EngineError, LaneBusy, PolicyDenied
+from openajar.core.ratelimit import RateLimiter
+from openajar.core.runtime import Runtime
+from openajar.dev.apifakes import demo_runtime
 
 OWNER = "owner-token-abc"
 
@@ -37,7 +37,7 @@ def test_unauthenticated_gets_401_envelope():
     assert r.status_code == 401
     assert r.json()["error"]["code"] == "unauthorized"
     assert "—" not in r.json()["error"]["message"]
-    assert "agentos panel login" in r.json()["error"]["fix"]  # the panel's own sign-in stays in its fix
+    assert "openajar panel login" in r.json()["error"]["fix"]  # the panel's own sign-in stays in its fix
 
 
 def test_owner_bearer_token_and_wrong_token():
@@ -175,7 +175,7 @@ def test_create_login_code_helper_shares_panel_db(tmp_path):
 def test_cli_login_prints_link(tmp_path):
     from typer.testing import CliRunner
 
-    from agentos.api.cli import app
+    from openajar.api.cli import app
 
     save_config(NodeConfig(home=tmp_path))
     out = CliRunner().invoke(app, ["login", "--home", str(tmp_path)])
@@ -244,7 +244,7 @@ def test_unknown_api_route_is_json_404():
 def _dist(tmp_path):
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><title>agentos</title><div id=root></div>")
+    (dist / "index.html").write_text("<!doctype html><title>openajar</title><div id=root></div>")
     (dist / "assets" / "index-abc123.js").write_text("console.log(1)")
     (dist / "icon.svg").write_text("<svg/>")
     (tmp_path / "secret.txt").write_text("outside")
@@ -254,13 +254,13 @@ def _dist(tmp_path):
 def test_static_serving_with_spa_fallback_and_cache_headers(tmp_path):
     client, _, _ = make(panel_dir=_dist(tmp_path))
     index = client.get("/")
-    assert index.status_code == 200 and "agentos" in index.text
+    assert index.status_code == 200 and "openajar" in index.text
     assert index.headers["cache-control"] == "no-cache"
     assert "default-src 'self'" in index.headers["content-security-policy"]
     asset = client.get("/assets/index-abc123.js")
     assert asset.status_code == 200 and "immutable" in asset.headers["cache-control"]
     deep = client.get("/lanes/biz-a/instagram")
-    assert deep.status_code == 200 and "agentos" in deep.text
+    assert deep.status_code == 200 and "openajar" in deep.text
     assert client.get("/assets/missing-old.js").status_code == 404
     assert client.get("/icon.svg").headers["cache-control"] == "no-cache"
 
@@ -274,7 +274,7 @@ def test_static_refuses_path_traversal(tmp_path):
 
 def test_panel_not_built_page(tmp_path):
     # "not built" is for a checkout with the web app's source beside its missing dist; with no source at
-    # all the page says there is no web app (agentos.api.static.placeholder, tests/unit/test_frontdoor.py)
+    # all the page says there is no web app (openajar.api.static.placeholder, tests/unit/test_frontdoor.py)
     (tmp_path / "web").mkdir()
     (tmp_path / "web" / "package.json").write_text("{}")
     client, _, _ = make(panel_dir=tmp_path / "web" / "dist")

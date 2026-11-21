@@ -17,10 +17,10 @@ export const ALWAYS_ASKS = "Money and things that can't be undone always ask you
  * A publish by clicking is refused only where the lane's guard recognises it (ROUTING.md, "Clicks");
  * one no rule matches still goes through. So an account's switch never promises more than this.
  */
-export const ACCOUNT_LIMIT = 'This switch stops posts on sites agentos recognises. A routine is the surest way to control what goes out.';
+export const ACCOUNT_LIMIT = 'This switch stops posts on sites openajar recognises. A routine is the surest way to control what goes out.';
 export const ALWAYS_ASKS_NO_SWITCH = "Money and things that can't be undone always ask you.";
 /** Only ever asked when turning a switch off: it is the moment a person stops being asked. */
-export const TURNING_OFF = "It will act without waiting for anyone, so agentos checks it is you first. Money and things that can't be undone still ask. You will not be asked to confirm again for 10 minutes.";
+export const TURNING_OFF = "It will act without waiting for anyone, so openajar checks it is you first. Money and things that can't be undone still ask. You will not be asked to confirm again for 10 minutes.";
 
 const OLDER_COMPUTER = 'This computer runs an older version, so it asks you before it acts. Update it to choose what runs on its own.';
 export const AWAY = 'Its computer is offline, so this can change once it is back.';

@@ -10,16 +10,16 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core import catalog
-from agentos.core.errors import InvalidRequest
-from agentos.core.http_errors import status_of
-from agentos.core.runtime import Runtime
-from agentos.node.daemon import FEATURE_SERVICES
-from agentos.studio.browser import ReviewPool, engines, service, studio_status
-from agentos.studio.browser.pool import check_target, check_url
-from agentos.studio.contracts import Screen, Step, Target, ThemeSwitch
+from openajar.core import catalog
+from openajar.core.errors import InvalidRequest
+from openajar.core.http_errors import status_of
+from openajar.core.runtime import Runtime
+from openajar.node.daemon import FEATURE_SERVICES
+from openajar.studio.browser import ReviewPool, engines, service, studio_status
+from openajar.studio.browser.pool import check_target, check_url
+from openajar.studio.contracts import Screen, Step, Target, ThemeSwitch
 
-PACKAGE = Path(__file__).resolve().parents[2] / "src" / "agentos" / "studio" / "browser"
+PACKAGE = Path(__file__).resolve().parents[2] / "src" / "openajar" / "studio" / "browser"
 
 
 @pytest.mark.parametrize("url", ["http://localhost:3000/", "https://example.com/a?b=1", "http://127.0.0.1:5173",
@@ -93,7 +93,7 @@ def test_status_finds_bundled_builds_and_chrome(monkeypatch, tmp_path):
 
 
 def test_the_studio_service_is_built_on_a_node_and_the_dev_node():
-    assert "agentos.studio.browser.service" in FEATURE_SERVICES
+    assert "openajar.studio.browser.service" in FEATURE_SERVICES
     runtime = Runtime()
     built = service.build(runtime)
     assert runtime.studio is built and isinstance(built.browser, ReviewPool)
@@ -101,21 +101,25 @@ def test_the_studio_service_is_built_on_a_node_and_the_dev_node():
     assert built.state_dir == Path.home() / "studio"  # no config: the agentos user's home
 
 
-def test_the_state_folder_is_under_the_node_home_or_the_laptop_home(tmp_path):
-    from agentos.core.config import NodeConfig
+def test_the_state_folder_is_under_the_node_home_or_the_laptop_home(tmp_path, monkeypatch):
+    from openajar.core.config import NodeConfig
+
+    monkeypatch.setenv("HOME", str(tmp_path / "laptop"))  # never this computer's own home folders
 
     built = service.build(Runtime(config=NodeConfig(name="n", home=tmp_path)))
     assert built.state_dir == tmp_path / "studio" and built.status()["state_dir"] == str(tmp_path / "studio")
-    assert ReviewPool().state_dir == Path.home() / ".agentos" / "studio"
+    assert ReviewPool().state_dir == Path.home() / ".openajar" / "studio"
     assert ReviewPool().fonts_pinned is False
 
 
-def test_on_the_dev_node_the_service_says_local():
-    from agentos.dev.lanes import DevLaneManager
+def test_on_the_dev_node_the_service_says_local(tmp_path, monkeypatch):
+    from openajar.dev.lanes import DevLaneManager
+
+    monkeypatch.setenv("HOME", str(tmp_path))  # never this computer's own home folders
 
     runtime = Runtime(lanes=object.__new__(DevLaneManager))
     built = service.build(runtime)
-    assert built.where == "local" and built.state_dir == Path.home() / ".agentos" / "studio"
+    assert built.where == "local" and built.state_dir == Path.home() / ".openajar" / "studio"
 
 
 async def test_stopping_the_service_before_any_page_starts_nothing():
@@ -125,7 +129,7 @@ async def test_stopping_the_service_before_any_page_starts_nothing():
 
 
 def test_importing_the_browser_does_not_import_playwright():
-    code = ("import sys, agentos.studio.browser, agentos.studio.browser.service; "
+    code = ("import sys, openajar.studio.browser, openajar.studio.browser.service; "
             "print('playwright' in sys.modules)")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "False"
@@ -134,7 +138,7 @@ def test_importing_the_browser_does_not_import_playwright():
 def test_the_review_browser_has_no_path_to_lanes_the_vault_or_profiles():
     """Decision 1: it is not a lane. Nothing in the package imports the lane manager, the vault,
     lane profiles or the node's lane tools, nor asks the runtime for them."""
-    banned = ("agentos.node", "agentos.vault", "agentos.profiles", "agentos.dev", "camoufox")
+    banned = ("openajar.node", "openajar.vault", "openajar.profiles", "openajar.dev", "camoufox")
     for path in PACKAGE.glob("*.py"):
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
@@ -180,7 +184,7 @@ class _Req:
 def test_the_network_wait_leaves_out_event_streams_and_websockets():
     from types import SimpleNamespace
 
-    from agentos.studio.browser.pool import _Network, long_lived
+    from openajar.studio.browser.pool import _Network, long_lived
 
     page = _Emitter()
     net = _Network(page)

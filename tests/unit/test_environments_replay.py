@@ -1,4 +1,4 @@
-"""The replay of an environment's browser (agentos.environments.replay and replay_store): what takes a
+"""The replay of an environment's browser (openajar.environments.replay and replay_store): what takes a
 frame and what drops one, that a frame never waits for or acts on a busy lane, the index and its
 limits, retention, the signed links, the owner-only routes, environment()'s summary and the CLI export."""
 
@@ -18,14 +18,14 @@ from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_isolation import _record, panel  # noqa: F401  (panel is a fixture)
 from typer.testing import CliRunner
 
-from agentos.core.models import LaneState, utcnow
-from agentos.environments import replay as replay_mod
-from agentos.environments import replay_store as store_mod
-from agentos.environments import routing
-from agentos.environments.replay_cli import export
-from agentos.node.lanes.base import _Lane
-from agentos.node.lanes.frames import FramesMixin
-from agentos.node.viewer_tokens import ViewTokens
+from openajar.core.models import LaneState, utcnow
+from openajar.environments import replay as replay_mod
+from openajar.environments import replay_store as store_mod
+from openajar.environments import routing
+from openajar.environments.replay_cli import export
+from openajar.node.lanes.base import _Lane
+from openajar.node.lanes.frames import FramesMixin
+from openajar.node.viewer_tokens import ViewTokens
 
 
 def jpeg(color=(255, 255, 255), size=(1920, 1080)) -> bytes:
@@ -456,7 +456,7 @@ def test_the_replay_routes_answer_the_owner_only(panel):  # noqa: F811
 
 
 def test_the_cli_writes_the_frames_and_a_contact_sheet(panel, tmp_path):  # noqa: F811
-    from agentos.cli import app
+    from openajar.cli import app
 
     _, mgr = panel
     env = _record(mgr, "eexportagnt", member=None, root="gr_owner_agent")

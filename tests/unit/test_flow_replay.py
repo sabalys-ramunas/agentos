@@ -1,4 +1,4 @@
-"""`agentos flows test` (agentos.runner.flowtest): a flow run offline on a recording, and what it reports.
+"""`openajar flows test` (openajar.runner.flowtest): a flow run offline on a recording, and what it reports.
 
 The worked example in examples/flows (docs/WORKFLOWS.md, "Flows in git") runs here, so CI keeps it
 passing."""
@@ -12,12 +12,12 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from agentos.core.locator import Locator
-from agentos.runner import flowcli
-from agentos.runner.cli import app
-from agentos.runner.fakes import resolve_all, resolve_one
-from agentos.runner.flowfiles import load_yaml
-from agentos.runner.flowtest import parse_outline
+from openajar.core.locator import Locator
+from openajar.runner import flowcli
+from openajar.runner.cli import app
+from openajar.runner.fakes import resolve_all, resolve_one
+from openajar.runner.flowfiles import load_yaml
+from openajar.runner.flowtest import parse_outline
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE = ROOT / "examples" / "flows"
@@ -141,7 +141,7 @@ def test_an_outline_reads_as_the_tree_locators_resolve_on():
     assert resolve_one(root, Locator(role="textbox", name="Search")).attrs["value"] == "rye bread"
     posts = resolve_all(root, Locator(role="article", within=Locator(role="region", name="Posts")))
     assert len(posts) == 2
-    from agentos.runner.fakes import own_text
+    from openajar.runner.fakes import own_text
 
     assert own_text(posts[0]) == "First post quoted text"
     assert own_text(root.children[0]) == "Home"  # a link's name is the text it shows
@@ -167,7 +167,7 @@ def test_capture_keeps_the_outline_without_refs_and_puts_params_back(tmp_path, m
     def fake_open(node=None, url=None, **_):
         yield Session()
 
-    monkeypatch.setattr("agentos.client.call.open_session", fake_open)
+    monkeypatch.setattr("openajar.client.call.open_session", fake_open)
     rec = tmp_path / "feed.recording.yaml"
     result = runner.invoke(app, ["flows", "capture", str(rec), "--on", "acme/linkedin", "--goto",
                                  "https://www.linkedin.example/feed/", "-p", "text=Fresh rye today"])

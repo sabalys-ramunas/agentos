@@ -1,14 +1,14 @@
 /** The runs table: its columns, sorting, choosing several, and one row per run. */
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { Copy, ListFilter, Square, X } from 'lucide-react';
+import { Check, Copy, Ellipsis, ListFilter, Search, Square, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useCancelJob } from '@/api/hooks';
 import type { Job } from '@/api/types';
 import { Chip } from '@/components/ui/badge';
-import { BranchPill } from '@/components/ui/branch';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
+import { Button, IconButton } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from '@/components/ui/menu';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/field';
 import { KindTile } from '@/components/ui/kind';
@@ -21,6 +21,7 @@ import { CellTitle, NoValue, RowActions, Table, TableEmpty, TableScroll, Td, Th,
 import type { Density, SortDirection } from '@/components/ui/table';
 import { SegmentedControl } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/toggle';
+import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { useNow } from '@/lib/use-now';
 import { KIND_WORD } from './kind';
@@ -81,103 +82,162 @@ export function RunsTable({ org, jobs, capped }: { org: string; jobs: Job[]; cap
     setSelected(new Set());
   };
 
+  const clearFilters = () => setSearch({ state: undefined, kind: undefined, q: undefined, machine: undefined, lane: undefined, by: undefined, range: undefined });
+
   return (
     <>
-      <Card className="overflow-hidden">
-        <CardHeader
-          title="Every run"
-          meta={filtering ? `${shown.length} of ${jobs.length}` : capped ? `the newest ${jobs.length}` : plural(jobs.length, 'run')}
-          action={
+      <div className="grid gap-4">
+        {/* One row of filters, as drawn: search, time, kind, the states with their counts, and the table's menu. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1 basis-56 md:max-w-90">
+            <label htmlFor="runs-search" className="sr-only">
+              Search runs
+            </label>
+            <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+            <Input
+              id="runs-search"
+              type="search"
+              value={search.q ?? ''}
+              placeholder="Search runs"
+              title="Search a command, branch, machine or id"
+              className="pl-9"
+              onChange={(event) => setSearch({ q: event.target.value || undefined })}
+            />
+          </div>
+          <Select
+            aria-label="How far back"
+            value={search.range ?? 'any'}
+            onValueChange={(value) => setSearch({ range: value === 'any' ? undefined : (value as RunsSearch['range']) })}
+            options={RANGES}
+            className="w-44"
+          />
+          <Select
+            aria-label="Kind of work"
+            value={search.kind ?? 'any'}
+            onValueChange={(value) => setSearch({ kind: value === 'any' ? undefined : (value as RunKind) })}
+            options={[{ value: 'any', label: 'Any kind' }, ...RUN_KINDS.map((kind) => ({ value: kind, label: `${KIND_WORD[kind]} (${kindCount(kind)})` }))]}
+            className="w-40"
+          />
+          <div className="scrollbar-none overflow-x-auto max-md:-mx-4 max-md:w-[calc(100%+32px)] max-md:px-4">
             <SegmentedControl
-              label="Row height"
-              value={rows}
-              onValueChange={(value) => density.set(value)}
+              label="Show runs that"
+              size="md"
+              value={search.state ?? 'all'}
+              onValueChange={(value) => setSearch({ state: value === 'all' ? undefined : (value as RunStateFilter) })}
               options={[
-                { value: 'default', label: 'Comfortable' },
-                { value: 'compact', label: 'Compact' },
-              ]}
-              className="max-md:hidden"
-            />
-          }
-        />
-        <div className="grid gap-3 border-b border-line px-5 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-0 flex-1 basis-56 md:max-w-80">
-              <label htmlFor="runs-search" className="sr-only">
-                Search runs
-              </label>
-              <ListFilter aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-faint" />
-              <Input
-                id="runs-search"
-                type="search"
-                value={search.q ?? ''}
-                placeholder="Search a command, branch, machine or id"
-                className="pl-8"
-                onChange={(event) => setSearch({ q: event.target.value || undefined })}
-              />
-            </div>
-            <Select
-              size="sm"
-              aria-label="How far back"
-              value={search.range ?? 'any'}
-              onValueChange={(value) => setSearch({ range: value === 'any' ? undefined : (value as RunsSearch['range']) })}
-              options={RANGES}
-              className="w-40"
-            />
-            {(['machine', 'lane', 'by'] as const).map((key) =>
-              search[key] ? (
-                <Chip
-                  key={key}
-                  pressed
-                  label={
+                { value: 'all', label: <>All <span className="tabular font-normal text-faint">{filterJobs(jobs, { ...search, state: undefined }, now).length}</span></> },
+                ...RUN_STATES.map((state) => ({
+                  value: state,
+                  label: (
                     <>
-                      {key === 'machine' ? 'On ' : key === 'lane' ? 'In ' : 'By '}
-                      <span className={key === 'by' ? '' : 'font-mono'}>{search[key]}</span>
-                      <X aria-hidden="true" className="size-3.5" />
+                      {STATE_WORD[state]} <span className="tabular font-normal text-faint">{stateCount(state)}</span>
                     </>
-                  }
-                  aria-label={`Stop showing only ${key === 'machine' ? 'the machine' : key === 'lane' ? 'the lane' : 'runs by'} ${search[key]}`}
-                  onClick={() => setSearch({ [key]: undefined })}
-                />
-              ) : null,
-            )}
-            {filtering ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSearch({ state: undefined, kind: undefined, q: undefined, machine: undefined, lane: undefined, by: undefined, range: undefined })}
-              >
-                Clear filters
-              </Button>
-            ) : null}
+                  ),
+                })),
+              ]}
+            />
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div role="group" aria-label="Show runs that" className="flex flex-wrap gap-2">
-              <Chip pressed={!search.state} label="Any state" onClick={() => setSearch({ state: undefined })} />
-              {RUN_STATES.map((state) => (
-                <Chip
-                  key={state}
-                  pressed={search.state === state}
-                  label={STATE_WORD[state]}
-                  count={stateCount(state)}
-                  onClick={() => setSearch({ state: search.state === state ? undefined : state })}
-                />
+          {(['machine', 'lane', 'by'] as const).map((key) =>
+            search[key] ? (
+              <Chip
+                key={key}
+                pressed
+                label={
+                  <>
+                    {key === 'machine' ? 'On ' : key === 'lane' ? 'In ' : 'By '}
+                    <span className={key === 'by' ? '' : 'font-mono'}>{search[key]}</span>
+                    <X aria-hidden="true" className="size-3.5" />
+                  </>
+                }
+                aria-label={`Stop showing only ${key === 'machine' ? 'the machine' : key === 'lane' ? 'the lane' : 'runs by'} ${search[key]}`}
+                onClick={() => setSearch({ [key]: undefined })}
+              />
+            ) : null,
+          )}
+          {filtering ? (
+            <Button size="sm" variant="ghost" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          ) : null}
+          <Menu>
+            <MenuTrigger asChild>
+              <IconButton label="Table settings" className="ml-auto max-md:hidden">
+                <Ellipsis className="size-4" />
+              </IconButton>
+            </MenuTrigger>
+            <MenuContent align="end">
+              <MenuLabel>Rows</MenuLabel>
+              {(['default', 'compact'] as const).map((value) => (
+                <MenuItem key={value} onSelect={() => density.set(value)}>
+                  {value === 'default' ? 'Comfortable' : 'Compact'}
+                  {rows === value ? <Check aria-hidden="true" className="ml-auto size-4 text-accent-text" /> : null}
+                </MenuItem>
               ))}
-            </div>
-            <div role="group" aria-label="Kind of work" className="flex flex-wrap gap-2">
-              {RUN_KINDS.map((kind) => (
-                <Chip
-                  key={kind}
-                  pressed={search.kind === kind}
-                  kind={kind === 'command' ? undefined : kind}
-                  label={KIND_WORD[kind]}
-                  count={kindCount(kind)}
-                  onClick={() => setSearch({ kind: search.kind === kind ? undefined : kind })}
-                />
-              ))}
-            </div>
-          </div>
+            </MenuContent>
+          </Menu>
         </div>
+        <Card className="overflow-hidden">
+        <TableScroll>
+          <Table density={rows as Density} stack aria-label="Runs">
+            <thead>
+              <tr>
+                <Th className="w-1 pr-0!">
+                  <Checkbox
+                    aria-label="Select every run shown"
+                    checked={allPicked ? true : picked.length ? 'indeterminate' : false}
+                    onCheckedChange={() => setSelected(allPicked ? new Set() : new Set(shown.map((job) => job.id)))}
+                  />
+                </Th>
+                <Th>Run</Th>
+                <Th {...sortProps('state')}>Result</Th>
+                <Th className="md:max-lg:hidden">Branch, who and where</Th>
+                <Th align="end" className="md:max-lg:hidden">
+                  Passed
+                </Th>
+                <Th align="end" {...sortProps('failed')}>
+                  Failed
+                </Th>
+                <Th align="end" {...sortProps('duration')}>
+                  Took
+                </Th>
+                <Th {...sortProps('started')}>Started</Th>
+                <Th className="w-1">
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.length ? (
+                shown.map((job) => (
+                  <RunRow
+                    key={job.id}
+                    org={org}
+                    job={job}
+                    now={now}
+                    selected={selected.has(job.id)}
+                    onToggle={() => toggle(job.id)}
+                    onOpen={() => void navigate({ to: '/$org/runs/$id', params: { org, id: job.id } })}
+                  />
+                ))
+              ) : (
+                <TableEmpty colSpan={COLUMNS.length}>
+                  <EmptyState
+                    icon={<ListFilter />}
+                    title="No run matches"
+                    description="Nothing in the runs this machine keeps fits these filters."
+                    action={<Button onClick={clearFilters}>Clear filters</Button>}
+                  />
+                </TableEmpty>
+              )}
+            </tbody>
+          </Table>
+        </TableScroll>
+        {capped ? (
+          <p className="border-t border-line px-5 py-3 text-secondary text-faint">
+            Showing the newest {LIMIT}. Older runs are kept on their machines: <span className="font-mono text-code">openajar run --list</span>
+          </p>
+        ) : null}
+        </Card>
         <SelectionBar
           count={picked.length}
           noun={['run', 'runs']}
@@ -203,76 +263,14 @@ export function RunsTable({ org, jobs, capped }: { org: string; jobs: Job[]; cap
             </>
           }
         />
-        <TableScroll>
-          <Table density={rows as Density} stack aria-label="Runs">
-            <thead>
-              <tr>
-                <Th className="w-1 pr-0!">
-                  <Checkbox
-                    aria-label="Select every run shown"
-                    checked={allPicked ? true : picked.length ? 'indeterminate' : false}
-                    onCheckedChange={() => setSelected(allPicked ? new Set() : new Set(shown.map((job) => job.id)))}
-                  />
-                </Th>
-                <Th>Run</Th>
-                <Th {...sortProps('state')}>Result</Th>
-                <Th className="md:max-lg:hidden">Branch</Th>
-                <Th className="md:max-lg:hidden">Who and where</Th>
-                <Th align="end" className="md:max-lg:hidden">
-                  Passed
-                </Th>
-                <Th align="end" {...sortProps('failed')}>
-                  Failed
-                </Th>
-                <Th align="end" {...sortProps('duration')}>
-                  Took
-                </Th>
-                <Th align="end" {...sortProps('started')}>
-                  Started
-                </Th>
-                <Th className="w-1">
-                  <span className="sr-only">Actions</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.length ? (
-                shown.map((job) => (
-                  <RunRow
-                    key={job.id}
-                    org={org}
-                    job={job}
-                    now={now}
-                    selected={selected.has(job.id)}
-                    onToggle={() => toggle(job.id)}
-                    onOpen={() => void navigate({ to: '/$org/runs/$id', params: { org, id: job.id } })}
-                  />
-                ))
-              ) : (
-                <TableEmpty colSpan={COLUMNS.length}>
-                  <EmptyState
-                    icon={<ListFilter />}
-                    title="No run matches"
-                    description="Nothing in the runs this machine keeps fits these filters."
-                    action={
-                      <Button
-                        onClick={() => setSearch({ state: undefined, kind: undefined, q: undefined, machine: undefined, lane: undefined, by: undefined, range: undefined })}
-                      >
-                        Clear filters
-                      </Button>
-                    }
-                  />
-                </TableEmpty>
-              )}
-            </tbody>
-          </Table>
-        </TableScroll>
-        {capped ? (
-          <p className="border-t border-line px-5 py-3 text-secondary text-faint">
-            Showing the newest {LIMIT}. Older runs are kept on their machines: <span className="font-mono text-code">agentos run --list</span>
-          </p>
-        ) : null}
-      </Card>
+        <p className="text-secondary text-faint">
+          Routines, and the runs agents make on accounts, are in{' '}
+          <Link to="/$org/activity" params={{ org }} className="link">
+            History
+          </Link>
+          .
+        </p>
+      </div>
       <ConfirmDialog
         open={asking}
         onOpenChange={setAsking}
@@ -300,7 +298,7 @@ function RunRow({ org, job, now, selected, onToggle, onOpen }: { org: string; jo
       </Td>
       <Td main>
         <div className="flex min-w-0 items-center gap-3">
-          <KindTile kind={kind} size="sm" />
+          <KindTile kind={kind} size="lg" />
           <CellTitle
             title={
               <Link
@@ -319,33 +317,25 @@ function RunRow({ org, job, now, selected, onToggle, onOpen }: { org: string; jo
         </div>
       </Td>
       <Td>
-        <Status status={JOB_STATUS[job.state]} />
-      </Td>
-      <Td className="md:max-lg:hidden" phone={source?.branch ? undefined : 'hide'}>
-        {source?.branch ? (
-          <div className="grid w-40 min-w-0 justify-items-start max-md:w-auto">
-            <BranchPill name={source.branch} main={source.branch === 'main' || source.branch === 'master'} className="max-w-full" />
-            {source.commit ? (
-              <span data-second-line="" className="max-w-full truncate pl-1 font-mono text-code-caption text-faint">
-                {source.commit.slice(0, 7)}
-                {source.dirty ? ' + edits' : ''}
-              </span>
-            ) : null}
-          </div>
-        ) : (
-          <span className="text-secondary text-faint" title="This client did not say which branch it sent">
-            Not recorded
-          </span>
-        )}
+        <Status status={JOB_STATUS[job.state]} chip />
       </Td>
       <Td className="md:max-lg:hidden">
-        <div className="grid w-48 min-w-0 max-md:w-auto">
-          <span className="truncate text-secondary text-fg" title={job.started_by ?? 'Who started it was not kept'}>
+        <div className="grid w-56 min-w-0 max-md:w-auto">
+          <span className="flex min-w-0 items-center gap-2">
+            {source?.branch ? (
+              <span title={source.branch} className={cn('truncate font-mono text-code-caption', source.branch === 'main' || source.branch === 'master' ? 'text-fg' : 'text-muted')}>
+                {source.branch}
+                {source.commit ? <span className="text-faint"> · {source.commit.slice(0, 7)}{source.dirty ? ' + edits' : ''}</span> : null}
+              </span>
+            ) : (
+              <span className="text-caption text-faint" title="This client did not say which branch it sent">
+                No branch recorded
+              </span>
+            )}
+          </span>
+          <span className="truncate text-secondary text-fg" title={`${job.started_by ?? 'Who started it was not kept'} on ${job.node}, lane ${job.lane}`}>
             {job.started_by ?? 'Not recorded'}
             <span className="text-faint"> on {job.node}</span>
-          </span>
-          <span data-second-line="" className="truncate font-mono text-code-caption text-faint" title={`Lane ${job.lane}`}>
-            {job.lane}
           </span>
         </div>
       </Td>
@@ -358,8 +348,8 @@ function RunRow({ org, job, now, selected, onToggle, onOpen }: { org: string; jo
       <Td numeric label="Took">
         {took ?? <NoValue />}
       </Td>
-      <Td numeric>
-        <time dateTime={job.started_at} title={dateTime(job.started_at)} className="text-muted">
+      <Td label="Started">
+        <time dateTime={job.started_at} title={dateTime(job.started_at)} className="tabular text-muted">
           {timeAgo(job.started_at, now)}
         </time>
       </Td>

@@ -9,8 +9,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from agentos.dev.slotnode import SITE, json_of, lanes_by_id, text_of
-from agentos.node.snapshot import find_refs
+from openajar.dev.slotnode import SITE, json_of, lanes_by_id, text_of
+from openajar.node.snapshot import find_refs
 
 FEED = f"{SITE}/feed.html"
 FORM = f"{SITE}/form.html"

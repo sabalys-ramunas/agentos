@@ -1,4 +1,4 @@
-"""`agentos controller ...`, `agentos node join` and `agentos up`."""
+"""`openajar controller ...`, `openajar node join` and `openajar up`."""
 
 import asyncio
 import threading
@@ -8,20 +8,20 @@ from channel_support import agent, wait_for
 from fakes import FakeInteraction, FakeLaneManager
 from typer.testing import CliRunner
 
-from agentos.cli import app
-from agentos.client.remote import parse_reply
-from agentos.controller.app import serve_controller
-from agentos.controller.config import (
+from openajar.cli import app
+from openajar.client.remote import parse_reply
+from openajar.controller.app import serve_controller
+from openajar.controller.config import (
     ControllerConfig,
     controller_home,
     load_controller_config,
     save_controller_config,
 )
-from agentos.controller.up import node_name, run_up
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.models import LaneSpec
-from agentos.node.daemon import build_services, node_runtime
-from agentos.policy.ceiling import ControllerCeiling
+from openajar.controller.up import node_name, run_up
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.models import LaneSpec
+from openajar.node.daemon import build_services, node_runtime
+from openajar.policy.ceiling import ControllerCeiling
 
 runner = CliRunner()
 
@@ -29,8 +29,8 @@ runner = CliRunner()
 @pytest.fixture
 def homes(tmp_path, monkeypatch):
     node = tmp_path / "node"
-    monkeypatch.setenv("AGENTOS_HOME", str(node))
-    monkeypatch.delenv("AGENTOS_CONTROLLER_HOME", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(node))
+    monkeypatch.delenv("OPENAJAR_CONTROLLER_HOME", raising=False)
     result = runner.invoke(app, ["node", "init", "--name", "box-1", "--mcp-port", "7680"])
     assert result.exit_code == 0, result.output
     return node, controller_home(node)
@@ -40,7 +40,7 @@ def test_join_token_login_and_agent_token(homes):
     _, ctl_home = homes
     out = runner.invoke(app, ["controller", "join-token", "--name", "box-2", "--ttl-minutes", "10"])
     assert out.exit_code == 0, out.output
-    assert "agentos node join --self-hosted ws://localhost:7401/v1/node/connect ajt_" in out.output
+    assert "openajar node join --self-hosted ws://localhost:7401/v1/node/connect ajt_" in out.output
     assert "—" not in out.output
     bad = runner.invoke(app, ["controller", "join-token", "--name", "Box Two"])
     assert bad.exit_code == 1 and "lowercase" in bad.output
@@ -48,14 +48,14 @@ def test_join_token_login_and_agent_token(homes):
     assert login.exit_code == 0 and "http://localhost:7401/login#code=" in login.output
     cfg = load_controller_config(ctl_home)
     shown = runner.invoke(app, ["controller", "agent-token", "--ssh-host", "mynode"])
-    assert f"agentos connect mynode --remote-home {ctl_home}" in shown.output
+    assert f"openajar connect mynode --remote-home {ctl_home}" in shown.output
     assert cfg.agent_token in shown.output
     rotated = runner.invoke(app, ["controller", "agent-token", "--new"])
     assert rotated.exit_code == 0 and load_controller_config(ctl_home).agent_token != cfg.agent_token
     assert "No nodes yet" in runner.invoke(app, ["controller", "nodes"]).output
 
 
-def test_agentos_connect_reads_the_controller_like_a_node(homes):
+def test_openajar_connect_reads_the_controller_like_a_node(homes):
     _, ctl_home = homes
     runner.invoke(app, ["controller", "init", "--port", "7681"])
     cfg = load_controller_config(ctl_home)
@@ -68,7 +68,7 @@ def test_agentos_connect_reads_the_controller_like_a_node(homes):
 
 
 def test_a_controller_refuses_a_public_bind_without_tls(homes):
-    from agentos.controller.config import check_bind
+    from openajar.controller.config import check_bind
 
     _, ctl_home = homes
     with pytest.raises(RuntimeError, match="TLS"):
@@ -140,7 +140,7 @@ def test_node_names_for_up():
     assert node_name("Box One!") == "box-one" and node_name("___") == "node-1" and len(node_name("a" * 50)) == 31
 
 
-async def test_agentos_up_runs_a_controller_and_this_node_joined(tmp_path):
+async def test_openajar_up_runs_a_controller_and_this_node_joined(tmp_path):
     node_cfg = NodeConfig(home=tmp_path / "node", name="My Box", mcp_token="node-owner-token-up", mcp_port=0)
     (tmp_path / "node").mkdir()
     save_config(node_cfg)
@@ -153,7 +153,7 @@ async def test_agentos_up_runs_a_controller_and_this_node_joined(tmp_path):
         manager = FakeLaneManager(config)
         asyncio.get_event_loop().create_task(manager.create(LaneSpec(id="personal/reddit")))
         runtime = node_runtime(config, manager, FakeInteraction())
-        build_services(runtime, ["agentos.policy.service", "agentos.node.channel.service"])
+        build_services(runtime, ["openajar.policy.service", "openajar.node.channel.service"])
         built["runtime"] = runtime
         return runtime
 
@@ -194,16 +194,16 @@ async def test_agentos_up_runs_a_controller_and_this_node_joined(tmp_path):
     await asyncio.wait_for(task2, 20)
 
 
-def test_agentos_up_logs_through_the_same_scrubbers_as_agentosd(homes, monkeypatch):
-    """`agentos up` runs agentosd in its own process: its log lines need agentosd's scrub chain,
+def test_openajar_up_logs_through_the_same_scrubbers_as_agentosd(homes, monkeypatch):
+    """`openajar up` runs agentosd in its own process: its log lines need agentosd's scrub chain,
     not a plain handler that writes the node token and a proxy password as they come."""
     import json
     import logging
 
-    from agentos.controller import up as up_mod
-    from agentos.core import logs
-    from agentos.core.config import save_proxies
-    from agentos.core.models import ProxyConfig
+    from openajar.controller import up as up_mod
+    from openajar.core import logs
+    from openajar.core.config import save_proxies
+    from openajar.core.models import ProxyConfig
 
     node_home, _ = homes
     node_token = load_config(node_home).mcp_token
@@ -213,7 +213,7 @@ def test_agentos_up_logs_through_the_same_scrubbers_as_agentosd(homes, monkeypat
 
     async def fake_run_up(node_cfg, controller_cfg, *, on_ready=None, **kw):
         seen["agent_token"] = controller_cfg.agent_token
-        logging.getLogger("agentos.up").warning("node %s agent %s proxy %s", node_token,
+        logging.getLogger("openajar.up").warning("node %s agent %s proxy %s", node_token,
                                                 controller_cfg.agent_token, "hunter2-proxy")
 
     monkeypatch.setattr(up_mod, "run_up", fake_run_up)
@@ -224,7 +224,7 @@ def test_agentos_up_logs_through_the_same_scrubbers_as_agentosd(homes, monkeypat
     finally:
         logs.clear_scrubbers()
         logging.getLogger().handlers.clear()
-    [line] = [line for line in lines if line.get("logger") == "agentos.up"]
+    [line] = [line for line in lines if line.get("logger") == "openajar.up"]
     text = json.dumps(line)
     for secret in (node_token, seen["agent_token"], "hunter2-proxy"):
         assert secret and secret not in text and secret not in result.output
@@ -237,8 +237,8 @@ def test_the_controllers_uvicorn_lines_go_through_the_scrubbers(tmp_path):
     import io
     import logging
 
-    from agentos.controller.app import _server
-    from agentos.core import logs
+    from openajar.controller.app import _server
+    from openajar.core import logs
 
     async def app(scope, receive, send):  # never called: only the server's logging is under test
         pass
@@ -260,14 +260,14 @@ def test_the_controllers_uvicorn_lines_go_through_the_scrubbers(tmp_path):
     assert "ctl-secret-77" not in stream.getvalue()
 
 
-def test_agentos_up_an_unexpected_error_is_logged_scrubbed_and_exits_non_zero(homes, monkeypatch):
+def test_openajar_up_an_unexpected_error_is_logged_scrubbed_and_exits_non_zero(homes, monkeypatch):
     """Not a raw traceback on the terminal: the error can quote the node token, so it goes through
     the scrubbed log like 's does."""
     import json
     import logging
 
-    from agentos.controller import up as up_mod
-    from agentos.core import logs
+    from openajar.controller import up as up_mod
+    from openajar.core import logs
 
     node_home, _ = homes
     node_token = load_config(node_home).mcp_token
@@ -284,15 +284,15 @@ def test_agentos_up_an_unexpected_error_is_logged_scrubbed_and_exits_non_zero(ho
         logging.getLogger().handlers.clear()
     assert result.exit_code == 1 and isinstance(result.exception, SystemExit), repr(result.exception)
     assert node_token not in text and node_token not in result.output
-    [line] = [json.loads(raw) for raw in text.splitlines() if '"agentos.up"' in raw]
-    assert line["msg"] == "agentos up stopped on an unexpected error" and "[redacted]" in line["exc"]
+    [line] = [json.loads(raw) for raw in text.splitlines() if '"openajar.up"' in raw]
+    assert line["msg"] == "openajar up stopped on an unexpected error" and "[redacted]" in line["exc"]
 
 
 @pytest.fixture
 def root_logging():
     import logging
 
-    from agentos.core import logs
+    from openajar.core import logs
 
     root = logging.getLogger()
     handlers, level = list(root.handlers), root.level
@@ -306,17 +306,17 @@ def root_logging():
     logs.clear_scrubbers()
 
 
-def test_agentos_up_logs_like_node_serve(homes, monkeypatch, root_logging):
-    """`agentos up` used logging.basicConfig: plain lines, no ids, nothing scrubbed. Now it gets
+def test_openajar_up_logs_like_node_serve(homes, monkeypatch, root_logging):
+    """`openajar up` used logging.basicConfig: plain lines, no ids, nothing scrubbed. Now it gets
     node serve's setup (the log file, the context filter, the scrubbers), the controller's tokens
     stay masked after the node installs its scrubbers again, and a crash goes through the log."""
     import json
     import logging
 
-    from agentos.controller import up
-    from agentos.core import logs
-    from agentos.core.logs import ContextFilter
-    from agentos.node.daemon import install_log_scrubbers
+    from openajar.controller import up
+    from openajar.core import logs
+    from openajar.core.logs import ContextFilter
+    from openajar.node.daemon import install_log_scrubbers
 
     node_home, ctl_home = homes
     runner.invoke(app, ["controller", "init", "--port", "7682"])
@@ -328,7 +328,7 @@ def test_agentos_up_logs_like_node_serve(homes, monkeypatch, root_logging):
         install_log_scrubbers(node_cfg)  # what daemon.serve does once the node starts
         seen["filters"] = [type(f) for h in logging.getLogger().handlers for f in h.filters]
         with logs.log_context(lane="biz-a/x"):
-            logging.getLogger("agentos.controller").warning(
+            logging.getLogger("openajar.controller").warning(
                 "joined with %s, agents use %s, owner %s", node_token, ctl.agent_token, ctl.owner_token)
         raise ValueError(f"boom {ctl.owner_token}")
 
@@ -339,23 +339,23 @@ def test_agentos_up_logs_like_node_serve(homes, monkeypatch, root_logging):
     lines = [json.loads(raw) for raw in (node_home / "logs" / logs.LOG_FILE).read_text().splitlines()]
     joined = next(line for line in lines if "joined with" in line["msg"])
     assert joined["lane"] == "biz-a/x" and joined["msg"].count("[redacted]") == 3
-    crash = next(line for line in lines if "agentos up stopped" in line["msg"])
+    crash = next(line for line in lines if "openajar up stopped" in line["msg"])
     assert "ValueError" in crash["exc"] and ctl.owner_token not in crash["exc"]
     text = (node_home / "logs" / logs.LOG_FILE).read_text() + result.output
     for secret in (node_token, ctl.agent_token, ctl.owner_token):
         assert secret not in text
 
 
-def test_agentos_up_on_a_new_box_sets_it_up_and_prints_one_link(tmp_path, monkeypatch, root_logging):
+def test_openajar_up_on_a_new_box_sets_it_up_and_prints_one_link(tmp_path, monkeypatch, root_logging):
     """No node.toml yet: `up` writes it (as node init) and controller.toml, then prints the panel,
     one sign-in link and one connect line. The tunnel and `claude mcp add` lines are
-    `agentos connect --by-hand` now. A rerun keeps both files and their tokens."""
-    from agentos.controller import up as up_mod
-    from agentos.controller.config import config_file
+    `openajar connect --by-hand` now. A rerun keeps both files and their tokens."""
+    from openajar.controller import up as up_mod
+    from openajar.controller.config import config_file
 
     node_home = tmp_path / "node"
-    monkeypatch.setenv("AGENTOS_HOME", str(node_home))
-    monkeypatch.delenv("AGENTOS_CONTROLLER_HOME", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(node_home))
+    monkeypatch.delenv("OPENAJAR_CONTROLLER_HOME", raising=False)
     runs = []
 
     async def fake_run_up(node_cfg, controller_cfg, *, on_ready=None, **kw):
@@ -373,7 +373,7 @@ def test_agentos_up_on_a_new_box_sets_it_up_and_prints_one_link(tmp_path, monkey
     assert labels == ["Panel", "Sign in", "Connect"]
     assert sum("http://" in line for line in lines) == 2  # the panel, and the link into it
     assert "http://localhost:7401/login#code=" in first.output
-    assert f"agentos connect mybox --remote-home {ctl_home} --name controller" in first.output
+    assert f"openajar connect mybox --remote-home {ctl_home} --name controller" in first.output
     for gone in ("claude mcp add", "ssh -N", "Bearer", load_controller_config(ctl_home).agent_token):
         assert gone not in first.output
     assert "—" not in first.output
@@ -385,12 +385,12 @@ def test_agentos_up_on_a_new_box_sets_it_up_and_prints_one_link(tmp_path, monkey
     assert runs[0] == runs[1] and load_controller_config(ctl_home).agent_token == agent_token
 
 
-def test_agentos_up_with_a_broken_node_toml_says_so_in_one_line(tmp_path, monkeypatch):
+def test_openajar_up_with_a_broken_node_toml_says_so_in_one_line(tmp_path, monkeypatch):
     node_home = tmp_path / "node"
     node_home.mkdir()
     (node_home / "node.toml").write_text("mcp_port = \n")
-    monkeypatch.setenv("AGENTOS_HOME", str(node_home))
-    monkeypatch.delenv("AGENTOS_CONTROLLER_HOME", raising=False)
+    monkeypatch.setenv("OPENAJAR_HOME", str(node_home))
+    monkeypatch.delenv("OPENAJAR_CONTROLLER_HOME", raising=False)
     result = runner.invoke(app, ["up"])
     assert result.exit_code == 1 and isinstance(result.exception, SystemExit)
     assert "is not valid TOML" in result.output and "Traceback" not in result.output

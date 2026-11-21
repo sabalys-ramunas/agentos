@@ -1,4 +1,4 @@
-"""`agentos vault ...` end to end with CliRunner: prompts are faked, output never holds a secret."""
+"""`openajar vault ...` end to end with CliRunner: prompts are faked, output never holds a secret."""
 
 import asyncio
 import json
@@ -12,9 +12,9 @@ import pytest
 from test_vault_support import FAST_KDF, PASSWORD, SEED, USERNAME, private_home
 from typer.testing import CliRunner
 
-from agentos.vault import cli
-from agentos.vault.service import VaultService, keyfile_path
-from agentos.vault.store import VaultStore
+from openajar.vault import cli
+from openajar.vault.service import VaultService, keyfile_path
+from openajar.vault.store import VaultStore
 
 PHRASE = "a long enough passphrase"
 SECRETS = (PASSWORD, USERNAME, SEED, PHRASE, "mail-pw-1")
@@ -32,7 +32,7 @@ def sock():
 @pytest.fixture
 def home(tmp_path, monkeypatch, sock):
     h = private_home(tmp_path)
-    monkeypatch.setenv("AGENTOS_HOME", str(h))
+    monkeypatch.setenv("OPENAJAR_HOME", str(h))
     monkeypatch.setattr(cli, "KDF_PARAMS", FAST_KDF)
     monkeypatch.setattr(cli, "_socket", lambda: sock)
     return h
@@ -106,7 +106,7 @@ def test_init_passphrase(home, prompts):
 
 
 def test_commands_before_init(home):
-    assert "agentos vault init" in fails("list")
+    assert "openajar vault init" in fails("list")
     assert "initialized: False" in ok("status")
 
 
@@ -241,7 +241,7 @@ def test_unseal_without_daemon(home, prompts):
     prompts.answers += [PHRASE, PHRASE]
     ok("init", "--passphrase")
     prompts.answers += [PHRASE]
-    assert "no agentos daemon is running" in fails("unseal")
+    assert "no openajar daemon is running" in fails("unseal")
     prompts.answers += ["nope nope nope"]
     assert "wrong passphrase" in fails("unseal")
     assert "nothing to seal" in ok("seal")

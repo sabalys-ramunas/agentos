@@ -1,4 +1,4 @@
-"""Pins what `agentos grants explain` says of a grant's specials and limits (agentos.policy.explain):
+"""Pins what `openajar grants explain` says of a grant's specials and limits (openajar.policy.explain):
 each special with and without its caps, chains of two blocks, budgets, meters, time and delegation."""
 
 from __future__ import annotations
@@ -6,9 +6,9 @@ from __future__ import annotations
 from pinned import check, outcome
 from pinned_grants_blocks import block
 
-from agentos.core.models import Effect
-from agentos.policy.explain import _limits, _specials
-from agentos.policy.grants import (
+from openajar.core.models import Effect
+from openajar.policy.explain import _limits, _specials
+from openajar.policy.grants import (
     BrainCap,
     Budget,
     EmptyCap,
@@ -20,8 +20,8 @@ from agentos.policy.grants import (
     Subject,
     VmCap,
 )
-from agentos.policy.memory_rules import MemoryCap
-from agentos.policy.routing import RoutingTable
+from openajar.policy.memory_rules import MemoryCap
+from openajar.policy.routing import RoutingTable
 
 AGENT = Subject(id="agent-1")
 H = "sha256:" + "1" * 64

@@ -1,6 +1,6 @@
 # One command for what CI checks. `make check` before every push.
 
-.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench eval export-check web-asset
+.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench eval export-check web-asset eval-smoke
 
 check: lint deadcode shell emdash typecheck test
 
@@ -8,8 +8,8 @@ check: lint deadcode shell emdash typecheck test
 # matrices, the tool reference, the error catalog), without the whole suite.
 merge-check: lint deadcode shell emdash
 	uv run pytest -q tests/unit/test_node_panel.py tests/unit/test_api_members.py tests/unit/test_registry.py tests/unit/test_config_example.py tests/unit/test_error_catalog.py
-	@uv run agentos tools --markdown | diff -q - docs/TOOLS.md >/dev/null || { echo "docs/TOOLS.md is stale: make tools-doc"; exit 1; }
-	@uv run agentos errors --markdown | diff -q - docs/ERRORS.md >/dev/null || { echo "docs/ERRORS.md is stale: make errors-doc"; exit 1; }
+	@uv run openajar tools --markdown | diff -q - docs/TOOLS.md >/dev/null || { echo "docs/TOOLS.md is stale: make tools-doc"; exit 1; }
+	@uv run openajar errors --markdown | diff -q - docs/ERRORS.md >/dev/null || { echo "docs/ERRORS.md is stale: make errors-doc"; exit 1; }
 	@uv run python scripts/protocol_doc.py --check
 
 lint: layers complexity
@@ -29,7 +29,7 @@ complexity:
 # cannot see (framework hooks, names reached by string). A pinned uvx, so vulture stays out of uv.lock.
 VULTURE_VERSION ?= 2.16
 deadcode:
-	uvx --python 3.12 vulture==$(VULTURE_VERSION) src/agentos scripts/vulture_whitelist.py --min-confidence 80
+	uvx --python 3.12 vulture==$(VULTURE_VERSION) src/openajar scripts/vulture_whitelist.py --min-confidence 80
 
 # mypy on the modules pyproject.toml's [tool.mypy] lists (its TODO says what comes next). A pinned
 # uvx, so mypy stays out of uv.lock.
@@ -63,12 +63,12 @@ emdash:
 
 # The tool reference is generated from the ToolSpecs; CI fails when it is stale.
 tools-doc:
-	uv run agentos tools --markdown > docs/TOOLS.md
+	uv run openajar tools --markdown > docs/TOOLS.md
 
 # The error catalog's reference, generated from the error classes and
-# src/agentos/core/error_catalog.toml; CI fails when it is stale.
+# src/openajar/core/error_catalog.toml; CI fails when it is stale.
 errors-doc:
-	uv run agentos errors --markdown > docs/ERRORS.md
+	uv run openajar errors --markdown > docs/ERRORS.md
 
 # docs/PROTOCOL.md's message examples: record a real node and controller session into
 # tests/fixtures/protocol/messages.json, then render it into the doc; CI fails when it is stale.
@@ -80,11 +80,11 @@ protocol-doc:
 golden:
 	uv run python scripts/record_golden.py
 
-# Lane benchmarks on the node, in slot 53 unless AGENTOS_TEST_SLOT says otherwise (docs/BENCH.md):
+# Lane benchmarks on the node, in slot 53 unless OPENAJAR_TEST_SLOT says otherwise (docs/BENCH.md):
 # appends the result to bench/results.jsonl, then flags a regression against the last one.
 bench:
 	@mkdir -p bench
-	AGENTOS_TEST_SLOT=$${AGENTOS_TEST_SLOT:-53} scripts/node-test.sh bench --python scripts/bench_node.py \
+	OPENAJAR_TEST_SLOT=$${OPENAJAR_TEST_SLOT:-53} scripts/node-test.sh bench --python scripts/bench_node.py \
 	  --runs $${BENCH_RUNS:-5} --commit $$(git rev-parse --short HEAD) $$(git diff --quiet HEAD || echo --dirty) \
 	  > bench/.last.txt
 	@cat bench/.last.txt
@@ -103,7 +103,12 @@ export-check:
 	uv run python scripts/public_export.py --check
 
 # The release's web app (.github/workflows/web-release.yml does the same): build web/ in live mode, then
-# pack web/dist as dist-release/agentos-web-<version>.tar.gz and its .sha256 (scripts/web_asset.py).
+# pack web/dist as dist-release/openajar-web-<version>.tar.gz and its .sha256 (scripts/web_asset.py).
 web-asset:
 	cd web && pnpm install --frozen-lockfile && pnpm build
 	python3 scripts/web_asset.py --dist web/dist --out dist-release
+
+# The smoke checks (docs/EVALS.md): the error catalog, the skill and the everyday tool list against
+# tests/env_eval/budgets.toml, with no node, no Docker and no model. CI runs them with the unit tests.
+eval-smoke:
+	uv run python tests/env_eval/run.py smoke

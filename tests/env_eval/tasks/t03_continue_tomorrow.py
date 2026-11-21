@@ -1,4 +1,4 @@
-"""Continue tomorrow: one session saves with a note, a second one ("continue <title> in agentos") resumes it.
+"""Continue tomorrow: one session saves with a note, a second one ("continue <title> in openajar") resumes it.
 
 The second prompt does not say what is left: only the first session's note does. So finishing means
 the resume worked (the same machine's work came back, not a new one) and the note was read.
@@ -44,7 +44,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
         await a.on_call("file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
         await a.sh("node --test test/csv.test.js 2>&1 | tail -8", cwd=env["workdir"])
         await a.on_call("environment_close", note=NOTE)
-        return done(f'CSV export done; saved. Say "continue {TITLE} in agentos" tomorrow.')
+        return done(f'CSV export done; saved. Say "continue {TITLE} in openajar" tomorrow.')
     env = await a.open(title=TITLE)
     note = str((env.get("resumed") or {}).get("note") or "")
     if "toJson" not in note:
@@ -81,10 +81,10 @@ TASK = Task(
     title="save with a note, resume it the next day by its title, finish",
     repo="todo",
     sessions=[
-        Session(f'In agentos, start the export in {{repo}} and call the environment "{TITLE}": make '
+        Session(f'In openajar, start the export in {{repo}} and call the environment "{TITLE}": make '
                 "test/csv.test.js pass. I have to stop after that, so keep the machine for tomorrow and leave a "
                 "note that the JSON export (test/json.test.js) is next."),
-        Session(f"continue {TITLE} in agentos. When it is done, push it on a branch and open the pull request."),
+        Session(f"continue {TITLE} in openajar. When it is done, push it on a branch and open the pull request."),
     ],
     check=check, perfect=perfect, careless=careless,
 )

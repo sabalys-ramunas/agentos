@@ -1,7 +1,7 @@
-"""The commit gate checks who a publish acts as (AUD-01 on the gate, agentos.node.acting,
+"""The commit gate checks who a publish acts as (AUD-01 on the gate, openajar.node.acting,
 docs/design/egress-guard.md 8.10): read per site from the request (the canary's recorded shapes,
 tests/unit/test_publish_normalize.py), resolved to the lane's own account, a surface through the
-lane, or an identity agentos does not know; then the policy: a surface's grant scope, switch and
+lane, or an identity openajar does not know; then the policy: a surface's grant scope, switch and
 pace; standing approvals that never cross identities; an unknown identity that always asks and is
 refused for a caller that cannot ask (a schedule, a flow running on its own)."""
 
@@ -23,18 +23,18 @@ from test_publish_normalize import (
     reddit_post,
 )
 
-from agentos.core.errors import ApprovalPending, PolicyDenied
-from agentos.core.models import AccountRef, ActionKind, ActsAs, Effect, LaneSpec, Surface
-from agentos.core.runtime import Runtime
-from agentos.dev.lanes import DevLaneManager
-from agentos.dev.web import DevInteraction, new_tab
-from agentos.node import acting, commitgate, egress, publish
-from agentos.node import tools as node_tools
-from agentos.node.cardfacts import NodeCardFacts
-from agentos.policy.cards import publish_card
-from agentos.policy.meters import LimitReached
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE
+from openajar.core.errors import ApprovalPending, PolicyDenied
+from openajar.core.models import AccountRef, ActionKind, ActsAs, Effect, LaneSpec, Surface
+from openajar.core.runtime import Runtime
+from openajar.dev.lanes import DevLaneManager
+from openajar.dev.web import DevInteraction, new_tab
+from openajar.node import acting, commitgate, egress, publish
+from openajar.node import tools as node_tools
+from openajar.node.cardfacts import NodeCardFacts
+from openajar.policy.cards import publish_card
+from openajar.policy.meters import LimitReached
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE
 
 ME = "61596476060059"            # the canary's Facebook profile (c_user, actor_id and av on its posts)
 PAGE = "100089000000001"         # biz-a's Page, managed by that profile
@@ -110,7 +110,7 @@ def test_facebook_page_post_resolves_to_the_surface_through_this_lane():
     assert resolve(as_page(facebook_post(), PAGE, av=ME), FB_LANE, pinned=FB_PIN)["status"] == "surface"
 
 
-def test_facebook_identities_agentos_does_not_know():
+def test_facebook_identities_openajar_does_not_know():
     stranger = resolve(as_page(facebook_post(), STRANGER, av=STRANGER), FB_LANE, pinned=FB_PIN)
     assert stranger["status"] == "unrecognized" and stranger["id"] == STRANGER
     assert "no surface through personal/facebook names it" in stranger["why"]
@@ -122,7 +122,7 @@ def test_facebook_identities_agentos_does_not_know():
     # nothing names who it acts as, on a site where a login can post as a Page: never the lane's by default
     unread = resolve(as_page(facebook_post(), None, drop_av=True), FB_LANE, pinned=FB_PIN)
     assert unread["status"] == "unrecognized" and unread["id"] is None
-    assert unread["label"] == "an identity agentos cannot read"
+    assert unread["label"] == "an identity openajar cannot read"
 
 
 def test_facebook_fields_that_disagree_are_unrecognized():
@@ -196,7 +196,7 @@ class CardRuntime:
     def get(self, name):
         if name == "lanes":
             return SimpleNamespace(get=lambda lane: SimpleNamespace(spec=SimpleNamespace(account=FB_PIN)))
-        if name == "card_facts":  # what a node runtime always carries (agentos.node.cardfacts)
+        if name == "card_facts":  # what a node runtime always carries (openajar.node.cardfacts)
             return NodeCardFacts()
         return None
 
@@ -217,11 +217,11 @@ def test_the_card_says_plainly_when_the_identity_is_unknown():
     c.record["acts_as"] = acting.resolve(c.acting, lane=FB_LANE, pinned=FB_PIN, surfaces=SURFACES)
     card = publish_card(c.content(FB_LANE), CardRuntime())
     assert card["acts_as"] is None and card["acting"]["status"] == "unrecognized"
-    assert card["identity_line"] == f"Posts as an identity agentos does not know ({STRANGER}): no surface names it"
+    assert card["identity_line"] == f"Posts as an identity openajar does not know ({STRANGER}): no surface names it"
     assert STRANGER in card["identity_warning"] and "never automatic" in card["identity_warning"]
     assert "—" not in json.dumps(card)
     assert commitgate.summary(c, FB_LANE).startswith(
-        f"Publish a post on Facebook as an identity agentos does not know ({STRANGER}) through personal/facebook")
+        f"Publish a post on Facebook as an identity openajar does not know ({STRANGER}) through personal/facebook")
 
 
 # ---- the gate end to end (the dev node, its composer posting as a Page) --------------------
@@ -389,7 +389,7 @@ async def test_an_unknown_identity_always_asks_and_no_standing_approval_covers_i
     node.acting_as("100089999999999")
     ap_id = await node.pending(tok)
     ap = node.approvals.get(ap_id)
-    assert ap.lane == LANE and "an identity agentos does not know (100089999999999)" in ap.summary
+    assert ap.lane == LANE and "an identity openajar does not know (100089999999999)" in ap.summary
     assert ap.card["acting"]["status"] == "unrecognized" and "100089999999999" in ap.card["identity_warning"]
     node.approvals.add_standing(effects=["commit"], lanes=[LANE], until=node.clock() + 86_400, count=5,
                                 by="owner", targets=["tool:browser_act"], contents=[ap.content_digest])
@@ -425,7 +425,7 @@ async def test_a_schedule_or_flow_grant_is_refused_an_unknown_identity(node):
 
 
 async def test_the_account_pin_is_checked_first(node, monkeypatch):
-    from agentos.node import sites
+    from openajar.node import sites
 
     async def other(context, which, url=None):
         return {"site": "social", "user_id": "someone-else", "source": "cookie"}
@@ -443,7 +443,7 @@ async def test_the_account_pin_is_checked_first(node, monkeypatch):
 async def test_a_flow_running_on_its_own_is_refused_an_unknown_identity_and_a_known_one_goes(node):
     """The flow driver's check (commitgate.flow_identity_check) on the lane's guard: a flow's own
     publish is authorized with its run, so only who it posts as is judged, and nobody is there to ask."""
-    from agentos.dev.net import publish_request
+    from openajar.dev.net import publish_request
 
     guard = egress.guard_for(node.page)
     page = node.page
@@ -461,7 +461,7 @@ async def test_a_flow_running_on_its_own_is_refused_an_unknown_identity_and_a_kn
 async def test_a_flows_identity_check_and_its_declared_commit_share_one_route(node):
     """Built apart (who a publish acts as, and the one request a connector run may commit with), both
     bind the gate's route on one lane: each still refuses what it refuses, and the route goes with both."""
-    from agentos.dev.net import publish_request
+    from openajar.dev.net import publish_request
 
     guard = egress.guard_for(node.page)
     page = node.page
@@ -531,9 +531,9 @@ def test_a_member_urn_the_gate_cannot_compare_is_not_called_the_lanes_account():
 
 @pytest.mark.parametrize(("acts", "line"), [
     ({"status": "unrecognized", "id": "1", "short": "the fields disagree"},
-     "Posts as an identity agentos does not know (1): the fields disagree"),
+     "Posts as an identity openajar does not know (1): the fields disagree"),
     ({"status": "unrecognized", "id": None, "short": "the request names none"},
-     "Posts as an identity agentos does not know: the request names none"),
+     "Posts as an identity openajar does not know: the request names none"),
 ])
 def test_the_identity_line_gives_the_real_reason(acts, line):
     assert acting.card_line(acts) == line
@@ -590,7 +590,7 @@ async def agent_drive(guard) -> None:
 
 
 async def test_a_drive_that_ends_under_a_flow_leaves_its_route_to_the_flow(node):
-    from agentos.dev.net import publish_request
+    from openajar.dev.net import publish_request
 
     guard, page = egress.guard_for(node.page), node.page
     check = commitgate.flow_identity_check(node.runtime, LANE, guard)
@@ -658,8 +658,8 @@ def test_a_lane_nothing_describes_is_checked_and_its_surfaces_count():
 
 
 async def test_the_gate_log_lists_the_unknown_identities_seen(node, tmp_path):
-    from agentos.dev.net import publish_request
-    from agentos.node import gateshapes
+    from openajar.dev.net import publish_request
+    from openajar.node import gateshapes
 
     guard = egress.guard_for(node.page)
     guard.trace = egress.EgressTrace(tmp_path / egress.TRACE_NAME)

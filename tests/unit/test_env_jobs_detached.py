@@ -1,8 +1,8 @@
-"""A job on a VM survives a restart of the agentos service (field report 2026-11-16: an upgrade restarted
+"""A job on a VM survives a restart of the openajar service (field report 2026-11-16: an upgrade restarted
 the service, its ssh sessions logged out, and every dev server on the VM died). The job runs detached on
 the machine with its output in files there; the node follows those files and, after a restart, follows
 them again from the offsets it has. Here the "VM" is this computer's shell: the launcher runs the very
-scripts the ssh would (agentos.vms.ssh), with a stand-in for util-linux setsid where there is none (macOS).
+scripts the ssh would (openajar.vms.ssh), with a stand-in for util-linux setsid where there is none (macOS).
 """
 
 from __future__ import annotations
@@ -15,12 +15,12 @@ from pathlib import Path
 
 import pytest
 
-from agentos.env.host import FakeHost
-from agentos.env.manager import EnvManager
-from agentos.env.models import RemoteHost
-from agentos.env.paths import EnvSettings
-from agentos.env.sandbox import DirectLauncher
-from agentos.vms import ssh
+from openajar.env.host import FakeHost
+from openajar.env.manager import EnvManager
+from openajar.env.models import RemoteHost
+from openajar.env.paths import EnvSettings
+from openajar.env.sandbox import DirectLauncher
+from openajar.vms import ssh
 
 SETSID = '''#!{py}
 import os, sys
@@ -262,7 +262,7 @@ def test_the_status_lines_parse():
 
 
 def test_the_follower_is_quiet_and_only_a_job_detaches(vm):
-    from agentos.env.sandbox import Workload
+    from openajar.env.sandbox import Workload
     lane = type("L", (), {"remote": RemoteHost(vm_id="vm_1", host="h", key_path="/k", known_hosts="/kh",
                                                host_alias="a")})()
     real = ssh.SshLauncher()
@@ -281,8 +281,8 @@ async def test_a_read_waiting_for_the_end_says_exited_not_running_with_an_exit_c
     probe found the kill while the job's end was under way (its exit code set, the machine's files
     still going), which woke terminal_job_read(until_exit=true): the read said state running with
     exit_code 0 and "the job runs on". The read now lets an ending job finish first."""
-    from agentos.env import jobs as jobs_mod
-    from agentos.env.lanes import LaneRuntime
+    from openajar.env import jobs as jobs_mod
+    from openajar.env.lanes import LaneRuntime
 
     kill = {"pid": 4025, "name": "python3", "rss_mb": 3529, "at": "2026-11-16T09:49:30Z", "in_job": True}
     ending = asyncio.Event()

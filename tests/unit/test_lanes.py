@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import (
+from openajar.core.config import NodeConfig
+from openajar.core.errors import (
     EngineError,
     InvalidRequest,
     LaneBusy,
@@ -19,9 +19,9 @@ from agentos.core.errors import (
     LaneNotFound,
     LaneQuarantined,
 )
-from agentos.core.models import LaneSpec, LaneState, ProxyConfig, ViewerInfo
-from agentos.node.lanes import LaneManagerImpl
-from agentos.node.store import LaneStore
+from openajar.core.models import LaneSpec, LaneState, ProxyConfig, ViewerInfo
+from openajar.node.lanes import LaneManagerImpl
+from openajar.node.store import LaneStore
 
 # ---- fakes ---------------------------------------------------------------------------
 
@@ -43,7 +43,7 @@ class FakePage:
 
 
 class FormlessLocator:
-    """What browser_act reads before a click (agentos.node.fields.read_form_diff): no form here."""
+    """What browser_act reads before a click (openajar.node.fields.read_form_diff): no form here."""
 
     async def evaluate(self, js: str, arg=None):
         return None

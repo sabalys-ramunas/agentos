@@ -10,12 +10,12 @@ import zlib
 
 import pytest
 
-from agentos.core import migrate
-from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.studio.capture import screens
-from agentos.studio.contracts import DEFAULT_WIDTHS, Capture, Rect, Screen, Shot, Target, Theme
-from agentos.studio.store import StudioStore, blob_id, iso_now, new_capture_id
-from agentos.studio.store import store as store_mod
+from openajar.core import migrate
+from openajar.core.errors import InvalidRequest, NotFound, ServiceUnavailable
+from openajar.studio.capture import screens
+from openajar.studio.contracts import DEFAULT_WIDTHS, Capture, Rect, Screen, Shot, Target, Theme
+from openajar.studio.store import StudioStore, blob_id, iso_now, new_capture_id
+from openajar.studio.store import store as store_mod
 
 
 def tiny_png(seed: int = 0, w: int = 4, h: int = 4) -> bytes:

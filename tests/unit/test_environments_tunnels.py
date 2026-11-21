@@ -10,12 +10,12 @@ import sys
 
 import pytest
 
-from agentos.env.models import RemoteHost
-from agentos.environments import tunnels
-from agentos.environments.tunnels import Guard, free_port, tcp_owner, tunnel_argv
+from openajar.env.models import RemoteHost
+from openajar.environments import tunnels
+from openajar.environments.tunnels import Guard, free_port, tcp_owner, tunnel_argv
 
 REMOTE = RemoteHost(vm_id="vm_1", host="127.0.0.1", port=2222, key_path="/k/id", known_hosts="/k/kh",
-                    host_alias="agentos-vm_1", provider="docker", label="docker")
+                    host_alias="openajar-vm_1", provider="docker", label="docker")
 
 # /proc/net/tcp: our listener on 127.0.0.1:0x9C40 (40000), a client of uid 1000 from port 0xC350
 # (50000), and one of uid 1001 from port 0xC351 (50001)
@@ -54,7 +54,7 @@ async def _echo_socket(path: str) -> asyncio.Server:
 async def test_the_guard_relays_for_the_nodes_user_and_refuses_anyone_else(tmp_path):
     import tempfile
 
-    folder = tempfile.mkdtemp(prefix="agentos-t-")
+    folder = tempfile.mkdtemp(prefix="openajar-t-")
     path = os.path.join(folder, "s")
     upstream = await _echo_socket(path)
     seen: list[int] = []
@@ -131,8 +131,8 @@ time.sleep(60)
 
 async def test_the_git_gateway_gets_an_ssh_connection_of_its_own(tmp_path, monkeypatch):
     """A push from the VM never waits behind the browser's traffic on a shared connection."""
-    from agentos.environments.tunnels import Tunnel, git_tunnel_argv
-    from agentos.vms import ssh as vssh
+    from openajar.environments.tunnels import Tunnel, git_tunnel_argv
+    from openajar.vms import ssh as vssh
 
     log = tmp_path / "ssh.log"
     fake = tmp_path / "ssh"

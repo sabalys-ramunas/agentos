@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from test_env_node_support import leftovers, mgr, needs_node, new_home, until  # noqa: F401
 
-from agentos.core.models import utcnow
-from agentos.env.manager import EnvManager
+from openajar.core.models import utcnow
+from openajar.env.manager import EnvManager
 
 pytestmark = [pytest.mark.node, needs_node]
 
@@ -25,7 +25,7 @@ async def test_orphans_are_cleaned_after_a_crash():
     crash = textwrap.dedent(f"""
         import asyncio, os, subprocess
         from pathlib import Path
-        from agentos.env.manager import EnvManager
+        from openajar.env.manager import EnvManager
         async def main():
             m = EnvManager(Path({str(home)!r}))
             await m.start()

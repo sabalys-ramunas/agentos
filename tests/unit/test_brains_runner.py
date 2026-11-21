@@ -28,11 +28,11 @@ from testkit.brains import (
     wait_status,
 )
 
-from agentos.brains.models import Budget, ContextBundle, GitRef, Privacy
-from agentos.brains.service import BrainService
-from agentos.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.core.runtime import Runtime
+from openajar.brains.models import Budget, ContextBundle, GitRef, Privacy
+from openajar.brains.service import BrainService
+from openajar.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.core.runtime import Runtime
 
 P = Principal(id="claude-code", thread="T-1")
 CODEX_AUTH = json.dumps({"OPENAI_API_KEY": None, "tokens": {"access_token": "at-" + "A" * 30,
@@ -76,7 +76,7 @@ async def test_success_end_to_end(svc, notifier):
     assert st["cost_usd"] == 0 and st["notional_usd"] == pytest.approx(0.0123)  # subscription: no real spend
     assert st["result_preview"].startswith("Done.")
     kinds = [e["kind"] for e in svc.tail(tid)["events"]]
-    assert kinds[:2] == ["agentos", "system"] and "tool_use" in kinds and "result" in kinds
+    assert kinds[:2] == ["openajar", "system"] and "tool_use" in kinds and "result" in kinds
     assert any(n["kind"] == "brain.finished" for n in notifier.sent)
     # prompt reached the brain on stdin, not argv
     d = dump(svc, tid)
@@ -105,7 +105,7 @@ async def test_every_routing_decision_is_traced_with_a_reason(svc):
 
 # ------------------------------------------------------------------ secrets and tokens
 async def test_owner_token_never_reaches_the_brain(tmp_path, monkeypatch, notifier):
-    monkeypatch.setenv("AGENTOS_TOKEN", OWNER_TOKEN)          # the daemon's own environment
+    monkeypatch.setenv("OPENAJAR_TOKEN", OWNER_TOKEN)          # the daemon's own environment
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-daemon-env-key-should-not-leak")
     policy = FakePolicy()
     svc = make_service(tmp_path, runtime=Runtime(policy=policy, notifier=notifier))
@@ -117,11 +117,11 @@ async def test_owner_token_never_reaches_the_brain(tmp_path, monkeypatch, notifi
     blob = json.dumps(d)
     assert OWNER_TOKEN not in blob
     assert "daemon-env-key" not in blob
-    assert d["env"]["AGENTOS_CHILD_TOKEN"] == CHILD_TOKEN       # the brain's own child grant
+    assert d["env"]["OPENAJAR_CHILD_TOKEN"] == CHILD_TOKEN       # the brain's own child grant
     assert d["env"]["CLAUDE_CODE_OAUTH_TOKEN"] == OAUTH
-    assert "${AGENTOS_CHILD_TOKEN}" in d["mcp_config"] and CHILD_TOKEN not in d["mcp_config"]
+    assert "${OPENAJAR_CHILD_TOKEN}" in d["mcp_config"] and CHILD_TOKEN not in d["mcp_config"]
     assert not any(OAUTH in a or CHILD_TOKEN in a for a in d["argv"])
-    # nothing agentos wrote for the task holds the credential or the child token
+    # nothing openajar wrote for the task holds the credential or the child token
     written = all_task_bytes(svc, tid) + (svc.dir / "decisions.jsonl").read_bytes()
     assert OAUTH.encode() not in written and CHILD_TOKEN.encode() not in written
     assert OWNER_TOKEN.encode() not in written
@@ -144,7 +144,7 @@ async def test_owner_token_refused_as_a_child_grant(tmp_path):
 
 
 async def test_a_turn_grant_from_the_caller_is_used_instead_of_minting(tmp_path):
-    """agentos.events mints the delivery's grant itself (narrowed by its trigger, seeded with the
+    """openajar.events mints the delivery's grant itself (narrowed by its trigger, seeded with the
     event's taint) and hands it over; the brain gets exactly that token and it is revoked after."""
     policy = FakePolicy()
     svc = make_service(tmp_path, runtime=Runtime(policy=policy))
@@ -155,7 +155,7 @@ async def test_a_turn_grant_from_the_caller_is_used_instead_of_minting(tmp_path)
     st = await wait_status(svc, tid)
     assert st["status"] == "succeeded_unverified" and st["taint"] == ["untrusted"]
     assert policy.minted == []
-    assert dump(svc, tid)["env"]["AGENTOS_CHILD_TOKEN"] == turn["token"]
+    assert dump(svc, tid)["env"]["OPENAJAR_CHILD_TOKEN"] == turn["token"]
     assert policy.revoked == ["gr_turn0001"]
     with pytest.raises(PolicyDenied, match="owner"):
         await run(svc, "FAKE:ok", lanes=["personal/reddit"], turn_grant={"token": OWNER_TOKEN, "grant_id": "g"})
@@ -357,7 +357,7 @@ async def test_expired_credentials_need_auth_and_notify_the_owner(svc, notifier)
 
 async def test_brain_without_credential_is_needs_auth_and_skipped(svc):
     spec_codex = await add(svc, "codex-plus", "subscription", "openai", credential=CODEX_AUTH)
-    from agentos.brains.models import BrainSpec
+    from openajar.brains.models import BrainSpec
     await svc.add_brain(BrainSpec.template("claude-max", "subscription", "anthropic"))  # no token yet
     info = {b["name"]: b for b in await svc.list_brains()}
     assert info["claude-max"]["state"] == "needs_auth" and "brains auth claude-max" in info["claude-max"]["state_reason"]
@@ -367,7 +367,7 @@ async def test_brain_without_credential_is_needs_auth_and_skipped(svc):
 
 async def test_cli_drift_marks_the_brain_down(tmp_path):
     svc = make_service(tmp_path)
-    from agentos.dev import fakecli
+    from openajar.dev import fakecli
     (tmp_path / "bin" / "claude.help").write_text(fakecli.CLAUDE_HELP.replace("--strict-mcp-config", "--mcp-strict"))
     await add(svc, "claude-max", "subscription", "anthropic")
     info = (await svc.list_brains())[0]
@@ -553,7 +553,7 @@ async def test_tasks_are_scoped_to_their_owner(svc):
     await add(svc, "claude-max", "subscription", "anthropic")
     tid, _ = await run(svc, "FAKE:ok")
     stranger = Principal(id="x", owner="someone-else")
-    from agentos.core.errors import NotFound
+    from openajar.core.errors import NotFound
     with pytest.raises(NotFound):
         svc.status(tid, stranger)
     assert svc.list_tasks(stranger) == []
@@ -584,7 +584,7 @@ async def test_git_bundle_handoff(svc, tmp_path):
     assert st["status"] == "succeeded_unverified"
     work = svc.task_dir(tid) / "work"
     assert (work / "app.py").exists() and (work / "notes" / "next.md").read_text() == "1. fix tests"
-    assert "Refactor is half done" in (work / "AGENTOS_HANDOFF.md").read_text()
+    assert "Refactor is half done" in (work / "OPENAJAR_HANDOFF.md").read_text()
     prompt = dump(svc, tid)["prompt"]
     assert "Finish the refactor." in prompt and "half done" in prompt and "at wip" in prompt
 

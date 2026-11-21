@@ -1,9 +1,9 @@
 """Ops on a real node: doctor against a dev install, backup and restore of a real lane profile,
 the installer with --user agentos in a dev prefix, and the units under systemd-analyze verify.
 
-Run on the node:  AGENTOS_TEST_SLOT=21 scripts/node-test.sh ops tests/node/test_ops_node.py
+Run on the node:  OPENAJAR_TEST_SLOT=21 scripts/node-test.sh ops tests/node/test_ops_node.py
 Uses the ops agent's ranges (displays :210-:219, ports 7510-7519) and directories under
-the directory that holds this checkout, the dev root (override with AGENTOS_TEST_OPS_ROOT). Never touches /var/lib/agentos,
+the directory that holds this checkout, the dev root (override with OPENAJAR_TEST_OPS_ROOT). Never touches /var/lib/agentos,
 /opt/agentos or the agentosd service; creates the `agentos` user only when it does not exist yet,
 and deletes it again.
 """
@@ -28,9 +28,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.config import NodeConfig, load_config, save_config
-from agentos.core.models import LaneSpec, LaneState
-from agentos.core.runtime import Runtime
+from openajar.core.config import NodeConfig, load_config, save_config
+from openajar.core.models import LaneSpec, LaneState
+from openajar.core.runtime import Runtime
 
 pytestmark = [
     pytest.mark.node,
@@ -38,13 +38,13 @@ pytestmark = [
 ]
 
 CHECKOUT = Path(__file__).resolve().parents[2]
-ROOT = Path(os.environ.get("AGENTOS_TEST_OPS_ROOT", CHECKOUT.parent))
-AGE = Path(os.environ.get("AGENTOS_TEST_AGE", ROOT / "tools" / "pkg" / "usr" / "bin" / "age"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_OPS_ROOT", CHECKOUT.parent))
+AGE = Path(os.environ.get("OPENAJAR_TEST_AGE", ROOT / "tools" / "pkg" / "usr" / "bin" / "age"))
 PASSPHRASE = "node test passphrase, long enough"
 MCP_PORT = 7510
 LANE_RANGES = {"display_base": 214, "vnc_base": 7511, "viewer_base": 7513, "max_slots": 2}
 DEV_RANGES = {"display_base": 210, "vnc_base": 7515, "viewer_base": 7517, "max_slots": 2}
-TEST_USER = os.environ.get("AGENTOS_TEST_USER", "agentos")
+TEST_USER = os.environ.get("OPENAJAR_TEST_USER", "agentos")
 
 
 def _safe(path: Path) -> Path:
@@ -64,7 +64,7 @@ def work():
 
 
 def run_installer(prefix: Path, home: Path, *flags: str, init_args: str = "") -> subprocess.CompletedProcess:
-    env = {**os.environ, "INSTALL_PREFIX": str(prefix), "AGENTOS_HOME": str(home), "AGENTOS_INIT_ARGS": init_args,
+    env = {**os.environ, "INSTALL_PREFIX": str(prefix), "OPENAJAR_HOME": str(home), "OPENAJAR_INIT_ARGS": init_args,
            "PATH": f"{Path.home() / '.local/bin'}:{os.environ['PATH']}"}
     return subprocess.run(["bash", str(CHECKOUT / "deploy" / "install-node.sh"), *flags], env=env,
                           capture_output=True, text=True, timeout=900, check=False)
@@ -84,8 +84,8 @@ def dev_install(work):
 
 
 def ops(prefix: Path, home: Path, *args: str, timeout: float = 300) -> subprocess.CompletedProcess:
-    return subprocess.run([str(prefix / ".venv" / "bin" / "python"), "-m", "agentos.ops", *args],
-                          env={**os.environ, "AGENTOS_HOME": str(home)}, capture_output=True, text=True,
+    return subprocess.run([str(prefix / ".venv" / "bin" / "python"), "-m", "openajar.ops", *args],
+                          env={**os.environ, "OPENAJAR_HOME": str(home)}, capture_output=True, text=True,
                           timeout=timeout, check=False)
 
 
@@ -102,8 +102,8 @@ def port_open(port: int) -> bool:
 def test_doctor_against_a_dev_install_with_its_daemon(dev_install):
     prefix, home = dev_install
     assert not port_open(MCP_PORT), f"port {MCP_PORT} is already in use"
-    daemon = subprocess.Popen([str(prefix / ".venv" / "bin" / "agentos"), "node", "serve"],
-                              env={**os.environ, "AGENTOS_HOME": str(home)}, stdout=subprocess.DEVNULL,
+    daemon = subprocess.Popen([str(prefix / ".venv" / "bin" / "openajar"), "node", "serve"],
+                              env={**os.environ, "OPENAJAR_HOME": str(home)}, stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL, start_new_session=True)
     try:
         deadline = time.monotonic() + 60
@@ -152,10 +152,10 @@ def age_decrypt(archive: Path, out: Path, passphrase: str) -> None:
 
 
 async def test_backup_pauses_a_warm_real_lane_and_restore_comes_up_logged_in(work):
-    from agentos.node.camoufox.engine import browser_pids_under
-    from agentos.node.lanes import build_lane_manager
-    from agentos.ops import backup
-    from agentos.ops.service import HealthService
+    from openajar.node.camoufox.engine import browser_pids_under
+    from openajar.node.lanes import build_lane_manager
+    from openajar.ops import backup
+    from openajar.ops.service import HealthService
 
     home, restored = work / "lanehome", work / "restored"
     cfg = lane_config(home)
@@ -186,7 +186,7 @@ async def test_backup_pauses_a_warm_real_lane_and_restore_comes_up_logged_in(wor
     pinned = cfg.fingerprint_path("ops/real").read_bytes()
 
     contents = await asyncio.to_thread(backup.verify_backup, result.path, PASSPHRASE)
-    assert "agentos.db" in contents.sqlite_checked
+    assert "openajar.db" in contents.sqlite_checked
     if AGE.exists():  # the stock age tool opens our archives
         plain = work / "plain.tar.gz"
         await asyncio.to_thread(age_decrypt, result.path, plain, PASSPHRASE)
@@ -263,7 +263,7 @@ def test_installer_with_a_service_user_in_a_dev_prefix(dev_install, work, servic
     text = unit.read_text()
     assert f"User={service_user}\n" in text and f"Group={service_user}\n" in text
     assert f'ReadWritePaths="{home}"\n' in text
-    assert f'ExecStart="{prefix}/.venv/bin/agentos" node serve\n' in text
+    assert f'ExecStart="{prefix}/.venv/bin/openajar" node serve\n' in text
     assert f'Environment="XDG_CACHE_HOME={home}/.cache"\n' in text
     assert "NoNewPrivileges=yes" in text and "ProtectSystem=strict" in text and "PrivateTmp=yes" in text
     hardened = work / "agentosd-hardened.service"
@@ -323,7 +323,7 @@ def test_upgrade_a_dev_install(dev_install, work):
     steps = [s["step"] for s in result["steps"]]
     assert steps == ["preflight", "snapshot", "install", "migrate", "health"]
     assert any(a["package"] == "node" for a in result["migrate"]["applied"])
-    assert (prefix.with_name(prefix.name + ".rollback") / ".venv" / "bin" / "agentos").exists()
+    assert (prefix.with_name(prefix.name + ".rollback") / ".venv" / "bin" / "openajar").exists()
     again = ops(prefix, home, "migrate", "status", "--json")
     assert all(not s["pending"] for s in json.loads(again.stdout))
 
@@ -331,9 +331,9 @@ def test_upgrade_a_dev_install(dev_install, work):
 def test_root_keeps_a_service_user_home_owned_by_that_user(work, service_user):
     """Root runs backups, migrations, rollbacks, refreshes and restores on a home the service user owns;
     everything it writes there must stay the service user's, or the service can no longer use it."""
-    from agentos.core import migrate
-    from agentos.node import fingerprint
-    from agentos.ops import backup
+    from openajar.core import migrate
+    from openajar.node import fingerprint
+    from openajar.ops import backup
 
     subprocess.run(["useradd", "--system", "--user-group", "--no-create-home", "--shell", "/usr/sbin/nologin",
                     service_user], check=True)
@@ -344,7 +344,7 @@ def test_root_keeps_a_service_user_home_owned_by_that_user(work, service_user):
     cfg.profile_dir("ops/owned").mkdir(parents=True)
     (cfg.profile_dir("ops/owned") / "cookies.sqlite").write_bytes(b"cookies")
     cfg.fingerprint_path("ops/owned").write_text(json.dumps({"navigator.userAgent": "rv:150.0 Firefox/150.0"}))
-    with sqlite3.connect(home / "agentos.db") as db:
+    with sqlite3.connect(home / "openajar.db") as db:
         db.execute("CREATE TABLE lanes (id TEXT PRIMARY KEY, spec TEXT NOT NULL, last_used TEXT, exit_ip TEXT)")
     subprocess.run(["chown", "-R", f"{service_user}:{service_user}", str(home)], check=True)
     subprocess.run(["chmod", "-R", "go-rwx", str(home)], check=True)
@@ -356,10 +356,10 @@ def test_root_keeps_a_service_user_home_owned_by_that_user(work, service_user):
     assert owned(cfg.fingerprint_path("ops/owned")) and owned(result.backup)
 
     applied = migrate.migrate(home)
-    assert applied.applied and owned(applied.backup_dir) and owned(applied.backup_dir / "agentos.db")
-    assert owned(home / "backups") and owned(home / "agentos.db")
+    assert applied.applied and owned(applied.backup_dir) and owned(applied.backup_dir / "openajar.db")
+    assert owned(home / "backups") and owned(home / "openajar.db")
     migrate.restore_databases(applied.backup_dir, home)  # the upgrade's rollback
-    assert owned(home / "agentos.db")
+    assert owned(home / "openajar.db")
 
     made = backup.create_backup(home, home / "backups", PASSPHRASE, node="owned", log_n=12)
     assert owned(made.path) and owned(home / "backups")

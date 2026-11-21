@@ -167,7 +167,7 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
         <div>
           <StateGlyph state="good" size={24} />
           <h3 className="mt-2 text-heading text-balance">{service.name} is ready on {name}</h3>
-          <p className="mt-1 text-body text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and agentos Cloud only heard that it worked.</p>
+          <p className="mt-1 text-body text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and openajar Cloud only heard that it worked.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild variant="primary"><Link to="/$org/settings/workers" params={{ org }}>Go to Workers</Link></Button>
             <Button asChild><Link to="/$org/settings/brains" params={{ org }}>See AI models</Link></Button>
@@ -214,7 +214,7 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
         <div>
           <h3 className="text-section-title">Which computer keeps it?</h3>
           <p className="mt-1 text-body text-pretty text-muted">
-            {service.how === 'key' ? `Your ${service.name} key goes straight to this computer, on a small page it makes for this one job. It never passes through agentos Cloud.` : service.how === 'sign-in' ? 'You sign in on this computer, so the sign-in never passes through agentos Cloud.' : 'It runs on this computer, so there is nothing to paste and nothing leaves it.'}
+            {service.how === 'key' ? `Your ${service.name} key goes straight to this computer, on a small page it makes for this one job. It never passes through openajar Cloud.` : service.how === 'sign-in' ? 'You sign in on this computer, so the sign-in never passes through openajar Cloud.' : 'It runs on this computer, so there is nothing to paste and nothing leaves it.'}
           </p>
         </div>
         <ComputerChoice computers={computers} value={computer} onChange={onComputer} />
@@ -271,13 +271,13 @@ export function AddService() {
         <ChevronLeft aria-hidden="true" className="size-4" />
         AI models
       </Link>
-      <SettingsHeader title="Add an AI service" description={service ? `${service.name}. ${service.sentence}` : 'Who should think for you? It lives on one of your computers, and agentos never holds a key.'} />
+      <SettingsHeader title="Add an AI service" description={service ? `${service.name}. ${service.sentence}` : 'Who should think for you? It lives on one of your computers, and openajar never holds a key.'} />
       <QueryView card query={nodes} skeleton={<div className="grid gap-4"><Skeleton className="h-64 rounded-xl" /></div>}>
         {(computers) => {
           if (!computers.length) {
             return (
               <Card>
-                <EmptyState icon={<KeyRound />} title="An AI service needs a computer" description="It lives on a computer of yours, never in agentos Cloud. Add a computer first." action={<Button asChild variant="primary"><Link to="/$org/nodes" params={{ org }} search={{ add: true }}>Add a computer</Link></Button>} />
+                <EmptyState icon={<KeyRound />} title="An AI service needs a computer" description="It lives on a computer of yours, never in openajar Cloud. Add a computer first." action={<Button asChild variant="primary"><Link to="/$org/nodes" params={{ org }} search={{ add: true }}>Add a computer</Link></Button>} />
               </Card>
             );
           }

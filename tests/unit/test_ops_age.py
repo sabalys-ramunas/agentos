@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from agentos.core import age
+from openajar.core import age
 
 PW = "correct horse battery staple"
 LOG_N = 10  # fast in tests; real archives use 18

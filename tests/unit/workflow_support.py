@@ -9,12 +9,12 @@ from typing import Any
 
 from test_policy_support import Clock
 
-from agentos.core.models import Effect
-from agentos.events.service import build as build_events
-from agentos.policy.service import PolicyService
-from agentos.runner.fakes import BASE, Harness, post_flow
-from agentos.runner.workflows.mail import Mailbox, Received, SendRefused
-from agentos.runner.workflows.service import Actor
+from openajar.core.models import Effect
+from openajar.events.service import build as build_events
+from openajar.policy.service import PolicyService
+from openajar.runner.fakes import BASE, Harness, post_flow
+from openajar.runner.workflows.mail import Mailbox, Received, SendRefused
+from openajar.runner.workflows.service import Actor
 
 LANE = "biz-a/social"
 MAIL = "biz-a/mail"
@@ -42,7 +42,7 @@ class FakeMail:
         if to in self.refuse:
             raise SendRefused("refused")
         if to in self.lose:
-            from agentos.runner.workflows.mail import SendInDoubt
+            from openajar.runner.workflows.mail import SendInDoubt
 
             self.sent.append(message)
             self.rcpt.append(to)

@@ -147,7 +147,7 @@ export interface OrgData extends AccessData {
   proofShares?: (ProofShare & { token: string })[];
   /** What agents handed to an AI model. Kept in the mock only, so a task can be stopped and carried on. */
   brainTasks?: BrainTask[];
-  /** Runs started with `agentos run` (mocks/jobs.ts), seeded on first read. */
+  /** Runs started with `openajar run` (mocks/jobs.ts), seeded on first read. */
   jobs?: MockJob[];
   /** A test holds the running runs: they keep printing but never end (`holdRunningJobs`). Reset with the db. */
   jobsHeld?: boolean;
@@ -998,7 +998,7 @@ function makeNodes(now: number): NodeRecord[] {
 function makePeople(now: number, ids: (prefix: string) => string) {
   const ago = (ms: number) => new Date(now - ms).toISOString();
   const people: [string, string, Role, string[] | null, number][] = [
-    ['Demo Owner', 'demo@agentos.local', 'owner', null, 0],
+    ['Demo Owner', 'demo@openajar.local', 'owner', null, 0],
     ['Mara Lindqvist', 'mara@northwind.example', 'admin', null, 2 * HOUR],
     ['Tomas Reyes', 'tomas@northwind.example', 'member', ['aster', 'harbor'], 5 * HOUR],
     ['Ines Okafor', 'ines@northwind.example', 'approver', ['meridian'], DAY],
@@ -1358,7 +1358,7 @@ export function createDb(now = Date.now()): MockDb {
   return {
     user: {
       id: 'usr_DEMO',
-      email: 'demo@agentos.local',
+      email: 'demo@openajar.local',
       name: 'Demo Owner',
       email_verified: true,
       has_passkey: true,

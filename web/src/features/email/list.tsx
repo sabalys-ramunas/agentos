@@ -43,7 +43,7 @@ function FirstListNote({ list, onClose }: { list: MailList; onClose: () => void 
           These emails go out in your name, so you are the sender, and the rules are yours to follow. Rules on unsolicited mail differ by country. In the EU, writing to a named person can need their consent, and writing to a business usually needs less.
           {list.countries?.length ? ` This list has people in ${inWords(list.countries.map(countryName))}.` : null}
         </p>
-        <p className="mt-2 text-body text-pretty text-muted">agentos keeps a record of where each address came from, adds an unsubscribe to every email and stops at your limit. It cannot tell you what the law allows where you sell. If you are unsure, ask someone who knows.</p>
+        <p className="mt-2 text-body text-pretty text-muted">openajar keeps a record of where each address came from, adds an unsubscribe to every email and stops at your limit. It cannot tell you what the law allows where you sell. If you are unsure, ask someone who knows.</p>
       </div>
       <Button onClick={onClose}>Understood</Button>
     </section>

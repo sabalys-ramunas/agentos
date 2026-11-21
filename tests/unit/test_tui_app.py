@@ -1,4 +1,4 @@
-"""agentos dash, driven with Textual's Pilot against the in-process fake node: navigation,
+"""openajar dash, driven with Textual's Pilot against the in-process fake node: navigation,
 every action hitting the right endpoint with the right body, live updates, degraded mode,
 unconfigured sections, narrow terminals, and the token never reaching the screen."""
 
@@ -8,14 +8,14 @@ import pytest
 from textual.command import CommandInput, CommandPalette
 from typer.testing import CliRunner
 
-from agentos.dev.tuidemo import FakeNode
-from agentos.tui.activity import ActivityView
-from agentos.tui.app import DashApp, browser_available
-from agentos.tui.brains import BrainsView
-from agentos.tui.cli import app as cli_app
-from agentos.tui.connect import Connection
-from agentos.tui.lane import LaneScreen, LaneView
-from agentos.tui.modals import (
+from openajar.dev.tuidemo import FakeNode
+from openajar.tui.activity import ActivityView
+from openajar.tui.app import DashApp, browser_available
+from openajar.tui.brains import BrainsView
+from openajar.tui.cli import app as cli_app
+from openajar.tui.connect import Connection
+from openajar.tui.lane import LaneScreen, LaneView
+from openajar.tui.modals import (
     AddScheduleModal,
     AnswerModal,
     ConfirmModal,
@@ -25,10 +25,10 @@ from agentos.tui.modals import (
     LinkModal,
     RunModal,
 )
-from agentos.tui.needs import NeedsView
-from agentos.tui.overview import LaneTree
-from agentos.tui.runs import RunsView
-from agentos.tui.widgets import Banner, TopBar
+from openajar.tui.needs import NeedsView
+from openajar.tui.overview import LaneTree
+from openajar.tui.runs import RunsView
+from openajar.tui.widgets import Banner, TopBar
 
 TOKEN = "tok-3f9a-very-secret"
 EM_DASH = "—"
@@ -648,14 +648,14 @@ def test_browser_is_never_opened_over_ssh():
 
 
 def test_cli_needs_a_token(tmp_path, monkeypatch):
-    for var in ("AGENTOS_URL", "AGENTOS_TOKEN"):
+    for var in ("OPENAJAR_URL", "OPENAJAR_TOKEN"):
         monkeypatch.delenv(var, raising=False)
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
-    monkeypatch.setenv("HOME", str(tmp_path / "home"))  # no `agentos connect` connections here
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))  # no `openajar connect` connections here
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     result = CliRunner().invoke(cli_app, [])
     assert result.exit_code == 2
-    assert "no credential" in result.output and "agentos connect" in result.output and EM_DASH not in result.output
+    assert "no credential" in result.output and "openajar connect" in result.output and EM_DASH not in result.output
     help_text = CliRunner().invoke(cli_app, ["--help"]).output
     assert "--url" in help_text and "--demo" in help_text and EM_DASH not in help_text
 
@@ -691,8 +691,8 @@ async def test_the_footer_keeps_help_and_quit_at_80_columns(node, tmp_path):
 
 
 def test_the_needs_line_says_which_key_opens_it(node):
-    from agentos.tui.state import DashState
-    from agentos.tui.views import needs_line
+    from openajar.tui.state import DashState
+    from openajar.tui.views import needs_line
 
     state = DashState()
     state.set("approvals", [{"id": "ap1", "state": "pending", "effect": "commit", "summary": "Post on Reddit"}])

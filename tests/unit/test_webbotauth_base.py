@@ -14,8 +14,8 @@ import base64
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.webbotauth import base, sf
-from agentos.webbotauth.verify import verify_request
+from openajar.webbotauth import base, sf
+from openajar.webbotauth.verify import verify_request
 
 TEST_JWK = {"kty": "OKP", "crv": "Ed25519", "d": "n4Ni-HpISpVObnQMW0wOhCKROaIKqKtW_2ZYb2p9KcU",
             "x": "JrQLj5P_89iXES9-vFgrIy29clF9CC_oPPsw3c5D0bs"}

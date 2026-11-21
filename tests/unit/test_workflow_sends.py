@@ -10,13 +10,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from workflow_support import LANE, LIST, MAIL, OWNER, PEOPLE, action, make_node, read_flow, workflow
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.runner.connectors.compile import ConnectorInvalid
-from agentos.runner.fakes import BASE, SimulatedCrash
-from agentos.runner.workflows import mail as mail_module
-from agentos.runner.workflows.mail import Received, build_message, parse_message
-from agentos.runner.workflows.sends import DEFAULT_DAILY_LIMIT, MAX_DAILY_LIMIT, Unsubscribe
-from agentos.runner.workflows.service import WorkflowInvalid
+from openajar.core.errors import InvalidRequest, PolicyDenied
+from openajar.runner.connectors.compile import ConnectorInvalid
+from openajar.runner.fakes import BASE, SimulatedCrash
+from openajar.runner.workflows import mail as mail_module
+from openajar.runner.workflows.mail import Received, build_message, parse_message
+from openajar.runner.workflows.sends import DEFAULT_DAILY_LIMIT, MAX_DAILY_LIMIT, Unsubscribe
+from openajar.runner.workflows.service import WorkflowInvalid
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}
 SEND = f"mail.send@{MAIL}"
@@ -147,7 +147,7 @@ def test_a_send_needs_a_list_and_an_address_cannot_come_from_an_input(node):
 async def test_sending_to_one_address_needs_it_on_the_list(node):
     node.h.save(read_flow(produces=[{"key": "who", "untrusted": False}]), by=OWNER_P)
     wid = node.wf.save(workflow(action("look", "biz-a.social.read"), action("send", SEND, inputs=TEXT, send={"list": LIST, "to": "{{look.who}}"})), OWNER)["id"]
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     engine_output = engine.Walk._output
     try:
@@ -455,7 +455,7 @@ def items(monkeypatch):
     """What the read gives the loop: `items.value` is the list."""
     from types import SimpleNamespace
 
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     got = SimpleNamespace(value=[f"p{i}" for i in range(5)])
     monkeypatch.setattr(engine.Walk, "_output", lambda self, child, op: (
@@ -593,7 +593,7 @@ async def test_undeclared_commits_and_real_sends_share_one_limit(node, items):
 
 async def test_a_failed_counted_step_gives_its_slot_back_and_a_doubtful_one_keeps_it(node, items):
     node.wf.sends.set_limit(LANE, 5, person=True, by="owner")
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     assert engine.settled(type("R", (), {"status": engine.RunStatus.FAILED})) == "failed"
     assert engine.settled(type("R", (), {"status": engine.RunStatus.PARTIAL})) == "unknown"
@@ -620,7 +620,7 @@ def test_the_panel_sees_a_counted_step_and_that_it_has_no_unsubscribe(node):
 def compiled(**declared):
     from connector_samples import SITES, commit_op, connector
 
-    from agentos.runner.connectors.compile import compile_connector
+    from openajar.runner.connectors.compile import compile_connector
 
     return compile_connector(connector({"post_photo": {**commit_op(), **declared}}), sites=SITES)
 
@@ -628,8 +628,8 @@ def compiled(**declared):
 def installed(tmp_path, **declared):
     from connector_samples import SITES, bind
 
-    from agentos.runner.connectors.service import ConnectorService
-    from agentos.runner.fakes import OWNER as INSTALLED_BY
+    from openajar.runner.connectors.service import ConnectorService
+    from openajar.runner.fakes import OWNER as INSTALLED_BY
 
     n = make_node(tmp_path)
     ConnectorService(n.h.flows, sites=SITES).install(compiled(**declared), by=INSTALLED_BY)
@@ -690,7 +690,7 @@ async def test_a_send_card_shows_each_message_filled_as_it_will_be_sent(node):
 
 
 async def test_a_message_filled_differently_at_send_time_is_not_sent(node, monkeypatch):
-    from agentos.runner.workflows import engine
+    from openajar.runner.workflows import engine
 
     wid = newsletter(node)
     node.svc.ask_first.set("lane", MAIL, True, by="owner", person=True)
@@ -733,7 +733,7 @@ async def test_a_flow_send_card_names_the_flow_version_and_a_newer_one_asks_agai
 
 
 async def test_a_run_someone_else_queued_under_a_send_key_is_not_taken_for_the_send(node):
-    from agentos.runner.workflows.engine import address_key
+    from openajar.runner.workflows.engine import address_key
 
     node.h.save(sending_flow(), by=OWNER_P)
     node.h.save({"id": "biz-a.social.look", "lane": LANE, "steps": [{"type": "navigate", "url": f"{BASE}/"}]})

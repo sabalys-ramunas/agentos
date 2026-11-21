@@ -1,7 +1,7 @@
 """lanebench on a real node: the replay executor over every task, planted bad runs against each
 gate, and the mcp-agent path with a scripted agent.
 
-Run on the node:  AGENTOS_TEST_SLOT=50 scripts/node-test.sh lanebench tests/lanebench -q -s
+Run on the node:  OPENAJAR_TEST_SLOT=50 scripts/node-test.sh lanebench tests/lanebench -q -s
 
 One Bench for the module (the fixture site and checker on the slot's ports, a throwaway home
 under .node-home/); every task gets its own new Camoufox lane, made by the node's lane manager on
@@ -28,7 +28,7 @@ pytestmark = [
     pytest.mark.asyncio(loop_scope="module"),
 ]
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
 TASKS = {t.id: t for t in load_all()}
 SCRIPTED = Path(__file__).resolve().parent / "executors" / "scripted_agent.py"
 
@@ -96,7 +96,7 @@ async def test_the_same_click_through_human_click_passes(bench):
 
 async def test_a_pointer_jump_fails_input_conformance(bench, monkeypatch):
     """A lane started without Camoufox's humanized cursor: raw moves land in one event."""
-    from agentos.node.camoufox.engine import CamoufoxEngine
+    from openajar.node.camoufox.engine import CamoufoxEngine
 
     options = CamoufoxEngine._options
 

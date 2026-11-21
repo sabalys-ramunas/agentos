@@ -8,7 +8,7 @@ import time
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.node.channel import logstream, wire
+from openajar.node.channel import logstream, wire
 
 VAULT_SECRET = "correct-horse-battery-staple"
 GRANT_TOKEN = "agt2_" + "Q" * 60 + "." + "x" * 80
@@ -20,7 +20,7 @@ class FakeVault:
         return text.replace(VAULT_SECRET, "[redacted]")
 
 
-def line(msg, *, level="info", logger="agentos.node", ago=60.0, **fields):
+def line(msg, *, level="info", logger="openajar.node", ago=60.0, **fields):
     ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(time.time() - ago)) + ".000Z"
     return json.dumps({"ts": ts, "level": level, "logger": logger, "msg": msg, **fields}) + "\n"
 
@@ -67,7 +67,7 @@ async def test_logs_are_redacted_on_the_node_and_cut_to_length(node):
     path.write_text("".join([
         line(f"logged in with {VAULT_SECRET}", lane="biz-a/social"),
         line(f"grant {GRANT_TOKEN} used"),
-        line(f"header Authorization: {BEARER}", logger="agentos.channel"),
+        line(f"header Authorization: {BEARER}", logger="openajar.channel"),
         line("the node token is node-owner-token, oops"),
         line("password=hunter2hunter2 in a url"),
         line("x" * 100_000 + VAULT_SECRET, level="warn"),
@@ -94,8 +94,8 @@ async def test_logs_are_redacted_on_the_node_and_cut_to_length(node):
 
 async def test_source_and_level_filter_the_lines(node):
     _, peer, path = node
-    path.write_text(line("a schedule fired", logger="agentos.runner.schedules")
-                    + line("a channel hiccup", logger="agentos.channel", level="error")
+    path.write_text(line("a schedule fired", logger="openajar.runner.schedules")
+                    + line("a channel hiccup", logger="openajar.channel", level="error")
                     + line("plain info"))
     stream_id, _ = await open_logs(peer, {"source": "scheduler"})
     assert [x["message"] for x in await drain(peer, stream_id)] == ["a schedule fired"]
@@ -160,7 +160,7 @@ def test_the_rate_is_a_token_bucket():
 
 
 def test_a_scrubber_that_fails_withholds_the_line(monkeypatch):
-    monkeypatch.setattr("agentos.core.logs._scrubbers", [lambda text: 1 / 0])
+    monkeypatch.setattr("openajar.core.logs._scrubbers", [lambda text: 1 / 0])
     scrub = logstream.Scrubber(None, None)
     assert scrub("anything") == logstream.WITHHELD
 
@@ -201,10 +201,10 @@ def test_a_line_too_long_to_parse_is_read_as_plain_text():
 def test_addresses_query_strings_and_otp_codes_never_leave_in_a_line():
     scrub = logstream.Scrubber(None, None)
     text = scrub("lane exit IP 203.0.113.7 (2a02:6b8::2:242) on https://example.com/a/b?sid=abc123#frag, "
-                 "2FA code: 482913, agentos 1.2.3")
+                 "2FA code: 482913, openajar 1.2.3")
     for leaked in ("203.0.113.7", "2a02:6b8", "sid=", "abc123", "#frag", "482913"):
         assert leaked not in text, (leaked, text)
-    assert "https://example.com/a/b?..." in text and "agentos 1.2.3" in text
+    assert "https://example.com/a/b?..." in text and "openajar 1.2.3" in text
 
 
 def test_an_address_split_by_the_input_cut_is_not_kept_in_half():

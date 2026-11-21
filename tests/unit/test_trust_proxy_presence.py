@@ -17,9 +17,9 @@ import pytest
 from test_node_panel import TOKEN, Node, bearer
 from test_presence import Device, Token, refused
 
-from agentos.api.auth import PRESENCE_HEADER
-from agentos.core.config import load_proxies
-from agentos.core.models import LaneSpec
+from openajar.api.auth import PRESENCE_HEADER
+from openajar.core.config import load_proxies
+from openajar.core.models import LaneSpec
 
 DE1 = {"label": "de1", "host": "10.0.0.2", "port": 8080, "username": "u", "password": "p1"}
 
@@ -67,7 +67,7 @@ def test_a_person_still_points_a_label_elsewhere(node):
 
 
 def test_the_nodes_cli_changes_a_label_with_its_one_time_code(node):
-    """`agentos proxy add` on the node writes proxies.json itself; a CLI that goes through agentosd
+    """`openajar proxy add` on the node writes proxies.json itself; a CLI that goes through agentosd
     sends the one-time code from panel.db beside the node token, and that is a person."""
     c = node.client()
     assert c.post("/api/proxies", json=DE1, headers=bearer(TOKEN)).status_code == 200
@@ -94,7 +94,7 @@ def test_below_a_person_no_lane_moves_to_another_device(node, who):
 
 @pytest.mark.parametrize("who", ["node_token", "device", "admin_grant"])
 def test_below_a_person_no_device_joins_the_exit_of_lanes_of_their_own(node, who):
-    """--yes on `agentos device create` puts a second computer on the IP of accounts that already
+    """--yes on `openajar device create` puts a second computer on the IP of accounts that already
     leave through it: the sites see an office they never saw. That is a person's call."""
     asyncio.run(node.lanes.create(LaneSpec(id="biz-a/facebook", proxy_label="lt1")))
     caller = callers(node)[who]

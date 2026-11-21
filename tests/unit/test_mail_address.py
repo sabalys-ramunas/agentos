@@ -10,13 +10,13 @@ import pytest
 from test_mail_tools import Ctx, Transport
 from workflow_support import LIST, MAIL, OWNER, action, make_node, workflow
 
-from agentos.core.errors import InvalidRequest
-from agentos.runner.mail import outbox
-from agentos.runner.mail import tools as mail_tools
-from agentos.runner.mail.outbox import MailSuppressed, UseAList
-from agentos.runner.workflows.mail import SendInDoubt, SendRefused, TlsTransport
-from agentos.runner.workflows.replies import Replies
-from agentos.runner.workflows.sends import base_address, normal_address
+from openajar.core.errors import InvalidRequest
+from openajar.runner.mail import outbox
+from openajar.runner.mail import tools as mail_tools
+from openajar.runner.mail.outbox import MailSuppressed, UseAList
+from openajar.runner.workflows.mail import SendInDoubt, SendRefused, TlsTransport
+from openajar.runner.workflows.replies import Replies
+from openajar.runner.workflows.sends import base_address, normal_address
 
 WS = "biz-a"
 JANE = "jane@acme.example"
@@ -83,7 +83,7 @@ async def test_a_tag_does_not_get_past_a_suppression(node, asked, sent):
 async def test_a_suppression_kept_with_a_tag_before_this_still_holds(node):
     node.wf.sends.store._exec("INSERT INTO send_suppressed (workspace, address, by, why, at) VALUES (?, ?, 'x', NULL, '2026-01-01')",
                               (WS, "jane+old@acme.example"))
-    from agentos.runner.workflows.sends import Sends
+    from openajar.runner.workflows.sends import Sends
 
     Sends(node.wf.sends.store, node.wf.sends.clock)
     with pytest.raises(MailSuppressed):

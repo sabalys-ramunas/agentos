@@ -67,7 +67,7 @@ export function ComputerForm() {
   return (
     <div className="board-surface flex min-h-dvh flex-col">
       <p className="border-b border-board-line bg-card px-4 py-2 text-center text-secondary text-pretty text-muted">
-        <strong className="font-medium text-fg">Concept drawing.</strong> In real use this page comes from {computer}, never from agentos Cloud. The box here is only a picture, and takes no typing.
+        <strong className="font-medium text-fg">Concept drawing.</strong> In real use this page comes from {computer}, never from openajar Cloud. The box here is only a picture, and takes no typing.
       </p>
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">

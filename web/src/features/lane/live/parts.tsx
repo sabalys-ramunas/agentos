@@ -22,7 +22,11 @@ export interface ScreenProps {
   canTake: boolean;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  /** The screen is a picture on a stage (an environment's browser): rounded, its own edge, a ring outside it while yours. */
+  stage?: boolean;
   probe?: () => Promise<'signed_out' | 'denied' | 'missing' | 'away' | null>;
+  /** The agent's name, for its pointer over the picture (an environment's browser). */
+  agent?: string | null;
 }
 
 /** The line under a live view that is not this person's to type into, in words. Only the owner takes an account over. */

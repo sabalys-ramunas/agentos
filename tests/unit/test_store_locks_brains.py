@@ -1,5 +1,5 @@
 """brains.db: adding a brain and taking a task wait for a lock another process holds off the
-event loop, and are saved before the call returns (agentos.core.sqlite)."""
+event loop, and are saved before the call returns (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from lockheld import loop_stays_free
 from test_brains_runner import P, _kill_leftovers
 from testkit.brains import FakeNotifier, add, make_service, wait_status
 
-from agentos.brains.store import Store
-from agentos.core.runtime import Runtime
+from openajar.brains.store import Store
+from openajar.core.runtime import Runtime
 
 
 async def test_a_brain_and_a_task_are_saved_off_the_loop_while_the_lock_is_held(tmp_path):

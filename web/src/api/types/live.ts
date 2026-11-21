@@ -20,7 +20,24 @@ export type LiveEvent =
   | { type: 'task'; payload: unknown }
   /** A limit, a pace or a cutoff changed. `{}` for a member or a grant, who refetch the meters. */
   | { type: 'meter'; payload: { scope?: 'lane' | 'workspace' | 'grant'; id?: string; kind?: string } }
+  /** Where the agent acts on a screen whose live view this person has open, or that its pointer should hide. */
+  | { type: 'pointer'; payload: AgentPointerEvent }
   | { type: 'resync'; payload: unknown };
+
+/**
+ * A point on the lane's screen (`x`, `y` in the screen's pixels of `w` by `h`) and what the agent did there, or
+ * `hide` (it works elsewhere: its terminal, a window that is not the browser). Sent only while a live view of the
+ * lane is open, never replayed.
+ */
+export interface AgentPointerEvent {
+  lane: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  kind?: 'move' | 'press' | 'scroll' | 'type';
+  hide?: string;
+}
 
 export const LIVE_EVENT_TYPES = [
   'lane',
@@ -36,5 +53,6 @@ export const LIVE_EVENT_TYPES = [
   'brain',
   'task',
   'meter',
+  'pointer',
   'resync',
 ] as const;

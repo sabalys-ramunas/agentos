@@ -6,11 +6,11 @@ from datetime import UTC, datetime
 from events_support import OWNER, Brains
 from test_policy_support import make_service
 
-from agentos.core.models import Effect, Principal
-from agentos.events.dispatcher import EventSettings
-from agentos.events.models import DeliveryState, QuietHours
-from agentos.events.service import build
-from agentos.runner.fakes import FakeClock
+from openajar.core.models import Effect, Principal
+from openajar.events.dispatcher import EventSettings
+from openajar.events.models import DeliveryState, QuietHours
+from openajar.events.service import build
+from openajar.runner.fakes import FakeClock
 
 
 async def test_brain_delivery_grant_is_narrow_and_tainted(tmp_path):

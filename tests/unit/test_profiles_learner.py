@@ -1,4 +1,4 @@
-"""Learning a site (agentos.profiles.learner) and syncing with what was learned (agentos.profiles.sync).
+"""Learning a site (openajar.profiles.learner) and syncing with what was learned (openajar.profiles.sync).
 
 The node parts are fakes: the recorder, the runner, the lanes and surfaces, the egress learn
 window. learn.generate and install_learned are tested on their own (test_profiles_learn.py); here
@@ -12,11 +12,11 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.core.runtime import Runtime
-from agentos.node.learned_rules import LearnedRules
-from agentos.profiles import learner as learner_mod
-from agentos.profiles.service import build, value_hash
+from openajar.core.errors import InvalidRequest
+from openajar.core.runtime import Runtime
+from openajar.node.learned_rules import LearnedRules
+from openajar.profiles import learner as learner_mod
+from openajar.profiles.service import build, value_hash
 
 OWNER = {"kind": "human", "id": "owner", "owner": "owner"}
 AGENT = {"kind": "agent", "id": "agent-1"}
@@ -105,10 +105,10 @@ def rig(tmp_path, monkeypatch):
     window = {"shape": {"method": "POST", "host": "www.instagram.com", "path": "/api/v1/web/accounts/edit/",
                         "op": None, "page_url": "https://www.instagram.com/accounts/edit/"}}
     opened: list[dict] = []
-    monkeypatch.setattr("agentos.node.egress.learn.open_learn",
+    monkeypatch.setattr("openajar.node.egress.learn.open_learn",
                         lambda runtime, lane, **kw: opened.append({"lane": lane, **kw}) or "w1")
-    monkeypatch.setattr("agentos.node.egress.learn.learn_result", lambda runtime, lane, wid: window["shape"])
-    monkeypatch.setattr("agentos.node.egress.learn.close_learn", lambda runtime, lane, wid: None)
+    monkeypatch.setattr("openajar.node.egress.learn.learn_result", lambda runtime, lane, wid: window["shape"])
+    monkeypatch.setattr("openajar.node.egress.learn.close_learn", lambda runtime, lane, wid: None)
     flows = Flows()
     value = {"text": "Loud grinders. Honest coffee."}
 
@@ -135,7 +135,7 @@ def rig(tmp_path, monkeypatch):
                                       definition=NS(canonical=lambda fid=fid: {"id": fid, "steps": [fid]}))
         return list(flows.installed)
 
-    monkeypatch.setattr("agentos.profiles.learn.generate", fake_generate)
+    monkeypatch.setattr("openajar.profiles.learn.generate", fake_generate)
     monkeypatch.setattr(learner_mod.ProfileLearner, "_connectors", lambda self: NS(install_learned=fake_install))
     return NS(svc=svc, runtime=runtime, flows=flows, runner=runner, window=window, opened=opened, value=value,
               home=tmp_path, generated=generated)
@@ -172,7 +172,7 @@ def test_a_lane_with_no_pinned_account_is_refused(rig):
         rig.svc.learner.start(IG, "bio", by=AGENT, grant_id=GRANT)
 
 
-def test_a_site_agentos_cannot_learn_is_refused(rig):
+def test_a_site_openajar_cannot_learn_is_refused(rig):
     with pytest.raises(InvalidRequest, match="cannot learn x"):
         rig.svc.learner.start("acme/x", "bio", by=AGENT, grant_id=GRANT)
 

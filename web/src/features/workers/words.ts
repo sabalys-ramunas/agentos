@@ -36,7 +36,7 @@ export const serviceInfo = (id: string | undefined) => SERVICES.find((item) => i
 
 /** The real command, for Technical details and for a computer with no screen. */
 export function addCommand(service: ServiceInfo): string {
-  const line = `agentos brains add ${service.id} --kind ${service.brainKind} --provider ${service.provider}`;
+  const line = `openajar brains add ${service.id} --kind ${service.brainKind} --provider ${service.provider}`;
   return service.how === 'key' ? `${line} --stdin` : line;
 }
 
@@ -168,7 +168,7 @@ export function placeSentence(place: WorkerPlace): string {
   if (place.state === 'down') return place.worker === 'on' ? 'Offline, so nothing runs here now. It carries on when the computer is back.' : 'Offline, so this can change once it is back.';
   if (place.worker === 'needs_service') return 'Nothing here can decide each step yet. AI services stay on the computer that keeps them.';
   if (place.worker === 'off') return `Could work on ${plural(place.accounts, 'account')} here.`;
-  if (place.restart_needed) return 'On. It starts the next time agentos starts on this computer.';
+  if (place.restart_needed) return 'On. It starts the next time openajar starts on this computer.';
   if (!place.things_today) return `Ready for ${plural(place.accounts, 'account')}.`;
   return `${plural(place.things_today, 'thing')} done today, on ${plural(place.accounts, 'account')}.`;
 }

@@ -22,9 +22,9 @@ from test_egress import (
     settle,
 )
 
-from agentos.core.errors import EngineError
-from agentos.node import egress
-from agentos.node.egress import EFFECT_RULES, Refusal
+from openajar.core.errors import EngineError
+from openajar.node import egress
+from openajar.node.egress import EFFECT_RULES, Refusal
 
 # one URL each commit rule matches (the canary's real endpoints where there are some)
 COMMIT_URLS = {

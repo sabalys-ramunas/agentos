@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import itertools
 
-from agentos.policy.grants import GrantBlock
+from openajar.policy.grants import GrantBlock
 
 _IDS = (f"gr_{i:016d}" for i in itertools.count())
 

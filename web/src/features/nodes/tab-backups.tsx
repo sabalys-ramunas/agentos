@@ -4,7 +4,7 @@ import type { BackupItem, NodeBackups } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CodeBlock } from '@/components/ui/misc';
-import { Status } from '@/components/ui/status';
+import { Status, StatusDot } from '@/components/ui/status';
 import { ErrorState, Skeleton } from '@/components/ui/states';
 import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
@@ -96,7 +96,8 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
 
         {running ? (
           <Card className="flex items-start gap-3 p-4 sm:p-6" role="status">
-            <span aria-hidden="true" className="mt-2 size-2 shrink-0 animate-pulse-dot rounded-full bg-fg" />
+            {/* The machine is at work: the still violet ring, which reads as in progress without moving. */}
+            <StatusDot tone="live" className="mt-2 shrink-0" />
             <div className="min-w-0">
               <p className="text-body">{data.job?.kind === 'backup' ? 'Making the backup.' : 'Checking the backup.'}</p>
               <p className="mt-1 text-secondary text-muted">
@@ -190,7 +191,7 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
             <div className="mt-3 grid gap-3">
               <CodeBlock
                 label="Restore a backup"
-                code={`agentos backup restore ${data.folder}/<backup file> --passphrase-file <file with the passphrase>`}
+                code={`openajar backup restore ${data.folder}/<backup file> --passphrase-file <file with the passphrase>`}
               />
               <p className="text-caption text-faint">
                 The backups are kept in <span className="mono">{data.folder}</span> on this machine's own disk. Copy one somewhere else too.

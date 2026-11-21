@@ -1,4 +1,4 @@
-"""Browser devices in the panel API (agentos.api.routes_devices, AUD-02): the owner lists and makes
+"""Browser devices in the panel API (openajar.api.routes_devices, AUD-02): the owner lists and makes
 devices, sees what a move changes before it happens, and a move a site would notice needs a
 confirm (409 confirm_required without one, nothing changed)."""
 
@@ -9,7 +9,7 @@ import asyncio
 import pytest
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.core.models import LaneSpec
+from openajar.core.models import LaneSpec
 
 OWNER = bearer(TOKEN)
 

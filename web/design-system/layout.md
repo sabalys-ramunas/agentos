@@ -17,6 +17,7 @@ place through `nav.ts` and its rows through `features/<it>/commands.ts`. In the 
 | The status line and the freeze chip | `StatusPill`, `FrozenChip` | `components/shell/status-pill.tsx`, `components/shell/freeze-control.tsx` |
 | The command bar | `CommandPalette`, its rows and state | `components/shell/command-palette.tsx`, `components/shell/commands.ts`, `components/shell/palette-store.ts` |
 | The menu, counts, crumb and keys | five groups with a g key each; counts from the node; `usePageCrumb` | `components/shell/nav.ts`, `components/shell/counts.ts`, `components/shell/crumb.ts`, `components/shell/shortcuts.tsx` |
+| The night band a page opens on, the bell | `usePageBand`, `NotificationsBell` | `components/shell/page-band.ts`, `components/shell/notifications.tsx` |
 
 A page reads top to bottom as the job: what is happening now first, then what needs a person, then what
 happened. A grid track is `minmax(0, 1fr)` by default, so long lines truncate instead of widening a phone.

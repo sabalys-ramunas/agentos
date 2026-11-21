@@ -10,9 +10,9 @@ from datetime import timedelta
 import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.core import catalog
-from agentos.core.models import utcnow
-from agentos.policy.wrap import ToolCallError
+from openajar.core import catalog
+from openajar.core.models import utcnow
+from openajar.policy.wrap import ToolCallError
 
 REPO = "example.test/me/shop"
 
@@ -122,12 +122,12 @@ PRIVATE = b"fatal: could not read Username for 'https://example.test': terminal 
 async def test_a_private_repo_nobody_connected_rents_nothing(node):  # noqa: F811
     """Report 1: the VM was rented, then the clone failed with `could not read Username`, twice.
     Now the node asks first, anonymously, and before it rents gives a card for the human
-    (agentos.environments.connect): a link to paste a token in, and the command at the node."""
+    (openajar.environments.connect): a link to paste a token in, and the command at the node."""
     node["mgr"].repo_probe = probe = _refusing(PRIVATE)
     card = await node["call"]("environment_open", title=TITLE, repo=REPO)
     assert card["status"] == "approval_pending" and card["kind"] == "repo_connect" and card["repo"] == REPO
     assert "Nothing was rented" in card["why"] and "not declared for environments" in card["why"]
-    assert f"agentos environments repo add {REPO} --token" in card["fallback"] and "no admin rights" in card["fallback"]
+    assert f"openajar environments repo add {REPO} --token" in card["fallback"] and "no admin rights" in card["fallback"]
     assert node["vms"].store.recent() == [] and node["mgr"].store.recent() == []
     # it asked with no credential: the URL carries none and nothing would prompt
     [(url, env)] = probe.seen
@@ -141,7 +141,7 @@ async def test_a_node_without_approvals_still_says_the_fix(node):  # noqa: F811
         await node["call"]("environment_open", title=TITLE, repo=REPO)
     words = str(err.value)
     assert "Nothing was rented" in words and "not declared for environments" in words
-    for cmd in (f"agentos environments repo add {REPO}", "--token", "deploy key", "never you"):
+    for cmd in (f"openajar environments repo add {REPO}", "--token", "deploy key", "never you"):
         assert cmd in words, cmd
 
 
@@ -156,7 +156,7 @@ async def test_a_host_the_node_cannot_reach_rents_nothing_either(node):  # noqa:
         await node["call"]("environment_open", title=TITLE, repo=REPO)
     words = str(err.value)
     assert "could not reach example.test" in words and node["vms"].store.recent() == []
-    assert words.startswith("environment_failed: network: the computer agentos runs on") and "4 tries" in words
+    assert words.startswith("environment_failed: network: the computer openajar runs on") and "4 tries" in words
     assert "Try again in 2 minutes" in words
 
 
@@ -187,7 +187,7 @@ class TokenVault:
 
 @pytest.fixture
 async def declared(node):  # noqa: F811
-    from agentos.git.service import GitService
+    from openajar.git.service import GitService
 
     svc = GitService(node["rt"], node["mgr"].home, host_port=0)
     node["rt"].register("git", svc)
@@ -225,10 +225,10 @@ async def test_a_declared_repo_with_a_working_credential_opens(node, declared): 
 
 
 async def test_a_declared_private_repo_clones_blobless_through_the_gateway(node, declared):  # noqa: F811
-    """Through the gateway the pack crosses the upload of the computer agentos runs on (a 241 MiB clone
+    """Through the gateway the pack crosses the upload of the computer openajar runs on (a 241 MiB clone
     took 110 s), so the clone is blobless: every commit and tree, and only the files the checkout needs.
     The VM's git sends fetches and pushes of the repository to the gateway."""
-    from agentos.environments.bringup import GIT_SETUP
+    from openajar.environments.bringup import GIT_SETUP
 
     node["rt"].register("vault", TokenVault())
     out = await opened(node, repo=REPO)
@@ -244,8 +244,8 @@ async def test_a_declared_public_repo_is_fetched_from_its_host_and_pushed_throug
     """A repository the VM reads with no credential: it clones and fetches straight from the host, at the
     cloud's own speed, and only its pushes go through the gateway (pushInsteadOf), under its rules. The VM
     still holds no credential for the host."""
-    from agentos.env.models import ExecResult
-    from agentos.environments.bringup import GIT_SETUP
+    from openajar.env.models import ExecResult
+    from openajar.environments.bringup import GIT_SETUP
 
     plain = node["envs"].exec
 
@@ -270,10 +270,10 @@ async def test_a_declared_public_repo_is_fetched_from_its_host_and_pushed_throug
 async def test_a_clone_the_gateway_refuses_names_the_key_and_the_fix(node, declared, monkeypatch):  # noqa: F811
     """The check passed, but the clone on the machine still failed (the deploy key was removed at the
     host meanwhile): the error quotes the gateway's own words from git's output, with the same fix."""
-    from agentos.env.models import ExecResult
+    from openajar.env.models import ExecResult
 
     plain = node["envs"].exec
-    said = ("Cloning into '/work/shop'...\nfatal: remote error: agentos: example.test refused the deploy key "
+    said = ("Cloning into '/work/shop'...\nfatal: remote error: openajar: example.test refused the deploy key "
             "shop-ssh (SHA256:abc); add its public key to example.test/me/shop as a deploy key\n")
 
     async def exec_(lane_id, cmd, **kw):
@@ -285,7 +285,7 @@ async def test_a_clone_the_gateway_refuses_names_the_key_and_the_fix(node, decla
     with pytest.raises(ToolCallError, match="repo_not_connected: cloning example.test/me/shop") as err:
         await opened(node, repo=REPO)
     words = str(err.value)
-    assert "refused the deploy key shop-ssh" in words and "agentos environments repo add" in words
+    assert "refused the deploy key shop-ssh" in words and "openajar environments repo add" in words
     assert "word for word" in words and "truncated" not in words  # the whole fix fits in an MCP error
     env = node["mgr"].store.recent(1)[0]
     assert env.error_code == "repo_not_connected" and node["vms"].store.get(env.vm_id).state == "deleted"
@@ -293,8 +293,8 @@ async def test_a_clone_the_gateway_refuses_names_the_key_and_the_fix(node, decla
 
 def test_the_whole_fix_fits_in_an_mcp_error():
     """An MCP error's message is cut at 500 characters: the commands the human runs must all be in it."""
-    from agentos.environments import repos
-    from agentos.git.service import RepoAccess
+    from openajar.environments import repos
+    from openajar.git.service import RepoAccess
 
     slug = "github.com/" + "o" * 39 + "/" + "n" * 49  # REPO_WORDS_FIT characters
     assert len(slug) == repos.REPO_WORDS_FIT
@@ -309,7 +309,7 @@ def test_the_whole_fix_fits_in_an_mcp_error():
 
 
 def test_a_clone_with_no_credential_is_not_connected_and_anything_else_failed():
-    from agentos.environments.repos import clone_failure
+    from openajar.environments.repos import clone_failure
 
     e = clone_failure(REPO, PRIVATE.decode(), via_gateway=False)
     assert e.code == "repo_not_connected" and "with no credential" in e.message
@@ -326,20 +326,20 @@ def cli_home(tmp_path, monkeypatch):
 
     h = private_home(tmp_path)
     make_vault(h)
-    monkeypatch.setenv("AGENTOS_HOME", str(h))
+    monkeypatch.setenv("OPENAJAR_HOME", str(h))
     return h
 
 
 def _cli(*args, input=None):
     from typer.testing import CliRunner
 
-    from agentos.cli import app
+    from openajar.cli import app
 
     return CliRunner().invoke(app, list(args), input=input)
 
 
 def test_repo_add_makes_the_key_declares_it_and_prints_what_to_paste(cli_home):
-    from agentos.git.remotes import Remotes
+    from openajar.git.remotes import Remotes
 
     r = _cli("environments", "repo", "add", "github.com/me/shop")
     assert r.exit_code == 0, r.output
@@ -365,7 +365,7 @@ def test_repo_add_token_reads_it_from_stdin_and_never_prints_it(cli_home):
 
 
 def test_repo_remove_takes_the_declaration_and_its_own_key(cli_home):
-    from agentos.git.remotes import Remotes
+    from openajar.git.remotes import Remotes
 
     _cli("environments", "repo", "add", "github.com/me/shop")
     _cli("environments", "repo", "add", "github.com/me/blog")
@@ -381,7 +381,7 @@ def test_repo_remove_takes_the_declaration_and_its_own_key(cli_home):
 
 def test_setup_names_the_one_command(cli_home):
     r = _cli("environments", "setup")
-    assert "agentos environments repo add github.com/<owner>/<name>" in r.output
+    assert "openajar environments repo add github.com/<owner>/<name>" in r.output
 
 
 # ------------------------------------------------------------------ 2: sizes the agent can ask for
@@ -430,7 +430,7 @@ async def test_the_node_bounds_the_size(node):  # noqa: F811
 
 
 def test_the_default_max_size_is_xlarge_and_allow_changes_it(cli_home):
-    from agentos.environments.models import EnvSettings, load_settings
+    from openajar.environments.models import EnvSettings, load_settings
 
     assert EnvSettings().max_size == "xlarge"
     r = _cli("environments", "allow", "--max-size", "large")
@@ -440,13 +440,13 @@ def test_the_default_max_size_is_xlarge_and_allow_changes_it(cli_home):
 
 
 async def test_the_docker_provider_maps_sizes_to_its_limits(tmp_path):
-    from agentos.core.runtime import Runtime
-    from agentos.environments.manager import EnvironmentManager
-    from agentos.environments.models import EnvSettings
-    from agentos.vms.docker import DockerProvider
-    from agentos.vms.manager import VmManager
-    from agentos.vms.models import VmSettings
-    from agentos.vms.provider import ServerSpec
+    from openajar.core.runtime import Runtime
+    from openajar.environments.manager import EnvironmentManager
+    from openajar.environments.models import EnvSettings
+    from openajar.vms.docker import DockerProvider
+    from openajar.vms.manager import VmManager
+    from openajar.vms.models import VmSettings
+    from openajar.vms.provider import ServerSpec
 
     prov = DockerProvider(cpus=2, memory_gb=4)
     prov._info = {"NCPU": 10, "MemTotal": 24 * 2**30}  # this computer: 10 CPUs, 24 GB
@@ -477,7 +477,7 @@ async def test_nothing_runs_on_a_machine_that_is_still_starting(node):  # noqa: 
     still running there; the two broke the clone ("initial ref transaction called with existing
     refs") and the VM was torn down 15 minutes later. While it starts, a terminal or browser call runs
     nothing and says what the bring-up does now; environment() says it too."""
-    from agentos.environments import bringup
+    from openajar.environments import bringup
 
     node["machine"].setup = "status: running"  # it stays starting
     first = await opened(node, repo=REPO, wait_s=0, session=None)

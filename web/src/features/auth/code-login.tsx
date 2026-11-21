@@ -28,7 +28,7 @@ function useCodeSignIn(next?: string) {
   });
 }
 
-/** The one-time code from `agentos panel login`, for a computer's sign-in page. */
+/** The one-time code from `openajar panel login`, for a computer's sign-in page. */
 export function CodeForm({ next }: { next?: string }) {
   const [code, setCode] = useState('');
   const [technical] = useTechnical();
@@ -46,7 +46,7 @@ export function CodeForm({ next }: { next?: string }) {
         hint={
           <>
             The code is shown in the Terminal of this computer. Open it there and run the sign-in command.
-            {technical ? <span className="mono mt-1 block text-faint">agentos panel login</span> : null}
+            {technical ? <span className="mono mt-1 block text-faint">openajar panel login</span> : null}
           </>
         }
         error={signIn.isError ? describeError(signIn.error) : null}
@@ -60,7 +60,7 @@ export function CodeForm({ next }: { next?: string }) {
   );
 }
 
-/** The address `agentos panel login` prints. The code rides after the #, and signs in by itself. */
+/** The address `openajar panel login` prints. The code rides after the #, and signs in by itself. */
 export function CodeLogin() {
   const signIn = useCodeSignIn();
   const started = useRef(false);
@@ -74,7 +74,12 @@ export function CodeLogin() {
   }, [code, signIn]);
 
   return (
-    <AuthLayout title="Sign in to this computer" description="Your accounts and passwords stay here." aside={<PromisePicture />}>
+    <AuthLayout
+      title="Sign in to this computer"
+      description="Your accounts and passwords stay here."
+      aside={<PromisePicture />}
+      caption="Agents work on computers of their own. A post set to ask, a payment or a push to main asks you first."
+    >
       {signIn.isError ? <Notice alert>{describeError(signIn.error)}</Notice> : null}
       {signIn.isError || !code ? <CodeForm /> : <p className="text-body text-muted">Signing you in.</p>}
     </AuthLayout>

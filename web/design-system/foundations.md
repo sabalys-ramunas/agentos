@@ -19,6 +19,7 @@ Never edit those four. In the catalog: `/$org/design#foundations`.
 | Our own icons | `LaneIcon` for a browser, terminal, service, phone; lucide at 16 px for the rest | `components/lane-icon.tsx` |
 | Who and what | `BusinessMark`, `PersonMark`, `AgentMark` | `components/brand/identity.tsx` |
 | Another company's site | `SiteMark` (official artwork only, beside its name) | `components/brand/site-mark.tsx`, `components/brand/vendored.ts` |
+| The app's own things (a place, a setting), never an action | `AppTile` | `components/ui/tile.tsx` |
 
 Colour means something, and only that: green fine, amber needs a look, red failed, ink with a pulsing
 ring is an agent acting now (never pink: pink is the design kind of work), a kind's hue is its kind.

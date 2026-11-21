@@ -32,13 +32,13 @@ export function sinceOf(checkpoint: EnvCheckpoint): Change | null {
   );
 }
 
-/** The checkpoint a rollback went back to, from the one agentos made before it ("before rollback to 3"). */
+/** The checkpoint a rollback went back to, from the one openajar made before it ("before rollback to 3"). */
 export function rollbackTarget(checkpoint: Pick<EnvCheckpoint, 'auto'>): number | null {
   const match = checkpoint.auto?.match(/rollback to (\d+)/);
   return match ? Number(match[1]) : null;
 }
 
-/** The agent's note, or the words agentos gave one it made itself. */
+/** The agent's note, or the words openajar gave one it made itself. */
 export const noteOf = (checkpoint: Pick<EnvCheckpoint, 'note' | 'auto'>) => checkpoint.note ?? (checkpoint.auto ? `Kept ${checkpoint.auto}` : 'No note');
 
 /** "/work/shop" as "shop": the folder a person knows. */
@@ -46,7 +46,7 @@ export const repoDir = (dir: string) => dir.replace(/\/+$/, '').split('/').pop()
 
 /**
  * The rows, newest first. The last rollback splits the line: the checkpoints after the one it went back to,
- * up to the one agentos made before it, are on the side line (their work is no longer in the work tree).
+ * up to the one openajar made before it, are on the side line (their work is no longer in the work tree).
  * The working copy builds on the newest checkpoint still on the line.
  */
 export function checkpointRows(checkpoints: EnvCheckpoint[]): CheckpointRow[] {
@@ -59,7 +59,7 @@ export function checkpointRows(checkpoints: EnvCheckpoint[]): CheckpointRow[] {
   const base = onLine[onLine.length - 1] ?? null;
   const rows: CheckpointRow[] = [...ordered].reverse().flatMap((checkpoint): CheckpointRow[] => {
     const row: CheckpointRow = { kind: 'checkpoint', checkpoint, number: checkpoint.id, side: side(checkpoint), current: checkpoint === base, forks: checkpoint === target };
-    // the rollback happened just after agentos kept the work as it was
+    // the rollback happened just after openajar kept the work as it was
     return checkpoint === auto && to !== null && checkpoint.at ? [{ kind: 'restore', at: checkpoint.at, to }, row] : [row];
   });
   const now: CheckpointRow = { kind: 'now', since: base ? sinceOf(base) : null, base: base ? { number: base.id, note: base.note } : null };

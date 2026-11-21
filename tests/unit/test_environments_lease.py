@@ -1,6 +1,6 @@
-"""One chat holds a live machine: the lease (agentos.environments.picking, the owner's rule of 2026-11-16).
+"""One chat holds a live machine: the lease (openajar.environments.picking, the owner's rule of 2026-11-16).
 
-MCP 2026-07-28 clients (Claude Code, T3 Code) send no session id, so agentos cannot tell two chats of
+MCP 2026-07-28 clients (Claude Code, T3 Code) send no session id, so openajar cannot tell two chats of
 one agent apart. Builder I1 let the title name the computer, and a second chat then attached to the
 first chat's machine by its title, or reached it with a call without `on`. Now environment_open gives
 the calling chat the machine's handle, `on`, and only calls that carry it reach the machine. A call
@@ -19,14 +19,14 @@ from types import SimpleNamespace
 import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
-from agentos.core import catalog
-from agentos.core.models import utcnow
-from agentos.core.tools import elicitor_var
-from agentos.environments import routing
-from agentos.environments.picking import HANDLE_RE, lease_of
-from agentos.mcp import toolsets as ts
-from agentos.mcp.registry import unknown_arguments
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.core import catalog
+from openajar.core.models import utcnow
+from openajar.core.tools import elicitor_var
+from openajar.environments import routing
+from openajar.environments.picking import HANDLE_RE, lease_of
+from openajar.mcp import toolsets as ts
+from openajar.mcp.registry import unknown_arguments
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 NONE = None  # a client that sends no MCP session id (the 2026-07-28 protocol, stdio)
 
@@ -104,10 +104,10 @@ async def test_whoami_and_studio_name_no_machine_without_its_handle(node):  # no
 
 
 async def test_whoami_names_the_machine_its_session_holds_through_the_service(node):  # noqa: F811
-    """whoami (agentos.node) asks the "environments" service by its method bound_to_call(ctx), never
-    importing agentos.environments: the real tool against the real manager names the session's own
+    """whoami (openajar.node) asks the "environments" service by its method bound_to_call(ctx), never
+    importing openajar.environments: the real tool against the real manager names the session's own
     machine, and nothing for another chat's session or a client with no session."""
-    from agentos.node.tools import tool_specs as node_specs
+    from openajar.node.tools import tool_specs as node_specs
 
     [spec] = [s for s in node_specs(node["rt"]) if s.name == "whoami"]
     whoami = wrap_tool(spec, node["rt"])
@@ -373,7 +373,7 @@ async def test_the_call_log_names_the_client(node):  # noqa: F811
 
 
 def test_an_unknown_argument_names_the_real_ones_with_a_did_you_mean(node):  # noqa: F811
-    from agentos.environments.tools import tool_specs
+    from openajar.environments.tools import tool_specs
 
     spec = next(s for s in tool_specs(node["rt"]) if s.name == "environment_open")
     known = frozenset({"title", "repo", "ref", "size", "hours", "wait_s", "keep"})

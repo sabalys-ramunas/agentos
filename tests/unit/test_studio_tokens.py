@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from agentos.core.errors import InvalidRequest
-from agentos.studio.contracts import Scale, Theme, Token, TokenCategory, TokenSet
-from agentos.studio.tokens import from_css, from_dtcg, from_tailwind, load_tokens, match, to_css, to_dtcg
-from agentos.studio.tokens.color import EXACT_DE, NEAR_DE, delta_e, parse_color
-from agentos.studio.tokens.match import scale_px
-from agentos.studio.tokens.units import parse_length, parse_shadow
+from openajar.core.errors import InvalidRequest
+from openajar.studio.contracts import Scale, Theme, Token, TokenCategory, TokenSet
+from openajar.studio.tokens import from_css, from_dtcg, from_tailwind, load_tokens, match, to_css, to_dtcg
+from openajar.studio.tokens.color import EXACT_DE, NEAR_DE, delta_e, parse_color
+from openajar.studio.tokens.match import scale_px
+from openajar.studio.tokens.units import parse_length, parse_shadow
 
 FIX = Path(__file__).parent.parent / "fixtures" / "studio" / "tokens"
 C = TokenCategory

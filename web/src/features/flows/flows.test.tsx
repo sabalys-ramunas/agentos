@@ -91,10 +91,11 @@ describe('axisOf', () => {
 describe('Flows', () => {
   it('says what is stuck before anything else, and links each routine to its page', async () => {
     const { user, router } = renderApp(`${ORG}/flows`);
-    expect(await screen.findByRole('heading', { level: 1, name: /2 routines are stuck/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Routines' })).toBeInTheDocument();
+    expect(await screen.findByText(/^2 routines are stuck\. The other \d+ are fine\./)).toBeInTheDocument();
     const needs = await screen.findByRole('list', { name: 'Needs a look' });
     expect(within(needs).getByText(/Gallery follow-ups stopped at/)).toBeInTheDocument();
-    await user.click((await screen.findAllByRole('link', { name: /^Instagram posts/ })).find((link) => link.closest('li'))!);
+    await user.click((await screen.findAllByRole('link', { name: /^Instagram posts/ })).find((link) => link.closest('tr'))!);
     await waitFor(() => expect(router.state.location.pathname).toBe(`${ORG}/flows/aster.instagram.post`));
     expect(await screen.findByRole('heading', { name: 'What it made lately' })).toBeInTheDocument();
   });

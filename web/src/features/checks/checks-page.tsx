@@ -18,7 +18,8 @@ import { Select } from '@/components/ui/select';
 import { Status } from '@/components/ui/status';
 import { CellTitle, NoValue, RowActions, Table, TableEmpty, TableScroll, TableSkeleton, Td, Th, Tr } from '@/components/ui/table';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { timeAgo, plural } from '@/lib/format';
+import { cn } from '@/lib/cn';
+import { dateTime, plural, timeAgo } from '@/lib/format';
 import { PLACES } from '@/lib/vocabulary';
 import { checkAgain, pagePath, percent, runStatus } from './model';
 import { ShareBar, StudioMissingState } from './parts';
@@ -62,18 +63,19 @@ export function summary(runs: StudioRunRow[]): string {
   return `${head} ${findings}${share}.`;
 }
 
-function CopyCheckCommand() {
+function CopyCheckCommand({ primary = false }: { primary?: boolean }) {
   const { copied, copy } = useCopy();
   return (
-    <Button icon={copied ? <Check className="size-4 text-ok" /> : <ScanSearch className="size-4" />} onClick={() => copy('ui_check url=http://localhost:3000/')}>
+    <Button variant={primary ? 'primary' : 'secondary'} icon={copied ? <Check className="size-4" /> : <ScanSearch className="size-4" />} onClick={() => copy('ui_check url=http://localhost:3000/')}>
       {copied ? 'Copied for your agent' : 'Check a page'}
     </Button>
   );
 }
 
-function Severity({ value, tone }: { value: number; tone?: 'bad' }) {
+/** A count of findings: blockers red, majors amber, minors ink, and a zero quiet. */
+function Severity({ value, tone }: { value: number; tone?: 'bad' | 'warn' }) {
   if (value === 0) return <span className="text-faint">0</span>;
-  return <span className={tone === 'bad' ? 'text-bad' : undefined}>{value}</span>;
+  return <span className={cn('font-medium', tone === 'bad' ? 'text-bad' : tone === 'warn' ? 'text-warn' : 'text-fg')}>{value}</span>;
 }
 
 function Row({ run, onOpen }: { run: StudioRunRow; onOpen: () => void }) {
@@ -82,16 +84,16 @@ function Row({ run, onOpen }: { run: StudioRunRow; onOpen: () => void }) {
   return (
     <Tr onActivate={onOpen} aria-label={`Open the check of ${path}`}>
       <Td main>
-        <CellTitle title={path} second={second} mono />
+        <CellTitle title={path} second={second} />
       </Td>
       <Td>
-        <Status status={runStatus(run)} />
+        <Status status={runStatus(run)} chip />
       </Td>
       <Td numeric phone="hide" label="Blocker">
         <Severity value={run.counts.blocker} tone="bad" />
       </Td>
       <Td numeric phone="hide" label="Major">
-        <Severity value={run.counts.major} />
+        <Severity value={run.counts.major} tone="warn" />
       </Td>
       <Td numeric phone="hide" label="Minor">
         <Severity value={run.counts.minor} />
@@ -103,8 +105,10 @@ function Row({ run, onOpen }: { run: StudioRunRow; onOpen: () => void }) {
         {run.screens - run.screens_failed} of {run.screens}
         {run.screens_failed ? <span className="block text-secondary text-bad">{run.screens_failed} failed</span> : null}
       </Td>
-      <Td numeric label="Checked" title={new Date(run.created_at).toLocaleString()}>
-        {timeAgo(run.created_at)}
+      <Td label="Checked">
+        <time dateTime={run.created_at} title={dateTime(run.created_at)} className="tabular text-muted">
+          {timeAgo(run.created_at)}
+        </time>
       </Td>
       <Td phone="hide">
         <RowActions>
@@ -146,7 +150,7 @@ export function ChecksPage() {
           ? summary(runs)
           : 'Pages your agents checked in a real browser, at phone, tablet and desktop widths, in light and dark.'
       }
-      actions={<CopyCheckCommand />}
+      actions={<CopyCheckCommand primary />}
     />
   );
 
@@ -171,11 +175,13 @@ export function ChecksPage() {
     );
   }
 
+  const clear = () => set({ page: undefined, profile: undefined, state: undefined });
   return (
     <>
       {header}
+      <div className="grid gap-4">
       {runs.length > 0 ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter checks">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter checks">
           <div className="scrollbar-none -mx-4 flex w-[calc(100%+32px)] min-w-0 gap-2 overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:flex-1 sm:px-0" role="group" aria-label="Page">
             <Chip pressed={!search.page} label="Every page" count={runs.length} onClick={() => set({ page: undefined })} />
             {pages.map(([url, n]) => (
@@ -196,8 +202,7 @@ export function ChecksPage() {
           {profiles.length > 1 ? (
             <Select
               aria-label="Product"
-              size="sm"
-              className="w-auto min-w-36"
+              className="w-auto min-w-44"
               value={search.profile ?? 'all'}
               onValueChange={(value) => set({ profile: value === 'all' ? undefined : value })}
               options={[{ value: 'all', label: 'Every product' }, ...profiles.map((p) => ({ value: p, label: p }))]}
@@ -205,8 +210,7 @@ export function ChecksPage() {
           ) : null}
           <Select
             aria-label="Result"
-            size="sm"
-            className="w-auto min-w-36"
+            className="w-auto min-w-44"
             value={search.state ?? 'all'}
             onValueChange={(value) => set({ state: value === 'all' ? undefined : (value as RowState) })}
             options={[{ value: 'all', label: 'Every result' }, ...(Object.keys(STATE_WORDS) as RowState[]).map((s) => ({ value: s, label: STATE_WORDS[s] }))]}
@@ -238,7 +242,7 @@ export function ChecksPage() {
                   <Th align="end" className="max-md:hidden">
                     Screens
                   </Th>
-                  <Th align="end">Checked</Th>
+                  <Th>Checked</Th>
                   <Th className="max-md:hidden">
                     <span className="sr-only">Actions</span>
                   </Th>
@@ -252,9 +256,7 @@ export function ChecksPage() {
                         icon={<ScanSearch />}
                         title="No check matches"
                         description="Nothing kept here fits these filters."
-                        action={
-                          <Chip pressed={false} label="Show every check" onClick={() => set({ page: undefined, profile: undefined, state: undefined })} />
-                        }
+                        action={<Button onClick={clear}>Clear filters</Button>}
                       />
                     ) : (
                       <EmptyState
@@ -280,11 +282,12 @@ export function ChecksPage() {
         )}
       </Card>
       {runs.length > 0 ? (
-        <p className="mt-3 flex items-center gap-2 text-caption text-faint">
+        <p className="-mt-1 flex items-center gap-2 text-caption text-faint">
           <RotateCw aria-hidden="true" className="size-3.5" />
           The copy button on a row gives your agent a new check of that page that reads only what changed.
         </p>
       ) : null}
+      </div>
     </>
   );
 }

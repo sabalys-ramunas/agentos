@@ -1,81 +1,81 @@
 {
  "nothing": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "nothing, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "budget": {
   "ok": [
    "It may spend at most 10.00 USD and 12,000 tokens in total.",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "budget, remaining": {
   "ok": [
    "It may spend at most 10.00 USD and 12,000 tokens in total (1.25 USD and 900 tokens left).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "budget usd only": {
   "ok": [
    "It may spend at most 2.50 USD in total.",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "budget usd only, remaining": {
   "ok": [
    "It may spend at most 2.50 USD in total (1.25 USD and 900 tokens left).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "meters": {
   "ok": [
    "Its meters stop it at 5.00 USD a day, 1,000 tokens a day, 3 commits an hour, 20 commits a day (days end at the owner's midnight).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "meters, remaining": {
   "ok": [
    "Its meters stop it at 5.00 USD a day, 1,000 tokens a day, 3 commits an hour, 20 commits a day (days end at the owner's midnight).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "starts later": {
   "ok": [
    "It starts working at 2027-01-15T09:00:00Z (in 60 minutes).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "starts later, remaining": {
   "ok": [
    "It starts working at 2027-01-15T09:00:00Z (in 60 minutes).",
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "started": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
  "started, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents."
   ]
  },
@@ -117,62 +117,62 @@
  },
  "no delegation": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It cannot hand a narrower copy of itself to anyone."
   ]
  },
  "no delegation, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It cannot hand a narrower copy of itself to anyone."
   ]
  },
  "one level": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents, 1 more level down."
   ]
  },
  "one level, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents, 1 more level down."
   ]
  },
  "three levels, fan out": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents, 3 more levels down, at most 4."
   ]
  },
  "three levels, fan out, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents, 3 more levels down, at most 4."
   ]
  },
  "no fan out": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It cannot hand a narrower copy of itself to anyone."
   ]
  },
  "no fan out, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It cannot hand a narrower copy of itself to anyone."
   ]
  },
  "pins": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents.",
    "Only tools pinned to a reviewed version run under it; a changed tool is refused."
   ]
  },
  "pins, remaining": {
   "ok": [
-   "It does not expire; revoke it with `agentos grants revoke` when it is no longer needed.",
+   "It does not expire; revoke it with `openajar grants revoke` when it is no longer needed.",
    "It may hand narrower copies of itself to other agents.",
    "Only tools pinned to a reviewed version run under it; a changed tool is refused."
   ]

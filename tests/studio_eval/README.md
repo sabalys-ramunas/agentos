@@ -1,7 +1,7 @@
 # The studio agent experience eval
 
 Rule 15 of [docs/design/studio-ax.md](../../docs/design/studio-ax.md): a fixed set of small tasks,
-run by a model that has only the studio MCP tools and the `agentos-studio` skill, recording per
+run by a model that has only the studio MCP tools and the `openajar-studio` skill, recording per
 task whether it finished, its calls, the tokens it read from tool results and its wrong turns. A
 change to a tool, a result shape or a description that makes these worse does not merge.
 
@@ -20,10 +20,10 @@ agent's scratch HOME. Without it, a new temporary folder is used and printed.
 
 ## What a run does
 
-For each agent kind it starts `agentos studio up` in a scratch HOME (never your `~/.agentos`)
+For each agent kind it starts `openajar studio up` in a scratch HOME (never your `~/.openajar`)
 and serves the task pages on 127.0.0.1 with a plain http server, a stand-in for a dev server.
 For each task it lays the pages out fresh, runs the task's setup (a baseline, a product profile
-the owner approved through `agentos profile approve`), runs the agent, then the task's checker.
+the owner approved through `openajar profile approve`), runs the agent, then the task's checker.
 
 Agents:
 

@@ -8,16 +8,16 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.core import signing
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest
-from agentos.core.runtime import Runtime
-from agentos.policy import tokens
-from agentos.policy.errors import Denied
-from agentos.policy.grants import GrantBlock
-from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
-from agentos.policy.service import build
-from agentos.policy.util import new_id
+from openajar.core import signing
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest
+from openajar.core.runtime import Runtime
+from openajar.policy import tokens
+from openajar.policy.errors import Denied
+from openajar.policy.grants import GrantBlock
+from openajar.policy.issuers import SERVICE_NAME, TrustedIssuers
+from openajar.policy.service import build
+from openajar.policy.util import new_id
 
 ORG = "org_test"
 HERE = "node_here"

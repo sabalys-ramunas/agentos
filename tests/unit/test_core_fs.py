@@ -1,4 +1,4 @@
-"""agentos.core.fs: the one writer for private files."""
+"""openajar.core.fs: the one writer for private files."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from agentos.core import fs
+from openajar.core import fs
 
 
 def _mode(path) -> int:
@@ -129,7 +129,7 @@ def _beneath_host(tmp_path):
 
 
 def test_write_beneath_replaces_a_link_and_refuses_a_linked_directory(tmp_path):
-    from agentos.core.fs import LinkRefused, write_beneath
+    from openajar.core.fs import LinkRefused, write_beneath
 
     root, host = _beneath_host(tmp_path)
     os.symlink(host / "secret", root / "f")
@@ -148,7 +148,7 @@ def test_write_beneath_replaces_a_link_and_refuses_a_linked_directory(tmp_path):
 
 
 def test_write_beneath_never_writes_into_a_hard_link(tmp_path):
-    from agentos.core.fs import write_beneath
+    from openajar.core.fs import write_beneath
 
     root, host = _beneath_host(tmp_path)
     os.link(host / "secret", root / "h")
@@ -157,7 +157,7 @@ def test_write_beneath_never_writes_into_a_hard_link(tmp_path):
 
 
 def test_read_beneath_takes_only_a_plain_file(tmp_path):
-    from agentos.core.fs import LinkRefused, read_beneath
+    from openajar.core.fs import LinkRefused, read_beneath
 
     root, host = _beneath_host(tmp_path)
     (root / "ok").write_text("fine")
@@ -174,7 +174,7 @@ def test_read_beneath_takes_only_a_plain_file(tmp_path):
 
 
 def test_unlink_beneath_removes_the_link_not_its_target(tmp_path):
-    from agentos.core.fs import LinkRefused, unlink_beneath
+    from openajar.core.fs import LinkRefused, unlink_beneath
 
     root, host = _beneath_host(tmp_path)
     os.symlink(host / "secret", root / "l")
@@ -187,7 +187,7 @@ def test_unlink_beneath_removes_the_link_not_its_target(tmp_path):
 
 
 def test_copy_tree_beneath_keeps_links_as_links(tmp_path):
-    from agentos.core.fs import LinkRefused, copy_tree_beneath
+    from openajar.core.fs import LinkRefused, copy_tree_beneath
 
     root, host = _beneath_host(tmp_path)
     src = tmp_path / "src"

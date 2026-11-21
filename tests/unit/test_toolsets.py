@@ -16,14 +16,14 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from test_policy_support import OWNER, SPECS, Clock, make_service
 
-from agentos.core.config import NodeConfig
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec, bind_request_token
-from agentos.mcp.http import build_app
-from agentos.mcp.providers import feature_providers, tool_providers
-from agentos.mcp.registry import build_mcp
-from agentos.mcp.toolsets import (
+from openajar.core.config import NodeConfig
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec, bind_request_token
+from openajar.mcp.http import build_app
+from openajar.mcp.providers import feature_providers, tool_providers
+from openajar.mcp.registry import build_mcp
+from openajar.mcp.toolsets import (
     CORE,
     NAMES,
     OTHER,
@@ -33,11 +33,11 @@ from agentos.mcp.toolsets import (
     parse_toolsets,
     toolset_of,
 )
-from agentos.node import daemon
-from agentos.node.tools import INSTRUCTIONS, RECIPES
-from agentos.plugins.entries import PLUGINS
-from agentos.policy import bind_request_token as bind_policy_token
-from agentos.policy import visible_tools, wrap_tool
+from openajar.node import daemon
+from openajar.node.tools import INSTRUCTIONS, RECIPES
+from openajar.plugins.entries import PLUGINS
+from openajar.policy import bind_request_token as bind_policy_token
+from openajar.policy import visible_tools, wrap_tool
 
 TOKEN = "toolsets-node-token-0123456789"
 
@@ -103,7 +103,7 @@ class EveryService(Runtime):
 
 def every_spec() -> tuple[Runtime, list[ToolSpec]]:
     """Every built-in tool, the shipped workers' tools (browser_task) included."""
-    runtime = EveryService(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="agentos-toolsets-"))))
+    runtime = EveryService(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="openajar-toolsets-"))))
     worker_modules = [m for plugin in PLUGINS for m in plugin.tools]
     providers = [*tool_providers(), *feature_providers(worker_modules)]
     return runtime, [s for p in providers for s in p(runtime) if isinstance(s, ToolSpec)]
@@ -127,7 +127,7 @@ def text_of(result) -> str:
 def test_every_built_in_tool_has_a_toolset_and_every_named_tool_exists():
     _, specs = every_spec()
     homeless = sorted(s.name for s in specs if toolset_of(s) == OTHER)
-    assert homeless == [], f"put these in a toolset (agentos.mcp.toolsets.TOOLSETS): {homeless}"
+    assert homeless == [], f"put these in a toolset (openajar.mcp.toolsets.TOOLSETS): {homeless}"
     names = {s.name for s in specs}
     stale = sorted(t for ts in TOOLSETS for t in ts.tools if t not in names)
     assert stale == [], f"toolsets name tools that do not exist: {stale}"
@@ -139,7 +139,7 @@ def test_every_built_in_tool_has_a_toolset_and_every_named_tool_exists():
 
 def test_the_server_instructions_name_every_toolset():
     missing = [name for name in NAMES if name != CORE and name not in INSTRUCTIONS]
-    assert missing == [], f"say what these toolsets hold in agentos.node.tools.INSTRUCTIONS: {missing}"
+    assert missing == [], f"say what these toolsets hold in openajar.node.tools.INSTRUCTIONS: {missing}"
 
 
 def test_recipes_say_how_to_reach_tools_outside_core():
@@ -297,7 +297,7 @@ def test_loaded_sessions_are_bounded():
 
 @contextmanager
 def as_caller(token):
-    """Bind the token as agentos.mcp.http does on the node: for the registry and for the policy."""
+    """Bind the token as openajar.mcp.http does on the node: for the registry and for the policy."""
     with bind_request_token(token), bind_policy_token(token):
         yield
 

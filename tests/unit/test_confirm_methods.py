@@ -11,12 +11,19 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from agentos.policy import confirm
-from agentos.policy.confirm import ConfirmLevel, DeviceKeyMethod, DeviceStore, Person, Proof, default_registry
-from agentos.policy.errors import MethodUnavailable, ProofTooWeak
-from agentos.policy.store import DB
+from openajar.policy import confirm
+from openajar.policy.confirm import (
+    ConfirmLevel,
+    DeviceKeyMethod,
+    DeviceStore,
+    Person,
+    Proof,
+    default_registry,
+)
+from openajar.policy.errors import MethodUnavailable, ProofTooWeak
+from openajar.policy.store import DB
 
-SRC = Path(__file__).resolve().parents[2] / "src" / "agentos"
+SRC = Path(__file__).resolve().parents[2] / "src" / "openajar"
 DIGEST = "sha256:" + "a" * 64
 PLANNED = ("mac", "ios", "android", "watch", "totp")
 

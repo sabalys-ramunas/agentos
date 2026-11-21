@@ -19,18 +19,18 @@ from typing import Any
 
 import pytest
 
-from agentos.core.locator import Locator
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, LaneState, RunStatus, utcnow
-from agentos.core.runtime import Runtime
-from agentos.node import flow_driver as fd
-from agentos.node import flow_recorder
-from agentos.node.interaction import PlaywrightInteraction
-from agentos.node.snapshot import find_refs
-from agentos.runner.models import StepStatus
-from agentos.runner.recorder import Recorder
-from agentos.runner.service import build
-from agentos.runner.store import RunnerStore
-from agentos.runner.util import Clock
+from openajar.core.locator import Locator
+from openajar.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, LaneState, RunStatus, utcnow
+from openajar.core.runtime import Runtime
+from openajar.node import flow_driver as fd
+from openajar.node import flow_recorder
+from openajar.node.interaction import PlaywrightInteraction
+from openajar.node.snapshot import find_refs
+from openajar.runner.models import StepStatus
+from openajar.runner.recorder import Recorder
+from openajar.runner.service import build
+from openajar.runner.store import RunnerStore
+from openajar.runner.util import Clock
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 

@@ -1,4 +1,4 @@
-"""The devtools capture (agentos.node.devtools): what it keeps of a lane's console and network and
+"""The devtools capture (openajar.node.devtools): what it keeps of a lane's console and network and
 its bounds, what is masked and never kept, and a response body read on demand."""
 
 from __future__ import annotations
@@ -9,9 +9,9 @@ from typing import Any
 import pytest
 from test_io_tabs_dialogs import Emitter
 
-from agentos.node import devtools, egress
-from agentos.node.camoufox.engine import PageTracker
-from agentos.node.devtools import (
+from openajar.node import devtools, egress
+from openajar.node.camoufox.engine import PageTracker
+from openajar.node.devtools import (
     BODY_CHARS,
     MASKED,
     DevtoolsCapture,

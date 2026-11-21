@@ -14,11 +14,13 @@ import { Input } from '@/components/ui/field';
 import { cn } from '@/lib/cn';
 import { LANE_INPUT } from '@/lib/keyboard';
 import { laneName } from '@/lib/labels';
+import { AgentPointer } from './agent-pointer';
 import { anchorScroll, clampZoom, fit, KEYSYM, keysymFor } from './keys';
 import { StreamBadge, StreamNotice, useLaneFocus, useLeaveKey, viewOnlyWords } from './parts';
 import type { ScreenProps } from './parts';
 import { streamUrl } from './stream';
 import { useStream } from './use-stream';
+import { StageTools } from './stage-slot';
 import { useRefreshLane } from '@/api/hooks';
 
 /** noVNC fires `connect` after the handshake; the first full frame lands just after. */
@@ -106,7 +108,7 @@ function TypePanel({ onType, onKey }: { onType: (text: string) => void; onKey: (
         }}
       >
         <label htmlFor="lane-type" className="sr-only">
-          Text to send to the lane
+          Text to send to the screen
         </label>
         <Input
           ref={field}
@@ -140,7 +142,61 @@ function TypePanel({ onType, onKey }: { onType: (text: string) => void; onKey: (
   );
 }
 
-export default function VncScreen({ org, lane, interactive, holder, canTake, expanded, onExpandedChange, probe }: ScreenProps) {
+/** On a stage, the screen's tools beside the control pill: the keyboard field and moving the picture while it is yours, and back to fit while zoomed. */
+function StageScreenTools({ expanded, interactive, driving, typing, onTyping, moving, onMoving, zoom, onFit }: {
+  expanded: boolean;
+  interactive: boolean;
+  driving: boolean;
+  typing: boolean;
+  onTyping: () => void;
+  moving: boolean;
+  onMoving: () => void;
+  zoom: number;
+  onFit: () => void;
+}) {
+  return (
+    <StageTools>
+      {interactive ? (
+        // On a phone the keyboard field is for the full window, where typing happens; the pill keeps its words.
+        <IconButton variant="glass" size="lg" label="Type into the screen" aria-pressed={typing} disabled={!driving} onClick={onTyping} className={cn(!expanded && 'max-sm:hidden')}>
+          <Keyboard className="size-4" />
+        </IconButton>
+      ) : null}
+      {/* Moving the picture only matters once it is larger than its box. */}
+      {interactive && (zoom > 1 || moving) ? (
+        <IconButton variant="glass" size="lg" label="Move the picture without clicking the screen" aria-pressed={moving} onClick={onMoving}>
+          <Hand className="size-4" />
+        </IconButton>
+      ) : null}
+      {zoom !== 1 ? (
+        <Button variant="glass" className="h-10 tabular" onClick={onFit} aria-label={`Zoomed to ${Math.round(zoom * 100)}%. Fit to the window`} icon={<Scan className="size-4" />}>
+          {Math.round(zoom * 100)}%
+        </Button>
+      ) : null}
+    </StageTools>
+  );
+}
+
+/** The picture's box. On a stage it has its own edge, and while it is yours a ring outside it (an outline, never a shadow). */
+function pictureClass(stage: boolean, driving: boolean, expanded: boolean) {
+  return cn(
+    'relative min-h-0',
+    stage ? 'bg-stage' : 'bg-inset',
+    expanded ? 'flex-1' : 'max-h-[75dvh]',
+    // On the night: its own faint edge, and while it is yours a white ring outside a 2 px gap.
+    stage && 'stage-screen rounded-lg outline-2 outline-offset-2 outline-transparent transition-[outline-color] duration-(--duration-slow) ease-standard',
+    stage && driving && 'outline-[var(--sidebar-text)]',
+  );
+}
+
+/** The scrolling box inside it: off a stage, an inner ring while yours. */
+function viewportClass(stage: boolean, driving: boolean) {
+  return cn('absolute inset-0 overflow-auto overscroll-contain', stage ? 'rounded-lg' : driving && 'ring-2 ring-fg ring-inset');
+}
+
+const toolbarClass = 'flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-2';
+
+export default function VncScreen({ org, lane, interactive, holder, canTake, expanded, onExpandedChange, stage = false, probe, agent }: ScreenProps) {
   const root = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -187,7 +243,9 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
             });
             resized.observe(drawn, { attributes: true, attributeFilter: ['width', 'height'] });
           }
+          // The picture arrives with a fade (opacity only), never as a black box.
           target.classList.remove('invisible');
+          target.classList.add('animate-fade-in');
           rfb.current = session;
           canvas.current = drawn;
           setShown(socket.url);
@@ -238,7 +296,10 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
   }, [driving, live, name]);
 
   useLaneFocus(interactive, driving, () => rfb.current?.focus({ preventScroll: true }), root);
-  useLeaveKey(root, () => root.current?.querySelector<HTMLElement>('[data-screen-toolbar] button')?.focus());
+  // Shift Escape leaves the lane for its toolbar, or on a stage for the control pill's button.
+  useLeaveKey(root, () =>
+    (root.current?.querySelector<HTMLElement>('[data-screen-toolbar] button') ?? root.current?.closest('[data-stage]')?.querySelector<HTMLElement>('.control-pill button'))?.focus(),
+  );
 
   useLayoutEffect(() => {
     const element = viewport.current;
@@ -314,16 +375,13 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
       {/* Not expanded, the box takes the far screen's own shape (16:10 until it is known), no taller than
           most of the window, so a wide desktop and a tall phone screen both fill it rather than float in black. */}
       <div
-        className={cn('relative min-h-0 bg-inset', expanded ? 'flex-1' : 'max-h-[75dvh]')}
+        className={pictureClass(stage, driving, expanded)}
         style={expanded ? undefined : { aspectRatio: `${frame.width} / ${frame.height}` }}
       >
         <div
           ref={viewport}
           {...{ [LANE_INPUT]: '' }}
-          className={cn(
-            'absolute inset-0 overflow-auto overscroll-contain',
-            driving && 'ring-2 ring-fg ring-inset',
-          )}
+          className={viewportClass(stage, driving)}
         >
           <div className="flex min-h-full min-w-full items-center justify-center" style={{ width: fitted.width * zoom || undefined, height: fitted.height * zoom || undefined }}>
             <div ref={box} className="relative shrink-0" style={{ width: fitted.width * zoom, height: fitted.height * zoom }}>
@@ -334,12 +392,26 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
                   {...gestures}
                 />
               ) : null}
+              <AgentPointer lane={lane.id} name={agent} width={fitted.width * zoom} live={live} control={lane.control.state} />
             </div>
           </div>
         </div>
         <StreamNotice state={state} kind="vnc" org={org} node={lane.node} onRetry={retry} />
       </div>
-      <div data-screen-toolbar className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-2">
+      {stage ? (
+        <StageScreenTools
+          expanded={expanded}
+          interactive={interactive}
+          driving={driving}
+          typing={typing}
+          onTyping={() => setTyping((value) => !value)}
+          moving={moving}
+          onMoving={() => setMoving((value) => !value)}
+          zoom={zoom}
+          onFit={() => setZoom(1)}
+        />
+      ) : (
+      <div data-screen-toolbar className={toolbarClass}>
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
           <StreamBadge state={state} kind="vnc" node={lane.node} />
           {line ? <span className={cn('min-w-0 truncate text-secondary', driving ? 'font-medium text-fg' : 'text-faint')}>{line}</span> : null}
@@ -347,10 +419,10 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
         <div className="flex items-center gap-1">
           {interactive ? (
             <>
-              <IconButton label="Type into the lane" aria-pressed={typing} disabled={!driving} onClick={() => setTyping((value) => !value)}>
+              <IconButton label="Type into the screen" aria-pressed={typing} disabled={!driving} onClick={() => setTyping((value) => !value)}>
                 <Keyboard className="size-4" />
               </IconButton>
-              <IconButton label="Move the picture without clicking the lane" aria-pressed={moving} onClick={() => setMoving((value) => !value)}>
+              <IconButton label="Move the picture without clicking the screen" aria-pressed={moving} onClick={() => setMoving((value) => !value)}>
                 <Hand className="size-4" />
               </IconButton>
             </>
@@ -372,6 +444,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
           </IconButton>
         </div>
       </div>
+      )}
       {driving && typing ? (
         <TypePanel onType={type} onKey={(keysym) => rfb.current?.sendKey(keysym, null)} />
       ) : null}

@@ -11,7 +11,7 @@ export function BranchPill({ name, main = false, size = 'sm', className }: { nam
       className={cn(
         'inline-flex max-w-65 min-w-0 items-center gap-1 rounded-full border align-middle font-mono',
         size === 'lg' ? 'py-1 pr-3 pl-2 text-code' : 'py-px pr-2 pl-1 text-code-caption',
-        main ? 'border-fg bg-fg text-on-primary' : 'border-line bg-hover text-muted',
+        main ? 'border-fg bg-fg text-on-inverse' : 'border-line bg-hover text-muted',
         className,
       )}
     >

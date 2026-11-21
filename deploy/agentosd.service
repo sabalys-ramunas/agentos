@@ -1,15 +1,15 @@
 [Unit]
-Description=agentos node daemon (agentosd): browser lanes and the MCP server
+Description=openajar node daemon (agentosd): browser lanes and the MCP server
 Documentation=file:/opt/agentos/deploy/README.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-Environment="AGENTOS_HOME=/var/lib/agentos"
+Environment="OPENAJAR_HOME=/var/lib/agentos"
 Environment=PYTHONUNBUFFERED=1
 WorkingDirectory=/opt/agentos
-ExecStart="/opt/agentos/.venv/bin/agentos" node serve
+ExecStart="/opt/agentos/.venv/bin/openajar" node serve
 Restart=on-failure
 RestartSec=3
 # SIGTERM goes to agentosd only, so it can close every browser gracefully (cookies flush);

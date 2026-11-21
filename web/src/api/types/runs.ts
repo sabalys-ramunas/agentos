@@ -108,7 +108,7 @@ export interface Flow {
   waiting?: { run: string; words: string; approval_id?: string | null } | null;
   always_asks_steps?: RoutineAlwaysAsks[];
   send_limits?: RoutineSendLimit[];
-  /** False: its computer has an older agentos, which runs a routine but cannot change its steps. */
+  /** False: its computer has an older openajar, which runs a routine but cannot change its steps. */
   steps_supported?: boolean;
 }
 

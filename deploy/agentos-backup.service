@@ -1,5 +1,5 @@
 [Unit]
-Description=agentos encrypted backup of AGENTOS_HOME
+Description=openajar encrypted backup of OPENAJAR_HOME
 Documentation=file:/opt/agentos/deploy/README.md
 After=agentosd.service
 
@@ -10,8 +10,8 @@ After=agentosd.service
 
 [Service]
 Type=oneshot
-Environment="AGENTOS_HOME=/var/lib/agentos"
-ExecStart="/opt/agentos/.venv/bin/agentos" backup create --passphrase-file "/var/lib/agentos/secrets/backup.pass" --keep 7
+Environment="OPENAJAR_HOME=/var/lib/agentos"
+ExecStart="/opt/agentos/.venv/bin/openajar" backup create --passphrase-file "/var/lib/agentos/secrets/backup.pass" --keep 7
 Nice=10
 IOSchedulingClass=idle
 UMask=0077

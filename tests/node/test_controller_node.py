@@ -1,7 +1,7 @@
 """The controller and a real node on one box: a Camoufox lane, Xvfb and x11vnc, driven through
 the controller's one MCP URL, and its live view relayed as a channel stream.
 
-Run on the node:  AGENTOS_TEST_SLOT=28 scripts/node-test.sh channel tests/node/test_controller_node.py -q
+Run on the node:  OPENAJAR_TEST_SLOT=28 scripts/node-test.sh channel tests/node/test_controller_node.py -q
 Slot 28: display :280, VNC 5280, viewer 6280, MCP 7680 for the node and 7681 for the controller.
 No site is visited: the lane stays on its blank start page.
 """
@@ -19,22 +19,22 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from websockets.asyncio.client import connect
 
-from agentos.controller.app import serve_controller
-from agentos.controller.config import ControllerConfig
-from agentos.core.config import NodeConfig
-from agentos.core.models import LaneSpec
-from agentos.node import daemon
-from agentos.node.channel.enroll import enroll
+from openajar.controller.app import serve_controller
+from openajar.controller.config import ControllerConfig
+from openajar.core.config import NodeConfig
+from openajar.core.models import LaneSpec
+from openajar.node import daemon
+from openajar.node.channel.enroll import enroll
 
 pytestmark = [
     pytest.mark.node,
     pytest.mark.skipif(sys.platform != "linux", reason="needs a Linux node with Xvfb, x11vnc and Camoufox"),
 ]
 
-DISPLAY_BASE = int(os.environ.get("AGENTOS_TEST_DISPLAY_BASE", "280"))
-VNC_BASE = int(os.environ.get("AGENTOS_TEST_VNC_BASE", "5280"))
-VIEWER_BASE = int(os.environ.get("AGENTOS_TEST_VIEWER_BASE", "6280"))
-NODE_PORT = int(os.environ.get("AGENTOS_TEST_MCP_PORT_BASE", "7680"))
+DISPLAY_BASE = int(os.environ.get("OPENAJAR_TEST_DISPLAY_BASE", "280"))
+VNC_BASE = int(os.environ.get("OPENAJAR_TEST_VNC_BASE", "5280"))
+VIEWER_BASE = int(os.environ.get("OPENAJAR_TEST_VIEWER_BASE", "6280"))
+NODE_PORT = int(os.environ.get("OPENAJAR_TEST_MCP_PORT_BASE", "7680"))
 CONTROLLER_PORT = NODE_PORT + 1
 LANE = "chan/blank"
 AGENT = "aga_node_test_agent_token_value"
@@ -54,7 +54,7 @@ async def test_a_real_lane_through_the_controller(tmp_path):
     (tmp_path / "node").mkdir()
     _, token = controller.create_join_token(controller.org["id"], name="chan-node")
     config = await enroll(config, f"ws://localhost:{CONTROLLER_PORT}", token)
-    runtime = daemon.build_runtime(config, ["agentos.policy.service", "agentos.node.channel.service"])
+    runtime = daemon.build_runtime(config, ["openajar.policy.service", "openajar.node.channel.service"])
     await runtime.lanes.create(LaneSpec(id=LANE))
     stop_node = asyncio.Event()
     node_task = asyncio.create_task(daemon.serve(config, runtime, stop=stop_node))

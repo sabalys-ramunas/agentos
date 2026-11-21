@@ -15,16 +15,16 @@ from pathlib import Path
 import pytest
 from workflow_support import LIST, make_node, workflow
 
-from agentos.core.config import NodeConfig
-from agentos.core.errors import Frozen
-from agentos.core.models import Effect
-from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec, covers_workspace, pattern_reaches, pattern_within, require_lanes
-from agentos.freeze.service import FreezeService
-from agentos.mcp.providers import feature_providers, tool_providers
-from agentos.plugins.entries import PLUGINS
-from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
-from agentos.runner.workflows import tools as wf_tools
+from openajar.core.config import NodeConfig
+from openajar.core.errors import Frozen
+from openajar.core.models import Effect
+from openajar.core.runtime import Runtime
+from openajar.core.tools import ToolSpec, covers_workspace, pattern_reaches, pattern_within, require_lanes
+from openajar.freeze.service import FreezeService
+from openajar.mcp.providers import feature_providers, tool_providers
+from openajar.plugins.entries import PLUGINS
+from openajar.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from openajar.runner.workflows import tools as wf_tools
 
 
 @pytest.fixture
@@ -149,7 +149,7 @@ FREEZE_REACH = {
     "brain_cancel": "id", "brain_resume": "id", "brain_status": "id", "brain_tail": "id",
     "brain_tasks": "filter", "brain_use": "check", "brains_list": "none",
     "connectors_list": "filter",
-    # agentos.environments.tools: the chat's environment or an id of the grant family -> its lanes
+    # openajar.environments.tools: the chat's environment or an id of the grant family -> its lanes
     # (refuse_frozen); a new one authorizes env/<id>; the listing leaves frozen ones out (frozen_off)
     "environment": "id", "environment_close": "id", "environment_open": "check", "environment_save": "id", "environment_port": "id", "environment_pull_request": "id",
     "environment_forget": "check", "environment_checkpoint": "id", "environment_rollback": "id",  # checkpoint_tools: _find
@@ -158,16 +158,19 @@ FREEZE_REACH = {
     "grant_info": "filter", "howto": "none", "human_ask": "none", "image_build": "none", "images_list": "none",
     "browser_check": "filter", "terminal_job_cancel": "id", "terminal_job_read": "id", "terminal_jobs": "filter",
     "browsers_list": "filter", "leads_propose": "check", "mail_mailboxes": "filter",
-    "memory_forget": "check", "memory_get": "check",  # agentos.memory: a frozen workspace reads as not found
+    "memory_forget": "check", "memory_get": "check",  # openajar.memory: a frozen workspace reads as not found
     "plugins_list": "filter",
-    # agentos.profiles: _check_reach / _sees go through covers_workspace and can_access_lane
+    # openajar.profiles: _check_reach / _sees go through covers_workspace and can_access_lane
     "profile_get": "check", "profile_list": "filter", "profile_save": "check", "profile_sync_status": "check",
     "profile_update": "check", "profile_use": "check", "profile_propose": "check",
     "profile_learn_brand": "check",
     "run_cancel": "id", "run_status": "id",
+    # openajar.environments.screen: `on` (filled by routing) names the environment, desktop_of calls refuse_frozen
+    # on its lanes and every call authorizes lane_id=on
+    "screen_act": "id", "screen_open": "id", "screen_snapshot": "id",
     "shell_close": "id", "shell_read": "id", "shell_write": "id",
     "site_api_propose": "check",
-    # agentos.studio.tools: a URL, not a lane; a named or matched profile through covers_workspace and
+    # openajar.studio.tools: a URL, not a lane; a named or matched profile through covers_workspace and
     # can_access_lane (_sees), runs and captures are studio's own store
     "finding_get": "none", "studio_status": "none", "system_check": "check", "ui_baseline": "check",
     "ui_check": "check", "ui_diff": "check", "ui_image": "none", "site_api_try": "id", "site_apis_list": "filter",
@@ -184,7 +187,7 @@ FREEZE_AWARE = ("can_access_lane", "covers_workspace", "pattern_reaches", "patte
 
 @pytest.fixture(scope="module")
 def specs() -> list[ToolSpec]:
-    runtime = Runtime(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="agentos-freeze-reach-"))))
+    runtime = Runtime(config=NodeConfig(home=Path(tempfile.mkdtemp(prefix="openajar-freeze-reach-"))))
     providers = [*tool_providers(), *feature_providers(tuple(m for plugin in PLUGINS for m in plugin.tools))]
     return [spec for provider in providers for spec in provider(runtime) if isinstance(spec, ToolSpec)]
 

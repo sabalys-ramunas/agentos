@@ -1,7 +1,7 @@
 # Node templates: from nothing to a green self-check
 
-A template takes a machine you have, or a server you rent, to a running agentos node with
-`agentos doctor` passing and, if you want, joined to a controller. Three ship in `deploy/templates/`:
+A template takes a machine you have, or a server you rent, to a running openajar node with
+`openajar doctor` passing and, if you want, joined to a controller. Three ship in `deploy/templates/`:
 
 | Template | Where it runs | Browser lanes | How you start it |
 |---|---|---|---|
@@ -12,8 +12,8 @@ A template takes a machine you have, or a server you rent, to a running agentos 
 List them, or see one's files and variables, with the CLI:
 
 ```
-agentos node templates           # the list
-agentos node templates hetzner   # path, files, and the variables to fill in
+openajar node templates           # the list
+openajar node templates hetzner   # path, files, and the variables to fill in
 ```
 
 Status: the templates are tested as files (YAML and the keys the first boot needs, shell syntax,
@@ -36,8 +36,8 @@ The Linux templates take the same values in one `bootstrap.env` block:
 |---|---|---|
 | `ADMIN_SSH_KEY` | yes | your public key, one line: `ssh-ed25519 AAAA... you@laptop` |
 | `ADMIN_USER` | no | the admin user that signs in over SSH (default `agentos-admin`) |
-| `NODE_NAME` | no | the node's name in agentos (default: the hostname) |
-| `AGENTOS_GIT_URL` | yes | the repository to install from: the public agentos repository or your fork |
+| `NODE_NAME` | no | the node's name in openajar (default: the hostname) |
+| `AGENTOS_GIT_URL` | yes | the repository to install from: the public openajar repository or your fork |
 | `AGENTOS_GIT_REF` | no | a branch, tag or commit to install (default `main`) |
 | `CONTROLLER_URL` | no | the controller to join over TLS, `wss://...`. Empty: join over SSH after the first boot (see "Join a controller") |
 | `JOIN_TOKEN` | no | a single-use join token, valid one hour |
@@ -45,12 +45,12 @@ The Linux templates take the same values in one `bootstrap.env` block:
 Each value is the text after the first `=` on its line: no quotes, no shell. Keep the filled-in
 file private (`chmod 600`), outside the checkout, and never commit it.
 
-`agentos node templates NAME` also marks which variables are required and which have defaults.
+`openajar node templates NAME` also marks which variables are required and which have defaults.
 
 ## Hetzner Cloud
 
 1. Create an API token in the Hetzner Cloud console and make an hcloud context with it:
-   `hcloud context create agentos`. The token stays in hcloud's own config. None of the scripts
+   `hcloud context create openajar`. The token stays in hcloud's own config. None of the scripts
    read, print or store it.
 2. Add your public key to the project, under a name you choose:
    `hcloud ssh-key create --name laptop --public-key-from-file ~/.ssh/id_ed25519.pub`.
@@ -59,8 +59,8 @@ file private (`chmod 600`), outside the checkout, and never commit it.
 4. Copy the template and fill it in:
 
    ```
-   mkdir -p ~/agentos-nodes && cp deploy/templates/hetzner/cloud-init.yaml ~/agentos-nodes/hetzner-1.yaml
-   chmod 600 ~/agentos-nodes/hetzner-1.yaml
+   mkdir -p ~/openajar-nodes && cp deploy/templates/hetzner/cloud-init.yaml ~/openajar-nodes/hetzner-1.yaml
+   chmod 600 ~/openajar-nodes/hetzner-1.yaml
    # set ADMIN_SSH_KEY (and NODE_NAME, AGENTOS_GIT_REF, CONTROLLER_URL if you need them)
    ```
 
@@ -68,39 +68,39 @@ file private (`chmod 600`), outside the checkout, and never commit it.
 
    ```
    deploy/templates/hetzner/create.sh --name hetzner-1 --type TYPE --location LOCATION \
-     --image ubuntu-24.04 --ssh-key laptop --user-data ~/agentos-nodes/hetzner-1.yaml
+     --image ubuntu-24.04 --ssh-key laptop --user-data ~/openajar-nodes/hetzner-1.yaml
    ```
 
    The script refuses a file that is readable by others, still has `CHANGE-ME` in it, has no
    `#cloud-config` first line, or has no admin key. It passes the file to hcloud by path and
    writes nothing.
-6. Wait for the first boot, then read the report. The first boot builds agentos, so allow 10 to
+6. Wait for the first boot, then read the report. The first boot builds openajar, so allow 10 to
    20 minutes:
 
    ```
    ssh agentos-admin@$(hcloud server ip hetzner-1)
    cloud-init status --wait
-   cat ~/agentos-doctor.txt
+   cat ~/openajar-doctor.txt
    ```
 
 7. A doctor exit code of 0 means no check failed. Warnings are the next things to set up, such as
-   no vault (`agentos vault init`) or no backup (`agentos backup create --to ...`). Run the doctor
-   again any time with `sudo -u agentos AGENTOS_HOME=/var/lib/agentos /opt/agentos/.venv/bin/agentos doctor`.
+   no vault (`openajar vault init`) or no backup (`openajar backup create --to ...`). Run the doctor
+   again any time with `sudo -u agentos OPENAJAR_HOME=/var/lib/agentos /opt/agentos/.venv/bin/openajar doctor`.
 
 ## Home box
 
 Read `deploy/templates/home-box/README.md`. It covers the USB installer stick, the seed, the
 install and the checks, step by step. In short: copy `autoinstall.yaml`, replace the `CHANGE-ME`
 values (the password hash and the admin key), write the installer and the seed, boot the machine
-from the installer, then `ssh agentos-admin@ADDRESS` and read `~/agentos-doctor.txt`.
+from the installer, then `ssh agentos-admin@ADDRESS` and read `~/openajar-doctor.txt`.
 
 ## Mac mini (the controller)
 
 1. Put the checkout on the Mac and `cd` into it.
 2. Run `deploy/templates/mac-mini/setup.sh`. It sets up uv, the Python environment, the controller
-   settings in `~/.agentos`, the LaunchAgent, and a self-check.
+   settings in `~/.openajar`, the LaunchAgent, and a self-check.
 3. Run `deploy/templates/mac-mini/power.sh` once, so the Mac stays awake and starts after a power cut.
-4. `AGENTOS_HOME=~/.agentos .venv/bin/agentos controller agent-token` prints the line for Claude
+4. `OPENAJAR_HOME=~/.openajar .venv/bin/openajar controller agent-token` prints the line for Claude
    Code. Keep the token private.
 
 `deploy/templates/mac-mini/README.md` says what runs on macOS today and what does not.
@@ -110,7 +110,7 @@ from the installer, then `ssh agentos-admin@ADDRESS` and read `~/agentos-doctor.
 A node joins a controller once. Make a join token on the controller, which prints the line to run:
 
 ```
-agentos controller join-token --name hetzner-1
+openajar controller join-token --name hetzner-1
 ```
 
 A token is single use and valid for one hour. Two ways to get the node to the controller:
@@ -127,7 +127,7 @@ A token is single use and valid for one hour. Two ways to get the node to the co
   Then on the node, join and restart:
 
   ```
-  sudo -u agentos AGENTOS_HOME=/var/lib/agentos /opt/agentos/.venv/bin/agentos node join --self-hosted ws://localhost:7401 TOKEN
+  sudo -u agentos OPENAJAR_HOME=/var/lib/agentos /opt/agentos/.venv/bin/openajar node join --self-hosted ws://localhost:7401 TOKEN
   sudo systemctl restart agentosd
   ```
 
@@ -150,7 +150,7 @@ A token is single use and valid for one hour. Two ways to get the node to the co
 3. Turns on unattended security upgrades.
 4. Runs `deploy/install-node.sh --systemd --user agentos --hardened` in the checkout.
 5. Joins the controller if `CONTROLLER_URL` and `JOIN_TOKEN` are set, then blanks the token.
-6. Runs `agentos doctor` as the `agentos` user and writes `~/agentos-doctor.txt` for the admin.
+6. Runs `openajar doctor` as the `agentos` user and writes `~/openajar-doctor.txt` for the admin.
 
 Its exit code is the doctor's. A failed install step stops the bootstrap where it failed, and no report is written. The full log on a Hetzner server is `/var/log/cloud-init-output.log`.
 Run the first-boot script again after you change `/etc/agentos/bootstrap.env`:

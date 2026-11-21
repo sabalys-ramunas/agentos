@@ -1,10 +1,10 @@
 """Soak and chaos runs on a real node (docs/BENCH.md). Marked `soak`, so neither the normal run
 nor `pytest -m node` picks them up:
 
-    AGENTOS_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak -q
-    AGENTOS_SOAK_SECONDS=600 ... tests/soak/test_soak.py      # a shorter soak
+    OPENAJAR_TEST_SLOT=53 scripts/node-test.sh soak -m soak tests/soak -q
+    OPENAJAR_SOAK_SECONDS=600 ... tests/soak/test_soak.py      # a shorter soak
 
-Each test gets its own throwaway agentosd in the slot (agentos.dev.slotnode) with a home under
+Each test gets its own throwaway agentosd in the slot (openajar.dev.slotnode) with a home under
 .node-home/, its lanes behind the stand-in proxy (the only web they see, and the proxy the chaos
 tests stop). After each test the slot must be empty: no browser whose profile is under the home,
 no Xvfb or x11vnc on the slot's displays, no display files, no listener on the slot's lane ports.
@@ -21,9 +21,9 @@ from pathlib import Path
 
 import pytest
 
-from agentos.dev.slotnode import Slot, SlotDaemon, StandInProxy, clean_slot, leftovers
+from openajar.dev.slotnode import Slot, SlotDaemon, StandInProxy, clean_slot, leftovers
 
-ROOT = Path(os.environ.get("AGENTOS_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
+ROOT = Path(os.environ.get("OPENAJAR_TEST_ROOT", Path(__file__).resolve().parents[2] / ".node-home"))
 MIN_AVAILABLE_MB = 1800  # two warm lanes and the daemon, above the node's own 800 MB floor
 
 
@@ -87,6 +87,6 @@ async def node(slot, proxy):
         if leaked:
             problems.append(f"{daemon.home.name}: secrets {leaked} (0 node token, 1 proxy password, 2 proxy "
                             "basic auth, 3 agent grant) appear in agentosd's logs")
-        if os.environ.get("AGENTOS_SOAK_KEEP") != "1":
+        if os.environ.get("OPENAJAR_SOAK_KEEP") != "1":
             shutil.rmtree(daemon.home, ignore_errors=True)
     assert not problems, "\n".join(problems)

@@ -23,7 +23,7 @@ export interface Term {
 export const PLACES = {
   home: { word: 'Home', technical: 'Home' },
   environments: { word: 'Environments', singular: 'Environment', technical: 'Environments (cloud VMs)' },
-  runs: { word: 'Runs', singular: 'Run', technical: 'Jobs (agentos run)' },
+  runs: { word: 'Runs', singular: 'Run', technical: 'Jobs (openajar run)' },
   checks: { word: 'Checks', singular: 'Check', technical: 'Studio runs' },
   machines: { word: 'Machines', singular: 'Machine', technical: 'Nodes' },
   brand: { word: 'Brand', technical: 'Product profiles' },
@@ -109,16 +109,16 @@ export const WORKER_ROWS = {
 } as const satisfies Record<string, Term>;
 
 /** Asked once, at the moment a person turns a worker on: only a person can. */
-export const TURNING_ON_WORKER = 'A worker acts on the accounts on this machine, so agentos checks it is you first. An agent can never do this for you.';
+export const TURNING_ON_WORKER = 'A worker acts on the accounts on this machine, so openajar checks it is you first. An agent can never do this for you.';
 /** Clearing taint lets an agent's next post go without asking, so it is the owner's, asked in person. */
-export const CLEARING_TAINT = 'An agent that read outside text would stop asking before its next post, so agentos checks it is you first.';
+export const CLEARING_TAINT = 'An agent that read outside text would stop asking before its next post, so openajar checks it is you first.';
 /** The same for one account the worker was taken off. */
-export const TURNING_ON_ACCOUNT_WORKER = 'The worker will act on this account again, so agentos checks it is you first. An agent can never do this for you.';
+export const TURNING_ON_ACCOUNT_WORKER = 'The worker will act on this account again, so openajar checks it is you first. An agent can never do this for you.';
 
 /** Asked once, before a freeze is lifted. Lifting one restores nothing, so the words say so. */
 /** Said in the step-up dialog before a repository token goes to the node. */
-export const GIVING_A_TOKEN = 'A token opens your code to this computer, so agentos checks it is you first.';
-export const LIFTING_A_FREEZE = 'Lifting the freeze lets agents start again, and agentos checks it is you first. Nothing comes back by itself: grants stay revoked and paused schedules stay paused.';
+export const GIVING_A_TOKEN = 'A token opens your code to this computer, so openajar checks it is you first.';
+export const LIFTING_A_FREEZE = 'Lifting the freeze lets agents start again, and openajar checks it is you first. Nothing comes back by itself: grants stay revoked and paused schedules stay paused.';
 
 /** What a freeze is, in the words a person reads. Its technical name is the break-glass freeze. */
 export const FREEZE_WORDS = {
@@ -127,7 +127,7 @@ export const FREEZE_WORDS = {
   unfreeze: { word: 'Unfreeze', technical: 'unfreeze' },
 } as const satisfies Record<string, Term>;
 
-/** A run's outcome. Honest: "checked" means agentos saw it on the site afterwards. */
+/** A run's outcome. Honest: "checked" means openajar saw it on the site afterwards. */
 export const RUN_WORDS: Record<RunStatus, Term> = {
   queued: { word: 'Queued', technical: 'queued' },
   running: { word: 'Working now', technical: 'running' },
@@ -242,14 +242,14 @@ export const GLOSSARY: { today: string; plain: string; techOk?: string }[] = [
   { today: 'Event, Events, last 24 hours', plain: 'things done', techOk: 'Machine logs' },
   { today: 'Principal, Started by claude-code', plain: 'Who did it: Claude Code, Claude, Codex, ChatGPT, or the routine', techOk: 'id in Technical details' },
   { today: 'Brain, claude-max', plain: 'AI model; Claude (Max plan), Local AI on the Mac mini', techOk: 'Settings, AI models' },
-  { today: 'Provider', plain: 'AI service: TypeSafe, OpenRouter, Claude (Max plan), Local AI on the Mac mini', techOk: 'Technical details, the agentos brains command' },
+  { today: 'Provider', plain: 'AI service: TypeSafe, OpenRouter, Claude (Max plan), Local AI on the Mac mini', techOk: 'Technical details, the openajar brains command' },
   { today: 'Plugin', plain: 'Worker: Browser worker, Android worker, Desktop worker', techOk: 'Technical details' },
   { today: 'Action, pilot step', plain: 'Step', techOk: 'Technical details' },
   { today: 'Decide, write and rescue roles', plain: 'Decides each step, Writes text, Helps when it is unsure', techOk: 'Technical details' },
   { today: 'Escalation', plain: 'It asks for help, then it stops and asks you', techOk: 'Technical details' },
   { today: 'Model spend, Cost', plain: 'AI usage, $1.87 today (owner and admin only)', techOk: 'per-run cost with Technical details on' },
   { today: 'Tokens', plain: '(hidden)', techOk: 'Technical details' },
-  { today: 'Grant', plain: 'Agent access: Which AI apps can use agentos', techOk: 'token screens' },
+  { today: 'Grant', plain: 'Agent access: Which AI apps can use openajar', techOk: 'token screens' },
   { today: 'Vault', plain: 'Saved logins' },
   { today: 'Webhooks', plain: 'Webhooks (System only)' },
   { today: 'Audit log', plain: 'Who changed what' },

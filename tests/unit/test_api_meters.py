@@ -1,4 +1,4 @@
-"""The meters, a lane's queue and its taint in the panel API (agentos.api.routes_meters): who sees
+"""The meters, a lane's queue and its taint in the panel API (openajar.api.routes_meters): who sees
 what (the owner, a member, a grant), the owner setting a lane's limits, and clearing taint in person."""
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from starlette.testclient import TestClient
 from test_api_members import ORIGIN, accept, invite, owner, role
 from test_node_panel import TOKEN, Node, bearer
 
-from agentos.api.auth import SESSION_COOKIE
-from agentos.core.models import Effect
+from openajar.api.auth import SESSION_COOKIE
+from openajar.core.models import Effect
 
 EM_DASH = "—"
 CONFIRM = {"confirm": "clear"}
@@ -152,7 +152,7 @@ def test_without_members_clearing_taint_still_needs_a_fresh_in_person_step(panel
     boss = owner(panel)  # no members, no passkey: a fresh sign-in with a one-time code and the typed word
     sessions(panel, "UPDATE sessions SET created_at = created_at - 3600")
     r = boss.post(url, CONFIRM)
-    assert r.status_code == 403 and "agentos panel login" in r.json()["error"]["message"]
+    assert r.status_code == 403 and "openajar panel login" in r.json()["error"]["message"]
     sessions(panel, f"UPDATE sessions SET created_at = {time.time()}")  # signed in again just now
     assert boss.post(url, {"confirm": "yes"}).status_code == 400
     assert boss.post(url, CONFIRM).status_code == 200

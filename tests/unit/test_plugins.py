@@ -12,25 +12,25 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from agentos.brains.models import BrainSpec
-from agentos.cli import app
-from agentos.core import catalog
-from agentos.core.config import NodeConfig
-from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.core.models import Effect, LaneKind
-from agentos.core.runtime import Runtime
-from agentos.plugins import admin
-from agentos.plugins import cli as plugins_cli
-from agentos.plugins.entries import ANDROID_WORKER, BROWSER_WORKER, PLUGINS
-from agentos.plugins.errors import (
+from openajar.brains.models import BrainSpec
+from openajar.cli import app
+from openajar.core import catalog
+from openajar.core.config import NodeConfig
+from openajar.core.errors import InvalidRequest, NotFound, ServiceUnavailable
+from openajar.core.models import Effect, LaneKind
+from openajar.core.runtime import Runtime
+from openajar.plugins import admin
+from openajar.plugins import cli as plugins_cli
+from openajar.plugins.entries import ANDROID_WORKER, BROWSER_WORKER, PLUGINS
+from openajar.plugins.errors import (
     ChangeNotRecorded,
     OnlyAPerson,
     PluginDisabled,
     RequirementsUnmet,
     StateBroken,
 )
-from agentos.plugins.models import Change, Job, Plugin, Skill, Stage
-from agentos.plugins.requirements import (
+from openajar.plugins.models import Change, Job, Plugin, Skill, Stage
+from openajar.plugins.requirements import (
     GB,
     LANE_KIND_MODULES,
     DevicePresent,
@@ -39,11 +39,11 @@ from agentos.plugins.requirements import (
     NodeFacts,
     ServicePresent,
 )
-from agentos.plugins.service import PluginService, brain_skills
-from agentos.plugins.store import FILE_NAME, SCHEMA_VERSION, PluginStore
-from agentos.plugins.tools import tool_specs
+from openajar.plugins.service import PluginService, brain_skills
+from openajar.plugins.store import FILE_NAME, SCHEMA_VERSION, PluginStore
+from openajar.plugins.tools import tool_specs
 
-SRC = Path(__file__).resolve().parents[2] / "src" / "agentos"
+SRC = Path(__file__).resolve().parents[2] / "src" / "openajar"
 
 JEV = BrainSpec.template("jev", "metered", "typesafe", credential="api_key")
 CHAT = BrainSpec.template("chat", "metered", "openai-compatible", base_url="https://api.example.com/v1",
@@ -122,7 +122,7 @@ def test_every_lane_kind_says_what_provides_it():
 
 
 def test_the_package_keeps_the_feature_contract():
-    """Only agentos.core and itself: a plugin names other features by string, never by import."""
+    """Only openajar.core and itself: a plugin names other features by string, never by import."""
     for path in (SRC / "plugins").glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
             names = []
@@ -131,17 +131,17 @@ def test_the_package_keeps_the_feature_contract():
             elif isinstance(node, ast.ImportFrom):
                 names = [node.module or ""]
             for name in names:
-                if name.startswith("agentos"):
-                    assert name.startswith(("agentos.core", "agentos.plugins")), f"{path.name} imports {name}"
+                if name.startswith("openajar"):
+                    assert name.startswith(("openajar.core", "openajar.plugins")), f"{path.name} imports {name}"
 
 
 # ---- requirements ----
 
 def test_a_service_passes_on_the_runtime_or_in_the_build_and_says_which(runtime):
-    need = ServicePresent("pilot", "agentos.pilot.service")
+    need = ServicePresent("pilot", "openajar.pilot.service")
     missing = need.check(facts_for(runtime))
     assert not missing.ok and "not part of this build yet" in missing.reason
-    built = need.check(facts_for(runtime, installed=("agentos.pilot.service",)))
+    built = need.check(facts_for(runtime, installed=("openajar.pilot.service",)))
     assert built.ok and "part of this build" in built.reason
     runtime.register("pilot", object())
     live = need.check(facts_for(runtime))
@@ -150,21 +150,21 @@ def test_a_service_passes_on_the_runtime_or_in_the_build_and_says_which(runtime)
 
 def test_a_loaded_plugin_needs_the_service_really_running(runtime):
     facts = NodeFacts(runtime=runtime, running=True, installed=installed_all)
-    check = ServicePresent("pilot", "agentos.pilot.service").check(facts)
+    check = ServicePresent("pilot", "openajar.pilot.service").check(facts)
     assert not check.ok and "not running" in check.reason
 
 
 def test_the_real_build_has_the_pilot_and_lanes_are_found_without_importing_them(runtime):
     facts = NodeFacts(runtime=runtime)
-    assert ServicePresent("pilot", "agentos.pilot.service").check(facts).ok
+    assert ServicePresent("pilot", "openajar.pilot.service").check(facts).ok
     assert LaneKindSupported("browser").check(facts).ok
     android = LaneKindSupported("android").check(facts)
-    assert not android.ok and "agentos.android" in android.reason
+    assert not android.ok and "openajar.android" in android.reason
 
 
-def test_a_lane_kind_agentos_does_not_have_says_so(runtime):
+def test_a_lane_kind_openajar_does_not_have_says_so(runtime):
     check = LaneKindSupported("desktop").check(facts_for(runtime))
-    assert not check.ok and check.reason == "agentos has no desktop lanes yet"
+    assert not check.ok and check.reason == "openajar has no desktop lanes yet"
 
 
 @pytest.mark.parametrize("memory, ok", [(16 * GB, True), (int(15.6 * GB), True), (int(3.73 * GB), False), (None, False)])
@@ -434,8 +434,8 @@ def test_only_the_cli_and_the_signed_in_route_reach_the_writes():
     importers = []
     for path in SRC.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
-            direct = isinstance(node, ast.ImportFrom) and node.module == "agentos.plugins.admin"
-            parent = (isinstance(node, ast.ImportFrom) and node.module == "agentos.plugins"
+            direct = isinstance(node, ast.ImportFrom) and node.module == "openajar.plugins.admin"
+            parent = (isinstance(node, ast.ImportFrom) and node.module == "openajar.plugins"
                       and any(alias.name == "admin" for alias in node.names))
             if direct or parent:
                 importers.append(str(path.relative_to(SRC)))
@@ -460,7 +460,7 @@ async def test_an_agent_asking_for_a_disabled_worker_is_told_a_person_must_enabl
     with pytest.raises(PluginDisabled) as refused:
         await plugins_list_of(runtime).handler(Ctx(), plugin="browser-worker")
     assert "Only a person can turn it on" in refused.value.message
-    assert "agentos plugins enable browser-worker" in refused.value.message
+    assert "openajar plugins enable browser-worker" in refused.value.message
     assert refused.value.code == "plugin_disabled"
     assert "person" in catalog.entry("plugin_disabled").meaning
 
@@ -558,9 +558,9 @@ def test_a_broken_file_is_named_and_the_list_still_works(cli, tmp_path):
 
 def test_the_real_cli_reads_real_brains(tmp_path, monkeypatch):
     """No fakes: the composition root's runtime, a real brain store, a real BrainSpec."""
-    from agentos.brains.service import build as build_brains
+    from openajar.brains.service import build as build_brains
 
-    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path))
     build_brains(Runtime(config=NodeConfig(home=tmp_path))).store.put_brain(JEV)
     runner = CliRunner()
     good = runner.invoke(app, ["plugins", "assign", "browser-worker", "decide", "jev"])
@@ -699,7 +699,7 @@ def test_show_prints_the_history(cli):
 
 
 def test_a_record_is_in_the_real_chained_log_of_this_node(cli, tmp_path):
-    from agentos.policy.traces import TraceStore
+    from openajar.policy.traces import TraceStore
 
     cli.invoke(app, ["plugins", "assign", "browser-worker", "decide", "jev"])
     store = TraceStore(tmp_path / "traces.db")
@@ -778,14 +778,14 @@ def test_show_still_works_when_the_log_cannot_be_read(cli, no_record):
 
 
 def test_the_real_composition_root_wires_the_action_log():
-    from agentos.commands.features import PluginChanges
+    from openajar.commands.features import PluginChanges
 
     assert plugins_cli.change_log_factory is not None
     assert isinstance(plugins_cli.change_log_factory(Runtime(config=NodeConfig(home=Path("/nowhere")))), PluginChanges)
 
 
 def test_a_row_the_log_will_not_take_is_a_failure(tmp_path):
-    from agentos.commands.features import PluginChanges
+    from openajar.commands.features import PluginChanges
 
     log = PluginChanges(tmp_path)
     log._open().flush = lambda: 1
@@ -795,7 +795,7 @@ def test_a_row_the_log_will_not_take_is_a_failure(tmp_path):
 
 
 def test_root_never_makes_the_log_for_the_daemon(tmp_path, monkeypatch):
-    from agentos.commands import features as root_cli
+    from openajar.commands import features as root_cli
 
     monkeypatch.setattr(root_cli.os, "geteuid", lambda: 0)
     with pytest.raises(ServiceUnavailable, match="start agentosd once"):
@@ -852,9 +852,9 @@ def test_the_variables_are_the_ones_the_runners_really_set(tmp_path):
     """The guard names them as strings, because this package may not import either feature."""
     from types import SimpleNamespace
 
-    from agentos.brains import adapters
-    from agentos.brains.settings import BrainsSettings
-    from agentos.env.lanes import LaneRuntime
+    from openajar.brains import adapters
+    from openajar.brains.settings import BrainsSettings
+    from openajar.env.lanes import LaneRuntime
 
     assert admin.BRAIN_TASK_ENV == adapters.BRAIN_TASK_ENV
     env = adapters.base_env(bin_path="/bin/claude", settings=BrainsSettings(), home=tmp_path, user=None, task_id="t_1")
@@ -1004,13 +1004,13 @@ async def test_an_agent_reads_only_the_lanes_it_reaches(service, runtime):
 def test_a_missing_worker_tool_names_the_first_step_that_works(service, runtime):
     """QA 2026-11-10, tester B 6: the hint said `enable` first (refused until every job has a brain),
     "restarts it" said nothing, and the name read "Browser worker worker"."""
-    from agentos.plugins.service import missing_tool
+    from openajar.plugins.service import missing_tool
     runtime.register("plugins", service)
     text = missing_tool(runtime, "browser_task")
     assert "worker worker" not in text and "Browser worker (browser-worker)" in text
-    assert "agentos plugins assign browser-worker decide BRAIN" in text and "a decision brain" in text
+    assert "openajar plugins assign browser-worker decide BRAIN" in text and "a decision brain" in text
     assert text.index("plugins assign") < text.index("plugins enable") < text.index("restart agentosd")
     assert "—" not in text
     assign_all(service)
     text = missing_tool(runtime, "browser_task")
-    assert "plugins assign" not in text and "agentos plugins enable browser-worker" in text
+    assert "plugins assign" not in text and "openajar plugins enable browser-worker" in text

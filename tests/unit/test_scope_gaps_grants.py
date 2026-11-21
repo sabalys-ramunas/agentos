@@ -17,12 +17,12 @@ from test_wsexport_api import panels  # noqa: F401 - the two-node panel fixture
 from testkit.brains import FakeCtx, add, wait_status
 from testkit.brains import make_service as make_brains
 
-from agentos.api.auth import SESSION_COOKIE
-from agentos.brains import tool_specs
-from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
-from agentos.core.models import Effect, Principal
-from agentos.events.tools import trigger_propose
-from agentos.policy.grants import Grant, GrantBlock, Subject
+from openajar.api.auth import SESSION_COOKIE
+from openajar.brains import tool_specs
+from openajar.core.errors import InvalidRequest, NotFound, PolicyDenied
+from openajar.core.models import Effect, Principal
+from openajar.events.tools import trigger_propose
+from openajar.policy.grants import Grant, GrantBlock, Subject
 
 ISSUER = "node:scope-gaps"
 KID = "ed25519:" + "0" * 32
@@ -159,7 +159,7 @@ async def test_brain_use_sets_a_default_only_for_a_covered_workspace_or_by_a_gra
     assert narrow.authorized == []
     assert await t["brain_use"].handler(narrow, name="claude-max", workspace="biz-a") == \
         {"workspace": "biz-a", "default_brain": "claude-max"}
-    every = GrantedCtx(brains.runtime, grant_of("gr_cccccccccc", workspaces=["*"]))  # what `agentos connect` issues
+    every = GrantedCtx(brains.runtime, grant_of("gr_cccccccccc", workspaces=["*"]))  # what `openajar connect` issues
     assert await t["brain_use"].handler(every, name="claude-max") == \
         {"workspace": None, "default_brain": "claude-max"}
 
@@ -219,7 +219,7 @@ def test_the_device_credential_issues_grants_only_within_the_device_ceiling(node
     fits = device.req("POST", "/api/grants",
                       {"subject": "device-claude", "workspaces": ["*"], "ceiling": "commit", "ttl": "90d"})
     assert fits.status_code == 200 and fits.json()["token"], fits.text
-    # the node token, which `agentos connect` uses, is not bounded
+    # the node token, which `openajar connect` uses, is not bounded
     owner = Token(node, TOKEN).req("POST", "/api/grants", {"subject": "node-claude", "workspaces": ["biz-a"],
                                                           "ceiling": "irreversible", "ttl": "7d"})
     assert owner.status_code == 200, owner.text

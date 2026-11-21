@@ -21,20 +21,20 @@ from test_pilot_service import (  # noqa: F401 (close_the_nodes is an autouse fi
 )
 from testkit.pilot import step
 
-from agentos.core.errors import ApprovalPending, InvalidRequest
-from agentos.core.models import ActionKind, Effect, LaneSpec
-from agentos.dev.net import DEV_HOST, publish_request
-from agentos.node import egress, human, publish
-from agentos.node import tools as node_tools
-from agentos.pilot import errors as pilot_errors
-from agentos.pilot import service as pilot_service
-from agentos.pilot.deciders import BrainText, Text
-from agentos.pilot.hands import ToolFailed
-from agentos.pilot.service import PilotService, Settings
-from agentos.pilot.tools import lane_do
-from agentos.runner import tools as runner_tools
-from agentos.runner.execution import Journal
-from agentos.runner.fakes import BASE
+from openajar.core.errors import ApprovalPending, InvalidRequest
+from openajar.core.models import ActionKind, Effect, LaneSpec
+from openajar.dev.net import DEV_HOST, publish_request
+from openajar.node import egress, human, publish
+from openajar.node import tools as node_tools
+from openajar.pilot import errors as pilot_errors
+from openajar.pilot import service as pilot_service
+from openajar.pilot.deciders import BrainText, Text
+from openajar.pilot.hands import ToolFailed
+from openajar.pilot.service import PilotService, Settings
+from openajar.pilot.tools import lane_do
+from openajar.runner import tools as runner_tools
+from openajar.runner.execution import Journal
+from openajar.runner.fakes import BASE
 
 # the owner's choice the review tested: commit left out of the list, everything else kept
 OWNER_POLICY = '[taint]\ndowngrade = ["pay", "irreversible", "exec", "service", "install_overlay", "install_base"]\n'

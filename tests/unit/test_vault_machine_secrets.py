@@ -7,9 +7,9 @@ import sqlite3
 import pytest
 from test_vault_support import make_vault, private_home
 
-from agentos.brains.credentials import DEV_FILE_NAME, CredentialStore, brain_ref
-from agentos.core.errors import InvalidRequest
-from agentos.vault.errors import VaultSealed, VaultTampered
+from openajar.brains.credentials import DEV_FILE_NAME, CredentialStore, brain_ref
+from openajar.core.errors import InvalidRequest
+from openajar.vault.errors import VaultSealed, VaultTampered
 
 TOKEN = "sk-ant-oat01-" + "Q" * 70
 
